@@ -362,6 +362,8 @@ const ICONS = {
   bell: '<path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/>',
   book: '<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>',
   shield: '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>',
+  cart: '<circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>',
+  checkSquare: '<polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>',
 };
 function icon(name, cls = '') {
   return `<svg class="ic ${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[name] || ''}</svg>`;
@@ -435,9 +437,10 @@ const DB = {
   normalize(d) {
     d = d || {};
     d.objectifs = Object.assign({}, OBJECTIFS_DEFAUT, d.objectifs || {});
-    ['clients', 'chantiers', 'devis', 'ca', 'bte', 'prospection', 'factures', 'contrats', 'visites', 'equipes', 'pointages'].forEach(k => { if (!Array.isArray(d[k])) d[k] = []; });
+    ['clients', 'chantiers', 'devis', 'ca', 'bte', 'prospection', 'factures', 'contrats', 'visites', 'equipes', 'pointages', 'commandes'].forEach(k => { if (!Array.isArray(d[k])) d[k] = []; });
     d.devis.forEach(x => { if (x.otp === undefined) x.otp = ''; if (x.clientId === undefined) x.clientId = ''; });
     d.factures.forEach(x => { if (x.otp === undefined) x.otp = ''; });
+    d.ca.forEach(x => { if (x.sourceType === undefined) { x.sourceType = ''; x.sourceId = ''; } });
     d.bte = d.bte.map(migrateBte);
     return d;
   },
@@ -536,6 +539,11 @@ function demoData() {
       { id: uid(), ref: 'CE-2025-04', clientId: c2, nom: 'Maintenance parking + toitures', type: 'Contrat entretien', dateDebut: addDays(todayISO(), -60), dateFin: addDays(todayISO(), 305), frequence: 4, montantAnnuel: 18000, note: 'BPU associé' },
     ],
     visites: [],
+    commandes: [
+      { id: uid(), date: addDays(todayISO(), -20), otp: 'OTP-24002', fournisseur: 'IKO', objet: 'Membranes + isolant', montantHT: 52000, statut: 'livree' },
+      { id: uid(), date: addDays(todayISO(), -12), otp: 'OTP-24002', fournisseur: 'Loxam', objet: 'Location grue (2 sem.)', montantHT: 6000, statut: 'facturee' },
+      { id: uid(), date: addDays(todayISO(), -8), otp: 'OTP-24001', fournisseur: 'IKO', objet: 'Complexe étanchéité bâtiment A', montantHT: 24000, statut: 'commande' },
+    ],
     equipes: [
       { id: uid(), nom: 'Équipe A', chef: 'Karim B.', compagnon: 'Léo P.' },
       { id: uid(), nom: 'Équipe B', chef: 'David M.', compagnon: 'Samir T.' },
@@ -591,6 +599,7 @@ const NAV = [
   { route: 'planning', ico: 'calendar', label: 'Planning & pointages', render: renderPlanning },
   { route: 'cadences', ico: 'clock', label: 'Cadences étanchéité', render: renderCadences },
   { route: 'bte', ico: 'calculator', label: 'BTE — Budget chantier', render: renderBTE },
+  { route: 'achats', ico: 'cart', label: 'Achats fournisseurs', render: renderAchats },
   { group: 'Entretien' },
   { route: 'entretien', ico: 'wrench', label: 'Contrats & visites', render: renderEntretien },
   { group: 'Finances' },
@@ -927,7 +936,8 @@ function chantierDetail(id) {
 }
 
 /* ---------- Devis ---------- */
-const otpDistinct = () => [...new Set([...DB.data.devis.map(d => d.otp), ...DB.data.chantiers.map(c => c.otp), ...DB.data.factures.map(f => f.otp)].filter(Boolean))].sort();
+const otpDistinct = () => [...new Set([...DB.data.devis.map(d => d.otp), ...DB.data.chantiers.map(c => c.otp), ...DB.data.factures.map(f => f.otp), ...DB.data.commandes.map(c => c.otp)].filter(Boolean))].sort();
+const commandesParOtp = otp => DB.data.commandes.filter(c => c.otp === otp).reduce((s, c) => s + (+c.montantHT || 0), 0);
 let devisFilter = { q: '', statut: '', otp: '' };
 function renderDevis(v) {
   const o = DB.data.objectifs;
@@ -1003,9 +1013,12 @@ function renderCA(v) {
   const totMarge = rows.reduce((s, r) => s + marge(r), 0), totVente = tot('prixVente');
   const caAnnee = yearRows.reduce((s, r) => s + (+r.prixVente || 0), 0), margeAnnee = yearRows.reduce((s, r) => s + marge(r), 0);
   const o = DB.data.objectifs;
+  const cand = caCandidates();
   const marginCls = p => p >= o.margeCible ? 'margin-good' : p >= o.margeCible * 0.66 ? 'margin-warn' : 'margin-bad';
   v.innerHTML = `
-    <div class="page-actions"><button class="btn primary" id="add">${icon('plus')} Ajouter une ligne</button><span class="spacer"></span><button class="btn small" id="csv">${icon('download')} Export CSV du mois</button></div>
+    <div class="page-actions"><button class="btn primary" id="add">${icon('plus')} Ajouter une ligne</button>
+      <button class="btn" id="cloture">${icon('checkSquare')} Fin de mois — sélectionner les affaires${cand.length ? ` &nbsp;<span class="badge b-relance">${cand.length}</span>` : ''}</button>
+      <span class="spacer"></span><button class="btn small" id="csv">${icon('download')} Export CSV du mois</button></div>
     <div class="filters">
       <select id="fmonth">${MOIS.map((mm, i) => `<option value="${i}" ${i === caMonth ? 'selected' : ''}>${mm}</option>`).join('')}</select>
       <select id="fyear">${yearsRange().map(y => `<option value="${y}" ${y === caYear ? 'selected' : ''}>${y}</option>`).join('')}</select>
@@ -1021,6 +1034,7 @@ function renderCA(v) {
       <tfoot><tr><td colspan="2">TOTAL ${MOIS[caMonth]}</td><td class="num">${eur(totVente)}</td><td class="num">${eur(tot('fournitures'))}</td><td class="num">${eur(tot('engins'))}</td><td class="num">${eur(tot('moSmac'))}</td><td class="num">${eur(totMarge)}</td><td class="num">${pct(totVente ? totMarge / totVente : 0)}</td><td></td></tr></tfoot></table></div>`
       : emptyState('euro', 'Aucune ligne pour ' + MOIS[caMonth] + ' ' + caYear, 'Ajoutez le CA réalisé de vos chantiers.')}`;
   $('#add').onclick = () => caForm();
+  $('#cloture').onclick = () => caPicker();
   $('#fmonth').onchange = e => { caMonth = +e.target.value; renderCA(v); };
   $('#fyear').onchange = e => { caYear = +e.target.value; renderCA(v); };
   $('#csv').onclick = () => exportCSV(`CA_${MOIS[caMonth]}_${caYear}`, ['otp', 'chantier', 'prixVente', 'fournitures', 'engins', 'moSmac', 'marge'], rows.map(r => [r.otp, r.chantier, r.prixVente, r.fournitures, r.engins, r.moSmac, marge(r)]));
@@ -1051,6 +1065,42 @@ function caForm(id) {
     if (!obj.chantier) { toast('Le nom du chantier est obligatoire', 'err'); return; }
     if (id) Object.assign(r, obj); else DB.data.ca.unshift({ id: uid(), ...obj });
     caMonth = obj.mois; caYear = obj.annee; DB.save(); m.close(); toast('Ligne CA enregistrée'); go('ca');
+  };
+}
+/* Affaires facturables (chantiers passés en « facturé » + devis acceptés) non encore reprises en CA */
+const caIsConsumed = (type, sid) => DB.data.ca.some(r => r.sourceType === type && r.sourceId === sid);
+function caCandidates() {
+  const out = [];
+  DB.data.chantiers.filter(c => c.statut === 'facture' && !caIsConsumed('chantier', c.id)).forEach(c => out.push({ type: 'chantier', id: c.id, otp: c.otp, clientId: c.clientId, designation: c.nom, montant: +c.montantHT || 0 }));
+  DB.data.devis.filter(d => d.statut === 'accepte' && !caIsConsumed('devis', d.id)).forEach(d => out.push({ type: 'devis', id: d.id, otp: d.otp, clientId: d.clientId, designation: d.objet, montant: +d.montantHT || 0 }));
+  return out;
+}
+function caPicker() {
+  const cand = caCandidates();
+  const m = modal({ title: 'Clôture de fin de mois — affaires à mettre en CA', wide: true,
+    body: `<p class="t-muted" style="margin-top:0">Sélectionnez les chantiers <b>facturés</b> et les devis <b>acceptés</b> à intégrer au CA du mois. Les fournitures sont reprises automatiquement des <b>achats fournisseurs</b> imputés sur l'OTP.</p>
+    <div class="form-grid" style="max-width:360px">
+      <div class="field"><label>Mois</label><select id="p-mois">${MOIS.map((mm, i) => `<option value="${i}" ${i === caMonth ? 'selected' : ''}>${mm}</option>`).join('')}</select></div>
+      <div class="field"><label>Année</label><input id="p-annee" type="number" value="${caYear}"></div>
+    </div>
+    ${cand.length ? `<div class="table-wrap" style="margin-top:14px"><table><thead><tr><th><input type="checkbox" id="p-all"></th><th>Type</th><th>OTP</th><th>Désignation</th><th class="num">Prix vente HT</th><th class="num">Fournitures (achats OTP)</th></tr></thead>
+      <tbody>${cand.map((c, i) => `<tr><td><input type="checkbox" class="p-chk" data-i="${i}" checked></td><td><span class="badge ${c.type === 'chantier' ? 'b-receptionne' : 'b-accepte'}">${c.type === 'chantier' ? 'Chantier facturé' : 'Devis accepté'}</span></td><td class="t-strong">${esc(c.otp || '—')}</td><td>${esc(c.designation)}</td><td class="num">${eur(c.montant)}</td><td class="num">${eur(commandesParOtp(c.otp))}</td></tr>`).join('')}</tbody></table></div>
+      <div class="field inline" style="margin-top:12px"><input type="checkbox" id="p-fact"><label for="p-fact" style="cursor:pointer">Créer aussi les factures correspondantes (statut « à émettre »)</label></div>`
+      : `<div class="empty" style="padding:30px"><div class="em-ico">${icon('checkSquare')}</div><h3>Aucune affaire disponible</h3><div>Passez un chantier en statut « Facturé » ou acceptez un devis pour le voir apparaître ici.</div></div>`}`,
+    footer: cand.length ? `<button class="btn" data-c>Annuler</button><button class="btn primary" id="p-go">Ajouter au CA du mois</button>` : `<button class="btn" data-c>Fermer</button>` });
+  m.root.querySelector('[data-c]').onclick = m.close;
+  if (!cand.length) return;
+  $('#p-all').onclick = e => $$('.p-chk', m.root).forEach(c => c.checked = e.target.checked);
+  $('#p-go').onclick = () => {
+    const mois = +$('#p-mois').value, annee = +$('#p-annee').value;
+    const chosen = $$('.p-chk', m.root).filter(c => c.checked).map(c => cand[+c.dataset.i]);
+    if (!chosen.length) { toast('Sélectionnez au moins une affaire', 'err'); return; }
+    const withFact = $('#p-fact').checked;
+    chosen.forEach(c => {
+      DB.data.ca.unshift({ id: uid(), mois, annee, otp: c.otp || '', chantier: c.designation, prixVente: c.montant, fournitures: commandesParOtp(c.otp), engins: 0, moSmac: 0, sourceType: c.type, sourceId: c.id });
+      if (withFact) DB.data.factures.unshift({ id: uid(), num: '', otp: c.otp || '', clientId: c.clientId || '', client: clientNom(c.clientId) === '—' ? '' : clientNom(c.clientId), chantierId: c.type === 'chantier' ? c.id : '', objet: c.designation, dateFG: todayISO(), dateEmission: '', montantHT: c.montant, echeanceJours: DB.data.objectifs.delaiPaiement, datePaiement: '', statut: 'a_emettre' });
+    });
+    caMonth = mois; caYear = annee; DB.save(); m.close(); toast(chosen.length + ' affaire(s) ajoutée(s) au CA' + (withFact ? ' + factures créées' : '')); go('ca');
   };
 }
 
@@ -1564,6 +1614,67 @@ function equipesModal() {
   $('#e-save').onclick = () => {
     DB.data.equipes = $$('#e-body tr').map(tr => ({ id: tr.dataset.id, nom: tr.querySelector('[data-f="nom"]').value.trim() || 'Équipe', chef: tr.querySelector('[data-f="chef"]').value.trim(), compagnon: tr.querySelector('[data-f="compagnon"]').value.trim() }));
     DB.save(); m.close(); toast('Équipes enregistrées'); go('planning');
+  };
+}
+
+/* ---------- Achats fournisseurs (imputés sur OTP) ---------- */
+const STATUTS_CMD = { commande: 'Commandée', livree: 'Livrée', facturee: 'Facturée' };
+function cmdBadge(s) { const map = { commande: 'b-attente', livree: 'b-envoye', facturee: 'b-accepte' }; return `<span class="badge ${map[s] || 'b-attente'}">${STATUTS_CMD[s] || s}</span>`; }
+let achatFilter = { q: '', otp: '' };
+function renderAchats(v) {
+  const list = DB.data.commandes.filter(c => {
+    if (achatFilter.otp && c.otp !== achatFilter.otp) return false;
+    if (achatFilter.q) { const s = ((c.fournisseur || '') + ' ' + (c.objet || '') + ' ' + (c.otp || '')).toLowerCase(); if (!s.includes(achatFilter.q.toLowerCase())) return false; }
+    return true;
+  }).sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+  const total = list.reduce((s, c) => s + (+c.montantHT || 0), 0);
+  // récap par OTP
+  const grp = {}; DB.data.commandes.forEach(c => { const k = c.otp || '(sans OTP)'; grp[k] = (grp[k] || 0) + (+c.montantHT || 0); });
+  const otpKeys = Object.keys(grp).sort();
+  v.innerHTML = `
+    <div class="card card-pad" style="margin-bottom:16px">
+      <div class="section-head">${icon('cart')}<h2>Achats imputés par OTP</h2></div>
+      ${otpKeys.length ? `<div class="table-wrap"><table><thead><tr><th>OTP</th><th class="num">Total achats HT</th><th></th></tr></thead>
+        <tbody>${otpKeys.map(k => `<tr><td class="t-strong">${esc(k)}</td><td class="num">${eur(grp[k])}</td><td class="actions-cell"><button class="link" data-fotp="${esc(k === '(sans OTP)' ? '' : k)}">Filtrer</button></td></tr>`).join('')}</tbody>
+        <tfoot><tr><td>Total</td><td class="num">${eur(DB.data.commandes.reduce((s, c) => s + (+c.montantHT || 0), 0))}</td><td></td></tr></tfoot></table></div>` : '<div class="t-muted">Aucun achat enregistré.</div>'}
+    </div>
+    <div class="page-actions"><button class="btn primary" id="add">${icon('plus')} Nouvelle commande</button><span class="spacer"></span><button class="btn small" id="csv">${icon('download')} Export CSV</button></div>
+    <div class="filters"><span class="search-wrap">${icon('search')}<input id="q" placeholder="Rechercher (fournisseur, objet, OTP…)" value="${esc(achatFilter.q)}"></span>
+      <select id="fotp"><option value="">Tous les OTP</option>${otpDistinct().map(o => `<option value="${esc(o)}" ${achatFilter.otp === o ? 'selected' : ''}>${esc(o)}</option>`).join('')}</select>
+      <span class="chip">${list.length} commande(s)</span></div>
+    ${list.length ? `<div class="table-wrap"><table><thead><tr><th>Date</th><th>OTP</th><th>Fournisseur</th><th>Objet</th><th>Statut</th><th class="num">Montant HT</th><th></th></tr></thead>
+      <tbody>${list.map(c => `<tr><td>${fmtDate(c.date)}</td><td><span class="chip">${esc(c.otp || '—')}</span></td><td class="t-strong">${esc(c.fournisseur || '—')}</td><td>${esc(c.objet || '—')}</td><td>${cmdBadge(c.statut)}</td><td class="num">${eur(c.montantHT)}</td>
+        <td class="actions-cell"><button class="icon-btn" data-edit="${c.id}" title="Modifier">${icon('edit')}</button><button class="icon-btn danger" data-del="${c.id}" title="Supprimer">${icon('trash')}</button></td></tr>`).join('')}</tbody>
+      <tfoot><tr><td colspan="5">Total affiché${achatFilter.otp ? ' — OTP ' + esc(achatFilter.otp) : ''}</td><td class="num">${eur(total)}</td><td></td></tr></tfoot></table></div>`
+      : emptyState('cart', 'Aucune commande fournisseur', 'Chaque commande est imputée sur un OTP et alimente les fournitures du CA.')}`;
+  $('#add').onclick = () => achatForm();
+  $('#q').oninput = e => { achatFilter.q = e.target.value; renderAchats(v); const i = $('#q'); i.focus(); i.setSelectionRange(i.value.length, i.value.length); };
+  $('#fotp').onchange = e => { achatFilter.otp = e.target.value; renderAchats(v); };
+  $$('[data-fotp]', v).forEach(b => b.onclick = () => { achatFilter.otp = b.dataset.fotp; renderAchats(v); });
+  $('#csv').onclick = () => exportCSV('achats', ['date', 'otp', 'fournisseur', 'objet', 'statut', 'montantHT'], list.map(c => [c.date, c.otp, c.fournisseur, c.objet, STATUTS_CMD[c.statut], c.montantHT]));
+  $$('[data-edit]', v).forEach(b => b.onclick = () => achatForm(b.dataset.edit));
+  $$('[data-del]', v).forEach(b => b.onclick = () => confirmDialog('Supprimer cette commande ?', () => { DB.data.commandes = DB.data.commandes.filter(x => x.id !== b.dataset.del); DB.save(); toast('Commande supprimée'); renderAchats(v); }));
+}
+function achatForm(id) {
+  const c = id ? DB.data.commandes.find(x => x.id === id) : { date: todayISO(), otp: '', fournisseur: '', objet: '', montantHT: 0, statut: 'commande' };
+  const chOpts = DB.data.chantiers.map(ch => `<option value="${esc(ch.otp)}">${esc(ch.otp || '')} ${esc(ch.nom)}</option>`).join('');
+  const m = modal({ title: id ? 'Modifier la commande' : 'Nouvelle commande fournisseur',
+    body: `<div class="form-grid">
+      <div class="field"><label>Date</label><input id="f-date" type="date" value="${c.date || todayISO()}"></div>
+      <div class="field"><label>N° OTP (imputation)</label><input id="f-otp" value="${esc(c.otp)}" list="cmd-otplist" placeholder="OTP…"><datalist id="cmd-otplist">${[...new Set([...otpDistinct(), ...DB.data.chantiers.map(ch => ch.otp).filter(Boolean)])].map(o => `<option value="${esc(o)}">`).join('')}</datalist></div>
+      <div class="field"><label>Fournisseur</label><input id="f-four" value="${esc(c.fournisseur)}" placeholder="IKO, Loxam…"></div>
+      <div class="field"><label>Statut</label><select id="f-statut">${Object.entries(STATUTS_CMD).map(([k, l]) => `<option value="${k}" ${c.statut === k ? 'selected' : ''}>${l}</option>`).join('')}</select></div>
+      <div class="field full"><label>Objet</label><input id="f-objet" value="${esc(c.objet)}" placeholder="Fournitures, location…"></div>
+      <div class="field"><label>Montant HT (€)</label><input id="f-montant" type="number" value="${c.montantHT || 0}"></div>
+    </div>
+    <div class="field hint" style="margin-top:6px">La commande est imputée sur l'OTP indiqué et vient alimenter les fournitures du CA de cet OTP.</div>`,
+    footer: `<button class="btn" data-c>Annuler</button><button class="btn primary" id="save">Enregistrer</button>` });
+  m.root.querySelector('[data-c]').onclick = m.close;
+  $('#save').onclick = () => {
+    const obj = { date: $('#f-date').value, otp: $('#f-otp').value.trim(), fournisseur: $('#f-four').value.trim(), objet: $('#f-objet').value.trim(), montantHT: +$('#f-montant').value || 0, statut: $('#f-statut').value };
+    if (!obj.otp) { toast("L'OTP est obligatoire", 'err'); return; }
+    if (id) Object.assign(c, obj); else DB.data.commandes.unshift({ id: uid(), ...obj });
+    DB.save(); m.close(); toast('Commande enregistrée'); go('achats');
   };
 }
 
