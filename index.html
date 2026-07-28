@@ -34,50 +34,49 @@ h1,h2,h3{margin:0}
 
 #app{display:flex;min-height:100vh}
 
-/* ---------------- App bar (top) ---------------- */
-#app{display:block}
-#appbar{position:sticky;top:0;z-index:40;display:flex;flex-direction:column}
-.appbar-main{background:var(--bg);color:#aebacb;display:flex;align-items:center;gap:14px;padding:0 22px;height:56px}
-.brand{display:flex;align-items:center;gap:11px;flex:none}
-.brand-mark{width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,var(--brand-2),var(--brand));
+/* ---------------- Sidebar ---------------- */
+#sidebar{width:var(--sidebar-w);background:var(--bg);color:#aebacb;display:flex;flex-direction:column;
+  position:fixed;inset:0 auto 0 0;height:100vh;z-index:40;border-right:1px solid #0a1420}
+.brand{display:flex;align-items:center;gap:11px;padding:20px 18px 18px;border-bottom:1px solid rgba(255,255,255,.06)}
+.brand-mark{width:34px;height:34px;border-radius:8px;background:linear-gradient(135deg,var(--brand-2),var(--brand));
   display:flex;align-items:center;justify-content:center;color:#fff;flex:none}
-.brand-mark .ic{width:19px;height:19px}
-.brand-name{font-weight:700;font-size:16px;color:#fff;letter-spacing:.2px;line-height:1.1}
-.brand-sub{font-size:10px;color:#6f8199;letter-spacing:.4px;text-transform:uppercase}
-.appbar-right{margin-left:auto;display:flex;align-items:center;gap:10px}
-.year-badge{color:#8ea1ba;font-weight:600;font-size:12.5px;white-space:nowrap}
-.topbtn{background:rgba(255,255,255,.07);color:#c3cede;border:1px solid rgba(255,255,255,.13);
-  border-radius:7px;padding:7px 12px;font-size:12.5px;font-weight:600;white-space:nowrap}
-.topbtn:hover{background:rgba(255,255,255,.14);color:#fff}
-
-/* Top navigation tabs */
-.topnav{background:#fff;border-bottom:1px solid var(--line);display:flex;align-items:stretch;gap:2px;
-  padding:0 14px;overflow-x:auto;box-shadow:var(--shadow);scrollbar-width:thin}
-.topnav::-webkit-scrollbar{height:6px}
-.topnav::-webkit-scrollbar-thumb{background:var(--line);border-radius:99px}
-.nav-item{display:inline-flex;align-items:center;gap:8px;background:transparent;border:0;
-  border-bottom:2px solid transparent;color:var(--ink-soft);padding:13px 13px;font-size:13.5px;font-weight:600;
-  white-space:nowrap;transition:color .12s,border-color .12s}
-.nav-item:hover{color:var(--brand)}
-.nav-item.active{color:var(--brand);border-bottom-color:var(--brand)}
-.nav-item .ic{width:17px;height:17px;color:var(--muted)}
-.nav-item:hover .ic,.nav-item.active .ic{color:var(--brand)}
-.nav-divider{align-self:center;width:1px;height:20px;background:var(--line);margin:0 6px;flex:none}
+.brand-mark .ic{width:20px;height:20px}
+.brand-name{font-weight:700;font-size:16px;color:#fff;letter-spacing:.2px}
+.brand-sub{font-size:10.5px;color:#6f8199;letter-spacing:.3px;text-transform:uppercase}
+#nav{display:flex;flex-direction:column;gap:1px;padding:10px 12px;flex:1;overflow:auto}
+.nav-group{font-size:9.5px;letter-spacing:.9px;text-transform:uppercase;color:#5c6f88;font-weight:700;padding:12px 12px 5px}
+.nav-group:first-child{padding-top:4px}
+.nav-item{display:flex;align-items:center;gap:11px;background:transparent;border:0;color:#aebacb;
+  padding:10px 12px;border-radius:8px;text-align:left;font-size:13.5px;font-weight:500;transition:background .12s,color .12s;width:100%}
+.nav-item:hover{background:rgba(255,255,255,.05);color:#fff}
+.nav-item.active{background:var(--brand);color:#fff;font-weight:600}
+.nav-item.active .ic{color:#fff}
+.nav-item .ic{color:#8697ad}
+.sidebar-foot{padding:12px;border-top:1px solid rgba(255,255,255,.07);display:flex;flex-direction:column;gap:8px}
+.foot-row{display:flex;gap:8px}
+.mini-btn{flex:1;background:rgba(255,255,255,.05);color:#b7c3d4;border:1px solid rgba(255,255,255,.09);
+  border-radius:7px;padding:8px 6px;font-size:11.5px;display:flex;align-items:center;justify-content:center;gap:6px;white-space:nowrap}
+.mini-btn:hover{background:rgba(255,255,255,.12);color:#fff}
+.foot-note{font-size:10px;color:#5c6f88;text-align:center;line-height:1.4}
 
 /* ---------------- Main ---------------- */
-#main{min-width:0;display:flex;flex-direction:column}
-.page-title{max-width:1280px;width:100%;margin:0 auto;padding:22px 26px 0;font-size:20px;font-weight:700}
-#menu-toggle{display:none}
+#main{margin-left:var(--sidebar-w);flex:1;min-width:0;display:flex;flex-direction:column}
+#topbar{position:sticky;top:0;z-index:20;background:rgba(246,248,251,.92);backdrop-filter:blur(8px);
+  border-bottom:1px solid var(--line);display:flex;align-items:center;gap:14px;padding:0 26px;height:60px}
+#menu-toggle{display:none;background:none;border:0;color:var(--ink);padding:6px}
+#page-title{font-size:18px;font-weight:700}
+.topbar-right{margin-left:auto;display:flex;align-items:center;gap:12px}
+.year-badge{color:var(--ink-soft);font-weight:600;font-size:12.5px}
 
 /* Profile switcher */
-.profile-btn{display:flex;align-items:center;gap:9px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.14);
-  border-radius:9px;padding:5px 9px 5px 6px;font-weight:600;font-size:13px;color:#e6ecf3}
-.profile-btn:hover{background:rgba(255,255,255,.14)}
-.avatar{width:27px;height:27px;border-radius:7px;background:var(--brand-2);color:#fff;
-  display:flex;align-items:center;justify-content:center;font-weight:700;font-size:11.5px;flex:none}
+.profile-btn{display:flex;align-items:center;gap:9px;background:#fff;border:1px solid var(--line);border-radius:9px;
+  padding:6px 10px 6px 8px;font-weight:600;font-size:13px;box-shadow:var(--shadow)}
+.profile-btn:hover{border-color:var(--brand-2)}
+.avatar{width:28px;height:28px;border-radius:7px;background:var(--brand-ink);color:var(--brand);
+  display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;flex:none}
 .profile-btn .p-name{max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.profile-btn .ic{color:#8ea1ba}
-.menu{position:absolute;top:52px;right:22px;background:#fff;border:1px solid var(--line);border-radius:12px;
+.profile-btn .ic{color:var(--muted)}
+.menu{position:absolute;top:54px;right:26px;background:#fff;border:1px solid var(--line);border-radius:12px;
   box-shadow:var(--shadow-lg);width:280px;z-index:50;overflow:hidden;animation:pop .14s ease}
 .menu-head{padding:12px 14px;border-bottom:1px solid var(--line);font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted)}
 .menu-item{display:flex;align-items:center;gap:10px;padding:10px 14px;font-size:13px;font-weight:500;width:100%;background:none;border:0;text-align:left}
@@ -88,7 +87,7 @@ h1,h2,h3{margin:0}
 .menu-sep{height:1px;background:var(--line);margin:4px 0}
 .menu-item.danger{color:var(--red)} .menu-item.danger .ic{color:var(--red)}
 
-#view{padding:20px 26px 64px;max-width:1280px;width:100%;margin:0 auto}
+#view{padding:24px 26px 64px;max-width:1260px;width:100%}
 
 /* ---------------- Buttons ---------------- */
 .btn{border:1px solid var(--line);background:#fff;color:var(--ink);padding:8px 14px;border-radius:8px;
@@ -245,45 +244,47 @@ tfoot td{padding:11px 14px;font-weight:700;background:var(--panel-2);border-top:
 .cad-steps td{white-space:normal}
 
 @media(max-width:920px){
+  :root{--sidebar-w:0px}
+  #sidebar{transform:translateX(-100%);transition:.25s;width:246px}
+  #sidebar.open{transform:none}
+  #main{margin-left:0}
+  #menu-toggle{display:inline-flex}
   .form-grid,.grid-2,.grid-3{grid-template-columns:1fr}
   .menu{right:12px}
-  .brand-sub{display:none}
-  .appbar-main{padding:0 14px;gap:10px}
-  .topbtn{padding:7px 9px}
-  .page-title{padding:18px 16px 0}
-  #view{padding:18px 16px 60px}
-}
-@media(max-width:560px){
-  .topbtn{display:none}
-  .profile-btn .p-name{max-width:90px}
 }
 
 </style>
 </head>
 <body>
   <div id="app">
-    <header id="appbar">
-      <div class="appbar-main">
-        <div class="brand">
-          <span class="brand-mark" id="brand-mark"></span>
-          <div>
-            <div class="brand-name">ChargéPro</div>
-            <div class="brand-sub">Chargé d'affaires</div>
-          </div>
-        </div>
-        <div class="appbar-right">
-          <span id="year-badge" class="year-badge"></span>
-          <button id="btn-export" class="topbtn" title="Exporter les données du profil">Sauvegarde</button>
-          <button id="btn-import" class="topbtn" title="Importer une sauvegarde">Restaurer</button>
-          <input type="file" id="import-file" accept="application/json" hidden>
-          <button id="profile-btn" class="profile-btn"></button>
+    <aside id="sidebar">
+      <div class="brand">
+        <span class="brand-mark" id="brand-mark"></span>
+        <div>
+          <div class="brand-name">ChargéPro</div>
+          <div class="brand-sub">Chargé d'affaires</div>
         </div>
       </div>
-      <nav id="nav" class="topnav"></nav>
-    </header>
+      <nav id="nav"></nav>
+      <div class="sidebar-foot">
+        <div class="foot-row">
+          <button id="btn-export" class="mini-btn" title="Exporter les données du profil">Sauvegarde</button>
+          <button id="btn-import" class="mini-btn" title="Importer une sauvegarde">Restaurer</button>
+          <input type="file" id="import-file" accept="application/json" hidden>
+        </div>
+        <div class="foot-note">Données enregistrées localement sur ce poste.</div>
+      </div>
+    </aside>
 
     <main id="main">
-      <h1 id="page-title" class="page-title">Tableau de bord</h1>
+      <header id="topbar">
+        <button id="menu-toggle" aria-label="Menu"></button>
+        <h1 id="page-title">Tableau de bord</h1>
+        <div class="topbar-right">
+          <span id="year-badge" class="year-badge"></span>
+          <button id="profile-btn" class="profile-btn"></button>
+        </div>
+      </header>
       <section id="view"></section>
     </main>
   </div>
@@ -577,9 +578,9 @@ const ROUTES = Object.fromEntries(NAV.filter(n => n.route).map(n => [n.route, n]
 let current = 'dashboard';
 
 function buildNav() {
-  $('#nav').innerHTML = NAV.map((n, i) => n.group
-    ? (i === 0 ? '' : '<span class="nav-divider" aria-hidden="true"></span>')
-    : `<button class="nav-item" data-route="${n.route}" title="${n.label}">${icon(n.ico)} <span>${n.label}</span></button>`).join('');
+  $('#nav').innerHTML = NAV.map(n => n.group
+    ? `<div class="nav-group">${n.group}</div>`
+    : `<button class="nav-item" data-route="${n.route}">${icon(n.ico)} <span>${n.label}</span></button>`).join('');
   $$('.nav-item').forEach(b => b.onclick = () => go(b.dataset.route));
 }
 function go(route) {
@@ -587,10 +588,8 @@ function go(route) {
   current = route;
   $$('.nav-item').forEach(b => b.classList.toggle('active', b.dataset.route === route));
   $('#page-title').textContent = ROUTES[route].label;
-  document.title = 'ChargéPro — ' + ROUTES[route].label;
   location.hash = route;
-  const active = $(`.nav-item[data-route="${route}"]`);
-  if (active) active.scrollIntoView({ inline: 'center', block: 'nearest' });
+  $('#sidebar').classList.remove('open');
   ROUTES[route].render($('#view'));
 }
 
@@ -1521,8 +1520,10 @@ function importAll(file) {
    ------------------------------------------------------------------------- */
 function boot() {
   $('#brand-mark').innerHTML = icon('layers');
+  $('#menu-toggle').innerHTML = icon('menu');
   buildNav();
   $('#year-badge').textContent = 'Année ' + new Date().getFullYear();
+  $('#menu-toggle').onclick = () => $('#sidebar').classList.toggle('open');
   $('#profile-btn').onclick = e => { e.stopPropagation(); toggleProfileMenu(); };
   $('#btn-export').onclick = exportAll;
   $('#btn-import').onclick = () => $('#import-file').click();
