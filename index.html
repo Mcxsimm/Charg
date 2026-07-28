@@ -1,1 +1,364 @@
 
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ChargéPro — Assistant Chargé d'Affaires</title>
+  <meta name="description" content="Outil de pilotage pour chargé d'affaires étanchéité : chantiers, devis, CA & marge, BTE, cadences.">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div id="app">
+    <aside id="sidebar">
+      <div class="brand">
+        <span class="brand-mark" id="brand-mark"></span>
+        <div>
+          <div class="brand-name">ChargéPro</div>
+          <div class="brand-sub">Chargé d'affaires</div>
+        </div>
+      </div>
+      <nav id="nav"></nav>
+      <div class="sidebar-foot">
+        <div class="foot-row">
+          <button id="btn-export" class="mini-btn" title="Exporter les données du profil">Sauvegarde</button>
+          <button id="btn-import" class="mini-btn" title="Importer une sauvegarde">Restaurer</button>
+          <input type="file" id="import-file" accept="application/json" hidden>
+        </div>
+        <div class="foot-note">Données enregistrées localement sur ce poste.</div>
+      </div>
+    </aside>
+
+    <main id="main">
+      <header id="topbar">
+        <button id="menu-toggle" aria-label="Menu"></button>
+        <h1 id="page-title">Tableau de bord</h1>
+        <div class="topbar-right">
+          <span id="year-badge" class="year-badge"></span>
+          <button id="profile-btn" class="profile-btn"></button>
+        </div>
+      </header>
+      <section id="view"></section>
+    </main>
+  </div>
+
+  <div id="menu-root"></div>
+  <div id="modal-root"></div>
+  <div id="toast-root"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
+
+# ChargéPro — Assistant Chargé d'Affaires SAS (étanchéité)
+
+Application web de pilotage pour le **chargé d'affaires SAS** (SMAC / étanchéité), conçue à partir
+des documents de travail réels : suivi CA, BTE (budget chantier), tableau des cadences d'étanchéité,
+et fiche de fonction du poste.
+
+L'application est **100 % locale** : un simple site statique (HTML/CSS/JS), sans serveur ni installation,
+à l'interface **professionnelle et sans émoji**. Toutes les données sont enregistrées dans le navigateur
+(localStorage), avec sauvegarde/restauration par fichier.
+
+## Multi-profils
+
+L'outil est prévu pour **l'ensemble des chargés d'affaires** : chacun crée son **profil** et ses données
+sont **isolées** sur son poste (chargement optimisé du seul profil actif). Le sélecteur de profil, en haut
+à droite, permet de basculer, créer, renommer ou supprimer un profil, et de charger un jeu de démonstration.
+Chaque chargé d'affaires ne voit que ses propres affaires.
+
+## Ouvrir l'application
+
+Ouvrez `index.html` dans un navigateur (double-clic), ou servez le dossier :
+
+```bash
+python3 -m http.server 8080
+# puis http://localhost:8080
+```
+
+## Modules
+
+L'interface est organisée par pôles : **Pilotage · Commercial · Exploitation · Entretien · Finances**.
+
+| Pôle | Module | Rôle |
+|------|--------|------|
+| Pilotage | **Tableau de bord** | KPI du poste (CA vs 750 K€, marge, **carnet de commandes**, devis/45, **RDV nouveaux clients/4**, encours facturé) et **centre d'actions prioritaires** consolidant devis à envoyer/relancer, factures à émettre, impayés, visites à programmer, rapports en retard. |
+| Commercial | **Prospection & RDV** | Pipeline commercial : RDV nouveaux clients (objectif 4/mois), canal, potentiel, prochaine action, statut (planifié → réalisé → devis → gagné). |
+| Commercial | **Devis** | Suivi avec **délai 7 jours**, relances, taux d'acceptation. |
+| Commercial | **Clients** | Annuaire clients / interlocuteurs. |
+| Exploitation | **Chantiers** | Fiche affaire : OTP, client, statut, montant, devis liés. |
+| Exploitation | **Planning & pointages** | Affectation des **3 équipes** par semaine, heures prévues/réelles, écart, **taux d'occupation** ; gestion des équipes (chef + compagnon). |
+| Exploitation | **Cadences étanchéité** | Estimateur *Cadences V10* : coefficients de complexité + complexes → temps de pose, durée équipe, cadence globale (m²/j). |
+| Exploitation | **BTE — Budget chantier** | *Bordereau BTE* : dépenses par poste, colonnes **prévisionnel / exécution**, marge brute et écart. |
+| Entretien | **Contrats & visites** | Contrats d'entretien, échéancier des **visites**, **rapport d'intervention sous 7 jours**, alertes rapports en retard. |
+| Finances | **Suivi CA & Marge** | *Tableau CA* : prix de vente, fournitures, engins, MO SMAC → marge € et %, par mois et cumul annuel. |
+| Finances | **Facturation** | Émission (délai 7 j depuis le fait générateur), échéances de paiement, **impayés / relances**, encaissements, **taux de recouvrement**. |
+
+## Objectifs (fiche de fonction)
+
+Paramétrables depuis le tableau de bord : **750 K€ HT/an**, **45 devis/mois**, **4 RDV nouveaux clients/mois**,
+envoi devis **≤ 7 jours**, facturation **≤ 7 jours**.
+
+## Données
+
+- **Sauvegarde** (barre latérale) : exporte toutes les données en `.json`.
+- **Restaurer** : réimporte un fichier de sauvegarde.
+- Chaque module dispose d'un export **CSV** (ouvrable dans Excel).
+
+## Structure
+
+```
+index.html   → structure et navigation
+styles.css   → mise en forme
+app.js       → logique, référentiel cadences, stockage local
+```
+
+> Des données d'exemple sont chargées au premier lancement pour illustrer chaque module.
+> Vous pouvez les supprimer et saisir vos propres affaires.
+
+:root{
+  --bg:#0e1b2b; --bg2:#13233a;
+  --panel:#ffffff; --panel-2:#f6f8fb; --panel-3:#eef2f7;
+  --ink:#111c2e; --ink-soft:#48566b; --muted:#8b98ab; --line:#e3e9f0;
+  --brand:#1b4f8a; --brand-2:#2568b3; --brand-ink:#e9f1fa; --brand-soft:#f0f6fc;
+  --green:#1f7a4d; --green-bg:#e6f4ec;
+  --red:#b3261e; --red-bg:#fbeae9;
+  --amber:#9a6700; --amber-bg:#fdf3dd;
+  --violet:#5b3fb0; --violet-bg:#efeafb;
+  --radius:10px;
+  --shadow:0 1px 2px rgba(16,30,54,.06),0 4px 16px rgba(16,30,54,.05);
+  --shadow-lg:0 20px 48px rgba(16,30,54,.22);
+  --sidebar-w:246px;
+  --font:'Segoe UI',system-ui,-apple-system,BlinkMacSystemFont,Roboto,Helvetica,Arial,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{font-family:var(--font);color:var(--ink);background:var(--panel-2);font-size:13.5px;line-height:1.5;-webkit-font-smoothing:antialiased}
+button{font-family:inherit;cursor:pointer;color:inherit}
+input,select,textarea{font-family:inherit;font-size:13.5px}
+h1,h2,h3{margin:0}
+
+.ic{width:18px;height:18px;display:inline-block;vertical-align:middle;flex:none}
+.ic-sm{width:15px;height:15px}
+.ic-lg{width:22px;height:22px}
+
+#app{display:flex;min-height:100vh}
+
+/* ---------------- Sidebar ---------------- */
+#sidebar{width:var(--sidebar-w);background:var(--bg);color:#aebacb;display:flex;flex-direction:column;
+  position:fixed;inset:0 auto 0 0;height:100vh;z-index:40;border-right:1px solid #0a1420}
+.brand{display:flex;align-items:center;gap:11px;padding:20px 18px 18px;border-bottom:1px solid rgba(255,255,255,.06)}
+.brand-mark{width:34px;height:34px;border-radius:8px;background:linear-gradient(135deg,var(--brand-2),var(--brand));
+  display:flex;align-items:center;justify-content:center;color:#fff;flex:none}
+.brand-mark .ic{width:20px;height:20px}
+.brand-name{font-weight:700;font-size:16px;color:#fff;letter-spacing:.2px}
+.brand-sub{font-size:10.5px;color:#6f8199;letter-spacing:.3px;text-transform:uppercase}
+#nav{display:flex;flex-direction:column;gap:1px;padding:10px 12px;flex:1;overflow:auto}
+.nav-group{font-size:9.5px;letter-spacing:.9px;text-transform:uppercase;color:#5c6f88;font-weight:700;padding:12px 12px 5px}
+.nav-group:first-child{padding-top:4px}
+.nav-item{display:flex;align-items:center;gap:11px;background:transparent;border:0;color:#aebacb;
+  padding:10px 12px;border-radius:8px;text-align:left;font-size:13.5px;font-weight:500;transition:background .12s,color .12s;width:100%}
+.nav-item:hover{background:rgba(255,255,255,.05);color:#fff}
+.nav-item.active{background:var(--brand);color:#fff;font-weight:600}
+.nav-item.active .ic{color:#fff}
+.nav-item .ic{color:#8697ad}
+.sidebar-foot{padding:12px;border-top:1px solid rgba(255,255,255,.07);display:flex;flex-direction:column;gap:8px}
+.foot-row{display:flex;gap:8px}
+.mini-btn{flex:1;background:rgba(255,255,255,.05);color:#b7c3d4;border:1px solid rgba(255,255,255,.09);
+  border-radius:7px;padding:8px 6px;font-size:11.5px;display:flex;align-items:center;justify-content:center;gap:6px;white-space:nowrap}
+.mini-btn:hover{background:rgba(255,255,255,.12);color:#fff}
+.foot-note{font-size:10px;color:#5c6f88;text-align:center;line-height:1.4}
+
+/* ---------------- Main ---------------- */
+#main{margin-left:var(--sidebar-w);flex:1;min-width:0;display:flex;flex-direction:column}
+#topbar{position:sticky;top:0;z-index:20;background:rgba(246,248,251,.92);backdrop-filter:blur(8px);
+  border-bottom:1px solid var(--line);display:flex;align-items:center;gap:14px;padding:0 26px;height:60px}
+#menu-toggle{display:none;background:none;border:0;color:var(--ink);padding:6px}
+#page-title{font-size:18px;font-weight:700}
+.topbar-right{margin-left:auto;display:flex;align-items:center;gap:12px}
+.year-badge{color:var(--ink-soft);font-weight:600;font-size:12.5px}
+
+/* Profile switcher */
+.profile-btn{display:flex;align-items:center;gap:9px;background:#fff;border:1px solid var(--line);border-radius:9px;
+  padding:6px 10px 6px 8px;font-weight:600;font-size:13px;box-shadow:var(--shadow)}
+.profile-btn:hover{border-color:var(--brand-2)}
+.avatar{width:28px;height:28px;border-radius:7px;background:var(--brand-ink);color:var(--brand);
+  display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;flex:none}
+.profile-btn .p-name{max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.profile-btn .ic{color:var(--muted)}
+.menu{position:absolute;top:54px;right:26px;background:#fff;border:1px solid var(--line);border-radius:12px;
+  box-shadow:var(--shadow-lg);width:280px;z-index:50;overflow:hidden;animation:pop .14s ease}
+.menu-head{padding:12px 14px;border-bottom:1px solid var(--line);font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted)}
+.menu-item{display:flex;align-items:center;gap:10px;padding:10px 14px;font-size:13px;font-weight:500;width:100%;background:none;border:0;text-align:left}
+.menu-item:hover{background:var(--panel-2)}
+.menu-item.active{color:var(--brand);font-weight:600}
+.menu-item .ic{color:var(--muted)}
+.menu-item.active .ic{color:var(--brand)}
+.menu-sep{height:1px;background:var(--line);margin:4px 0}
+.menu-item.danger{color:var(--red)} .menu-item.danger .ic{color:var(--red)}
+
+#view{padding:24px 26px 64px;max-width:1260px;width:100%}
+
+/* ---------------- Buttons ---------------- */
+.btn{border:1px solid var(--line);background:#fff;color:var(--ink);padding:8px 14px;border-radius:8px;
+  font-weight:600;font-size:13px;display:inline-flex;align-items:center;gap:7px;transition:.12s;white-space:nowrap}
+.btn:hover{border-color:var(--brand-2);color:var(--brand)}
+.btn .ic{width:16px;height:16px}
+.btn.primary{background:var(--brand);border-color:var(--brand);color:#fff}
+.btn.primary:hover{background:var(--brand-2);color:#fff}
+.btn.primary .ic{color:#fff}
+.btn.danger{color:var(--red);border-color:#f0cbc8}
+.btn.danger:hover{background:var(--red-bg)}
+.btn.small{padding:6px 10px;font-size:12px}
+.icon-btn{border:1px solid transparent;background:transparent;padding:6px;border-radius:7px;color:var(--ink-soft);display:inline-flex}
+.icon-btn:hover{background:var(--panel-3);color:var(--ink)}
+.icon-btn.danger:hover{background:var(--red-bg);color:var(--red)}
+
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow)}
+.card-pad{padding:18px 20px}
+.card-title{font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--ink-soft);margin:0 0 14px}
+.section-head{display:flex;align-items:center;gap:9px;margin:2px 0 14px}
+.section-head .ic{color:var(--brand-2)}
+.section-head h2{font-size:15px;font-weight:700}
+.spacer{flex:1}
+
+/* KPI */
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(232px,1fr));gap:15px;margin-bottom:20px}
+.kpi{background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:16px 18px;box-shadow:var(--shadow);position:relative}
+.kpi-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.kpi-label{font-size:11.5px;color:var(--ink-soft);font-weight:600;text-transform:uppercase;letter-spacing:.4px}
+.kpi-ico{width:32px;height:32px;border-radius:8px;background:var(--brand-soft);color:var(--brand);display:flex;align-items:center;justify-content:center;flex:none}
+.kpi-ico.green{background:var(--green-bg);color:var(--green)}
+.kpi-ico.amber{background:var(--amber-bg);color:var(--amber)}
+.kpi-ico.red{background:var(--red-bg);color:var(--red)}
+.kpi-value{font-size:26px;font-weight:800;letter-spacing:-.6px;line-height:1.1}
+.kpi-sub{font-size:12px;color:var(--muted);margin-top:3px}
+.progress{height:6px;border-radius:99px;background:var(--panel-3);margin-top:12px;overflow:hidden}
+.progress>i{display:block;height:100%;border-radius:99px;background:var(--brand-2);transition:width .4s}
+.progress.green>i{background:var(--green)} .progress.amber>i{background:var(--amber)} .progress.red>i{background:var(--red)}
+
+/* Tables */
+.table-wrap{overflow-x:auto;border-radius:var(--radius);border:1px solid var(--line);background:#fff;box-shadow:var(--shadow)}
+table{border-collapse:collapse;width:100%;font-size:13px;white-space:nowrap}
+thead th{background:var(--panel-2);text-align:left;padding:11px 14px;font-size:10.5px;text-transform:uppercase;
+  letter-spacing:.5px;color:var(--ink-soft);border-bottom:1px solid var(--line);font-weight:700}
+tbody td{padding:10px 14px;border-bottom:1px solid var(--line)}
+tbody tr:last-child td{border-bottom:0}
+tbody tr:hover{background:var(--panel-2)}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+tfoot td{padding:11px 14px;font-weight:700;background:var(--panel-2);border-top:2px solid var(--line);font-variant-numeric:tabular-nums}
+.t-strong{font-weight:700}.t-muted{color:var(--muted)}
+.link{color:var(--brand);cursor:pointer;font-weight:600}
+.link:hover{text-decoration:underline}
+.actions-cell{text-align:right;white-space:nowrap}
+
+/* Badges */
+.badge{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:6px;font-size:11px;font-weight:700;line-height:1.5}
+.badge::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor;opacity:.9}
+.b-prospect{background:var(--panel-3);color:var(--ink-soft)}
+.b-devis,.b-envoye{background:var(--brand-ink);color:var(--brand)}
+.b-relance,.b-encours,.b-attente-alt{background:var(--amber-bg);color:var(--amber)}
+.b-attente{background:var(--panel-3);color:var(--ink-soft)}
+.b-commande{background:var(--violet-bg);color:var(--violet)}
+.b-receptionne,.b-facture,.b-accepte{background:var(--green-bg);color:var(--green)}
+.b-perdu,.b-refuse{background:var(--red-bg);color:var(--red)}
+.chip{display:inline-flex;align-items:center;gap:6px;background:var(--panel-3);border-radius:7px;padding:5px 10px;font-size:12px;font-weight:600;color:var(--ink-soft)}
+.chip .ic{width:14px;height:14px;color:var(--muted)}
+.deadline-ok{color:var(--green);font-weight:700}
+.deadline-soon{color:var(--amber);font-weight:700}
+.deadline-late{color:var(--red);font-weight:700}
+.margin-good{color:var(--green);font-weight:700}
+.margin-warn{color:var(--amber);font-weight:700}
+.margin-bad{color:var(--red);font-weight:700}
+
+/* Forms */
+.form-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+.field{display:flex;flex-direction:column;gap:5px}
+.field.full{grid-column:1/-1}
+.field label{font-size:12px;font-weight:600;color:var(--ink-soft)}
+.field input,.field select,.field textarea{border:1px solid var(--line);border-radius:8px;padding:9px 11px;background:#fff;color:var(--ink);width:100%}
+.field input:focus,.field select:focus,.field textarea:focus{outline:0;border-color:var(--brand-2);box-shadow:0 0 0 3px rgba(37,104,179,.14)}
+.field .hint{font-size:11px;color:var(--muted)}
+.field.inline{flex-direction:row;align-items:center;gap:8px}
+.field.inline input{width:auto}
+
+/* Modal */
+#modal-root:empty,#menu-root:empty{display:none}
+.modal-back{position:fixed;inset:0;background:rgba(14,27,43,.55);backdrop-filter:blur(2px);z-index:60;
+  display:flex;align-items:flex-start;justify-content:center;padding:44px 16px;overflow:auto}
+.modal{background:#fff;border-radius:14px;width:100%;max-width:600px;box-shadow:var(--shadow-lg);animation:pop .16s ease}
+.modal.wide{max-width:940px}
+@keyframes pop{from{transform:translateY(8px);opacity:0}to{transform:none;opacity:1}}
+.modal-head{display:flex;align-items:center;padding:17px 22px;border-bottom:1px solid var(--line)}
+.modal-head h3{font-size:16px}
+.modal-head .icon-btn{margin-left:auto}
+.modal-body{padding:20px 22px;max-height:72vh;overflow:auto}
+.modal-foot{display:flex;gap:10px;justify-content:flex-end;padding:15px 22px;border-top:1px solid var(--line)}
+
+/* Toast */
+#toast-root{position:fixed;bottom:22px;right:22px;z-index:80;display:flex;flex-direction:column;gap:10px}
+.toast{background:#111c2e;color:#fff;padding:11px 15px;border-radius:9px;box-shadow:var(--shadow-lg);
+  font-size:13px;font-weight:600;animation:pop .18s ease;max-width:340px;display:flex;align-items:center;gap:9px}
+.toast .ic{width:16px;height:16px}
+.toast.ok{background:#155e39}.toast.err{background:#8f1f18}
+
+/* Empty */
+.empty{text-align:center;padding:56px 20px;color:var(--muted)}
+.empty .em-ico{width:52px;height:52px;border-radius:12px;background:var(--panel-3);color:var(--muted);
+  display:flex;align-items:center;justify-content:center;margin:0 auto 14px}
+.empty .em-ico .ic{width:26px;height:26px}
+.empty h3{color:var(--ink-soft);margin-bottom:6px;font-size:15px}
+
+/* Layout helpers */
+.page-actions{display:flex;gap:10px;align-items:center;margin-bottom:16px;flex-wrap:wrap}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:15px}
+.stat-line{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--line);font-size:13px}
+.stat-line:last-child{border-bottom:0}
+.stat-line b{font-variant-numeric:tabular-nums}
+.pill-tabs{display:inline-flex;gap:4px;background:var(--panel-3);padding:4px;border-radius:9px;margin-bottom:16px}
+.pill-tabs button{border:0;background:transparent;padding:7px 14px;border-radius:7px;font-weight:600;font-size:13px;color:var(--ink-soft)}
+.pill-tabs button.active{background:#fff;color:var(--brand);box-shadow:var(--shadow)}
+.filters{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:16px}
+.filters input,.filters select{border:1px solid var(--line);border-radius:8px;padding:8px 11px;background:#fff}
+.search-wrap{position:relative;display:inline-flex;align-items:center}
+.search-wrap .ic{position:absolute;left:10px;color:var(--muted);width:16px;height:16px;pointer-events:none}
+.search-wrap input{padding-left:32px;min-width:240px}
+.alert-list{display:flex;flex-direction:column;gap:8px}
+.alert{display:flex;align-items:center;gap:12px;padding:11px 14px;border-radius:9px;border:1px solid var(--line);background:#fff;font-size:13px}
+.alert .a-ico{flex:none;color:var(--muted)}
+.alert.warn{border-color:#f0dca6;background:var(--amber-bg)} .alert.warn .a-ico{color:var(--amber)}
+.alert.bad{border-color:#eec4c1;background:var(--red-bg)} .alert.bad .a-ico{color:var(--red)}
+.alert .a-body{min-width:0}
+.alert .a-act{margin-left:auto}
+
+/* Bars */
+.barchart{display:flex;align-items:flex-end;gap:7px;height:150px;padding-top:8px}
+.barchart .bar-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;height:100%;justify-content:flex-end}
+.barchart .bar{width:44%;background:var(--brand-2);border-radius:3px 3px 0 0;min-height:2px;transition:height .4s}
+.barchart .bar.margin{background:var(--green)}
+.barchart .bars{display:flex;gap:2px;align-items:flex-end;height:100%;width:100%;justify-content:center}
+.barchart .bar-lbl{font-size:10px;color:var(--muted);font-weight:600}
+.legend{display:flex;gap:16px;font-size:12px;color:var(--ink-soft);margin-top:12px}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{width:10px;height:10px;border-radius:2px;display:inline-block}
+
+/* Cadences result */
+.cad-out .grid-3{margin-bottom:0}
+.cad-metric{border:1px solid var(--line);border-left:3px solid var(--brand);border-radius:var(--radius);padding:16px 18px;background:#fff;box-shadow:var(--shadow)}
+.cad-metric.green{border-left-color:var(--green)}
+.cad-metric.amber{border-left-color:var(--amber)}
+.cad-metric .cm-label{font-size:11.5px;text-transform:uppercase;letter-spacing:.4px;color:var(--ink-soft);font-weight:600}
+.cad-metric .cm-value{font-size:28px;font-weight:800;letter-spacing:-.5px;margin:4px 0 2px}
+.cad-metric .cm-sub{font-size:12px;color:var(--muted)}
+.cad-steps td{white-space:normal}
+
+@media(max-width:920px){
+  :root{--sidebar-w:0px}
+  #sidebar{transform:translateX(-100%);transition:.25s;width:246px}
+  #sidebar.open{transform:none}
+  #main{margin-left:0}
+  #menu-toggle{display:inline-flex}
+  .form-grid,.grid-2,.grid-3{grid-template-columns:1fr}
+  .menu{right:12px}
+}
