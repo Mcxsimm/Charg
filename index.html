@@ -436,6 +436,9 @@ const DB = {
     d = d || {};
     d.objectifs = Object.assign({}, OBJECTIFS_DEFAUT, d.objectifs || {});
     ['clients', 'chantiers', 'devis', 'ca', 'bte', 'prospection', 'factures', 'contrats', 'visites', 'equipes', 'pointages'].forEach(k => { if (!Array.isArray(d[k])) d[k] = []; });
+    d.devis.forEach(x => { if (x.otp === undefined) x.otp = ''; if (x.clientId === undefined) x.clientId = ''; });
+    d.factures.forEach(x => { if (x.otp === undefined) x.otp = ''; });
+    d.bte = d.bte.map(migrateBte);
     return d;
   },
   emptyData() { return this.normalize({}); },
@@ -482,20 +485,40 @@ function demoData() {
       { id: ch3, otp: 'OTP-24003', nom: 'Terrasse école primaire', clientId: c3, adresse: 'Bron 69500', statut: 'devis', dateDemande: addDays(todayISO(), -4), montantHT: 41000, notes: '' },
     ],
     devis: [
-      { id: uid(), ref: 'DEV-2607-01', chantierId: ch3, objet: 'Terrasse école primaire', dateDemande: addDays(todayISO(), -4), dateEnvoi: addDays(todayISO(), -1), montantHT: 41000, statut: 'envoye', relance: '' },
-      { id: uid(), ref: 'DEV-2607-02', chantierId: '', objet: 'Recherche de fuite immeuble', dateDemande: addDays(todayISO(), -6), dateEnvoi: '', montantHT: 3200, statut: 'attente', relance: '' },
-      { id: uid(), ref: 'DEV-2606-14', chantierId: ch2, objet: 'Étanchéité parking couvert', dateDemande: addDays(todayISO(), -18), dateEnvoi: addDays(todayISO(), -15), montantHT: 152000, statut: 'accepte', relance: '' },
+      { id: uid(), ref: 'DEV-2607-01', otp: 'OTP-24003', clientId: c3, chantierId: ch3, objet: 'Terrasse école primaire', dateDemande: addDays(todayISO(), -4), dateEnvoi: addDays(todayISO(), -1), montantHT: 41000, statut: 'envoye', relance: '' },
+      { id: uid(), ref: 'DEV-2607-02', otp: 'OTP-24004', clientId: c1, chantierId: '', objet: 'Recherche de fuite immeuble', dateDemande: addDays(todayISO(), -6), dateEnvoi: '', montantHT: 3200, statut: 'attente', relance: '' },
+      { id: uid(), ref: 'DEV-2606-14', otp: 'OTP-24002', clientId: c2, chantierId: ch2, objet: 'Étanchéité parking couvert', dateDemande: addDays(todayISO(), -18), dateEnvoi: addDays(todayISO(), -15), montantHT: 152000, statut: 'accepte', relance: '' },
+      { id: uid(), ref: 'DEV-2607-05', otp: 'OTP-24002', clientId: c2, chantierId: ch2, objet: 'Parking couvert — travaux complémentaires (relevés)', dateDemande: addDays(todayISO(), -3), dateEnvoi: addDays(todayISO(), -2), montantHT: 12500, statut: 'envoye', relance: addDays(todayISO(), 3) },
     ],
     ca: [
       { id: uid(), mois: new Date().getMonth(), annee: new Date().getFullYear(), otp: 'OTP-24001', chantier: 'Réfection toiture bâtiment A', prixVente: 84000, fournitures: 31000, engins: 6000, moSmac: 18000 },
       { id: uid(), mois: new Date().getMonth(), annee: new Date().getFullYear(), otp: 'OTP-24002', chantier: 'Étanchéité parking couvert', prixVente: 152000, fournitures: 58000, engins: 12000, moSmac: 34000 },
     ],
     bte: [
-      { id: uid(), nom: 'Étanchéité parking couvert', otp: 'OTP-24002', prixVente: 152000, notes: '', lignes: [
-        { cat: 'Sous-traitance', designation: 'Désamiantage ponctuel', unite: 'ft', qtePrev: 1, puPrev: 8000, qteReel: 1, puReel: 8500 },
-        { cat: "Main d'œuvre", designation: 'Équipe étanchéité (2 pers.)', unite: 'j', qtePrev: 40, puPrev: 760, qteReel: 42, puReel: 760 },
-        { cat: 'Fournitures', designation: 'Membranes + isolant', unite: 'ft', qtePrev: 1, puPrev: 52000, qteReel: 1, puReel: 55000 },
-        { cat: 'Engins / matériel', designation: 'Grue + nacelle', unite: 'sem', qtePrev: 8, puPrev: 1400, qteReel: 8, puReel: 1450 },
+      { id: uid(), nom: 'Lycée Bernard Palissy', adresse: '5 Sentier aux Loups', otp: '6004345', dateEdition: todayISO(), margePct: 0.39, notes: '', lignes: [
+        { cat: '1 . Sous-traitance', designation: 'Sous-traitance', unite: 'forfait', qte: 1, pu: 2800 },
+        { cat: "2 . Main d'œuvre", designation: "Pose de point d'ancrage", unite: 'j', qte: 0.5, pu: 770 },
+        { cat: "2 . Main d'œuvre", designation: 'Dépose des couvertines', unite: 'j', qte: 1.5, pu: 770 },
+        { cat: "2 . Main d'œuvre", designation: 'Pose des garde-corps', unite: 'j', qte: 3, pu: 770 },
+        { cat: "2 . Main d'œuvre", designation: 'Évacuation gravillons', unite: 'j', qte: 2, pu: 770 },
+        { cat: "2 . Main d'œuvre", designation: 'Dépose du complexe', unite: 'j', qte: 4, pu: 770 },
+        { cat: "2 . Main d'œuvre", designation: "Pose de l'isolant", unite: 'j', qte: 3, pu: 770 },
+        { cat: "2 . Main d'œuvre", designation: "Pose du complexe d'étanchéité", unite: 'j', qte: 3, pu: 770 },
+        { cat: '3 . Fournitures', designation: 'Garde-corps (42 ml)', unite: 'ml', qte: 65, pu: 60 },
+        { cat: '3 . Fournitures', designation: 'Isolant - 100 mm', unite: 'm²', qte: 216, pu: 15.4 },
+        { cat: '3 . Fournitures', designation: 'IKO VAP', unite: 'm²', qte: 21, pu: 3.29 },
+        { cat: '3 . Fournitures', designation: 'IKOPRO COLLE PU', unite: 'kg', qte: 65, pu: 7.46 },
+        { cat: '3 . Fournitures', designation: 'IKO DUO STICK L3', unite: 'm²', qte: 238, pu: 5.57 },
+        { cat: '3 . Fournitures', designation: 'IKO DUO FUSION FEU', unite: 'm²', qte: 238, pu: 5.96 },
+        { cat: '3 . Fournitures', designation: 'IKO ÉQUERRE 25', unite: 'ml', qte: 120, pu: 1.52 },
+        { cat: '3 . Fournitures', designation: 'IKO RLV ALU PLUS', unite: 'm²', qte: 60, pu: 8.58 },
+        { cat: '3 . Fournitures', designation: 'Consommables (gaz…)', unite: 'forfait', qte: 4, pu: 80 },
+        { cat: '4 . Matériel / Location', designation: 'Location chariot télescopique', unite: 'j', qte: 8, pu: 240.09 },
+        { cat: '4 . Matériel / Location', designation: 'Livraison', unite: 'forfait', qte: 4, pu: 144 },
+        { cat: '4 . Matériel / Location', designation: 'REP - Contribution', unite: 'forfait', qte: 2, pu: 20 },
+        { cat: '4 . Matériel / Location', designation: 'Benne DIB - traitement', unite: 'tonne', qte: 10, pu: 221.5 },
+        { cat: '4 . Matériel / Location', designation: 'Benne DIB - transport', unite: 'forfait', qte: 2, pu: 150 },
+        { cat: "5 . Frais d'études", designation: "Frais d'études", unite: 'forfait', qte: 1, pu: 600 },
       ] },
     ],
     prospection: [
@@ -504,9 +527,9 @@ function demoData() {
       { id: uid(), date: addDays(todayISO(), -10), nom: 'Groupe Logista', ville: 'Villeurbanne', canal: 'rdv_suivi', objet: 'Extension parking', statut: 'devis', potentiel: 152000, prochaine: addDays(todayISO(), -1), note: 'Transformé en commande' },
     ],
     factures: [
-      { id: uid(), num: 'FA-2606-08', clientId: c2, client: 'Groupe Logista', chantierId: ch2, objet: 'Situation 1 - parking couvert', dateFG: addDays(todayISO(), -50), dateEmission: addDays(todayISO(), -48), montantHT: 60000, echeanceJours: 45, datePaiement: addDays(todayISO(), -5), statut: 'payee' },
-      { id: uid(), num: 'FA-2607-02', clientId: c2, client: 'Groupe Logista', chantierId: ch2, objet: 'Situation 2 - parking couvert', dateFG: addDays(todayISO(), -10), dateEmission: addDays(todayISO(), -8), montantHT: 48000, echeanceJours: 45, datePaiement: '', statut: 'emise' },
-      { id: uid(), num: '', clientId: c1, client: 'SCI Les Terrasses', chantierId: ch1, objet: 'Solde bâtiment A', dateFG: addDays(todayISO(), -9), dateEmission: '', montantHT: 22000, echeanceJours: 45, datePaiement: '', statut: 'a_emettre' },
+      { id: uid(), num: 'FA-2606-08', otp: 'OTP-24002', clientId: c2, client: 'Groupe Logista', chantierId: ch2, objet: 'Situation 1 - parking couvert', dateFG: addDays(todayISO(), -50), dateEmission: addDays(todayISO(), -48), montantHT: 60000, echeanceJours: 45, datePaiement: addDays(todayISO(), -5), statut: 'payee' },
+      { id: uid(), num: 'FA-2607-02', otp: 'OTP-24002', clientId: c2, client: 'Groupe Logista', chantierId: ch2, objet: 'Situation 2 - parking couvert', dateFG: addDays(todayISO(), -10), dateEmission: addDays(todayISO(), -8), montantHT: 48000, echeanceJours: 45, datePaiement: '', statut: 'emise' },
+      { id: uid(), num: '', otp: 'OTP-24001', clientId: c1, client: 'SCI Les Terrasses', chantierId: ch1, objet: 'Solde bâtiment A', dateFG: addDays(todayISO(), -9), dateEmission: '', montantHT: 22000, echeanceJours: 45, datePaiement: '', statut: 'a_emettre' },
     ],
     contrats: [
       { id: uid(), ref: 'CE-2024-11', clientId: c3, nom: 'Entretien toitures écoles', type: 'Contrat P2', dateDebut: addDays(todayISO(), -200), dateFin: addDays(todayISO(), 165), frequence: 2, montantAnnuel: 9800, note: 'Visite printemps + automne' },
@@ -848,11 +871,16 @@ function renderChantiers(v) {
 function chantierForm(id) {
   const c = id ? chantierById(id) : { otp: '', nom: '', clientId: '', adresse: '', statut: 'prospect', dateDemande: todayISO(), montantHT: 0, notes: '' };
   const opts = DB.data.clients.map(cl => `<option value="${cl.id}" ${c.clientId === cl.id ? 'selected' : ''}>${esc(cl.nom)}</option>`).join('');
+  const devisOpts = DB.data.devis.slice().sort((a, b) => (b.dateDemande || '').localeCompare(a.dateDemande || ''))
+    .map(d => `<option value="${d.id}">${esc(d.ref)}${d.otp ? ' · ' + esc(d.otp) : ''} — ${esc(d.objet)}</option>`).join('');
   const m = modal({ title: id ? 'Modifier le chantier' : 'Nouveau chantier',
     body: `<div class="form-grid">
-      <div class="field"><label>N° OTP</label><input id="f-otp" value="${esc(c.otp)}" placeholder="OTP-…"></div>
-      <div class="field"><label>Statut</label><select id="f-statut">${Object.entries(STATUTS_CHANTIER).map(([k, l]) => `<option value="${k}" ${c.statut === k ? 'selected' : ''}>${l}</option>`).join('')}</select></div>
+      <div class="field full"><label>Nom du chantier — reprendre un devis existant</label>
+        <select id="f-fromdevis"><option value="">Saisie manuelle…</option>${devisOpts}</select>
+        <div class="hint">Sélectionnez un devis pour reprendre automatiquement son objet, son OTP, le client et le montant.</div></div>
       <div class="field full"><label>Nom du chantier</label><input id="f-nom" value="${esc(c.nom)}" placeholder="Réfection toiture…"></div>
+      <div class="field"><label>N° OTP</label><input id="f-otp" value="${esc(c.otp)}" list="c-otplist" placeholder="OTP-…"><datalist id="c-otplist">${otpDistinct().map(o => `<option value="${esc(o)}">`).join('')}</datalist></div>
+      <div class="field"><label>Statut</label><select id="f-statut">${Object.entries(STATUTS_CHANTIER).map(([k, l]) => `<option value="${k}" ${c.statut === k ? 'selected' : ''}>${l}</option>`).join('')}</select></div>
       <div class="field"><label>Client</label><select id="f-client"><option value="">— Aucun —</option>${opts}</select></div>
       <div class="field"><label>Adresse</label><input id="f-adr" value="${esc(c.adresse)}"></div>
       <div class="field"><label>Date de la demande</label><input id="f-date" type="date" value="${c.dateDemande || todayISO()}"></div>
@@ -860,6 +888,17 @@ function chantierForm(id) {
       <div class="field full"><label>Notes</label><textarea id="f-notes" rows="2">${esc(c.notes)}</textarea></div>
     </div>`, footer: `<button class="btn" data-c>Annuler</button><button class="btn primary" id="save">Enregistrer</button>` });
   m.root.querySelector('[data-c]').onclick = m.close;
+  $('#f-fromdevis').onchange = e => {
+    const d = DB.data.devis.find(x => x.id === e.target.value); if (!d) return;
+    if (!$('#f-nom').value.trim()) $('#f-nom').value = d.objet || '';
+    $('#f-otp').value = d.otp || $('#f-otp').value;
+    if (d.clientId) $('#f-client').value = d.clientId;
+    if (d.montantHT) $('#f-montant').value = d.montantHT;
+    const cl = DB.data.clients.find(x => x.id === d.clientId);
+    if (cl && cl.adresse && !$('#f-adr').value.trim()) $('#f-adr').value = cl.adresse;
+    if ($('#f-statut').value === 'prospect') $('#f-statut').value = 'devis';
+    toast('Infos du devis ' + d.ref + ' reprises');
+  };
   $('#save').onclick = () => {
     const obj = { otp: $('#f-otp').value.trim(), nom: $('#f-nom').value.trim(), clientId: $('#f-client').value, adresse: $('#f-adr').value.trim(), statut: $('#f-statut').value, dateDemande: $('#f-date').value, montantHT: +$('#f-montant').value || 0, notes: $('#f-notes').value.trim() };
     if (!obj.nom) { toast('Le nom est obligatoire', 'err'); return; }
@@ -888,12 +927,14 @@ function chantierDetail(id) {
 }
 
 /* ---------- Devis ---------- */
-let devisFilter = { q: '', statut: '' };
+const otpDistinct = () => [...new Set([...DB.data.devis.map(d => d.otp), ...DB.data.chantiers.map(c => c.otp), ...DB.data.factures.map(f => f.otp)].filter(Boolean))].sort();
+let devisFilter = { q: '', statut: '', otp: '' };
 function renderDevis(v) {
   const o = DB.data.objectifs;
   const list = DB.data.devis.filter(d => {
     if (devisFilter.statut && d.statut !== devisFilter.statut) return false;
-    if (devisFilter.q) { const s = (d.ref + ' ' + d.objet).toLowerCase(); if (!s.includes(devisFilter.q.toLowerCase())) return false; }
+    if (devisFilter.otp && d.otp !== devisFilter.otp) return false;
+    if (devisFilter.q) { const s = (d.ref + ' ' + d.objet + ' ' + (d.otp || '') + ' ' + clientNom(d.clientId)).toLowerCase(); if (!s.includes(devisFilter.q.toLowerCase())) return false; }
     return true;
   }).sort((a, b) => (b.dateDemande || '').localeCompare(a.dateDemande || ''));
   const delaiCell = d => {
@@ -906,43 +947,47 @@ function renderDevis(v) {
   };
   v.innerHTML = `
     <div class="page-actions"><button class="btn primary" id="add">${icon('plus')} Nouveau devis</button><span class="spacer"></span><button class="btn small" id="csv">${icon('download')} Export CSV</button></div>
-    <div class="filters"><span class="search-wrap">${icon('search')}<input id="q" placeholder="Rechercher…" value="${esc(devisFilter.q)}"></span>
+    <div class="filters"><span class="search-wrap">${icon('search')}<input id="q" placeholder="Rechercher (réf, objet, OTP, client…)" value="${esc(devisFilter.q)}"></span>
+      <select id="fotp"><option value="">Tous les OTP</option>${otpDistinct().map(o2 => `<option value="${esc(o2)}" ${devisFilter.otp === o2 ? 'selected' : ''}>${esc(o2)}</option>`).join('')}</select>
       <select id="fs"><option value="">Tous les statuts</option>${Object.entries(STATUTS_DEVIS).map(([k, l]) => `<option value="${k}" ${devisFilter.statut === k ? 'selected' : ''}>${l}</option>`).join('')}</select>
       <span class="chip">${list.length} devis</span><span class="chip">Taux d'acceptation ${tauxAccept()} %</span></div>
-    ${list.length ? `<div class="table-wrap"><table><thead><tr><th>Réf.</th><th>Objet</th><th>Demande</th><th>Envoi</th><th>Délai 7 j</th><th>Statut</th><th class="num">Montant HT</th><th></th></tr></thead>
-      <tbody>${list.map(d => `<tr><td class="t-strong">${esc(d.ref)}</td><td>${esc(d.objet)}</td><td>${fmtDate(d.dateDemande)}</td><td>${fmtDate(d.dateEnvoi)}</td><td>${delaiCell(d)}</td><td>${devisBadge(d.statut)}</td><td class="num">${eur(d.montantHT)}</td>
+    ${list.length ? `<div class="table-wrap"><table><thead><tr><th>Réf.</th><th>OTP</th><th>Objet</th><th>Client</th><th>Demande</th><th>Délai 7 j</th><th>Statut</th><th class="num">Montant HT</th><th></th></tr></thead>
+      <tbody>${list.map(d => `<tr><td class="t-strong">${esc(d.ref)}</td><td><span class="chip">${esc(d.otp || '—')}</span></td><td>${esc(d.objet)}</td><td class="t-muted">${esc(clientNom(d.clientId))}</td><td>${fmtDate(d.dateDemande)}</td><td>${delaiCell(d)}</td><td>${devisBadge(d.statut)}</td><td class="num">${eur(d.montantHT)}</td>
         <td class="actions-cell"><button class="icon-btn" data-edit="${d.id}" title="Modifier">${icon('edit')}</button><button class="icon-btn danger" data-del="${d.id}" title="Supprimer">${icon('trash')}</button></td></tr>`).join('')}</tbody>
-      <tfoot><tr><td colspan="6">Total</td><td class="num">${eur(list.reduce((s, d) => s + (+d.montantHT || 0), 0))}</td><td></td></tr></tfoot></table></div>`
+      <tfoot><tr><td colspan="7">Total${devisFilter.otp ? ' — OTP ' + esc(devisFilter.otp) : ''}</td><td class="num">${eur(list.reduce((s, d) => s + (+d.montantHT || 0), 0))}</td><td></td></tr></tfoot></table></div>`
       : emptyState('file', 'Aucun devis', 'Objectif : 45 devis / mois, envoi sous 7 jours.')}`;
   $('#add').onclick = () => devisForm();
   $('#q').oninput = e => { devisFilter.q = e.target.value; renderDevis(v); const i = $('#q'); i.focus(); i.setSelectionRange(i.value.length, i.value.length); };
   $('#fs').onchange = e => { devisFilter.statut = e.target.value; renderDevis(v); };
-  $('#csv').onclick = () => exportCSV('devis', ['ref', 'objet', 'dateDemande', 'dateEnvoi', 'statut', 'montantHT'], list.map(d => [d.ref, d.objet, d.dateDemande, d.dateEnvoi, STATUTS_DEVIS[d.statut], d.montantHT]));
+  $('#fotp').onchange = e => { devisFilter.otp = e.target.value; renderDevis(v); };
+  $('#csv').onclick = () => exportCSV('devis', ['ref', 'otp', 'objet', 'client', 'dateDemande', 'dateEnvoi', 'statut', 'montantHT'], list.map(d => [d.ref, d.otp, d.objet, clientNom(d.clientId), d.dateDemande, d.dateEnvoi, STATUTS_DEVIS[d.statut], d.montantHT]));
   $$('[data-edit]', v).forEach(b => b.onclick = () => devisForm(b.dataset.edit));
   $$('[data-del]', v).forEach(b => b.onclick = () => confirmDialog('Supprimer ce devis ?', () => { DB.data.devis = DB.data.devis.filter(x => x.id !== b.dataset.del); DB.save(); toast('Devis supprimé'); renderDevis(v); }));
 }
 function tauxAccept() { const d = DB.data.devis.filter(x => ['accepte', 'refuse'].includes(x.statut)); return d.length ? Math.round(d.filter(x => x.statut === 'accepte').length / d.length * 100) : 0; }
 function devisForm(id) {
-  const d = id ? DB.data.devis.find(x => x.id === id) : { ref: 'DEV-' + new Date().toISOString().slice(2, 7).replace('-', '') + '-' + String(DB.data.devis.length + 1).padStart(2, '0'), chantierId: '', objet: '', dateDemande: todayISO(), dateEnvoi: '', montantHT: 0, statut: 'attente', relance: '' };
-  const chOpts = DB.data.chantiers.map(c => `<option value="${c.id}" ${d.chantierId === c.id ? 'selected' : ''}>${esc(c.otp || '')} ${esc(c.nom)}</option>`).join('');
+  const d = id ? DB.data.devis.find(x => x.id === id) : { ref: 'DEV-' + new Date().toISOString().slice(2, 7).replace('-', '') + '-' + String(DB.data.devis.length + 1).padStart(2, '0'), otp: '', clientId: '', chantierId: '', objet: '', dateDemande: todayISO(), dateEnvoi: '', montantHT: 0, statut: 'attente', relance: '' };
+  const clOpts = DB.data.clients.map(c => `<option value="${c.id}" ${d.clientId === c.id ? 'selected' : ''}>${esc(c.nom)}</option>`).join('');
   const m = modal({ title: id ? 'Modifier le devis' : 'Nouveau devis',
     body: `<div class="form-grid">
       <div class="field"><label>Référence</label><input id="f-ref" value="${esc(d.ref)}"></div>
-      <div class="field"><label>Statut</label><select id="f-statut">${Object.entries(STATUTS_DEVIS).map(([k, l]) => `<option value="${k}" ${d.statut === k ? 'selected' : ''}>${l}</option>`).join('')}</select></div>
+      <div class="field"><label>N° OTP</label><input id="f-otp" value="${esc(d.otp)}" list="d-otplist" placeholder="OTP…"><datalist id="d-otplist">${otpDistinct().map(o => `<option value="${esc(o)}">`).join('')}</datalist></div>
       <div class="field full"><label>Objet</label><input id="f-objet" value="${esc(d.objet)}" placeholder="Réfection terrasse…"></div>
-      <div class="field full"><label>Chantier lié (optionnel)</label><select id="f-ch"><option value="">— Aucun —</option>${chOpts}</select></div>
+      <div class="field"><label>Client</label><select id="f-client"><option value="">— Aucun —</option>${clOpts}</select></div>
+      <div class="field"><label>Statut</label><select id="f-statut">${Object.entries(STATUTS_DEVIS).map(([k, l]) => `<option value="${k}" ${d.statut === k ? 'selected' : ''}>${l}</option>`).join('')}</select></div>
       <div class="field"><label>Date demande client</label><input id="f-dd" type="date" value="${d.dateDemande || todayISO()}"></div>
       <div class="field"><label>Date d'envoi</label><input id="f-de" type="date" value="${d.dateEnvoi || ''}"></div>
       <div class="field"><label>Montant HT (€)</label><input id="f-montant" type="number" value="${d.montantHT || 0}"></div>
       <div class="field"><label>Date de relance prévue</label><input id="f-rel" type="date" value="${d.relance || ''}"></div>
     </div>
-    <div class="field inline" style="margin-top:8px"><input type="checkbox" id="f-now"><label for="f-now" style="cursor:pointer">Marquer comme envoyé aujourd'hui (${fmtDate(todayISO())})</label></div>`,
+    <div class="field hint" style="margin-top:6px">Plusieurs devis peuvent partager le même OTP.</div>
+    <div class="field inline" style="margin-top:6px"><input type="checkbox" id="f-now"><label for="f-now" style="cursor:pointer">Marquer comme envoyé aujourd'hui (${fmtDate(todayISO())})</label></div>`,
     footer: `<button class="btn" data-c>Annuler</button><button class="btn primary" id="save">Enregistrer</button>` });
   m.root.querySelector('[data-c]').onclick = m.close;
   $('#save').onclick = () => {
     let dateEnvoi = $('#f-de').value, statut = $('#f-statut').value;
     if ($('#f-now').checked) { dateEnvoi = todayISO(); if (statut === 'attente') statut = 'envoye'; }
-    const obj = { ref: $('#f-ref').value.trim(), objet: $('#f-objet').value.trim(), chantierId: $('#f-ch').value, dateDemande: $('#f-dd').value, dateEnvoi, montantHT: +$('#f-montant').value || 0, statut, relance: $('#f-rel').value };
+    const obj = { ref: $('#f-ref').value.trim(), otp: $('#f-otp').value.trim(), clientId: $('#f-client').value, chantierId: d.chantierId || '', objet: $('#f-objet').value.trim(), dateDemande: $('#f-dd').value, dateEnvoi, montantHT: +$('#f-montant').value || 0, statut, relance: $('#f-rel').value };
     if (!obj.objet) { toast("L'objet est obligatoire", 'err'); return; }
     if (id) Object.assign(d, obj); else DB.data.devis.unshift({ id: uid(), ...obj });
     DB.save(); m.close(); toast('Devis enregistré'); go('devis');
@@ -1010,79 +1055,101 @@ function caForm(id) {
 }
 
 /* ---------- BTE — Budget chantier ---------- */
-const BTE_CATS = ['Sous-traitance', "Main d'œuvre", 'Fournitures', 'Engins / matériel', 'Autres'];
-function bteTotals(b) {
-  const prev = b.lignes.reduce((s, l) => s + (+l.qtePrev || 0) * (+l.puPrev || 0), 0);
-  const reel = b.lignes.reduce((s, l) => s + (+l.qteReel || 0) * (+l.puReel || 0), 0);
+const BTE_CATS = ['1 . Sous-traitance', "2 . Main d'œuvre", '3 . Fournitures', '4 . Matériel / Location', "5 . Frais d'études", '6 . Frais connexe'];
+function migrateBte(b) {
+  if (!b) return b;
+  if (b.margePct !== undefined && (!b.lignes || !b.lignes.length || b.lignes[0].qte !== undefined)) return b; // déjà nouveau format
+  const oldMap = { 'Sous-traitance': BTE_CATS[0], "Main d'œuvre": BTE_CATS[1], 'Fournitures': BTE_CATS[2], 'Engins / matériel': BTE_CATS[3], 'Autres': BTE_CATS[5] };
+  const lignes = (b.lignes || []).map(l => l.qte !== undefined ? l
+    : { cat: oldMap[l.cat] || BTE_CATS[5], designation: l.designation, unite: l.unite, qte: +l.qtePrev || 0, pu: +l.puPrev || 0 });
+  const dep = lignes.reduce((s, l) => s + (+l.qte || 0) * (+l.pu || 0), 0);
   const pv = +b.prixVente || 0;
-  return { prev, reel, pv, margePrev: pv - prev, margeReel: pv - reel, pctPrev: pv ? (pv - prev) / pv : 0, pctReel: pv ? (pv - reel) / pv : 0 };
+  return { id: b.id || uid(), nom: b.nom || '', adresse: b.adresse || '', otp: b.otp || '', dateEdition: b.dateEdition || todayISO(),
+    margePct: b.margePct !== undefined ? b.margePct : (pv ? (pv - dep) / pv : 0.30), notes: b.notes || '', lignes };
+}
+function bteTotals(b) {
+  const parCat = {}; BTE_CATS.forEach(c => parCat[c] = 0);
+  let dep = 0;
+  (b.lignes || []).forEach(l => { const t = (+l.qte || 0) * (+l.pu || 0); dep += t; parCat[l.cat] = (parCat[l.cat] || 0) + t; });
+  const marge = +b.margePct || 0;
+  const pv = marge < 1 ? dep / (1 - marge) : 0;
+  return { dep, parCat, margePct: marge, pv, margeEuro: pv - dep };
 }
 function bteSummaryLine(b) {
   const t = bteTotals(b);
-  return `<div class="grid-3"><div class="stat-line"><span>Prix de vente</span><b>${eur(t.pv)}</b></div><div class="stat-line"><span>Dépenses prév.</span><b>${eur(t.prev)}</b></div><div class="stat-line"><span>Marge prév.</span><b class="${t.pctPrev >= 0 ? 'margin-good' : 'margin-bad'}">${eur(t.margePrev)} · ${pct(t.pctPrev)}</b></div></div>`;
+  return `<div class="grid-3"><div class="stat-line"><span>Total dépenses</span><b>${eur(t.dep)}</b></div><div class="stat-line"><span>Marge brute</span><b>${pct(t.margePct)}</b></div><div class="stat-line"><span>Prix de vente</span><b>${eur(t.pv)}</b></div></div>`;
 }
 function renderBTE(v) {
   const list = DB.data.bte;
   v.innerHTML = `
     <div class="page-actions"><button class="btn primary" id="add">${icon('plus')} Nouveau BTE</button><span class="spacer"></span><span class="chip">${list.length} budget(s)</span></div>
-    ${list.length ? `<div class="table-wrap"><table><thead><tr><th>OTP</th><th>Chantier</th><th class="num">Prix vente</th><th class="num">Dépenses prév.</th><th class="num">Marge prév.</th><th class="num">Dépenses réel.</th><th class="num">Marge réel.</th><th class="num">Écart</th><th></th></tr></thead>
-      <tbody>${list.map(b => { const t = bteTotals(b), ecart = t.margeReel - t.margePrev; return `<tr><td class="t-strong">${esc(b.otp || '—')}</td><td><span class="link" data-open="${b.id}">${esc(b.nom)}</span></td><td class="num">${eur(t.pv)}</td><td class="num">${eur(t.prev)}</td><td class="num ${t.pctPrev >= 0 ? 'margin-good' : 'margin-bad'}">${eur(t.margePrev)} · ${pct(t.pctPrev)}</td><td class="num">${eur(t.reel)}</td><td class="num ${t.pctReel >= 0 ? 'margin-good' : 'margin-bad'}">${eur(t.margeReel)} · ${pct(t.pctReel)}</td><td class="num ${ecart >= 0 ? 'margin-good' : 'margin-bad'}">${ecart >= 0 ? '+' : ''}${eur(ecart)}</td>
+    ${list.length ? `<div class="table-wrap"><table><thead><tr><th>OTP</th><th>Chantier</th><th class="num">Total dépenses</th><th class="num">Marge %</th><th class="num">Prix de vente</th><th class="num">Marge brute €</th><th></th></tr></thead>
+      <tbody>${list.map(b => { const t = bteTotals(b); return `<tr><td class="t-strong">${esc(b.otp || '—')}</td><td><span class="link" data-open="${b.id}">${esc(b.nom)}</span></td><td class="num">${eur(t.dep)}</td><td class="num">${pct(t.margePct)}</td><td class="num t-strong">${eur(t.pv)}</td><td class="num ${t.margeEuro >= 0 ? 'margin-good' : 'margin-bad'}">${eur(t.margeEuro)}</td>
         <td class="actions-cell"><button class="icon-btn" data-open="${b.id}" title="Ouvrir">${icon('edit')}</button><button class="icon-btn danger" data-del="${b.id}" title="Supprimer">${icon('trash')}</button></td></tr>`; }).join('')}</tbody></table></div>`
-      : emptyState('calculator', 'Aucun budget BTE', 'Créez un BTE pour estimer les dépenses et la marge brute.')}`;
+      : emptyState('calculator', 'Aucun budget BTE', 'Créez un BTE pour chiffrer les dépenses et fixer votre marge.')}`;
   $('#add').onclick = () => bteEditor();
   $$('[data-open]', v).forEach(b => b.onclick = () => bteEditor(b.dataset.open));
   $$('[data-del]', v).forEach(b => b.onclick = () => confirmDialog('Supprimer ce BTE ?', () => { DB.data.bte = DB.data.bte.filter(x => x.id !== b.dataset.del); DB.save(); toast('BTE supprimé'); renderBTE(v); }));
 }
 function bteEditor(id) {
-  const b = id ? DB.data.bte.find(x => x.id === id) : { id: uid(), nom: '', otp: '', prixVente: 0, notes: '', lignes: [] };
+  const b = id ? DB.data.bte.find(x => x.id === id) : { id: uid(), nom: '', adresse: '', otp: '', dateEdition: todayISO(), margePct: 0.30, notes: '', lignes: [] };
   const isNew = !id;
-  const catOpts = l => BTE_CATS.map(c => `<option ${l.cat === c ? 'selected' : ''}>${c}</option>`).join('');
-  const rowHtml = (l, i) => `<tr data-i="${i}"><td><select data-f="cat">${catOpts(l)}</select></td>
-    <td><input data-f="designation" value="${esc(l.designation)}" placeholder="Désignation" style="min-width:170px"></td>
-    <td><input data-f="unite" value="${esc(l.unite)}" style="width:56px" placeholder="u"></td>
-    <td><input data-f="qtePrev" type="number" value="${l.qtePrev || 0}" style="width:66px"></td>
-    <td><input data-f="puPrev" type="number" value="${l.puPrev || 0}" style="width:86px"></td>
-    <td class="num tot-prev">${eur((+l.qtePrev || 0) * (+l.puPrev || 0))}</td>
-    <td><input data-f="qteReel" type="number" value="${l.qteReel || 0}" style="width:66px"></td>
-    <td><input data-f="puReel" type="number" value="${l.puReel || 0}" style="width:86px"></td>
-    <td class="num tot-reel">${eur((+l.qteReel || 0) * (+l.puReel || 0))}</td>
+  const otpList = [...new Set([...DB.data.chantiers.map(c => c.otp), ...DB.data.devis.map(d => d.otp)].filter(Boolean))];
+  const rowHtml = l => `<tr>
+    <td><input data-f="designation" value="${esc(l.designation)}" placeholder="Désignation" style="min-width:230px"></td>
+    <td><input data-f="qte" type="number" step="any" value="${l.qte || 0}" style="width:74px"></td>
+    <td><input data-f="unite" value="${esc(l.unite)}" style="width:74px" placeholder="u"></td>
+    <td><input data-f="pu" type="number" step="any" value="${l.pu || 0}" style="width:92px"></td>
+    <td class="num tot">${eur((+l.qte || 0) * (+l.pu || 0))}</td>
     <td><button class="icon-btn danger" data-rm title="Retirer">${icon('trash')}</button></td></tr>`;
+  const catBlock = (cat, idx) => `<div class="card" style="margin-bottom:12px">
+      <div style="display:flex;align-items:center;gap:10px;padding:12px 16px 10px">
+        <div class="card-title" style="margin:0">${esc(cat)}</div><span class="spacer"></span>
+        <span class="chip">Sous-total&nbsp;<b class="cat-sub" data-cat="${idx}">${eur(0)}</b></span>
+        <button class="btn small" data-add="${idx}">${icon('plus')} Ligne</button></div>
+      <div class="table-wrap" style="border:0;box-shadow:none;border-radius:0;border-top:1px solid var(--line)"><table>
+        <thead><tr><th>Désignation</th><th class="num">Qté</th><th>Unité</th><th class="num">PU</th><th class="num">Total</th><th></th></tr></thead>
+        <tbody data-body="${idx}">${b.lignes.filter(l => l.cat === cat).map(rowHtml).join('')}</tbody></table></div></div>`;
   const m = modal({ title: isNew ? 'Nouveau BTE' : 'BTE — ' + (b.nom || ''), wide: true,
     body: `<div class="form-grid">
       <div class="field"><label>Chantier</label><input id="b-nom" value="${esc(b.nom)}" placeholder="Nom du chantier"></div>
-      <div class="field"><label>N° OTP</label><input id="b-otp" value="${esc(b.otp)}"></div>
-      <div class="field"><label>Prix de vente HT (€)</label><input id="b-pv" type="number" value="${b.prixVente || 0}"></div>
-      <div class="field"><label>&nbsp;</label><button class="btn" id="b-addline">${icon('plus')} Ajouter une ligne</button></div></div>
-    <div class="table-wrap" style="margin-top:14px"><table id="b-table"><thead>
-      <tr><th>Poste</th><th>Désignation</th><th>Unité</th><th colspan="3" style="text-align:center;border-left:2px solid var(--line)">PRÉVISIONNEL</th><th colspan="3" style="text-align:center;border-left:2px solid var(--line)">EXÉCUTION (RÉEL)</th><th></th></tr>
-      <tr><th></th><th></th><th></th><th>Qté</th><th>PU</th><th class="num">Total</th><th>Qté</th><th>PU</th><th class="num">Total</th><th></th></tr></thead>
-      <tbody id="b-body">${b.lignes.map(rowHtml).join('')}</tbody></table></div>
-    <div id="b-summary" style="margin-top:16px"></div>
-    <div class="field full" style="margin-top:12px"><label>Notes</label><textarea id="b-notes" rows="2">${esc(b.notes)}</textarea></div>`,
+      <div class="field"><label>N° OTP</label><input id="b-otp" value="${esc(b.otp)}" list="b-otplist"><datalist id="b-otplist">${otpList.map(o => `<option value="${esc(o)}">`).join('')}</datalist></div>
+      <div class="field"><label>Adresse chantier</label><input id="b-adr" value="${esc(b.adresse)}"></div>
+      <div class="field"><label>Date d'édition</label><input id="b-date" type="date" value="${b.dateEdition || todayISO()}"></div>
+      <div class="field"><label>Marge brute cible (%)</label><input id="b-marge" type="number" step="0.1" value="${(b.margePct * 100).toFixed(1)}"></div>
+    </div>
+    <div id="b-metrics" style="margin:16px 0"></div>
+    <div id="b-cats">${BTE_CATS.map(catBlock).join('')}</div>
+    <div class="field full" style="margin-top:6px"><label>Notes</label><textarea id="b-notes" rows="2">${esc(b.notes)}</textarea></div>`,
     footer: `<button class="btn" data-c>Annuler</button><button class="btn small" id="b-csv">${icon('download')} CSV</button><button class="btn primary" id="b-save">Enregistrer</button>` });
   const collect = () => {
-    b.nom = $('#b-nom').value.trim(); b.otp = $('#b-otp').value.trim(); b.prixVente = +$('#b-pv').value || 0; b.notes = $('#b-notes').value.trim();
-    b.lignes = $$('#b-body tr').map(tr => { const g = f => tr.querySelector(`[data-f="${f}"]`).value; return { cat: g('cat'), designation: g('designation'), unite: g('unite'), qtePrev: +g('qtePrev') || 0, puPrev: +g('puPrev') || 0, qteReel: +g('qteReel') || 0, puReel: +g('puReel') || 0 }; });
+    b.nom = $('#b-nom').value.trim(); b.otp = $('#b-otp').value.trim(); b.adresse = $('#b-adr').value.trim();
+    b.dateEdition = $('#b-date').value; b.margePct = (+$('#b-marge').value || 0) / 100; b.notes = $('#b-notes').value.trim();
+    b.lignes = [];
+    BTE_CATS.forEach((cat, idx) => $$(`[data-body="${idx}"] tr`).forEach(tr => {
+      const g = f => tr.querySelector(`[data-f="${f}"]`).value;
+      b.lignes.push({ cat, designation: g('designation'), unite: g('unite'), qte: +g('qte') || 0, pu: +g('pu') || 0 });
+    }));
   };
-  const refreshSummary = () => {
-    collect(); const t = bteTotals(b); const byCat = {}; b.lignes.forEach(l => { byCat[l.cat] = (byCat[l.cat] || 0) + (+l.qtePrev || 0) * (+l.puPrev || 0); });
-    $('#b-summary').innerHTML = `<div class="grid-3">
-      <div class="cad-metric"><div class="cm-label">Prix de vente</div><div class="cm-value">${eur(t.pv)}</div></div>
-      <div class="cad-metric"><div class="cm-label">Dépenses prév. / réel.</div><div class="cm-value">${eur(t.prev)}</div><div class="cm-sub">Réel : ${eur(t.reel)}</div></div>
-      <div class="cad-metric ${t.pctPrev >= 0 ? 'green' : 'amber'}"><div class="cm-label">Marge brute prévisionnelle</div><div class="cm-value ${t.pctPrev >= 0 ? 'margin-good' : 'margin-bad'}">${eur(t.margePrev)}</div><div class="cm-sub">${pct(t.pctPrev)} · réel ${eur(t.margeReel)} (${pct(t.pctReel)})</div></div></div>
-      <div class="card card-pad" style="margin-top:12px"><div class="card-title">Répartition prévisionnelle par poste</div>${BTE_CATS.filter(c => byCat[c]).map(c => `<div class="stat-line"><span>${c}</span><b>${eur(byCat[c])} <span class="t-muted">(${pct(t.prev ? byCat[c] / t.prev : 0)})</span></b></div>`).join('') || '<span class="t-muted">Aucune dépense saisie.</span>'}</div>`;
+  const refresh = () => {
+    collect(); const t = bteTotals(b);
+    BTE_CATS.forEach((cat, idx) => { const el = m.root.querySelector(`.cat-sub[data-cat="${idx}"]`); if (el) el.textContent = eur(t.parCat[cat] || 0); });
+    $('#b-metrics').innerHTML = `<div class="grid-3">
+      <div class="cad-metric"><div class="cm-label">Total dépenses</div><div class="cm-value">${eur(t.dep)}</div></div>
+      <div class="cad-metric amber"><div class="cm-label">Marge brute</div><div class="cm-value">${pct(t.margePct)}</div><div class="cm-sub">${eur(t.margeEuro)}</div></div>
+      <div class="cad-metric green"><div class="cm-label">Prix de vente HT</div><div class="cm-value">${eur(t.pv)}</div><div class="cm-sub">Dépenses ÷ (1 − marge)</div></div></div>`;
   };
   const bindRow = tr => {
-    tr.querySelectorAll('input,select').forEach(inp => inp.oninput = () => { const g = f => tr.querySelector(`[data-f="${f}"]`).value; tr.querySelector('.tot-prev').textContent = eur((+g('qtePrev') || 0) * (+g('puPrev') || 0)); tr.querySelector('.tot-reel').textContent = eur((+g('qteReel') || 0) * (+g('puReel') || 0)); refreshSummary(); });
-    tr.querySelector('[data-rm]').onclick = () => { tr.remove(); refreshSummary(); };
+    tr.querySelectorAll('input').forEach(inp => inp.oninput = () => { const g = f => tr.querySelector(`[data-f="${f}"]`).value; tr.querySelector('.tot').textContent = eur((+g('qte') || 0) * (+g('pu') || 0)); refresh(); });
+    tr.querySelector('[data-rm]').onclick = () => { tr.remove(); refresh(); };
   };
-  $$('#b-body tr').forEach(bindRow);
-  $('#b-pv').oninput = refreshSummary;
-  $('#b-addline').onclick = () => { const tmp = document.createElement('tbody'); tmp.innerHTML = rowHtml({ cat: BTE_CATS[1], designation: '', unite: '', qtePrev: 0, puPrev: 0, qteReel: 0, puReel: 0 }, $$('#b-body tr').length); const tr = tmp.firstElementChild; $('#b-body').appendChild(tr); bindRow(tr); refreshSummary(); };
+  $$('#b-cats tbody tr').forEach(bindRow);
+  ['b-marge'].forEach(k => $('#' + k).oninput = refresh);
+  $$('[data-add]', m.root).forEach(btn => btn.onclick = () => { const body = m.root.querySelector(`[data-body="${btn.dataset.add}"]`); const tmp = document.createElement('tbody'); tmp.innerHTML = rowHtml({ designation: '', unite: '', qte: 0, pu: 0 }); const tr = tmp.firstElementChild; body.appendChild(tr); bindRow(tr); refresh(); });
   m.root.querySelector('[data-c]').onclick = m.close;
-  $('#b-csv').onclick = () => { collect(); exportCSV('BTE_' + (b.otp || b.nom || 'chantier'), ['poste', 'designation', 'unite', 'qtePrev', 'puPrev', 'totalPrev', 'qteReel', 'puReel', 'totalReel'], b.lignes.map(l => [l.cat, l.designation, l.unite, l.qtePrev, l.puPrev, l.qtePrev * l.puPrev, l.qteReel, l.puReel, l.qteReel * l.puReel])); };
+  $('#b-csv').onclick = () => { collect(); exportCSV('BTE_' + (b.otp || b.nom || 'chantier'), ['poste', 'designation', 'unite', 'qte', 'pu', 'total'], b.lignes.map(l => [l.cat, l.designation, l.unite, l.qte, l.pu, l.qte * l.pu])); };
   $('#b-save').onclick = () => { collect(); if (!b.nom) { toast('Le nom du chantier est obligatoire', 'err'); return; } if (isNew) DB.data.bte.unshift(b); DB.save(); m.close(); toast('BTE enregistré'); go('bte'); };
-  refreshSummary();
+  refresh();
 }
 
 /* ---------- Cadences étanchéité ---------- */
@@ -1253,11 +1320,12 @@ function factBadge(f) {
   if (fl.retardEmission) return `<span class="badge b-perdu">À émettre (retard)</span>`;
   return `<span class="badge ${f.statut === 'emise' ? 'b-envoye' : 'b-attente'}">${STATUTS_FACT[f.statut]}</span>`;
 }
-let factFilter = { q: '', statut: '' };
+let factFilter = { q: '', statut: '', otp: '' };
 function renderFactures(v) {
   const list = DB.data.factures.filter(f => {
     if (factFilter.statut && f.statut !== factFilter.statut) return false;
-    if (factFilter.q) { const s = ((f.num || '') + ' ' + (f.client || '') + ' ' + (f.objet || '')).toLowerCase(); if (!s.includes(factFilter.q.toLowerCase())) return false; }
+    if (factFilter.otp && f.otp !== factFilter.otp) return false;
+    if (factFilter.q) { const s = ((f.num || '') + ' ' + (f.client || '') + ' ' + (f.objet || '') + ' ' + (f.otp || '')).toLowerCase(); if (!s.includes(factFilter.q.toLowerCase())) return false; }
     return true;
   }).sort((a, b) => (b.dateFG || b.dateEmission || '').localeCompare(a.dateFG || a.dateEmission || ''));
   const aEmettre = DB.data.factures.filter(f => f.statut === 'a_emettre');
@@ -1274,34 +1342,46 @@ function renderFactures(v) {
       <div class="kpi"><div class="kpi-top"><span class="kpi-label">Encaissé</span><span class="kpi-ico green">${icon('check')}</span></div><div class="kpi-value">${eur(encaisse)}</div><div class="kpi-sub">Réglé</div></div>
       <div class="kpi"><div class="kpi-top"><span class="kpi-label">Taux de recouvrement</span><span class="kpi-ico">${icon('trend')}</span></div><div class="kpi-value">${recouvre} %</div><div class="progress ${recouvre >= 90 ? 'green' : ''}"><i style="width:${recouvre}%"></i></div></div>
     </div>
+    <div class="card card-pad" style="margin-bottom:16px">
+      <div class="section-head">${icon('receipt')}<h2>À facturer par OTP — fin de mois</h2></div>
+      ${(() => { const grp = {}; aEmettre.forEach(f => { const k = f.otp || '(sans OTP)'; (grp[k] = grp[k] || { n: 0, m: 0, client: f.client }).n++; grp[k].m += (+f.montantHT || 0); });
+        const keys = Object.keys(grp); if (!keys.length) return '<div class="t-muted">Rien en attente de facturation.</div>';
+        return `<div class="table-wrap"><table><thead><tr><th>OTP</th><th>Client</th><th class="num">Nb</th><th class="num">Montant à émettre HT</th><th></th></tr></thead>
+          <tbody>${keys.sort().map(k => `<tr><td class="t-strong">${esc(k)}</td><td class="t-muted">${esc(grp[k].client || '—')}</td><td class="num">${grp[k].n}</td><td class="num t-strong">${eur(grp[k].m)}</td><td class="actions-cell"><button class="link" data-fotp="${esc(k === '(sans OTP)' ? '' : k)}">Filtrer</button></td></tr>`).join('')}</tbody>
+          <tfoot><tr><td colspan="3">Total à facturer</td><td class="num">${eur(aEmettre.reduce((s, f) => s + (+f.montantHT || 0), 0))}</td><td></td></tr></tfoot></table></div>`; })()}
+    </div>
     <div class="page-actions"><button class="btn primary" id="add">${icon('plus')} Nouvelle facture</button><span class="spacer"></span><button class="btn small" id="csv">${icon('download')} Export CSV</button></div>
-    <div class="filters"><span class="search-wrap">${icon('search')}<input id="q" placeholder="Rechercher…" value="${esc(factFilter.q)}"></span>
+    <div class="filters"><span class="search-wrap">${icon('search')}<input id="q" placeholder="Rechercher (n°, client, objet, OTP…)" value="${esc(factFilter.q)}"></span>
+      <select id="fotp"><option value="">Tous les OTP</option>${otpDistinct().map(o => `<option value="${esc(o)}" ${factFilter.otp === o ? 'selected' : ''}>${esc(o)}</option>`).join('')}</select>
       <select id="fs"><option value="">Tous les statuts</option>${Object.entries(STATUTS_FACT).map(([k, l]) => `<option value="${k}" ${factFilter.statut === k ? 'selected' : ''}>${l}</option>`).join('')}</select>
       <span class="chip">${list.length} facture(s)</span></div>
-    ${list.length ? `<div class="table-wrap"><table><thead><tr><th>N°</th><th>Client</th><th>Objet</th><th>Fait générateur</th><th>Émission</th><th>Échéance</th><th class="num">Montant HT</th><th>Statut</th><th></th></tr></thead>
-      <tbody>${list.map(f => { const fl = factureFlags(f); return `<tr><td class="t-strong">${esc(f.num || '—')}</td><td>${esc(f.client || '—')}</td><td>${esc(f.objet || '—')}</td><td>${fmtDate(f.dateFG)}</td><td>${fmtDate(f.dateEmission)}</td><td class="${fl.retardPaiement ? 'deadline-late' : ''}">${fl.echeance ? fmtDate(fl.echeance) : '—'}</td><td class="num">${eur(f.montantHT)}</td><td>${factBadge(f)}</td>
+    ${list.length ? `<div class="table-wrap"><table><thead><tr><th>N°</th><th>OTP</th><th>Client</th><th>Objet</th><th>Fait générateur</th><th>Émission</th><th>Échéance</th><th class="num">Montant HT</th><th>Statut</th><th></th></tr></thead>
+      <tbody>${list.map(f => { const fl = factureFlags(f); return `<tr><td class="t-strong">${esc(f.num || '—')}</td><td><span class="chip">${esc(f.otp || '—')}</span></td><td>${esc(f.client || '—')}</td><td>${esc(f.objet || '—')}</td><td>${fmtDate(f.dateFG)}</td><td>${fmtDate(f.dateEmission)}</td><td class="${fl.retardPaiement ? 'deadline-late' : ''}">${fl.echeance ? fmtDate(fl.echeance) : '—'}</td><td class="num">${eur(f.montantHT)}</td><td>${factBadge(f)}</td>
         <td class="actions-cell">${f.statut !== 'payee' ? `<button class="icon-btn" data-pay="${f.id}" title="Marquer payée">${icon('check')}</button>` : ''}<button class="icon-btn" data-edit="${f.id}" title="Modifier">${icon('edit')}</button><button class="icon-btn danger" data-del="${f.id}" title="Supprimer">${icon('trash')}</button></td></tr>`; }).join('')}</tbody>
-      <tfoot><tr><td colspan="6">Total affiché</td><td class="num">${eur(list.reduce((s, f) => s + (+f.montantHT || 0), 0))}</td><td colspan="2"></td></tr></tfoot></table></div>`
+      <tfoot><tr><td colspan="7">Total affiché${factFilter.otp ? ' — OTP ' + esc(factFilter.otp) : ''}</td><td class="num">${eur(list.reduce((s, f) => s + (+f.montantHT || 0), 0))}</td><td colspan="2"></td></tr></tfoot></table></div>`
       : emptyState('receipt', 'Aucune facture', 'Facturez chaque intervention sous 7 jours et suivez les paiements.')}`;
   $('#add').onclick = () => factForm();
   $('#q').oninput = e => { factFilter.q = e.target.value; renderFactures(v); const i = $('#q'); i.focus(); i.setSelectionRange(i.value.length, i.value.length); };
   $('#fs').onchange = e => { factFilter.statut = e.target.value; renderFactures(v); };
-  $('#csv').onclick = () => exportCSV('factures', ['num', 'client', 'objet', 'dateFG', 'dateEmission', 'echeance', 'montantHT', 'statut'], list.map(f => [f.num, f.client, f.objet, f.dateFG, f.dateEmission, factureEcheance(f), f.montantHT, STATUTS_FACT[f.statut]]));
+  $('#fotp').onchange = e => { factFilter.otp = e.target.value; renderFactures(v); };
+  $$('[data-fotp]', v).forEach(b => b.onclick = () => { factFilter.otp = b.dataset.fotp; renderFactures(v); });
+  $('#csv').onclick = () => exportCSV('factures', ['num', 'otp', 'client', 'objet', 'dateFG', 'dateEmission', 'echeance', 'montantHT', 'statut'], list.map(f => [f.num, f.otp, f.client, f.objet, f.dateFG, f.dateEmission, factureEcheance(f), f.montantHT, STATUTS_FACT[f.statut]]));
   $$('[data-edit]', v).forEach(b => b.onclick = () => factForm(b.dataset.edit));
   $$('[data-pay]', v).forEach(b => b.onclick = () => { const f = DB.data.factures.find(x => x.id === b.dataset.pay); f.statut = 'payee'; f.datePaiement = todayISO(); if (!f.dateEmission) f.dateEmission = todayISO(); DB.save(); toast('Facture réglée'); renderFactures(v); });
   $$('[data-del]', v).forEach(b => b.onclick = () => confirmDialog('Supprimer cette facture ?', () => { DB.data.factures = DB.data.factures.filter(x => x.id !== b.dataset.del); DB.save(); toast('Facture supprimée'); renderFactures(v); }));
 }
 function factForm(id) {
-  const f = id ? DB.data.factures.find(x => x.id === id) : { num: '', clientId: '', client: '', chantierId: '', objet: '', dateFG: todayISO(), dateEmission: '', montantHT: 0, echeanceJours: DB.data.objectifs.delaiPaiement, datePaiement: '', statut: 'a_emettre' };
+  const f = id ? DB.data.factures.find(x => x.id === id) : { num: '', otp: '', clientId: '', client: '', chantierId: '', objet: '', dateFG: todayISO(), dateEmission: '', montantHT: 0, echeanceJours: DB.data.objectifs.delaiPaiement, datePaiement: '', statut: 'a_emettre' };
   const clOpts = DB.data.clients.map(c => `<option value="${c.id}" ${f.clientId === c.id ? 'selected' : ''}>${esc(c.nom)}</option>`).join('');
   const chOpts = DB.data.chantiers.map(c => `<option value="${c.id}" ${f.chantierId === c.id ? 'selected' : ''}>${esc(c.otp || '')} ${esc(c.nom)}</option>`).join('');
   const m = modal({ title: id ? 'Modifier la facture' : 'Nouvelle facture',
     body: `<div class="form-grid">
       <div class="field"><label>N° de facture</label><input id="f-num" value="${esc(f.num)}" placeholder="FA-…"></div>
-      <div class="field"><label>Statut</label><select id="f-statut">${Object.entries(STATUTS_FACT).map(([k, l]) => `<option value="${k}" ${f.statut === k ? 'selected' : ''}>${l}</option>`).join('')}</select></div>
-      <div class="field"><label>Client</label><select id="f-client"><option value="">— Aucun —</option>${clOpts}</select></div>
+      <div class="field"><label>N° OTP</label><input id="f-otp" value="${esc(f.otp)}" list="fa-otplist" placeholder="OTP…"><datalist id="fa-otplist">${otpDistinct().map(o => `<option value="${esc(o)}">`).join('')}</datalist></div>
       <div class="field"><label>Chantier lié</label><select id="f-ch"><option value="">— Aucun —</option>${chOpts}</select></div>
+      <div class="field"><label>Client</label><select id="f-client"><option value="">— Aucun —</option>${clOpts}</select></div>
       <div class="field full"><label>Objet</label><input id="f-objet" value="${esc(f.objet)}" placeholder="Situation / prestation…"></div>
+      <div class="field"><label>Statut</label><select id="f-statut">${Object.entries(STATUTS_FACT).map(([k, l]) => `<option value="${k}" ${f.statut === k ? 'selected' : ''}>${l}</option>`).join('')}</select></div>
       <div class="field"><label>Fait générateur (réception)</label><input id="f-fg" type="date" value="${f.dateFG || ''}"></div>
       <div class="field"><label>Date d'émission</label><input id="f-em" type="date" value="${f.dateEmission || ''}"></div>
       <div class="field"><label>Montant HT (€)</label><input id="f-montant" type="number" value="${f.montantHT || 0}"></div>
@@ -1311,12 +1391,13 @@ function factForm(id) {
     <div class="field inline" style="margin-top:8px"><input type="checkbox" id="f-nowem"><label for="f-nowem" style="cursor:pointer">Marquer comme émise aujourd'hui</label></div>`,
     footer: `<button class="btn" data-c>Annuler</button><button class="btn primary" id="save">Enregistrer</button>` });
   m.root.querySelector('[data-c]').onclick = m.close;
+  $('#f-ch').onchange = e => { const ch = chantierById(e.target.value); if (!ch) return; if (ch.otp) $('#f-otp').value = ch.otp; if (ch.clientId) $('#f-client').value = ch.clientId; };
   $('#save').onclick = () => {
     let statut = $('#f-statut').value, dateEmission = $('#f-em').value, datePaiement = $('#f-pay').value;
     if ($('#f-nowem').checked) { dateEmission = todayISO(); if (statut === 'a_emettre') statut = 'emise'; }
     if (datePaiement) statut = 'payee';
-    const clientId = $('#f-client').value;
-    const obj = { num: $('#f-num').value.trim(), clientId, client: clientNom(clientId) === '—' ? '' : clientNom(clientId), chantierId: $('#f-ch').value, objet: $('#f-objet').value.trim(), dateFG: $('#f-fg').value, dateEmission, montantHT: +$('#f-montant').value || 0, echeanceJours: +$('#f-ech').value || DB.data.objectifs.delaiPaiement, datePaiement, statut };
+    const clientId = $('#f-client').value, cn = clientNom(clientId);
+    const obj = { num: $('#f-num').value.trim(), otp: $('#f-otp').value.trim(), clientId, client: cn === '—' ? '' : cn, chantierId: $('#f-ch').value, objet: $('#f-objet').value.trim(), dateFG: $('#f-fg').value, dateEmission, montantHT: +$('#f-montant').value || 0, echeanceJours: +$('#f-ech').value || DB.data.objectifs.delaiPaiement, datePaiement, statut };
     if (id) Object.assign(f, obj); else DB.data.factures.unshift({ id: uid(), ...obj });
     DB.save(); m.close(); toast('Facture enregistrée'); go('factures');
   };
