@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -6,116 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ChargéPro — Assistant Chargé d'Affaires</title>
   <meta name="description" content="Outil de pilotage pour chargé d'affaires étanchéité : chantiers, devis, CA & marge, BTE, cadences.">
-  <link rel="stylesheet" href="styles.css">
-</head>
-<body>
-  <div id="app">
-    <aside id="sidebar">
-      <div class="brand">
-        <span class="brand-mark" id="brand-mark"></span>
-        <div>
-          <div class="brand-name">ChargéPro</div>
-          <div class="brand-sub">Chargé d'affaires</div>
-        </div>
-      </div>
-      <nav id="nav"></nav>
-      <div class="sidebar-foot">
-        <div class="foot-row">
-          <button id="btn-export" class="mini-btn" title="Exporter les données du profil">Sauvegarde</button>
-          <button id="btn-import" class="mini-btn" title="Importer une sauvegarde">Restaurer</button>
-          <input type="file" id="import-file" accept="application/json" hidden>
-        </div>
-        <div class="foot-note">Données enregistrées localement sur ce poste.</div>
-      </div>
-    </aside>
-
-    <main id="main">
-      <header id="topbar">
-        <button id="menu-toggle" aria-label="Menu"></button>
-        <h1 id="page-title">Tableau de bord</h1>
-        <div class="topbar-right">
-          <span id="year-badge" class="year-badge"></span>
-          <button id="profile-btn" class="profile-btn"></button>
-        </div>
-      </header>
-      <section id="view"></section>
-    </main>
-  </div>
-
-  <div id="menu-root"></div>
-  <div id="modal-root"></div>
-  <div id="toast-root"></div>
-
-  <script src="app.js"></script>
-</body>
-</html>
-
-# ChargéPro — Assistant Chargé d'Affaires SAS (étanchéité)
-
-Application web de pilotage pour le **chargé d'affaires SAS** (SMAC / étanchéité), conçue à partir
-des documents de travail réels : suivi CA, BTE (budget chantier), tableau des cadences d'étanchéité,
-et fiche de fonction du poste.
-
-L'application est **100 % locale** : un simple site statique (HTML/CSS/JS), sans serveur ni installation,
-à l'interface **professionnelle et sans émoji**. Toutes les données sont enregistrées dans le navigateur
-(localStorage), avec sauvegarde/restauration par fichier.
-
-## Multi-profils
-
-L'outil est prévu pour **l'ensemble des chargés d'affaires** : chacun crée son **profil** et ses données
-sont **isolées** sur son poste (chargement optimisé du seul profil actif). Le sélecteur de profil, en haut
-à droite, permet de basculer, créer, renommer ou supprimer un profil, et de charger un jeu de démonstration.
-Chaque chargé d'affaires ne voit que ses propres affaires.
-
-## Ouvrir l'application
-
-Ouvrez `index.html` dans un navigateur (double-clic), ou servez le dossier :
-
-```bash
-python3 -m http.server 8080
-# puis http://localhost:8080
-```
-
-## Modules
-
-L'interface est organisée par pôles : **Pilotage · Commercial · Exploitation · Entretien · Finances**.
-
-| Pôle | Module | Rôle |
-|------|--------|------|
-| Pilotage | **Tableau de bord** | KPI du poste (CA vs 750 K€, marge, **carnet de commandes**, devis/45, **RDV nouveaux clients/4**, encours facturé) et **centre d'actions prioritaires** consolidant devis à envoyer/relancer, factures à émettre, impayés, visites à programmer, rapports en retard. |
-| Commercial | **Prospection & RDV** | Pipeline commercial : RDV nouveaux clients (objectif 4/mois), canal, potentiel, prochaine action, statut (planifié → réalisé → devis → gagné). |
-| Commercial | **Devis** | Suivi avec **délai 7 jours**, relances, taux d'acceptation. |
-| Commercial | **Clients** | Annuaire clients / interlocuteurs. |
-| Exploitation | **Chantiers** | Fiche affaire : OTP, client, statut, montant, devis liés. |
-| Exploitation | **Planning & pointages** | Affectation des **3 équipes** par semaine, heures prévues/réelles, écart, **taux d'occupation** ; gestion des équipes (chef + compagnon). |
-| Exploitation | **Cadences étanchéité** | Estimateur *Cadences V10* : coefficients de complexité + complexes → temps de pose, durée équipe, cadence globale (m²/j). |
-| Exploitation | **BTE — Budget chantier** | *Bordereau BTE* : dépenses par poste, colonnes **prévisionnel / exécution**, marge brute et écart. |
-| Entretien | **Contrats & visites** | Contrats d'entretien, échéancier des **visites**, **rapport d'intervention sous 7 jours**, alertes rapports en retard. |
-| Finances | **Suivi CA & Marge** | *Tableau CA* : prix de vente, fournitures, engins, MO SMAC → marge € et %, par mois et cumul annuel. |
-| Finances | **Facturation** | Émission (délai 7 j depuis le fait générateur), échéances de paiement, **impayés / relances**, encaissements, **taux de recouvrement**. |
-
-## Objectifs (fiche de fonction)
-
-Paramétrables depuis le tableau de bord : **750 K€ HT/an**, **45 devis/mois**, **4 RDV nouveaux clients/mois**,
-envoi devis **≤ 7 jours**, facturation **≤ 7 jours**.
-
-## Données
-
-- **Sauvegarde** (barre latérale) : exporte toutes les données en `.json`.
-- **Restaurer** : réimporte un fichier de sauvegarde.
-- Chaque module dispose d'un export **CSV** (ouvrable dans Excel).
-
-## Structure
-
-```
-index.html   → structure et navigation
-styles.css   → mise en forme
-app.js       → logique, référentiel cadences, stockage local
-```
-
-> Des données d'exemple sont chargées au premier lancement pour illustrer chaque module.
-> Vous pouvez les supprimer et saisir vos propres affaires.
-
+  <style>
 :root{
   --bg:#0e1b2b; --bg2:#13233a;
   --panel:#ffffff; --panel-2:#f6f8fb; --panel-3:#eef2f7;
@@ -144,49 +34,50 @@ h1,h2,h3{margin:0}
 
 #app{display:flex;min-height:100vh}
 
-/* ---------------- Sidebar ---------------- */
-#sidebar{width:var(--sidebar-w);background:var(--bg);color:#aebacb;display:flex;flex-direction:column;
-  position:fixed;inset:0 auto 0 0;height:100vh;z-index:40;border-right:1px solid #0a1420}
-.brand{display:flex;align-items:center;gap:11px;padding:20px 18px 18px;border-bottom:1px solid rgba(255,255,255,.06)}
-.brand-mark{width:34px;height:34px;border-radius:8px;background:linear-gradient(135deg,var(--brand-2),var(--brand));
+/* ---------------- App bar (top) ---------------- */
+#app{display:block}
+#appbar{position:sticky;top:0;z-index:40;display:flex;flex-direction:column}
+.appbar-main{background:var(--bg);color:#aebacb;display:flex;align-items:center;gap:14px;padding:0 22px;height:56px}
+.brand{display:flex;align-items:center;gap:11px;flex:none}
+.brand-mark{width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,var(--brand-2),var(--brand));
   display:flex;align-items:center;justify-content:center;color:#fff;flex:none}
-.brand-mark .ic{width:20px;height:20px}
-.brand-name{font-weight:700;font-size:16px;color:#fff;letter-spacing:.2px}
-.brand-sub{font-size:10.5px;color:#6f8199;letter-spacing:.3px;text-transform:uppercase}
-#nav{display:flex;flex-direction:column;gap:1px;padding:10px 12px;flex:1;overflow:auto}
-.nav-group{font-size:9.5px;letter-spacing:.9px;text-transform:uppercase;color:#5c6f88;font-weight:700;padding:12px 12px 5px}
-.nav-group:first-child{padding-top:4px}
-.nav-item{display:flex;align-items:center;gap:11px;background:transparent;border:0;color:#aebacb;
-  padding:10px 12px;border-radius:8px;text-align:left;font-size:13.5px;font-weight:500;transition:background .12s,color .12s;width:100%}
-.nav-item:hover{background:rgba(255,255,255,.05);color:#fff}
-.nav-item.active{background:var(--brand);color:#fff;font-weight:600}
-.nav-item.active .ic{color:#fff}
-.nav-item .ic{color:#8697ad}
-.sidebar-foot{padding:12px;border-top:1px solid rgba(255,255,255,.07);display:flex;flex-direction:column;gap:8px}
-.foot-row{display:flex;gap:8px}
-.mini-btn{flex:1;background:rgba(255,255,255,.05);color:#b7c3d4;border:1px solid rgba(255,255,255,.09);
-  border-radius:7px;padding:8px 6px;font-size:11.5px;display:flex;align-items:center;justify-content:center;gap:6px;white-space:nowrap}
-.mini-btn:hover{background:rgba(255,255,255,.12);color:#fff}
-.foot-note{font-size:10px;color:#5c6f88;text-align:center;line-height:1.4}
+.brand-mark .ic{width:19px;height:19px}
+.brand-name{font-weight:700;font-size:16px;color:#fff;letter-spacing:.2px;line-height:1.1}
+.brand-sub{font-size:10px;color:#6f8199;letter-spacing:.4px;text-transform:uppercase}
+.appbar-right{margin-left:auto;display:flex;align-items:center;gap:10px}
+.year-badge{color:#8ea1ba;font-weight:600;font-size:12.5px;white-space:nowrap}
+.topbtn{background:rgba(255,255,255,.07);color:#c3cede;border:1px solid rgba(255,255,255,.13);
+  border-radius:7px;padding:7px 12px;font-size:12.5px;font-weight:600;white-space:nowrap}
+.topbtn:hover{background:rgba(255,255,255,.14);color:#fff}
+
+/* Top navigation tabs */
+.topnav{background:#fff;border-bottom:1px solid var(--line);display:flex;align-items:stretch;gap:2px;
+  padding:0 14px;overflow-x:auto;box-shadow:var(--shadow);scrollbar-width:thin}
+.topnav::-webkit-scrollbar{height:6px}
+.topnav::-webkit-scrollbar-thumb{background:var(--line);border-radius:99px}
+.nav-item{display:inline-flex;align-items:center;gap:8px;background:transparent;border:0;
+  border-bottom:2px solid transparent;color:var(--ink-soft);padding:13px 13px;font-size:13.5px;font-weight:600;
+  white-space:nowrap;transition:color .12s,border-color .12s}
+.nav-item:hover{color:var(--brand)}
+.nav-item.active{color:var(--brand);border-bottom-color:var(--brand)}
+.nav-item .ic{width:17px;height:17px;color:var(--muted)}
+.nav-item:hover .ic,.nav-item.active .ic{color:var(--brand)}
+.nav-divider{align-self:center;width:1px;height:20px;background:var(--line);margin:0 6px;flex:none}
 
 /* ---------------- Main ---------------- */
-#main{margin-left:var(--sidebar-w);flex:1;min-width:0;display:flex;flex-direction:column}
-#topbar{position:sticky;top:0;z-index:20;background:rgba(246,248,251,.92);backdrop-filter:blur(8px);
-  border-bottom:1px solid var(--line);display:flex;align-items:center;gap:14px;padding:0 26px;height:60px}
-#menu-toggle{display:none;background:none;border:0;color:var(--ink);padding:6px}
-#page-title{font-size:18px;font-weight:700}
-.topbar-right{margin-left:auto;display:flex;align-items:center;gap:12px}
-.year-badge{color:var(--ink-soft);font-weight:600;font-size:12.5px}
+#main{min-width:0;display:flex;flex-direction:column}
+.page-title{max-width:1280px;width:100%;margin:0 auto;padding:22px 26px 0;font-size:20px;font-weight:700}
+#menu-toggle{display:none}
 
 /* Profile switcher */
-.profile-btn{display:flex;align-items:center;gap:9px;background:#fff;border:1px solid var(--line);border-radius:9px;
-  padding:6px 10px 6px 8px;font-weight:600;font-size:13px;box-shadow:var(--shadow)}
-.profile-btn:hover{border-color:var(--brand-2)}
-.avatar{width:28px;height:28px;border-radius:7px;background:var(--brand-ink);color:var(--brand);
-  display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;flex:none}
+.profile-btn{display:flex;align-items:center;gap:9px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.14);
+  border-radius:9px;padding:5px 9px 5px 6px;font-weight:600;font-size:13px;color:#e6ecf3}
+.profile-btn:hover{background:rgba(255,255,255,.14)}
+.avatar{width:27px;height:27px;border-radius:7px;background:var(--brand-2);color:#fff;
+  display:flex;align-items:center;justify-content:center;font-weight:700;font-size:11.5px;flex:none}
 .profile-btn .p-name{max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.profile-btn .ic{color:var(--muted)}
-.menu{position:absolute;top:54px;right:26px;background:#fff;border:1px solid var(--line);border-radius:12px;
+.profile-btn .ic{color:#8ea1ba}
+.menu{position:absolute;top:52px;right:22px;background:#fff;border:1px solid var(--line);border-radius:12px;
   box-shadow:var(--shadow-lg);width:280px;z-index:50;overflow:hidden;animation:pop .14s ease}
 .menu-head{padding:12px 14px;border-bottom:1px solid var(--line);font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted)}
 .menu-item{display:flex;align-items:center;gap:10px;padding:10px 14px;font-size:13px;font-weight:500;width:100%;background:none;border:0;text-align:left}
@@ -197,7 +88,7 @@ h1,h2,h3{margin:0}
 .menu-sep{height:1px;background:var(--line);margin:4px 0}
 .menu-item.danger{color:var(--red)} .menu-item.danger .ic{color:var(--red)}
 
-#view{padding:24px 26px 64px;max-width:1260px;width:100%}
+#view{padding:20px 26px 64px;max-width:1280px;width:100%;margin:0 auto}
 
 /* ---------------- Buttons ---------------- */
 .btn{border:1px solid var(--line);background:#fff;color:var(--ink);padding:8px 14px;border-radius:8px;
@@ -354,11 +245,1299 @@ tfoot td{padding:11px 14px;font-weight:700;background:var(--panel-2);border-top:
 .cad-steps td{white-space:normal}
 
 @media(max-width:920px){
-  :root{--sidebar-w:0px}
-  #sidebar{transform:translateX(-100%);transition:.25s;width:246px}
-  #sidebar.open{transform:none}
-  #main{margin-left:0}
-  #menu-toggle{display:inline-flex}
   .form-grid,.grid-2,.grid-3{grid-template-columns:1fr}
   .menu{right:12px}
+  .brand-sub{display:none}
+  .appbar-main{padding:0 14px;gap:10px}
+  .topbtn{padding:7px 9px}
+  .page-title{padding:18px 16px 0}
+  #view{padding:18px 16px 60px}
 }
+@media(max-width:560px){
+  .topbtn{display:none}
+  .profile-btn .p-name{max-width:90px}
+}
+
+</style>
+</head>
+<body>
+  <div id="app">
+    <header id="appbar">
+      <div class="appbar-main">
+        <div class="brand">
+          <span class="brand-mark" id="brand-mark"></span>
+          <div>
+            <div class="brand-name">ChargéPro</div>
+            <div class="brand-sub">Chargé d'affaires</div>
+          </div>
+        </div>
+        <div class="appbar-right">
+          <span id="year-badge" class="year-badge"></span>
+          <button id="btn-export" class="topbtn" title="Exporter les données du profil">Sauvegarde</button>
+          <button id="btn-import" class="topbtn" title="Importer une sauvegarde">Restaurer</button>
+          <input type="file" id="import-file" accept="application/json" hidden>
+          <button id="profile-btn" class="profile-btn"></button>
+        </div>
+      </div>
+      <nav id="nav" class="topnav"></nav>
+    </header>
+
+    <main id="main">
+      <h1 id="page-title" class="page-title">Tableau de bord</h1>
+      <section id="view"></section>
+    </main>
+  </div>
+
+  <div id="menu-root"></div>
+  <div id="modal-root"></div>
+  <div id="toast-root"></div>
+
+  <script>
+/* =========================================================================
+   ChargéPro — Assistant Chargé d'Affaires (étanchéité)
+   Application statique, 100% locale. Multi-profils : chaque chargé d'affaires
+   dispose de son propre espace de données (isolé) sur son poste.
+   ========================================================================= */
+'use strict';
+
+/* -------------------------------------------------------------------------
+   0. Utilitaires
+   ------------------------------------------------------------------------- */
+const $  = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+const todayISO = () => new Date().toISOString().slice(0, 10);
+
+const eur  = n => (isFinite(n) ? n : 0).toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 });
+const pct  = n => (isFinite(n) ? n * 100 : 0).toLocaleString('fr-FR', { maximumFractionDigits: 1 }) + ' %';
+const num  = n => (isFinite(n) ? n : 0).toLocaleString('fr-FR', { maximumFractionDigits: 1 });
+const esc  = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+function fmtDate(iso) {
+  if (!iso) return '—';
+  return new Date(iso + 'T00:00:00').toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+}
+const daysBetween = (a, b) => Math.round((new Date(b + 'T00:00:00') - new Date(a + 'T00:00:00')) / 864e5);
+function addDays(iso, n) { const d = new Date(iso + 'T00:00:00'); d.setDate(d.getDate() + n); return d.toISOString().slice(0, 10); }
+const MOIS = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+const initiales = s => (String(s || '?').trim().split(/\s+/).map(w => w[0]).slice(0, 2).join('') || '?').toUpperCase();
+
+/* -------------------------------------------------------------------------
+   1. Iconographie (SVG line icons, sobre)
+   ------------------------------------------------------------------------- */
+const ICONS = {
+  grid: '<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/>',
+  building: '<path d="M3 21h18"/><path d="M6 21V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v16"/><path d="M10 8h4M10 12h4M10 16h4"/>',
+  file: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>',
+  euro: '<path d="M18 7a6.5 6.5 0 1 0 0 10"/><line x1="4" y1="10.5" x2="13" y2="10.5"/><line x1="4" y1="13.5" x2="12" y2="13.5"/>',
+  calculator: '<rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="10" x2="8" y2="10.01"/><line x1="12" y1="10" x2="12" y2="10.01"/><line x1="16" y1="10" x2="16" y2="10.01"/><line x1="8" y1="14" x2="8" y2="14.01"/><line x1="12" y1="14" x2="12" y2="14.01"/><line x1="16" y1="14" x2="16" y2="18"/><line x1="8" y1="18" x2="12" y2="18"/>',
+  clock: '<circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15.5 14"/>',
+  users: '<path d="M17 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9.5" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16.5 3.13a4 4 0 0 1 0 7.75"/>',
+  plus: '<line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>',
+  edit: '<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4z"/>',
+  trash: '<polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>',
+  download: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>',
+  upload: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>',
+  x: '<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>',
+  search: '<circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>',
+  alert: '<path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13.5"/><line x1="12" y1="17" x2="12" y2="17.01"/>',
+  check: '<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>',
+  sliders: '<line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/>',
+  user: '<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>',
+  userPlus: '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/>',
+  chevron: '<polyline points="6 9 12 15 18 9"/>',
+  swap: '<polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/>',
+  menu: '<line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/>',
+  trend: '<polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/>',
+  briefcase: '<rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>',
+  target: '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/>',
+  layers: '<polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/>',
+  bar: '<line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/>',
+  calendar: '<rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>',
+  receipt: '<path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1V2l-2 1-2-1-2 1-2-1-2 1-2-1z"/><line x1="8" y1="8" x2="16" y2="8"/><line x1="8" y1="12" x2="16" y2="12"/>',
+  phone: '<path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.8 19.8 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.09 4.18 2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/>',
+  wrench: '<path d="M14.7 6.3a4 4 0 0 0-5.4 5.4l-6.6 6.6a2 2 0 1 0 2.8 2.8l6.6-6.6a4 4 0 0 0 5.4-5.4l-2.9 2.9-2-2 2.9-2.9z"/>',
+  pin: '<path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>',
+  bell: '<path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/>',
+  book: '<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>',
+  shield: '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>',
+};
+function icon(name, cls = '') {
+  return `<svg class="ic ${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[name] || ''}</svg>`;
+}
+
+/* -------------------------------------------------------------------------
+   2. Référentiel Cadences étanchéité (fichier « Cadences V10 »)
+   ------------------------------------------------------------------------- */
+const HEURES_JOUR = 8;
+const COEFFS = {
+  surface: { label: 'Surface de terrasse', opts: [['0 à 50 m²', 1.3], ['50 à 200 m²', 1.1], ['200 à 500 m²', 1.0], ['500 à 1000 m²', 0.95], ['supérieure à 1000 m²', 0.9]] },
+  emergence: { label: "Densité d'émergences", opts: [['0 à 10 % (peu encombrée)', 1.0], ['10 à 20 %', 1.1], ['supérieure à 20 %', 1.15]] },
+  risque: { label: 'Facteur de risque', opts: [['Très faible', 1.0], ['Faible', 1.05], ['Modéré', 1.1], ['Élevé', 1.15]] },
+  exigence: { label: 'Exigence qualité client', opts: [['Très faible', 1.0], ['Faible', 1.02], ['Modérée', 1.05], ['Élevée', 1.08]] },
+  environnement: { label: 'Environnement / sécurité', opts: [['Faible', 1.0], ['Modérée', 1.05], ['Élevé', 1.15]] },
+};
+const APPRO = { label: "Hauteur d'élévation (approvisionnement)", opts: [['R+0 (chariot)', 0.10], ['R+1 (manuscopique)', 0.15], ['R+2 à R+6 (grue)', 0.22], ['supérieure à R+6 (grue)', 0.30]] };
+const TACHES_M2 = {
+  depose_protection: { label: 'Dépose de la protection', opts: [['Pas de protection', 0], ['Gravillon', 0.10], ['Dalles sur plots (réutilisation)', 0.20], ['Dalles sur plots (évacuation)', 1.0]] },
+  depose_complexe: { label: "Dépose du complexe d'étanchéité", opts: [['Pas de dépose', 0], ['Complexe multi-couches (léger)', 0.12], ['Complexe multi-couches (moyen)', 0.15], ['Complexe multi-couches (lourd)', 0.42], ['Complexe multi-couches (très lourd)', 0.45]] },
+  vernis: { label: 'Vernis (EIF)', opts: [['Pas de vernis', 0], ['Vernis (EIF - Aquadère)', 0.015]] },
+  parevapeur: { label: 'Pare-vapeur', opts: [['Pas de pare-vapeur', 0], ['VAP ou acoustique (soudé)', 0.015], ['VAP adhésif (à froid)', 0.025], ['VAP adhésif (à froid, complexe)', 0.07], ['Hyrène 25/25 (béton)', 0.035]] },
+  isolant: { label: "Isolant (hors d'eau)", opts: [["Pas d'isolant", 0], ['Polyuréthane ou PSE', 0.03], ['Laine de roche nue', 0.04], ['Laine de roche nue (2 lits)', 0.07], ['Laine de roche soudée', 0.05], ['Laine de roche soudée (2 lits)', 0.08], ['Verre cellulaire (Foamglas)', 0.10]] },
+  couche1: { label: "1ère couche d'étanchéité", opts: [['Pas de 1ère couche', 0], ['TOPFIX FMP (fixée)', 0.0375]] },
+  couche2: { label: "2nde couche d'étanchéité / finition", opts: [['Pas de 2nde couche', 0], ['TOPAZ soudé (ardoisé)', 0.0375]] },
+  bacacier: { label: 'Bac acier', opts: [['Pas de bac acier', 0], ['Bac acier moyen', 0.025]] },
+};
+const TACHES_ML = {
+  securite: { label: 'Sécurité collective (garde-corps)', opts: [['Pas de garde-corps', 0], ['Potelets et filins', 0.35]] },
+  equerres_pv: { label: 'Équerres pare-vapeur', opts: [["Pas d'équerre", 0], ['Hyrène PY 35', 0.06]] },
+  releves: { label: "Relevés d'étanchéité", opts: [['Pas de relevé', 0], ['Isolation verticale (simple)', 0.05], ['Isolation verticale (double)', 0.07], ['Autoprotégée - ALUVEL ht 0,15', 0.10], ['Autoprotégée - ALUVEL ht 0,50', 0.12], ['ARMA ALU ht 0,15 m', 0.08], ['ARMA ALU ht 0,50 m', 0.09], ['Membrane PVC fixée', 0.06]] },
+  costieres: { label: 'Costières', opts: [['Pas de costière', 0], ['Costière 1 pli acier', 0.04], ['Costière 1 pli acier (renforcée)', 0.06], ['Costière voûtes filantes', 0.30]] },
+  couvertines: { label: 'Couvertines / finitions', opts: [['Pas de couvertine', 0], ['Couvertines', 0.20]] },
+};
+
+/* -------------------------------------------------------------------------
+   3. Objectifs (fiche de fonction Chargé d'affaires SAS)
+   ------------------------------------------------------------------------- */
+const OBJECTIFS_DEFAUT = { caAnnuel: 750000, margeCible: 0.30, devisMois: 45, rdvMois: 4, delaiDevis: 7, delaiFacture: 7, delaiRapport: 7, delaiPaiement: 45 };
+
+/* -------------------------------------------------------------------------
+   4. Store — multi-profils
+   Méta : chargepro.v2.meta  { profiles:[{id,nom,agence}], currentId }
+   Données par profil : chargepro.v2.data.<id>  (chargé à la demande)
+   ------------------------------------------------------------------------- */
+const META_KEY = 'chargepro.v2.meta';
+const dataKey = id => 'chargepro.v2.data.' + id;
+
+const DB = {
+  meta: null,   // { profiles, currentId }
+  data: null,   // données du profil courant
+
+  loadMeta() {
+    try { this.meta = JSON.parse(localStorage.getItem(META_KEY)); } catch { this.meta = null; }
+    if (!this.meta || !Array.isArray(this.meta.profiles)) this.meta = { profiles: [], currentId: null };
+    // migration éventuelle depuis l'ancienne version v1
+    if (!this.meta.profiles.length) {
+      let old = null; try { old = JSON.parse(localStorage.getItem('chargepro.v1')); } catch {}
+      if (old) {
+        const id = uid();
+        this.meta = { profiles: [{ id, nom: 'Mon profil', agence: '' }], currentId: id };
+        localStorage.setItem(dataKey(id), JSON.stringify(this.normalize(old)));
+        localStorage.removeItem('chargepro.v1');
+        this.saveMeta();
+      }
+    }
+    return this.meta;
+  },
+  saveMeta() { localStorage.setItem(META_KEY, JSON.stringify(this.meta)); },
+
+  normalize(d) {
+    d = d || {};
+    d.objectifs = Object.assign({}, OBJECTIFS_DEFAUT, d.objectifs || {});
+    ['clients', 'chantiers', 'devis', 'ca', 'bte', 'prospection', 'factures', 'contrats', 'visites', 'equipes', 'pointages'].forEach(k => { if (!Array.isArray(d[k])) d[k] = []; });
+    return d;
+  },
+  emptyData() { return this.normalize({}); },
+
+  loadProfile(id) {
+    let d; try { d = JSON.parse(localStorage.getItem(dataKey(id))); } catch { d = null; }
+    this.data = this.normalize(d || {});
+    return this.data;
+  },
+  save() { if (this.currentProfile()) localStorage.setItem(dataKey(this.meta.currentId), JSON.stringify(this.data)); },
+
+  currentProfile() { return this.meta.profiles.find(p => p.id === this.meta.currentId) || null; },
+  createProfile(nom, agence, demo) {
+    const id = uid();
+    this.meta.profiles.push({ id, nom: nom || 'Nouveau profil', agence: agence || '' });
+    this.meta.currentId = id;
+    localStorage.setItem(dataKey(id), JSON.stringify(demo ? demoData() : this.emptyData()));
+    this.saveMeta(); this.loadProfile(id);
+    return id;
+  },
+  switchTo(id) { if (this.meta.profiles.some(p => p.id === id)) { this.meta.currentId = id; this.saveMeta(); this.loadProfile(id); } },
+  renameProfile(id, nom, agence) { const p = this.meta.profiles.find(x => x.id === id); if (p) { p.nom = nom; p.agence = agence; this.saveMeta(); } },
+  deleteProfile(id) {
+    localStorage.removeItem(dataKey(id));
+    this.meta.profiles = this.meta.profiles.filter(p => p.id !== id);
+    if (this.meta.currentId === id) this.meta.currentId = this.meta.profiles[0] ? this.meta.profiles[0].id : null;
+    this.saveMeta();
+    if (this.meta.currentId) this.loadProfile(this.meta.currentId);
+  },
+};
+
+function demoData() {
+  const c1 = uid(), c2 = uid(), c3 = uid(), ch1 = uid(), ch2 = uid(), ch3 = uid();
+  return DB.normalize({
+    objectifs: { ...OBJECTIFS_DEFAUT },
+    clients: [
+      { id: c1, nom: 'SCI Les Terrasses', contact: 'M. Durand', tel: '06 12 34 56 78', email: 'contact@lesterrasses.fr', adresse: 'Lyon 69003', type: 'Syndic', notes: '' },
+      { id: c2, nom: 'Groupe Logista', contact: 'Mme Petit', tel: '04 78 00 00 00', email: 'm.petit@logista.fr', adresse: 'Villeurbanne 69100', type: 'Grand compte', notes: 'BPU cadre national' },
+      { id: c3, nom: 'Mairie de Bron', contact: 'Service Technique', tel: '04 72 00 00 00', email: 'st@bron.fr', adresse: 'Bron 69500', type: 'Public', notes: '' },
+    ],
+    chantiers: [
+      { id: ch1, otp: 'OTP-24001', nom: 'Réfection toiture bâtiment A', clientId: c1, adresse: 'Lyon 69003', statut: 'en_cours', dateDemande: addDays(todayISO(), -40), montantHT: 84000, notes: 'Étanchéité + relevés' },
+      { id: ch2, otp: 'OTP-24002', nom: 'Étanchéité parking couvert', clientId: c2, adresse: 'Villeurbanne 69100', statut: 'commande', dateDemande: addDays(todayISO(), -18), montantHT: 152000, notes: 'Grand compte, BPU' },
+      { id: ch3, otp: 'OTP-24003', nom: 'Terrasse école primaire', clientId: c3, adresse: 'Bron 69500', statut: 'devis', dateDemande: addDays(todayISO(), -4), montantHT: 41000, notes: '' },
+    ],
+    devis: [
+      { id: uid(), ref: 'DEV-2607-01', chantierId: ch3, objet: 'Terrasse école primaire', dateDemande: addDays(todayISO(), -4), dateEnvoi: addDays(todayISO(), -1), montantHT: 41000, statut: 'envoye', relance: '' },
+      { id: uid(), ref: 'DEV-2607-02', chantierId: '', objet: 'Recherche de fuite immeuble', dateDemande: addDays(todayISO(), -6), dateEnvoi: '', montantHT: 3200, statut: 'attente', relance: '' },
+      { id: uid(), ref: 'DEV-2606-14', chantierId: ch2, objet: 'Étanchéité parking couvert', dateDemande: addDays(todayISO(), -18), dateEnvoi: addDays(todayISO(), -15), montantHT: 152000, statut: 'accepte', relance: '' },
+    ],
+    ca: [
+      { id: uid(), mois: new Date().getMonth(), annee: new Date().getFullYear(), otp: 'OTP-24001', chantier: 'Réfection toiture bâtiment A', prixVente: 84000, fournitures: 31000, engins: 6000, moSmac: 18000 },
+      { id: uid(), mois: new Date().getMonth(), annee: new Date().getFullYear(), otp: 'OTP-24002', chantier: 'Étanchéité parking couvert', prixVente: 152000, fournitures: 58000, engins: 12000, moSmac: 34000 },
+    ],
+    bte: [
+      { id: uid(), nom: 'Étanchéité parking couvert', otp: 'OTP-24002', prixVente: 152000, notes: '', lignes: [
+        { cat: 'Sous-traitance', designation: 'Désamiantage ponctuel', unite: 'ft', qtePrev: 1, puPrev: 8000, qteReel: 1, puReel: 8500 },
+        { cat: "Main d'œuvre", designation: 'Équipe étanchéité (2 pers.)', unite: 'j', qtePrev: 40, puPrev: 760, qteReel: 42, puReel: 760 },
+        { cat: 'Fournitures', designation: 'Membranes + isolant', unite: 'ft', qtePrev: 1, puPrev: 52000, qteReel: 1, puReel: 55000 },
+        { cat: 'Engins / matériel', designation: 'Grue + nacelle', unite: 'sem', qtePrev: 8, puPrev: 1400, qteReel: 8, puReel: 1450 },
+      ] },
+    ],
+    prospection: [
+      { id: uid(), date: addDays(todayISO(), -3), nom: 'Copropriété Le Belvédère', ville: 'Lyon 69006', canal: 'rdv_nouveau', objet: 'Terrasse accessible à rénover', statut: 'realise', potentiel: 60000, prochaine: addDays(todayISO(), 4), note: 'Devis à établir' },
+      { id: uid(), date: addDays(todayISO(), 2), nom: 'Clinique du Parc', ville: 'Villeurbanne', canal: 'rdv_nouveau', objet: 'Contrat d\'entretien toitures', statut: 'planifie', potentiel: 25000, prochaine: '', note: '' },
+      { id: uid(), date: addDays(todayISO(), -10), nom: 'Groupe Logista', ville: 'Villeurbanne', canal: 'rdv_suivi', objet: 'Extension parking', statut: 'devis', potentiel: 152000, prochaine: addDays(todayISO(), -1), note: 'Transformé en commande' },
+    ],
+    factures: [
+      { id: uid(), num: 'FA-2606-08', clientId: c2, client: 'Groupe Logista', chantierId: ch2, objet: 'Situation 1 - parking couvert', dateFG: addDays(todayISO(), -50), dateEmission: addDays(todayISO(), -48), montantHT: 60000, echeanceJours: 45, datePaiement: addDays(todayISO(), -5), statut: 'payee' },
+      { id: uid(), num: 'FA-2607-02', clientId: c2, client: 'Groupe Logista', chantierId: ch2, objet: 'Situation 2 - parking couvert', dateFG: addDays(todayISO(), -10), dateEmission: addDays(todayISO(), -8), montantHT: 48000, echeanceJours: 45, datePaiement: '', statut: 'emise' },
+      { id: uid(), num: '', clientId: c1, client: 'SCI Les Terrasses', chantierId: ch1, objet: 'Solde bâtiment A', dateFG: addDays(todayISO(), -9), dateEmission: '', montantHT: 22000, echeanceJours: 45, datePaiement: '', statut: 'a_emettre' },
+    ],
+    contrats: [
+      { id: uid(), ref: 'CE-2024-11', clientId: c3, nom: 'Entretien toitures écoles', type: 'Contrat P2', dateDebut: addDays(todayISO(), -200), dateFin: addDays(todayISO(), 165), frequence: 2, montantAnnuel: 9800, note: 'Visite printemps + automne' },
+      { id: uid(), ref: 'CE-2025-04', clientId: c2, nom: 'Maintenance parking + toitures', type: 'Contrat entretien', dateDebut: addDays(todayISO(), -60), dateFin: addDays(todayISO(), 305), frequence: 4, montantAnnuel: 18000, note: 'BPU associé' },
+    ],
+    visites: [],
+    equipes: [
+      { id: uid(), nom: 'Équipe A', chef: 'Karim B.', compagnon: 'Léo P.' },
+      { id: uid(), nom: 'Équipe B', chef: 'David M.', compagnon: 'Samir T.' },
+      { id: uid(), nom: 'Équipe C', chef: 'Yann L.', compagnon: 'Hugo R.' },
+    ],
+    pointages: [],
+  });
+}
+
+const clientNom = id => (DB.data.clients.find(c => c.id === id) || {}).nom || '—';
+const chantierById = id => DB.data.chantiers.find(c => c.id === id);
+
+/* -------------------------------------------------------------------------
+   5. Toast / Modal / Confirm
+   ------------------------------------------------------------------------- */
+function toast(msg, kind = 'ok') {
+  const ico = kind === 'err' ? 'alert' : 'check';
+  const t = document.createElement('div');
+  t.className = 'toast ' + kind; t.innerHTML = icon(ico) + '<span>' + esc(msg) + '</span>';
+  $('#toast-root').appendChild(t);
+  setTimeout(() => { t.style.opacity = '0'; t.style.transform = 'translateY(8px)'; t.style.transition = '.3s'; }, 2200);
+  setTimeout(() => t.remove(), 2600);
+}
+function modal({ title, body, wide, footer }) {
+  const root = $('#modal-root');
+  root.innerHTML = `<div class="modal-back"><div class="modal ${wide ? 'wide' : ''}">
+    <div class="modal-head"><h3>${esc(title)}</h3><button class="icon-btn" data-close>${icon('x')}</button></div>
+    <div class="modal-body">${body}</div>${footer ? `<div class="modal-foot">${footer}</div>` : ''}</div></div>`;
+  const close = () => { root.innerHTML = ''; };
+  root.querySelector('[data-close]').onclick = close;
+  root.querySelector('.modal-back').onclick = e => { if (e.target.classList.contains('modal-back')) close(); };
+  return { root, close };
+}
+function confirmDialog(msg, onYes, label = 'Supprimer') {
+  const m = modal({ title: 'Confirmation', body: `<p style="margin:0">${esc(msg)}</p>`,
+    footer: `<button class="btn" data-no>Annuler</button><button class="btn danger" data-yes>${esc(label)}</button>` });
+  m.root.querySelector('[data-no]').onclick = m.close;
+  m.root.querySelector('[data-yes]').onclick = () => { m.close(); onYes(); };
+}
+
+/* -------------------------------------------------------------------------
+   6. Navigation & routeur
+   ------------------------------------------------------------------------- */
+const NAV = [
+  { group: 'Pilotage' },
+  { route: 'dashboard', ico: 'grid', label: 'Tableau de bord', render: renderDashboard },
+  { group: 'Commercial' },
+  { route: 'prospection', ico: 'phone', label: 'Prospection & RDV', render: renderProspection },
+  { route: 'devis', ico: 'file', label: 'Devis', render: renderDevis },
+  { route: 'clients', ico: 'users', label: 'Clients', render: renderClients },
+  { group: 'Exploitation' },
+  { route: 'chantiers', ico: 'building', label: 'Chantiers', render: renderChantiers },
+  { route: 'planning', ico: 'calendar', label: 'Planning & pointages', render: renderPlanning },
+  { route: 'cadences', ico: 'clock', label: 'Cadences étanchéité', render: renderCadences },
+  { route: 'bte', ico: 'calculator', label: 'BTE — Budget chantier', render: renderBTE },
+  { group: 'Entretien' },
+  { route: 'entretien', ico: 'wrench', label: 'Contrats & visites', render: renderEntretien },
+  { group: 'Finances' },
+  { route: 'ca', ico: 'euro', label: 'CA & Marge', render: renderCA },
+  { route: 'factures', ico: 'receipt', label: 'Facturation', render: renderFactures },
+];
+const ROUTES = Object.fromEntries(NAV.filter(n => n.route).map(n => [n.route, n]));
+let current = 'dashboard';
+
+function buildNav() {
+  $('#nav').innerHTML = NAV.map((n, i) => n.group
+    ? (i === 0 ? '' : '<span class="nav-divider" aria-hidden="true"></span>')
+    : `<button class="nav-item" data-route="${n.route}" title="${n.label}">${icon(n.ico)} <span>${n.label}</span></button>`).join('');
+  $$('.nav-item').forEach(b => b.onclick = () => go(b.dataset.route));
+}
+function go(route) {
+  if (!ROUTES[route]) route = 'dashboard';
+  current = route;
+  $$('.nav-item').forEach(b => b.classList.toggle('active', b.dataset.route === route));
+  $('#page-title').textContent = ROUTES[route].label;
+  document.title = 'ChargéPro — ' + ROUTES[route].label;
+  location.hash = route;
+  const active = $(`.nav-item[data-route="${route}"]`);
+  if (active) active.scrollIntoView({ inline: 'center', block: 'nearest' });
+  ROUTES[route].render($('#view'));
+}
+
+/* -------------------------------------------------------------------------
+   7. Profils — bouton & menu
+   ------------------------------------------------------------------------- */
+function renderProfileButton() {
+  const p = DB.currentProfile();
+  $('#profile-btn').innerHTML = `<span class="avatar">${esc(initiales(p ? p.nom : '?'))}</span>
+    <span class="p-name">${esc(p ? p.nom : 'Profil')}</span>${icon('chevron')}`;
+}
+function toggleProfileMenu() {
+  const root = $('#menu-root');
+  if (root.innerHTML) { root.innerHTML = ''; return; }
+  const p = DB.currentProfile();
+  root.innerHTML = `<div class="menu">
+    <div class="menu-head">Chargé d'affaires${p && p.agence ? ' · ' + esc(p.agence) : ''}</div>
+    ${DB.meta.profiles.map(pr => `<button class="menu-item ${pr.id === DB.meta.currentId ? 'active' : ''}" data-switch="${pr.id}">
+      <span class="avatar" style="width:24px;height:24px;font-size:11px">${esc(initiales(pr.nom))}</span>
+      <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis">${esc(pr.nom)}</span>
+      ${pr.id === DB.meta.currentId ? icon('check', 'ic-sm') : ''}</button>`).join('')}
+    <div class="menu-sep"></div>
+    <button class="menu-item" data-new>${icon('userPlus')} Nouveau profil</button>
+    <button class="menu-item" data-edit>${icon('edit')} Renommer ce profil</button>
+    <button class="menu-item" data-demo>${icon('layers')} Charger des données de démonstration</button>
+    <div class="menu-sep"></div>
+    <button class="menu-item danger" data-del>${icon('trash')} Supprimer ce profil</button>
+  </div>`;
+  const close = () => { root.innerHTML = ''; };
+  $$('[data-switch]', root).forEach(b => b.onclick = () => { close(); DB.switchTo(b.dataset.switch); afterProfileChange(); });
+  root.querySelector('[data-new]').onclick = () => { close(); profileForm(); };
+  root.querySelector('[data-edit]').onclick = () => { close(); profileForm(DB.meta.currentId); };
+  root.querySelector('[data-demo]').onclick = () => { close(); confirmDialog(
+    'Charger un jeu de données de démonstration dans ce profil ? Les données actuelles de ce profil seront remplacées.',
+    () => { DB.data = demoData(); DB.save(); toast('Données de démonstration chargées'); go(current); }, 'Charger'); };
+  root.querySelector('[data-del]').onclick = () => { close();
+    if (DB.meta.profiles.length <= 1) { toast('Impossible de supprimer le dernier profil', 'err'); return; }
+    confirmDialog(`Supprimer définitivement le profil « ${DB.currentProfile().nom} » et toutes ses données ?`,
+      () => { DB.deleteProfile(DB.meta.currentId); afterProfileChange(); toast('Profil supprimé'); }); };
+  // fermeture au clic extérieur
+  setTimeout(() => document.addEventListener('click', function h(e) {
+    if (!root.contains(e.target) && e.target.id !== 'profile-btn' && !$('#profile-btn').contains(e.target)) { close(); document.removeEventListener('click', h); }
+  }), 0);
+}
+function afterProfileChange() { renderProfileButton(); go(current); }
+
+function profileForm(id) {
+  const p = id ? DB.meta.profiles.find(x => x.id === id) : { nom: '', agence: '' };
+  const m = modal({ title: id ? 'Renommer le profil' : 'Nouveau chargé d\'affaires',
+    body: `<div class="form-grid">
+      <div class="field full"><label>Nom du chargé d'affaires</label><input id="p-nom" value="${esc(p.nom)}" placeholder="Prénom Nom"></div>
+      <div class="field full"><label>Agence / secteur (optionnel)</label><input id="p-ag" value="${esc(p.agence)}" placeholder="Agence de…"></div>
+      ${id ? '' : `<div class="field inline full"><input type="checkbox" id="p-demo"><label for="p-demo" style="cursor:pointer">Pré-remplir avec des données de démonstration</label></div>`}
+    </div>`,
+    footer: `<button class="btn" data-c>Annuler</button><button class="btn primary" id="p-save">Enregistrer</button>` });
+  m.root.querySelector('[data-c]').onclick = m.close;
+  $('#p-save').onclick = () => {
+    const nom = $('#p-nom').value.trim(); if (!nom) { toast('Le nom est obligatoire', 'err'); return; }
+    if (id) DB.renameProfile(id, nom, $('#p-ag').value.trim());
+    else DB.createProfile(nom, $('#p-ag').value.trim(), $('#p-demo').checked);
+    DB.save(); m.close(); afterProfileChange(); toast('Profil enregistré');
+  };
+}
+function firstRun() {
+  const m = modal({ title: 'Bienvenue sur ChargéPro',
+    body: `<p style="margin-top:0;color:var(--ink-soft)">Créez votre profil de chargé d'affaires. Vos données restent enregistrées localement sur ce poste et ne sont pas partagées.</p>
+    <div class="form-grid">
+      <div class="field full"><label>Votre nom</label><input id="p-nom" placeholder="Prénom Nom"></div>
+      <div class="field full"><label>Agence / secteur (optionnel)</label><input id="p-ag" placeholder="Agence de…"></div>
+      <div class="field inline full"><input type="checkbox" id="p-demo"><label for="p-demo" style="cursor:pointer">Découvrir avec des données de démonstration</label></div>
+    </div>`,
+    footer: `<button class="btn primary" id="p-go">Commencer</button>` });
+  m.root.querySelector('.modal-head .icon-btn').style.display = 'none';
+  m.root.querySelector('.modal-back').onclick = null;
+  $('#p-go').onclick = () => {
+    const nom = $('#p-nom').value.trim() || 'Mon profil';
+    DB.createProfile(nom, $('#p-ag').value.trim(), $('#p-demo').checked);
+    m.close(); renderProfileButton(); go('dashboard');
+  };
+}
+
+/* =========================================================================
+   8. VUES
+   ========================================================================= */
+function marge(r) { return (+r.prixVente || 0) - (+r.fournitures || 0) - (+r.engins || 0) - (+r.moSmac || 0); }
+const sameMonth = iso => { if (!iso) return false; const d = new Date(iso + 'T00:00:00'), n = new Date(); return d.getMonth() === n.getMonth() && d.getFullYear() === n.getFullYear(); };
+
+/* -- Finances / entretien : helpers partagés -- */
+function factureEcheance(f) { return f.dateEmission ? addDays(f.dateEmission, +f.echeanceJours || DB.data.objectifs.delaiPaiement) : ''; }
+function factureFlags(f) {
+  const o = DB.data.objectifs, t = todayISO(), ech = factureEcheance(f);
+  return { echeance: ech,
+    retardEmission: f.statut === 'a_emettre' && f.dateFG && daysBetween(f.dateFG, t) > o.delaiFacture,
+    retardPaiement: f.statut === 'emise' && ech && ech < t };
+}
+const contratActif = c => !c.dateFin || c.dateFin >= todayISO();
+const contratVisitesFutures = c => DB.data.visites.filter(v => v.contratId === c.id && v.statut === 'planifiee' && v.datePrevue >= todayISO());
+const contratAProgrammer = c => contratActif(c) && contratVisitesFutures(c).length === 0;
+const rapportsEnRetard = () => DB.data.visites.filter(v => v.statut === 'realisee' && v.dateRealisee && !v.rapportDate && daysBetween(v.dateRealisee, todayISO()) > DB.data.objectifs.delaiRapport);
+const rdvNouveauxMois = () => DB.data.prospection.filter(p => p.canal === 'rdv_nouveau' && sameMonth(p.date) && p.statut !== 'sans_suite').length;
+const carnetCommandes = () => DB.data.chantiers.filter(c => ['commande', 'en_cours'].includes(c.statut)).reduce((s, c) => s + (+c.montantHT || 0), 0);
+
+function collectActions() {
+  const o = DB.data.objectifs, t = todayISO(), acts = [];
+  DB.data.devis.filter(d => d.statut === 'attente').forEach(d => {
+    const rest = o.delaiDevis - daysBetween(d.dateDemande, t);
+    if (rest <= 2) acts.push({ tone: rest < 0 ? 'bad' : 'warn', ico: 'file', route: 'devis', urg: rest, title: `Devis à envoyer — ${d.objet || d.ref}`, badge: rest < 0 ? `Retard ${-rest} j` : rest === 0 ? "Aujourd'hui" : `${rest} j` });
+  });
+  DB.data.devis.filter(d => ['envoye', 'relance'].includes(d.statut) && d.relance && d.relance <= t).forEach(d => acts.push({ tone: 'warn', ico: 'bell', route: 'devis', urg: 0, title: `Relancer le devis — ${d.objet || d.ref}`, badge: `Relance ${fmtDate(d.relance)}` }));
+  DB.data.factures.forEach(f => { const fl = factureFlags(f);
+    if (fl.retardEmission) acts.push({ tone: 'bad', ico: 'receipt', route: 'factures', urg: -daysBetween(f.dateFG, t), title: `Facture à émettre — ${f.objet}`, badge: 'Retard émission' });
+    if (fl.retardPaiement) acts.push({ tone: 'bad', ico: 'euro', route: 'factures', urg: -daysBetween(fl.echeance, t), title: `Impayé — ${f.client} · ${f.objet}`, badge: `Échéance ${fmtDate(fl.echeance)}` });
+  });
+  DB.data.contrats.filter(contratAProgrammer).forEach(c => acts.push({ tone: 'warn', ico: 'wrench', route: 'entretien', urg: 1, title: `Visite à programmer — ${esc(clientNom(c.clientId))} (${esc(c.nom)})`, badge: 'À programmer' }));
+  rapportsEnRetard().forEach(vz => { const c = DB.data.contrats.find(x => x.id === vz.contratId); acts.push({ tone: 'bad', ico: 'file', route: 'entretien', urg: -daysBetween(vz.dateRealisee, t), title: `Rapport d'intervention en retard — ${c ? esc(clientNom(c.clientId)) : ''}`, badge: 'Sous 7 j' }); });
+  DB.data.prospection.filter(p => p.prochaine && p.prochaine <= t && !['gagne', 'sans_suite'].includes(p.statut)).forEach(p => acts.push({ tone: 'warn', ico: 'phone', route: 'prospection', urg: 0, title: `Relance prospect — ${esc(p.nom)}`, badge: fmtDate(p.prochaine) }));
+  return acts.sort((a, b) => a.urg - b.urg);
+}
+
+/* ---------- Tableau de bord ---------- */
+function renderDashboard(v) {
+  const o = DB.data.objectifs, now = new Date(), mo = now.getMonth(), yr = now.getFullYear();
+  const caY = DB.data.ca.filter(r => r.annee === yr);
+  const caAnnuel = caY.reduce((s, r) => s + (+r.prixVente || 0), 0);
+  const caMarge = caY.reduce((s, r) => s + marge(r), 0);
+  const margePct = caAnnuel ? caMarge / caAnnuel : 0;
+  const devisMois = DB.data.devis.filter(d => { const ref = d.dateEnvoi || d.dateDemande; if (!ref) return false; const dd = new Date(ref + 'T00:00:00'); return dd.getMonth() === mo && dd.getFullYear() === yr; }).length;
+  const caProg = Math.round(caAnnuel / (o.caAnnuel || 1) * 100);
+  const rdvMois = rdvNouveauxMois();
+  const carnet = carnetCommandes();
+  const impayes = DB.data.factures.filter(f => f.statut === 'emise').reduce((s, f) => s + (+f.montantHT || 0), 0);
+  const impRetard = DB.data.factures.filter(f => factureFlags(f).retardPaiement).length;
+  const actions = collectActions();
+
+  const kpi = (label, value, sub, ico, tone, prog, route) => {
+    let bar = '';
+    if (prog) { const p = Math.min(100, Math.round(prog.val / (prog.max || 1) * 100)); const cls = p >= 90 ? 'green' : p >= 50 ? '' : 'amber'; bar = `<div class="progress ${cls}"><i style="width:${p}%"></i></div>`; }
+    return `<div class="kpi" ${route ? `data-goto="${route}" style="cursor:pointer"` : ''}><div class="kpi-top"><span class="kpi-label">${label}</span><span class="kpi-ico ${tone || ''}">${icon(ico)}</span></div>
+      <div class="kpi-value">${value}</div><div class="kpi-sub">${sub}</div>${bar}</div>`;
+  };
+
+  v.innerHTML = `
+    <div class="kpi-grid">
+      ${kpi('CA annuel réalisé', eur(caAnnuel), `Objectif ${eur(o.caAnnuel)} · ${caProg}%`, 'euro', '', { val: caAnnuel, max: o.caAnnuel }, 'ca')}
+      ${kpi('Marge brute moyenne', pct(margePct), `Cible indicative ${pct(o.margeCible)}`, 'trend', 'green', { val: margePct, max: o.margeCible }, 'ca')}
+      ${kpi('Carnet de commandes', eur(carnet), 'Commandes + chantiers en cours', 'book', '', null, 'chantiers')}
+      ${kpi('Devis du mois', devisMois + ' / ' + o.devisMois, MOIS[mo] + ' ' + yr, 'file', '', { val: devisMois, max: o.devisMois }, 'devis')}
+      ${kpi('RDV nouveaux clients', rdvMois + ' / ' + o.rdvMois, MOIS[mo] + ' — prospection', 'phone', rdvMois >= o.rdvMois ? 'green' : 'amber', { val: rdvMois, max: o.rdvMois }, 'prospection')}
+      ${kpi('Encours facturé', eur(impayes), impRetard ? impRetard + ' facture(s) en retard' : 'À jour', 'receipt', impRetard ? 'red' : 'green', null, 'factures')}
+    </div>
+    <div class="grid-2">
+      <div class="card card-pad">
+        <div class="section-head">${icon('bell')}<h2>Actions prioritaires</h2>${actions.length ? `<span class="spacer"></span><span class="chip">${actions.length}</span>` : ''}</div>
+        ${actions.length ? `<div class="alert-list">${actions.slice(0, 9).map(a => `<div class="alert ${a.tone}" data-goto="${a.route}" style="cursor:pointer">
+          <span class="a-ico">${icon(a.ico)}</span><div class="a-body"><b>${a.title}</b></div>
+          <span class="a-act badge ${a.tone === 'bad' ? 'b-perdu' : 'b-relance'}">${a.badge}</span></div>`).join('')}
+          ${actions.length > 9 ? `<div class="t-muted" style="text-align:center;padding-top:4px">+ ${actions.length - 9} autre(s)</div>` : ''}</div>`
+          : `<div class="alert"><span class="a-ico">${icon('check')}</span><div class="a-body">Aucune action en retard. Tout est à jour.</div></div>`}
+      </div>
+      <div class="card card-pad">
+        <div class="section-head">${icon('target')}<h2>Objectifs</h2><span class="spacer"></span><button class="btn small" id="edit-obj">${icon('sliders')} Modifier</button></div>
+        <div class="stat-line"><span>Devis produits (${MOIS[mo]})</span><b>${devisMois} / ${o.devisMois}</b></div>
+        <div class="stat-line"><span>RDV nouveaux clients</span><b>${rdvMois} / ${o.rdvMois}</b></div>
+        <div class="stat-line"><span>Délai d'envoi devis</span><b>≤ ${o.delaiDevis} jours</b></div>
+        <div class="stat-line"><span>Délai de facturation</span><b>≤ ${o.delaiFacture} jours</b></div>
+        <div class="stat-line"><span>Délai rapport d'intervention</span><b>≤ ${o.delaiRapport} jours</b></div>
+        <div class="stat-line"><span>Chantiers actifs</span><b>${DB.data.chantiers.filter(c => ['commande', 'en_cours'].includes(c.statut)).length}</b></div>
+      </div>
+    </div>
+    <div class="card card-pad" style="margin-top:16px">
+      <div class="section-head">${icon('bar')}<h2>CA & Marge par mois — ${yr}</h2></div>
+      ${monthlyBarChart(yr)}
+    </div>
+    <div class="card card-pad" style="margin-top:16px">
+      <div class="section-head">${icon('briefcase')}<h2>Chantiers en cours</h2><span class="spacer"></span>
+        <button class="btn small" data-goto="chantiers">Voir tout</button></div>
+      ${chantiersMini()}
+    </div>`;
+  $('#edit-obj').onclick = editObjectifs;
+  $$('[data-goto]', v).forEach(b => b.onclick = () => go(b.dataset.goto));
+}
+function monthlyBarChart(yr) {
+  const caM = Array(12).fill(0), maM = Array(12).fill(0);
+  DB.data.ca.filter(r => r.annee === yr).forEach(r => { const m = r.mois ?? 0; caM[m] += (+r.prixVente || 0); maM[m] += marge(r); });
+  const max = Math.max(1, ...caM);
+  const bars = caM.map((val, i) => `<div class="bar-col" title="${MOIS[i]} — CA ${eur(val)} / Marge ${eur(maM[i])}">
+    <div class="bars"><div class="bar" style="height:${val / max * 100}%"></div><div class="bar margin" style="height:${Math.max(0, maM[i]) / max * 100}%"></div></div>
+    <div class="bar-lbl">${MOIS[i].slice(0, 3)}</div></div>`).join('');
+  return `<div class="barchart">${bars}</div><div class="legend"><span><i style="background:var(--brand-2)"></i>Chiffre d'affaires</span><span><i style="background:var(--green)"></i>Marge brute</span></div>`;
+}
+function chantiersMini() {
+  const list = DB.data.chantiers.filter(c => ['commande', 'en_cours'].includes(c.statut));
+  if (!list.length) return `<div class="t-muted">Aucun chantier actif.</div>`;
+  return `<div class="table-wrap"><table><thead><tr><th>OTP</th><th>Chantier</th><th>Client</th><th>Statut</th><th class="num">Montant HT</th></tr></thead>
+    <tbody>${list.map(c => `<tr><td class="t-strong">${esc(c.otp || '—')}</td><td>${esc(c.nom)}</td><td>${esc(clientNom(c.clientId))}</td><td>${statutBadge(c.statut)}</td><td class="num">${eur(c.montantHT)}</td></tr>`).join('')}</tbody></table></div>`;
+}
+function editObjectifs() {
+  const o = DB.data.objectifs;
+  const m = modal({ title: 'Objectifs',
+    body: `<div class="form-grid">
+      <div class="field"><label>CA annuel cible (€ HT)</label><input id="o-ca" type="number" value="${o.caAnnuel}"></div>
+      <div class="field"><label>Marge brute cible (%)</label><input id="o-marge" type="number" step="0.1" value="${(o.margeCible * 100).toFixed(1)}"></div>
+      <div class="field"><label>Devis / mois</label><input id="o-devis" type="number" value="${o.devisMois}"></div>
+      <div class="field"><label>RDV nouveaux clients / mois</label><input id="o-rdv" type="number" value="${o.rdvMois}"></div>
+      <div class="field"><label>Délai envoi devis (jours)</label><input id="o-dd" type="number" value="${o.delaiDevis}"></div>
+      <div class="field"><label>Délai facturation (jours)</label><input id="o-df" type="number" value="${o.delaiFacture}"></div>
+      <div class="field"><label>Délai rapport d'intervention (jours)</label><input id="o-dr" type="number" value="${o.delaiRapport}"></div>
+      <div class="field"><label>Délai de paiement par défaut (jours)</label><input id="o-dp" type="number" value="${o.delaiPaiement}"></div>
+    </div>`, footer: `<button class="btn" data-c>Annuler</button><button class="btn primary" id="o-save">Enregistrer</button>` });
+  m.root.querySelector('[data-c]').onclick = m.close;
+  $('#o-save').onclick = () => {
+    o.caAnnuel = +$('#o-ca').value || 0; o.margeCible = (+$('#o-marge').value || 0) / 100;
+    o.devisMois = +$('#o-devis').value || 0; o.rdvMois = +$('#o-rdv').value || 0;
+    o.delaiDevis = +$('#o-dd').value || 7; o.delaiFacture = +$('#o-df').value || 7;
+    o.delaiRapport = +$('#o-dr').value || 7; o.delaiPaiement = +$('#o-dp').value || 45;
+    DB.save(); m.close(); toast('Objectifs mis à jour'); go('dashboard');
+  };
+}
+
+/* ---------- Statuts ---------- */
+const STATUTS_CHANTIER = { prospect: 'Prospect', devis: 'Devis émis', commande: 'Commande', en_cours: 'En cours', receptionne: 'Réceptionné', facture: 'Facturé', perdu: 'Perdu' };
+function statutBadge(s) { const map = { prospect: 'b-prospect', devis: 'b-devis', commande: 'b-commande', en_cours: 'b-encours', receptionne: 'b-receptionne', facture: 'b-facture', perdu: 'b-perdu' }; return `<span class="badge ${map[s] || 'b-prospect'}">${STATUTS_CHANTIER[s] || s}</span>`; }
+const STATUTS_DEVIS = { attente: "En attente d'envoi", envoye: 'Envoyé', relance: 'Relancé', accepte: 'Accepté', refuse: 'Refusé' };
+function devisBadge(s) { const map = { attente: 'b-attente', envoye: 'b-envoye', relance: 'b-relance', accepte: 'b-accepte', refuse: 'b-refuse' }; return `<span class="badge ${map[s] || 'b-attente'}">${STATUTS_DEVIS[s] || s}</span>`; }
+
+/* ---------- Chantiers ---------- */
+let chantierFilter = { q: '', statut: '' };
+function renderChantiers(v) {
+  const list = DB.data.chantiers.filter(c => {
+    if (chantierFilter.statut && c.statut !== chantierFilter.statut) return false;
+    if (chantierFilter.q) { const s = (c.otp + ' ' + c.nom + ' ' + clientNom(c.clientId) + ' ' + c.adresse).toLowerCase(); if (!s.includes(chantierFilter.q.toLowerCase())) return false; }
+    return true;
+  });
+  v.innerHTML = `
+    <div class="page-actions"><button class="btn primary" id="add">${icon('plus')} Nouveau chantier</button><span class="spacer"></span>
+      <button class="btn small" id="csv">${icon('download')} Export CSV</button></div>
+    <div class="filters">
+      <span class="search-wrap">${icon('search')}<input id="q" placeholder="Rechercher (OTP, nom, client…)" value="${esc(chantierFilter.q)}"></span>
+      <select id="fs"><option value="">Tous les statuts</option>${Object.entries(STATUTS_CHANTIER).map(([k, l]) => `<option value="${k}" ${chantierFilter.statut === k ? 'selected' : ''}>${l}</option>`).join('')}</select>
+      <span class="chip">${list.length} chantier(s)</span></div>
+    ${list.length ? `<div class="table-wrap"><table><thead><tr><th>OTP</th><th>Chantier</th><th>Client</th><th>Adresse</th><th>Statut</th><th class="num">Montant HT</th><th></th></tr></thead>
+      <tbody>${list.map(c => `<tr><td class="t-strong">${esc(c.otp || '—')}</td>
+        <td><span class="link" data-view="${c.id}">${esc(c.nom)}</span></td><td>${esc(clientNom(c.clientId))}</td>
+        <td class="t-muted">${esc(c.adresse || '—')}</td><td>${statutBadge(c.statut)}</td><td class="num">${eur(c.montantHT)}</td>
+        <td class="actions-cell"><button class="icon-btn" data-edit="${c.id}" title="Modifier">${icon('edit')}</button><button class="icon-btn danger" data-del="${c.id}" title="Supprimer">${icon('trash')}</button></td></tr>`).join('')}</tbody>
+      <tfoot><tr><td colspan="5">Total</td><td class="num">${eur(list.reduce((s, c) => s + (+c.montantHT || 0), 0))}</td><td></td></tr></tfoot></table></div>`
+      : emptyState('building', 'Aucun chantier', 'Créez votre premier chantier pour suivre vos affaires.')}`;
+  $('#add').onclick = () => chantierForm();
+  $('#q').oninput = e => { chantierFilter.q = e.target.value; renderChantiers(v); const i = $('#q'); i.focus(); i.setSelectionRange(i.value.length, i.value.length); };
+  $('#fs').onchange = e => { chantierFilter.statut = e.target.value; renderChantiers(v); };
+  $('#csv').onclick = () => exportCSV('chantiers', ['otp', 'nom', 'client', 'adresse', 'statut', 'montantHT'], list.map(c => [c.otp, c.nom, clientNom(c.clientId), c.adresse, STATUTS_CHANTIER[c.statut], c.montantHT]));
+  $$('[data-edit]', v).forEach(b => b.onclick = () => chantierForm(b.dataset.edit));
+  $$('[data-view]', v).forEach(b => b.onclick = () => chantierDetail(b.dataset.view));
+  $$('[data-del]', v).forEach(b => b.onclick = () => confirmDialog('Supprimer ce chantier ?', () => { DB.data.chantiers = DB.data.chantiers.filter(x => x.id !== b.dataset.del); DB.save(); toast('Chantier supprimé'); renderChantiers(v); }));
+}
+function chantierForm(id) {
+  const c = id ? chantierById(id) : { otp: '', nom: '', clientId: '', adresse: '', statut: 'prospect', dateDemande: todayISO(), montantHT: 0, notes: '' };
+  const opts = DB.data.clients.map(cl => `<option value="${cl.id}" ${c.clientId === cl.id ? 'selected' : ''}>${esc(cl.nom)}</option>`).join('');
+  const m = modal({ title: id ? 'Modifier le chantier' : 'Nouveau chantier',
+    body: `<div class="form-grid">
+      <div class="field"><label>N° OTP</label><input id="f-otp" value="${esc(c.otp)}" placeholder="OTP-…"></div>
+      <div class="field"><label>Statut</label><select id="f-statut">${Object.entries(STATUTS_CHANTIER).map(([k, l]) => `<option value="${k}" ${c.statut === k ? 'selected' : ''}>${l}</option>`).join('')}</select></div>
+      <div class="field full"><label>Nom du chantier</label><input id="f-nom" value="${esc(c.nom)}" placeholder="Réfection toiture…"></div>
+      <div class="field"><label>Client</label><select id="f-client"><option value="">— Aucun —</option>${opts}</select></div>
+      <div class="field"><label>Adresse</label><input id="f-adr" value="${esc(c.adresse)}"></div>
+      <div class="field"><label>Date de la demande</label><input id="f-date" type="date" value="${c.dateDemande || todayISO()}"></div>
+      <div class="field"><label>Montant HT (€)</label><input id="f-montant" type="number" value="${c.montantHT || 0}"></div>
+      <div class="field full"><label>Notes</label><textarea id="f-notes" rows="2">${esc(c.notes)}</textarea></div>
+    </div>`, footer: `<button class="btn" data-c>Annuler</button><button class="btn primary" id="save">Enregistrer</button>` });
+  m.root.querySelector('[data-c]').onclick = m.close;
+  $('#save').onclick = () => {
+    const obj = { otp: $('#f-otp').value.trim(), nom: $('#f-nom').value.trim(), clientId: $('#f-client').value, adresse: $('#f-adr').value.trim(), statut: $('#f-statut').value, dateDemande: $('#f-date').value, montantHT: +$('#f-montant').value || 0, notes: $('#f-notes').value.trim() };
+    if (!obj.nom) { toast('Le nom est obligatoire', 'err'); return; }
+    if (id) Object.assign(c, obj); else DB.data.chantiers.unshift({ id: uid(), ...obj });
+    DB.save(); m.close(); toast('Chantier enregistré'); go('chantiers');
+  };
+}
+function chantierDetail(id) {
+  const c = chantierById(id); if (!c) return;
+  const cl = DB.data.clients.find(x => x.id === c.clientId);
+  const devis = DB.data.devis.filter(d => d.chantierId === id);
+  const bte = DB.data.bte.find(b => b.otp && b.otp === c.otp);
+  const m = modal({ title: c.nom, wide: true,
+    body: `<div class="grid-2">
+      <div><div class="stat-line"><span>OTP</span><b>${esc(c.otp || '—')}</b></div><div class="stat-line"><span>Statut</span><b>${statutBadge(c.statut)}</b></div>
+        <div class="stat-line"><span>Client</span><b>${esc(cl ? cl.nom : '—')}</b></div><div class="stat-line"><span>Adresse</span><b>${esc(c.adresse || '—')}</b></div>
+        <div class="stat-line"><span>Date de la demande</span><b>${fmtDate(c.dateDemande)}</b></div><div class="stat-line"><span>Montant HT</span><b>${eur(c.montantHT)}</b></div></div>
+      <div><div class="card-title">Contact client</div>
+        ${cl ? `<div class="stat-line"><span>Interlocuteur</span><b>${esc(cl.contact || '—')}</b></div><div class="stat-line"><span>Téléphone</span><b>${esc(cl.tel || '—')}</b></div><div class="stat-line"><span>Email</span><b>${esc(cl.email || '—')}</b></div>` : '<div class="t-muted">Aucun client associé.</div>'}
+        ${c.notes ? `<div class="card-title" style="margin-top:14px">Notes</div><div class="t-muted">${esc(c.notes)}</div>` : ''}</div></div>
+      <div class="card-title" style="margin-top:18px">Devis liés (${devis.length})</div>
+      ${devis.length ? `<div class="table-wrap"><table><thead><tr><th>Réf.</th><th>Objet</th><th>Statut</th><th class="num">Montant</th></tr></thead><tbody>${devis.map(d => `<tr><td class="t-strong">${esc(d.ref)}</td><td>${esc(d.objet)}</td><td>${devisBadge(d.statut)}</td><td class="num">${eur(d.montantHT)}</td></tr>`).join('')}</tbody></table></div>` : '<div class="t-muted">Aucun devis lié.</div>'}
+      ${bte ? `<div class="card-title" style="margin-top:18px">Budget (BTE)</div>${bteSummaryLine(bte)}` : ''}`,
+    footer: `<button class="btn" data-c>Fermer</button>` });
+  m.root.querySelector('[data-c]').onclick = m.close;
+}
+
+/* ---------- Devis ---------- */
+let devisFilter = { q: '', statut: '' };
+function renderDevis(v) {
+  const o = DB.data.objectifs;
+  const list = DB.data.devis.filter(d => {
+    if (devisFilter.statut && d.statut !== devisFilter.statut) return false;
+    if (devisFilter.q) { const s = (d.ref + ' ' + d.objet).toLowerCase(); if (!s.includes(devisFilter.q.toLowerCase())) return false; }
+    return true;
+  }).sort((a, b) => (b.dateDemande || '').localeCompare(a.dateDemande || ''));
+  const delaiCell = d => {
+    if (d.statut !== 'attente') {
+      if (d.dateEnvoi && d.dateDemande) { const j = daysBetween(d.dateDemande, d.dateEnvoi); return `<span class="${j <= o.delaiDevis ? 'deadline-ok' : 'deadline-late'}">Envoyé en ${j} j</span>`; }
+      return '<span class="t-muted">—</span>';
+    }
+    const rest = o.delaiDevis - daysBetween(d.dateDemande, todayISO());
+    return `<span class="${rest < 0 ? 'deadline-late' : rest <= 2 ? 'deadline-soon' : 'deadline-ok'}">${rest < 0 ? `Retard ${-rest} j` : rest + ' j restants'}</span>`;
+  };
+  v.innerHTML = `
+    <div class="page-actions"><button class="btn primary" id="add">${icon('plus')} Nouveau devis</button><span class="spacer"></span><button class="btn small" id="csv">${icon('download')} Export CSV</button></div>
+    <div class="filters"><span class="search-wrap">${icon('search')}<input id="q" placeholder="Rechercher…" value="${esc(devisFilter.q)}"></span>
+      <select id="fs"><option value="">Tous les statuts</option>${Object.entries(STATUTS_DEVIS).map(([k, l]) => `<option value="${k}" ${devisFilter.statut === k ? 'selected' : ''}>${l}</option>`).join('')}</select>
+      <span class="chip">${list.length} devis</span><span class="chip">Taux d'acceptation ${tauxAccept()} %</span></div>
+    ${list.length ? `<div class="table-wrap"><table><thead><tr><th>Réf.</th><th>Objet</th><th>Demande</th><th>Envoi</th><th>Délai 7 j</th><th>Statut</th><th class="num">Montant HT</th><th></th></tr></thead>
+      <tbody>${list.map(d => `<tr><td class="t-strong">${esc(d.ref)}</td><td>${esc(d.objet)}</td><td>${fmtDate(d.dateDemande)}</td><td>${fmtDate(d.dateEnvoi)}</td><td>${delaiCell(d)}</td><td>${devisBadge(d.statut)}</td><td class="num">${eur(d.montantHT)}</td>
+        <td class="actions-cell"><button class="icon-btn" data-edit="${d.id}" title="Modifier">${icon('edit')}</button><button class="icon-btn danger" data-del="${d.id}" title="Supprimer">${icon('trash')}</button></td></tr>`).join('')}</tbody>
+      <tfoot><tr><td colspan="6">Total</td><td class="num">${eur(list.reduce((s, d) => s + (+d.montantHT || 0), 0))}</td><td></td></tr></tfoot></table></div>`
+      : emptyState('file', 'Aucun devis', 'Objectif : 45 devis / mois, envoi sous 7 jours.')}`;
+  $('#add').onclick = () => devisForm();
+  $('#q').oninput = e => { devisFilter.q = e.target.value; renderDevis(v); const i = $('#q'); i.focus(); i.setSelectionRange(i.value.length, i.value.length); };
+  $('#fs').onchange = e => { devisFilter.statut = e.target.value; renderDevis(v); };
+  $('#csv').onclick = () => exportCSV('devis', ['ref', 'objet', 'dateDemande', 'dateEnvoi', 'statut', 'montantHT'], list.map(d => [d.ref, d.objet, d.dateDemande, d.dateEnvoi, STATUTS_DEVIS[d.statut], d.montantHT]));
+  $$('[data-edit]', v).forEach(b => b.onclick = () => devisForm(b.dataset.edit));
+  $$('[data-del]', v).forEach(b => b.onclick = () => confirmDialog('Supprimer ce devis ?', () => { DB.data.devis = DB.data.devis.filter(x => x.id !== b.dataset.del); DB.save(); toast('Devis supprimé'); renderDevis(v); }));
+}
+function tauxAccept() { const d = DB.data.devis.filter(x => ['accepte', 'refuse'].includes(x.statut)); return d.length ? Math.round(d.filter(x => x.statut === 'accepte').length / d.length * 100) : 0; }
+function devisForm(id) {
+  const d = id ? DB.data.devis.find(x => x.id === id) : { ref: 'DEV-' + new Date().toISOString().slice(2, 7).replace('-', '') + '-' + String(DB.data.devis.length + 1).padStart(2, '0'), chantierId: '', objet: '', dateDemande: todayISO(), dateEnvoi: '', montantHT: 0, statut: 'attente', relance: '' };
+  const chOpts = DB.data.chantiers.map(c => `<option value="${c.id}" ${d.chantierId === c.id ? 'selected' : ''}>${esc(c.otp || '')} ${esc(c.nom)}</option>`).join('');
+  const m = modal({ title: id ? 'Modifier le devis' : 'Nouveau devis',
+    body: `<div class="form-grid">
+      <div class="field"><label>Référence</label><input id="f-ref" value="${esc(d.ref)}"></div>
+      <div class="field"><label>Statut</label><select id="f-statut">${Object.entries(STATUTS_DEVIS).map(([k, l]) => `<option value="${k}" ${d.statut === k ? 'selected' : ''}>${l}</option>`).join('')}</select></div>
+      <div class="field full"><label>Objet</label><input id="f-objet" value="${esc(d.objet)}" placeholder="Réfection terrasse…"></div>
+      <div class="field full"><label>Chantier lié (optionnel)</label><select id="f-ch"><option value="">— Aucun —</option>${chOpts}</select></div>
+      <div class="field"><label>Date demande client</label><input id="f-dd" type="date" value="${d.dateDemande || todayISO()}"></div>
+      <div class="field"><label>Date d'envoi</label><input id="f-de" type="date" value="${d.dateEnvoi || ''}"></div>
+      <div class="field"><label>Montant HT (€)</label><input id="f-montant" type="number" value="${d.montantHT || 0}"></div>
+      <div class="field"><label>Date de relance prévue</label><input id="f-rel" type="date" value="${d.relance || ''}"></div>
+    </div>
+    <div class="field inline" style="margin-top:8px"><input type="checkbox" id="f-now"><label for="f-now" style="cursor:pointer">Marquer comme envoyé aujourd'hui (${fmtDate(todayISO())})</label></div>`,
+    footer: `<button class="btn" data-c>Annuler</button><button class="btn primary" id="save">Enregistrer</button>` });
+  m.root.querySelector('[data-c]').onclick = m.close;
+  $('#save').onclick = () => {
+    let dateEnvoi = $('#f-de').value, statut = $('#f-statut').value;
+    if ($('#f-now').checked) { dateEnvoi = todayISO(); if (statut === 'attente') statut = 'envoye'; }
+    const obj = { ref: $('#f-ref').value.trim(), objet: $('#f-objet').value.trim(), chantierId: $('#f-ch').value, dateDemande: $('#f-dd').value, dateEnvoi, montantHT: +$('#f-montant').value || 0, statut, relance: $('#f-rel').value };
+    if (!obj.objet) { toast("L'objet est obligatoire", 'err'); return; }
+    if (id) Object.assign(d, obj); else DB.data.devis.unshift({ id: uid(), ...obj });
+    DB.save(); m.close(); toast('Devis enregistré'); go('devis');
+  };
+}
+
+/* ---------- Suivi CA & Marge ---------- */
+let caYear = new Date().getFullYear(), caMonth = new Date().getMonth();
+function renderCA(v) {
+  const rows = DB.data.ca.filter(r => r.annee === caYear && r.mois === caMonth);
+  const yearRows = DB.data.ca.filter(r => r.annee === caYear);
+  const tot = f => rows.reduce((s, r) => s + (+r[f] || 0), 0);
+  const totMarge = rows.reduce((s, r) => s + marge(r), 0), totVente = tot('prixVente');
+  const caAnnee = yearRows.reduce((s, r) => s + (+r.prixVente || 0), 0), margeAnnee = yearRows.reduce((s, r) => s + marge(r), 0);
+  const o = DB.data.objectifs;
+  const marginCls = p => p >= o.margeCible ? 'margin-good' : p >= o.margeCible * 0.66 ? 'margin-warn' : 'margin-bad';
+  v.innerHTML = `
+    <div class="page-actions"><button class="btn primary" id="add">${icon('plus')} Ajouter une ligne</button><span class="spacer"></span><button class="btn small" id="csv">${icon('download')} Export CSV du mois</button></div>
+    <div class="filters">
+      <select id="fmonth">${MOIS.map((mm, i) => `<option value="${i}" ${i === caMonth ? 'selected' : ''}>${mm}</option>`).join('')}</select>
+      <select id="fyear">${yearsRange().map(y => `<option value="${y}" ${y === caYear ? 'selected' : ''}>${y}</option>`).join('')}</select>
+      <span class="chip">CA mois ${eur(totVente)}</span><span class="chip">Marge ${eur(totMarge)} · ${pct(totVente ? totMarge / totVente : 0)}</span></div>
+    <div class="kpi-grid">
+      <div class="kpi"><div class="kpi-top"><span class="kpi-label">CA cumulé ${caYear}</span><span class="kpi-ico">${icon('euro')}</span></div><div class="kpi-value">${eur(caAnnee)}</div><div class="kpi-sub">Objectif ${eur(o.caAnnuel)}</div><div class="progress ${caAnnee >= o.caAnnuel ? 'green' : ''}"><i style="width:${Math.min(100, caAnnee / (o.caAnnuel || 1) * 100)}%"></i></div></div>
+      <div class="kpi"><div class="kpi-top"><span class="kpi-label">Marge cumulée ${caYear}</span><span class="kpi-ico green">${icon('trend')}</span></div><div class="kpi-value">${eur(margeAnnee)}</div><div class="kpi-sub">${pct(caAnnee ? margeAnnee / caAnnee : 0)} du CA</div></div>
+      <div class="kpi"><div class="kpi-top"><span class="kpi-label">Lignes du mois</span><span class="kpi-ico">${icon('file')}</span></div><div class="kpi-value">${rows.length}</div><div class="kpi-sub">${MOIS[caMonth]} ${caYear}</div></div>
+    </div>
+    ${rows.length ? `<div class="table-wrap"><table><thead><tr><th>OTP</th><th>Chantier</th><th class="num">Prix vente</th><th class="num">Fournitures</th><th class="num">Engins</th><th class="num">MO SMAC</th><th class="num">Marge €</th><th class="num">% Marge</th><th></th></tr></thead>
+      <tbody>${rows.map(r => { const mg = marge(r), p = r.prixVente ? mg / r.prixVente : 0; return `<tr><td class="t-strong">${esc(r.otp || '—')}</td><td>${esc(r.chantier)}</td><td class="num">${eur(r.prixVente)}</td><td class="num">${eur(r.fournitures)}</td><td class="num">${eur(r.engins)}</td><td class="num">${eur(r.moSmac)}</td><td class="num t-strong">${eur(mg)}</td><td class="num ${marginCls(p)}">${pct(p)}</td>
+        <td class="actions-cell"><button class="icon-btn" data-edit="${r.id}" title="Modifier">${icon('edit')}</button><button class="icon-btn danger" data-del="${r.id}" title="Supprimer">${icon('trash')}</button></td></tr>`; }).join('')}</tbody>
+      <tfoot><tr><td colspan="2">TOTAL ${MOIS[caMonth]}</td><td class="num">${eur(totVente)}</td><td class="num">${eur(tot('fournitures'))}</td><td class="num">${eur(tot('engins'))}</td><td class="num">${eur(tot('moSmac'))}</td><td class="num">${eur(totMarge)}</td><td class="num">${pct(totVente ? totMarge / totVente : 0)}</td><td></td></tr></tfoot></table></div>`
+      : emptyState('euro', 'Aucune ligne pour ' + MOIS[caMonth] + ' ' + caYear, 'Ajoutez le CA réalisé de vos chantiers.')}`;
+  $('#add').onclick = () => caForm();
+  $('#fmonth').onchange = e => { caMonth = +e.target.value; renderCA(v); };
+  $('#fyear').onchange = e => { caYear = +e.target.value; renderCA(v); };
+  $('#csv').onclick = () => exportCSV(`CA_${MOIS[caMonth]}_${caYear}`, ['otp', 'chantier', 'prixVente', 'fournitures', 'engins', 'moSmac', 'marge'], rows.map(r => [r.otp, r.chantier, r.prixVente, r.fournitures, r.engins, r.moSmac, marge(r)]));
+  $$('[data-edit]', v).forEach(b => b.onclick = () => caForm(b.dataset.edit));
+  $$('[data-del]', v).forEach(b => b.onclick = () => confirmDialog('Supprimer cette ligne ?', () => { DB.data.ca = DB.data.ca.filter(x => x.id !== b.dataset.del); DB.save(); toast('Ligne supprimée'); renderCA(v); }));
+}
+function yearsRange() { const cur = new Date().getFullYear(); return [...new Set([cur, cur - 1, cur + 1, ...DB.data.ca.map(r => r.annee)])].sort(); }
+function caForm(id) {
+  const r = id ? DB.data.ca.find(x => x.id === id) : { otp: '', chantier: '', mois: caMonth, annee: caYear, prixVente: 0, fournitures: 0, engins: 0, moSmac: 0 };
+  const chOpts = DB.data.chantiers.map(c => `<option value="${esc(c.nom)}">${esc(c.otp || '')} ${esc(c.nom)}</option>`).join('');
+  const m = modal({ title: id ? 'Modifier la ligne CA' : 'Nouvelle ligne CA',
+    body: `<div class="form-grid">
+      <div class="field"><label>Mois</label><select id="f-mois">${MOIS.map((mm, i) => `<option value="${i}" ${r.mois === i ? 'selected' : ''}>${mm}</option>`).join('')}</select></div>
+      <div class="field"><label>Année</label><input id="f-annee" type="number" value="${r.annee}"></div>
+      <div class="field"><label>N° OTP</label><input id="f-otp" value="${esc(r.otp)}"></div>
+      <div class="field"><label>Chantier</label><input id="f-ch" value="${esc(r.chantier)}" list="chlist"><datalist id="chlist">${chOpts}</datalist></div>
+      <div class="field"><label>Prix de vente (€)</label><input id="f-pv" type="number" value="${r.prixVente}"></div>
+      <div class="field"><label>Fournitures (€)</label><input id="f-fo" type="number" value="${r.fournitures}"></div>
+      <div class="field"><label>Engins (€)</label><input id="f-en" type="number" value="${r.engins}"></div>
+      <div class="field"><label>MO SMAC (€)</label><input id="f-mo" type="number" value="${r.moSmac}"></div>
+    </div><div id="preview" class="card-title" style="margin-top:14px"></div>`,
+    footer: `<button class="btn" data-c>Annuler</button><button class="btn primary" id="save">Enregistrer</button>` });
+  const upd = () => { const pv = +$('#f-pv').value, mg = pv - (+$('#f-fo').value + +$('#f-en').value + +$('#f-mo').value); $('#preview').innerHTML = `Marge brute : <span class="${mg >= 0 ? 'margin-good' : 'margin-bad'}">${eur(mg)}</span> — ${pct(pv ? mg / pv : 0)}`; };
+  ['f-pv', 'f-fo', 'f-en', 'f-mo'].forEach(k => $('#' + k).oninput = upd); upd();
+  m.root.querySelector('[data-c]').onclick = m.close;
+  $('#save').onclick = () => {
+    const obj = { mois: +$('#f-mois').value, annee: +$('#f-annee').value, otp: $('#f-otp').value.trim(), chantier: $('#f-ch').value.trim(), prixVente: +$('#f-pv').value || 0, fournitures: +$('#f-fo').value || 0, engins: +$('#f-en').value || 0, moSmac: +$('#f-mo').value || 0 };
+    if (!obj.chantier) { toast('Le nom du chantier est obligatoire', 'err'); return; }
+    if (id) Object.assign(r, obj); else DB.data.ca.unshift({ id: uid(), ...obj });
+    caMonth = obj.mois; caYear = obj.annee; DB.save(); m.close(); toast('Ligne CA enregistrée'); go('ca');
+  };
+}
+
+/* ---------- BTE — Budget chantier ---------- */
+const BTE_CATS = ['Sous-traitance', "Main d'œuvre", 'Fournitures', 'Engins / matériel', 'Autres'];
+function bteTotals(b) {
+  const prev = b.lignes.reduce((s, l) => s + (+l.qtePrev || 0) * (+l.puPrev || 0), 0);
+  const reel = b.lignes.reduce((s, l) => s + (+l.qteReel || 0) * (+l.puReel || 0), 0);
+  const pv = +b.prixVente || 0;
+  return { prev, reel, pv, margePrev: pv - prev, margeReel: pv - reel, pctPrev: pv ? (pv - prev) / pv : 0, pctReel: pv ? (pv - reel) / pv : 0 };
+}
+function bteSummaryLine(b) {
+  const t = bteTotals(b);
+  return `<div class="grid-3"><div class="stat-line"><span>Prix de vente</span><b>${eur(t.pv)}</b></div><div class="stat-line"><span>Dépenses prév.</span><b>${eur(t.prev)}</b></div><div class="stat-line"><span>Marge prév.</span><b class="${t.pctPrev >= 0 ? 'margin-good' : 'margin-bad'}">${eur(t.margePrev)} · ${pct(t.pctPrev)}</b></div></div>`;
+}
+function renderBTE(v) {
+  const list = DB.data.bte;
+  v.innerHTML = `
+    <div class="page-actions"><button class="btn primary" id="add">${icon('plus')} Nouveau BTE</button><span class="spacer"></span><span class="chip">${list.length} budget(s)</span></div>
+    ${list.length ? `<div class="table-wrap"><table><thead><tr><th>OTP</th><th>Chantier</th><th class="num">Prix vente</th><th class="num">Dépenses prév.</th><th class="num">Marge prév.</th><th class="num">Dépenses réel.</th><th class="num">Marge réel.</th><th class="num">Écart</th><th></th></tr></thead>
+      <tbody>${list.map(b => { const t = bteTotals(b), ecart = t.margeReel - t.margePrev; return `<tr><td class="t-strong">${esc(b.otp || '—')}</td><td><span class="link" data-open="${b.id}">${esc(b.nom)}</span></td><td class="num">${eur(t.pv)}</td><td class="num">${eur(t.prev)}</td><td class="num ${t.pctPrev >= 0 ? 'margin-good' : 'margin-bad'}">${eur(t.margePrev)} · ${pct(t.pctPrev)}</td><td class="num">${eur(t.reel)}</td><td class="num ${t.pctReel >= 0 ? 'margin-good' : 'margin-bad'}">${eur(t.margeReel)} · ${pct(t.pctReel)}</td><td class="num ${ecart >= 0 ? 'margin-good' : 'margin-bad'}">${ecart >= 0 ? '+' : ''}${eur(ecart)}</td>
+        <td class="actions-cell"><button class="icon-btn" data-open="${b.id}" title="Ouvrir">${icon('edit')}</button><button class="icon-btn danger" data-del="${b.id}" title="Supprimer">${icon('trash')}</button></td></tr>`; }).join('')}</tbody></table></div>`
+      : emptyState('calculator', 'Aucun budget BTE', 'Créez un BTE pour estimer les dépenses et la marge brute.')}`;
+  $('#add').onclick = () => bteEditor();
+  $$('[data-open]', v).forEach(b => b.onclick = () => bteEditor(b.dataset.open));
+  $$('[data-del]', v).forEach(b => b.onclick = () => confirmDialog('Supprimer ce BTE ?', () => { DB.data.bte = DB.data.bte.filter(x => x.id !== b.dataset.del); DB.save(); toast('BTE supprimé'); renderBTE(v); }));
+}
+function bteEditor(id) {
+  const b = id ? DB.data.bte.find(x => x.id === id) : { id: uid(), nom: '', otp: '', prixVente: 0, notes: '', lignes: [] };
+  const isNew = !id;
+  const catOpts = l => BTE_CATS.map(c => `<option ${l.cat === c ? 'selected' : ''}>${c}</option>`).join('');
+  const rowHtml = (l, i) => `<tr data-i="${i}"><td><select data-f="cat">${catOpts(l)}</select></td>
+    <td><input data-f="designation" value="${esc(l.designation)}" placeholder="Désignation" style="min-width:170px"></td>
+    <td><input data-f="unite" value="${esc(l.unite)}" style="width:56px" placeholder="u"></td>
+    <td><input data-f="qtePrev" type="number" value="${l.qtePrev || 0}" style="width:66px"></td>
+    <td><input data-f="puPrev" type="number" value="${l.puPrev || 0}" style="width:86px"></td>
+    <td class="num tot-prev">${eur((+l.qtePrev || 0) * (+l.puPrev || 0))}</td>
+    <td><input data-f="qteReel" type="number" value="${l.qteReel || 0}" style="width:66px"></td>
+    <td><input data-f="puReel" type="number" value="${l.puReel || 0}" style="width:86px"></td>
+    <td class="num tot-reel">${eur((+l.qteReel || 0) * (+l.puReel || 0))}</td>
+    <td><button class="icon-btn danger" data-rm title="Retirer">${icon('trash')}</button></td></tr>`;
+  const m = modal({ title: isNew ? 'Nouveau BTE' : 'BTE — ' + (b.nom || ''), wide: true,
+    body: `<div class="form-grid">
+      <div class="field"><label>Chantier</label><input id="b-nom" value="${esc(b.nom)}" placeholder="Nom du chantier"></div>
+      <div class="field"><label>N° OTP</label><input id="b-otp" value="${esc(b.otp)}"></div>
+      <div class="field"><label>Prix de vente HT (€)</label><input id="b-pv" type="number" value="${b.prixVente || 0}"></div>
+      <div class="field"><label>&nbsp;</label><button class="btn" id="b-addline">${icon('plus')} Ajouter une ligne</button></div></div>
+    <div class="table-wrap" style="margin-top:14px"><table id="b-table"><thead>
+      <tr><th>Poste</th><th>Désignation</th><th>Unité</th><th colspan="3" style="text-align:center;border-left:2px solid var(--line)">PRÉVISIONNEL</th><th colspan="3" style="text-align:center;border-left:2px solid var(--line)">EXÉCUTION (RÉEL)</th><th></th></tr>
+      <tr><th></th><th></th><th></th><th>Qté</th><th>PU</th><th class="num">Total</th><th>Qté</th><th>PU</th><th class="num">Total</th><th></th></tr></thead>
+      <tbody id="b-body">${b.lignes.map(rowHtml).join('')}</tbody></table></div>
+    <div id="b-summary" style="margin-top:16px"></div>
+    <div class="field full" style="margin-top:12px"><label>Notes</label><textarea id="b-notes" rows="2">${esc(b.notes)}</textarea></div>`,
+    footer: `<button class="btn" data-c>Annuler</button><button class="btn small" id="b-csv">${icon('download')} CSV</button><button class="btn primary" id="b-save">Enregistrer</button>` });
+  const collect = () => {
+    b.nom = $('#b-nom').value.trim(); b.otp = $('#b-otp').value.trim(); b.prixVente = +$('#b-pv').value || 0; b.notes = $('#b-notes').value.trim();
+    b.lignes = $$('#b-body tr').map(tr => { const g = f => tr.querySelector(`[data-f="${f}"]`).value; return { cat: g('cat'), designation: g('designation'), unite: g('unite'), qtePrev: +g('qtePrev') || 0, puPrev: +g('puPrev') || 0, qteReel: +g('qteReel') || 0, puReel: +g('puReel') || 0 }; });
+  };
+  const refreshSummary = () => {
+    collect(); const t = bteTotals(b); const byCat = {}; b.lignes.forEach(l => { byCat[l.cat] = (byCat[l.cat] || 0) + (+l.qtePrev || 0) * (+l.puPrev || 0); });
+    $('#b-summary').innerHTML = `<div class="grid-3">
+      <div class="cad-metric"><div class="cm-label">Prix de vente</div><div class="cm-value">${eur(t.pv)}</div></div>
+      <div class="cad-metric"><div class="cm-label">Dépenses prév. / réel.</div><div class="cm-value">${eur(t.prev)}</div><div class="cm-sub">Réel : ${eur(t.reel)}</div></div>
+      <div class="cad-metric ${t.pctPrev >= 0 ? 'green' : 'amber'}"><div class="cm-label">Marge brute prévisionnelle</div><div class="cm-value ${t.pctPrev >= 0 ? 'margin-good' : 'margin-bad'}">${eur(t.margePrev)}</div><div class="cm-sub">${pct(t.pctPrev)} · réel ${eur(t.margeReel)} (${pct(t.pctReel)})</div></div></div>
+      <div class="card card-pad" style="margin-top:12px"><div class="card-title">Répartition prévisionnelle par poste</div>${BTE_CATS.filter(c => byCat[c]).map(c => `<div class="stat-line"><span>${c}</span><b>${eur(byCat[c])} <span class="t-muted">(${pct(t.prev ? byCat[c] / t.prev : 0)})</span></b></div>`).join('') || '<span class="t-muted">Aucune dépense saisie.</span>'}</div>`;
+  };
+  const bindRow = tr => {
+    tr.querySelectorAll('input,select').forEach(inp => inp.oninput = () => { const g = f => tr.querySelector(`[data-f="${f}"]`).value; tr.querySelector('.tot-prev').textContent = eur((+g('qtePrev') || 0) * (+g('puPrev') || 0)); tr.querySelector('.tot-reel').textContent = eur((+g('qteReel') || 0) * (+g('puReel') || 0)); refreshSummary(); });
+    tr.querySelector('[data-rm]').onclick = () => { tr.remove(); refreshSummary(); };
+  };
+  $$('#b-body tr').forEach(bindRow);
+  $('#b-pv').oninput = refreshSummary;
+  $('#b-addline').onclick = () => { const tmp = document.createElement('tbody'); tmp.innerHTML = rowHtml({ cat: BTE_CATS[1], designation: '', unite: '', qtePrev: 0, puPrev: 0, qteReel: 0, puReel: 0 }, $$('#b-body tr').length); const tr = tmp.firstElementChild; $('#b-body').appendChild(tr); bindRow(tr); refreshSummary(); };
+  m.root.querySelector('[data-c]').onclick = m.close;
+  $('#b-csv').onclick = () => { collect(); exportCSV('BTE_' + (b.otp || b.nom || 'chantier'), ['poste', 'designation', 'unite', 'qtePrev', 'puPrev', 'totalPrev', 'qteReel', 'puReel', 'totalReel'], b.lignes.map(l => [l.cat, l.designation, l.unite, l.qtePrev, l.puPrev, l.qtePrev * l.puPrev, l.qteReel, l.puReel, l.qteReel * l.puReel])); };
+  $('#b-save').onclick = () => { collect(); if (!b.nom) { toast('Le nom du chantier est obligatoire', 'err'); return; } if (isNew) DB.data.bte.unshift(b); DB.save(); m.close(); toast('BTE enregistré'); go('bte'); };
+  refreshSummary();
+}
+
+/* ---------- Cadences étanchéité ---------- */
+const CAD_STATE = {
+  surface: 300, mlong: 80, hauteur: 2, equipe: 2,
+  coeff: { surface: 2, emergence: 0, risque: 0, exigence: 0, environnement: 0 },
+  m2: { depose_protection: 1, depose_complexe: 1, vernis: 1, parevapeur: 4, isolant: 1, couche1: 1, couche2: 1, bacacier: 0 },
+  ml: { securite: 1, equerres_pv: 1, releves: 3, costieres: 0, couvertines: 1 },
+};
+function renderCadences(v) {
+  const S = CAD_STATE;
+  const selCoeff = key => { const c = COEFFS[key]; return `<div class="field"><label>${c.label}</label><select data-coeff="${key}">${c.opts.map((o, i) => `<option value="${i}" ${S.coeff[key] === i ? 'selected' : ''}>${o[0]} (×${o[1]})</option>`).join('')}</select></div>`; };
+  const selTask = (bag, key, catalog) => { const c = catalog[key]; return `<div class="field"><label>${c.label}</label><select data-task="${bag}:${key}">${c.opts.map((o, i) => `<option value="${i}" ${S[bag][key] === i ? 'selected' : ''}>${o[0]}${o[1] ? ' — ' + o[1] + (bag === 'm2' ? ' h/m²' : ' h/mL') : ''}</option>`).join('')}</select></div>`; };
+  v.innerHTML = `
+    <p class="t-muted" style="margin:-4px 0 16px;max-width:820px">Estimateur basé sur le référentiel « Cadences Étanchéité V10 ». Renseignez les caractéristiques du chantier et les complexes retenus : l'outil calcule le temps de pose, la durée équipe et la cadence globale (m²/jour).</p>
+    <div class="grid-2">
+      <div class="card card-pad">
+        <div class="card-title">1 · Caractéristiques du chantier</div>
+        <div class="form-grid">
+          <div class="field"><label>Surface de terrasse (m²)</label><input id="c-surf" type="number" value="${S.surface}"></div>
+          <div class="field"><label>Métré linéaire relevés / costières (mL)</label><input id="c-ml" type="number" value="${S.mlong}"></div>
+          <div class="field"><label>${APPRO.label}</label><select id="c-haut">${APPRO.opts.map((o, i) => `<option value="${i}" ${S.hauteur === i ? 'selected' : ''}>${o[0]} (${o[1]} h/m²)</option>`).join('')}</select></div>
+          <div class="field"><label>Taille de l'équipe (personnes)</label><input id="c-eq" type="number" min="1" value="${S.equipe}"></div>
+        </div>
+        <div class="card-title" style="margin-top:16px">2 · Coefficients de complexité</div>
+        <div class="form-grid">${selCoeff('surface')}${selCoeff('emergence')}${selCoeff('risque')}${selCoeff('exigence')}${selCoeff('environnement')}</div>
+      </div>
+      <div class="card card-pad">
+        <div class="card-title">3 · Complexes surfaciques (h/m²)</div>
+        <div class="form-grid">${Object.keys(TACHES_M2).map(k => selTask('m2', k, TACHES_M2)).join('')}</div>
+        <div class="card-title" style="margin-top:16px">4 · Ouvrages linéaires (h/mL)</div>
+        <div class="form-grid">${Object.keys(TACHES_ML).map(k => selTask('ml', k, TACHES_ML)).join('')}</div>
+      </div>
+    </div>
+    <div id="cad-out" class="cad-out" style="margin-top:16px"></div>`;
+  const readInputs = () => {
+    S.surface = +$('#c-surf').value || 0; S.mlong = +$('#c-ml').value || 0; S.hauteur = +$('#c-haut').value; S.equipe = Math.max(1, +$('#c-eq').value || 1);
+    $$('[data-coeff]', v).forEach(sel => S.coeff[sel.dataset.coeff] = +sel.value);
+    $$('[data-task]', v).forEach(sel => { const [bag, key] = sel.dataset.task.split(':'); S[bag][key] = +sel.value; });
+  };
+  const recompute = () => { readInputs(); $('#cad-out').innerHTML = cadencesResult(); const b = $('#cad-csv'); if (b) b.onclick = exportCadences; };
+  v.querySelectorAll('input,select').forEach(el => el.oninput = recompute);
+  recompute();
+}
+function cadCoeffGlobal() { const S = CAD_STATE; return COEFFS.surface.opts[S.coeff.surface][1] * COEFFS.emergence.opts[S.coeff.emergence][1] * COEFFS.risque.opts[S.coeff.risque][1] * COEFFS.exigence.opts[S.coeff.exigence][1] * COEFFS.environnement.opts[S.coeff.environnement][1]; }
+function cadSteps() {
+  const S = CAD_STATE, gc = cadCoeffGlobal(), steps = [];
+  for (const k in TACHES_M2) { const base = TACHES_M2[k].opts[S.m2[k]][1]; if (!base) continue; const hM2 = base * gc; steps.push({ nom: TACHES_M2[k].label, detail: TACHES_M2[k].opts[S.m2[k]][0], base: base + ' h/m²', h: hM2 * S.surface, cad: hM2 ? HEURES_JOUR / hM2 : 0, unite: 'm²/j' }); }
+  const apr = APPRO.opts[S.hauteur][1]; if (apr) { const hM2 = apr * gc; steps.push({ nom: 'Approvisionnement', detail: APPRO.opts[S.hauteur][0], base: apr + ' h/m²', h: hM2 * S.surface, cad: hM2 ? HEURES_JOUR / hM2 : 0, unite: 'm²/j' }); }
+  for (const k in TACHES_ML) { const base = TACHES_ML[k].opts[S.ml[k]][1]; if (!base) continue; const hMl = base * gc; steps.push({ nom: TACHES_ML[k].label, detail: TACHES_ML[k].opts[S.ml[k]][0], base: base + ' h/mL', h: hMl * S.mlong, cad: hMl ? HEURES_JOUR / hMl : 0, unite: 'mL/j' }); }
+  return { steps, gc };
+}
+function cadencesResult() {
+  const S = CAD_STATE, { steps, gc } = cadSteps();
+  const totalH = steps.reduce((s, x) => s + x.h, 0);
+  const joursEquipe = totalH / (S.equipe * HEURES_JOUR);
+  const cadGlobale = joursEquipe > 0 ? S.surface / joursEquipe : 0;
+  return `<div class="grid-3">
+    <div class="cad-metric"><div class="cm-label">Temps de pose total</div><div class="cm-value">${num(totalH)} h</div><div class="cm-sub">Coefficient global appliqué : ×${gc.toFixed(3)}</div></div>
+    <div class="cad-metric green"><div class="cm-label">Durée chantier</div><div class="cm-value">${num(joursEquipe)} j</div><div class="cm-sub">équipe de ${S.equipe} pers. · ${HEURES_JOUR} h/j</div></div>
+    <div class="cad-metric amber"><div class="cm-label">Cadence globale</div><div class="cm-value">${num(cadGlobale)}</div><div class="cm-sub">m²/jour (${num(S.surface)} m²)</div></div></div>
+  ${steps.length ? `<div class="table-wrap" style="margin-top:16px"><table class="cad-steps"><thead><tr><th>Étape</th><th>Choix</th><th class="num">Cadence std</th><th class="num">Cadence corrigée</th><th class="num">Temps</th></tr></thead>
+    <tbody>${steps.map(s => `<tr><td class="t-strong">${esc(s.nom)}</td><td class="t-muted">${esc(s.detail)}</td><td class="num">${esc(s.base)}</td><td class="num">${num(s.cad)} ${s.unite}</td><td class="num">${num(s.h)} h</td></tr>`).join('')}</tbody>
+    <tfoot><tr><td colspan="4">TOTAL — ${num(joursEquipe)} jours équipe</td><td class="num">${num(totalH)} h</td></tr></tfoot></table></div>
+    <div class="page-actions" style="margin-top:14px"><button class="btn small" id="cad-csv">${icon('download')} Exporter l'estimation (CSV)</button></div>`
+    : '<p class="t-muted" style="margin-top:14px">Sélectionnez au moins un complexe pour lancer l\'estimation.</p>'}`;
+}
+function exportCadences() { const { steps } = cadSteps(); exportCSV('estimation_cadences', ['etape', 'choix', 'cadence_std', 'cadence_corrigee', 'temps_h'], steps.map(s => [s.nom, s.detail, s.base, num(s.cad) + ' ' + s.unite, num(s.h)])); }
+
+/* ---------- Clients ---------- */
+function renderClients(v) {
+  const list = DB.data.clients;
+  v.innerHTML = `
+    <div class="page-actions"><button class="btn primary" id="add">${icon('plus')} Nouveau client</button><span class="spacer"></span><span class="chip">${list.length} client(s)</span></div>
+    ${list.length ? `<div class="table-wrap"><table><thead><tr><th>Client</th><th>Type</th><th>Contact</th><th>Téléphone</th><th>Email</th><th>Ville</th><th class="num">Chantiers</th><th></th></tr></thead>
+      <tbody>${list.map(c => `<tr><td class="t-strong">${esc(c.nom)}</td><td><span class="chip">${esc(c.type || '—')}</span></td><td>${esc(c.contact || '—')}</td><td>${esc(c.tel || '—')}</td><td class="t-muted">${esc(c.email || '—')}</td><td>${esc(c.adresse || '—')}</td><td class="num">${DB.data.chantiers.filter(ch => ch.clientId === c.id).length}</td>
+        <td class="actions-cell"><button class="icon-btn" data-edit="${c.id}" title="Modifier">${icon('edit')}</button><button class="icon-btn danger" data-del="${c.id}" title="Supprimer">${icon('trash')}</button></td></tr>`).join('')}</tbody></table></div>`
+      : emptyState('users', 'Aucun client', 'Ajoutez vos clients et interlocuteurs.')}`;
+  $('#add').onclick = () => clientForm();
+  $$('[data-edit]', v).forEach(b => b.onclick = () => clientForm(b.dataset.edit));
+  $$('[data-del]', v).forEach(b => b.onclick = () => confirmDialog('Supprimer ce client ?', () => { DB.data.clients = DB.data.clients.filter(x => x.id !== b.dataset.del); DB.save(); toast('Client supprimé'); renderClients(v); }));
+}
+function clientForm(id) {
+  const c = id ? DB.data.clients.find(x => x.id === id) : { nom: '', type: 'Privé', contact: '', tel: '', email: '', adresse: '', notes: '' };
+  const types = ['Privé', 'Syndic', 'Public', 'Grand compte', 'Industriel', 'Promoteur'];
+  const m = modal({ title: id ? 'Modifier le client' : 'Nouveau client',
+    body: `<div class="form-grid">
+      <div class="field full"><label>Raison sociale / Nom</label><input id="f-nom" value="${esc(c.nom)}"></div>
+      <div class="field"><label>Type</label><select id="f-type">${types.map(t => `<option ${c.type === t ? 'selected' : ''}>${t}</option>`).join('')}</select></div>
+      <div class="field"><label>Interlocuteur</label><input id="f-contact" value="${esc(c.contact)}"></div>
+      <div class="field"><label>Téléphone</label><input id="f-tel" value="${esc(c.tel)}"></div>
+      <div class="field"><label>Email</label><input id="f-email" value="${esc(c.email)}"></div>
+      <div class="field full"><label>Ville / Adresse</label><input id="f-adr" value="${esc(c.adresse)}"></div>
+      <div class="field full"><label>Notes</label><textarea id="f-notes" rows="2">${esc(c.notes)}</textarea></div>
+    </div>`, footer: `<button class="btn" data-c>Annuler</button><button class="btn primary" id="save">Enregistrer</button>` });
+  m.root.querySelector('[data-c]').onclick = m.close;
+  $('#save').onclick = () => {
+    const obj = { nom: $('#f-nom').value.trim(), type: $('#f-type').value, contact: $('#f-contact').value.trim(), tel: $('#f-tel').value.trim(), email: $('#f-email').value.trim(), adresse: $('#f-adr').value.trim(), notes: $('#f-notes').value.trim() };
+    if (!obj.nom) { toast('Le nom est obligatoire', 'err'); return; }
+    if (id) Object.assign(c, obj); else DB.data.clients.unshift({ id: uid(), ...obj });
+    DB.save(); m.close(); toast('Client enregistré'); go('clients');
+  };
+}
+
+/* ---------- Prospection & RDV ---------- */
+const CANAUX = { rdv_nouveau: 'RDV nouveau client', rdv_suivi: 'RDV de suivi', appel: 'Appel / téléprospection' };
+const STATUTS_PROSP = { planifie: 'Planifié', realise: 'Réalisé', devis: 'Devis établi', gagne: 'Gagné', sans_suite: 'Sans suite' };
+function prospBadge(s) { const map = { planifie: 'b-attente', realise: 'b-envoye', devis: 'b-devis', gagne: 'b-accepte', sans_suite: 'b-refuse' }; return `<span class="badge ${map[s] || 'b-attente'}">${STATUTS_PROSP[s] || s}</span>`; }
+let prospFilter = { q: '', statut: '' };
+function renderProspection(v) {
+  const o = DB.data.objectifs, rdvMois = rdvNouveauxMois();
+  const list = DB.data.prospection.filter(p => {
+    if (prospFilter.statut && p.statut !== prospFilter.statut) return false;
+    if (prospFilter.q) { const s = (p.nom + ' ' + p.ville + ' ' + p.objet).toLowerCase(); if (!s.includes(prospFilter.q.toLowerCase())) return false; }
+    return true;
+  }).sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+  const potentielOuvert = DB.data.prospection.filter(p => !['gagne', 'sans_suite'].includes(p.statut)).reduce((s, p) => s + (+p.potentiel || 0), 0);
+  v.innerHTML = `
+    <div class="kpi-grid">
+      <div class="kpi"><div class="kpi-top"><span class="kpi-label">RDV nouveaux clients (${MOIS[new Date().getMonth()]})</span><span class="kpi-ico ${rdvMois >= o.rdvMois ? 'green' : 'amber'}">${icon('phone')}</span></div><div class="kpi-value">${rdvMois} / ${o.rdvMois}</div><div class="kpi-sub">Objectif mensuel</div><div class="progress ${rdvMois >= o.rdvMois ? 'green' : 'amber'}"><i style="width:${Math.min(100, rdvMois / (o.rdvMois || 1) * 100)}%"></i></div></div>
+      <div class="kpi"><div class="kpi-top"><span class="kpi-label">Potentiel en cours</span><span class="kpi-ico">${icon('euro')}</span></div><div class="kpi-value">${eur(potentielOuvert)}</div><div class="kpi-sub">Pipeline ouvert</div></div>
+      <div class="kpi"><div class="kpi-top"><span class="kpi-label">Contacts</span><span class="kpi-ico">${icon('users')}</span></div><div class="kpi-value">${DB.data.prospection.length}</div><div class="kpi-sub">Total suivi</div></div>
+    </div>
+    <div class="page-actions"><button class="btn primary" id="add">${icon('plus')} Nouveau contact / RDV</button><span class="spacer"></span><button class="btn small" id="csv">${icon('download')} Export CSV</button></div>
+    <div class="filters"><span class="search-wrap">${icon('search')}<input id="q" placeholder="Rechercher…" value="${esc(prospFilter.q)}"></span>
+      <select id="fs"><option value="">Tous les statuts</option>${Object.entries(STATUTS_PROSP).map(([k, l]) => `<option value="${k}" ${prospFilter.statut === k ? 'selected' : ''}>${l}</option>`).join('')}</select>
+      <span class="chip">${list.length} contact(s)</span></div>
+    ${list.length ? `<div class="table-wrap"><table><thead><tr><th>Date</th><th>Prospect / client</th><th>Ville</th><th>Canal</th><th>Objet</th><th class="num">Potentiel</th><th>Prochaine action</th><th>Statut</th><th></th></tr></thead>
+      <tbody>${list.map(p => { const dueProch = p.prochaine && p.prochaine <= todayISO() && !['gagne', 'sans_suite'].includes(p.statut); return `<tr><td>${fmtDate(p.date)}</td><td class="t-strong">${esc(p.nom)}</td><td class="t-muted">${esc(p.ville || '—')}</td><td>${CANAUX[p.canal] || '—'}</td><td>${esc(p.objet || '—')}</td><td class="num">${p.potentiel ? eur(p.potentiel) : '—'}</td><td class="${dueProch ? 'deadline-late' : ''}">${p.prochaine ? fmtDate(p.prochaine) : '—'}</td><td>${prospBadge(p.statut)}</td>
+        <td class="actions-cell"><button class="icon-btn" data-edit="${p.id}" title="Modifier">${icon('edit')}</button><button class="icon-btn danger" data-del="${p.id}" title="Supprimer">${icon('trash')}</button></td></tr>`; }).join('')}</tbody></table></div>`
+      : emptyState('phone', 'Aucun contact', 'Objectif : 4 RDV nouveaux clients par mois.')}`;
+  $('#add').onclick = () => prospForm();
+  $('#q').oninput = e => { prospFilter.q = e.target.value; renderProspection(v); const i = $('#q'); i.focus(); i.setSelectionRange(i.value.length, i.value.length); };
+  $('#fs').onchange = e => { prospFilter.statut = e.target.value; renderProspection(v); };
+  $('#csv').onclick = () => exportCSV('prospection', ['date', 'nom', 'ville', 'canal', 'objet', 'potentiel', 'prochaine', 'statut'], list.map(p => [p.date, p.nom, p.ville, CANAUX[p.canal], p.objet, p.potentiel, p.prochaine, STATUTS_PROSP[p.statut]]));
+  $$('[data-edit]', v).forEach(b => b.onclick = () => prospForm(b.dataset.edit));
+  $$('[data-del]', v).forEach(b => b.onclick = () => confirmDialog('Supprimer ce contact ?', () => { DB.data.prospection = DB.data.prospection.filter(x => x.id !== b.dataset.del); DB.save(); toast('Contact supprimé'); renderProspection(v); }));
+}
+function prospForm(id) {
+  const p = id ? DB.data.prospection.find(x => x.id === id) : { date: todayISO(), nom: '', ville: '', canal: 'rdv_nouveau', objet: '', statut: 'planifie', potentiel: 0, prochaine: '', note: '' };
+  const m = modal({ title: id ? 'Modifier le contact' : 'Nouveau contact / RDV',
+    body: `<div class="form-grid">
+      <div class="field"><label>Date</label><input id="f-date" type="date" value="${p.date || todayISO()}"></div>
+      <div class="field"><label>Canal</label><select id="f-canal">${Object.entries(CANAUX).map(([k, l]) => `<option value="${k}" ${p.canal === k ? 'selected' : ''}>${l}</option>`).join('')}</select></div>
+      <div class="field"><label>Prospect / client</label><input id="f-nom" value="${esc(p.nom)}"></div>
+      <div class="field"><label>Ville</label><input id="f-ville" value="${esc(p.ville)}"></div>
+      <div class="field full"><label>Objet</label><input id="f-objet" value="${esc(p.objet)}" placeholder="Besoin identifié…"></div>
+      <div class="field"><label>Potentiel (€ HT)</label><input id="f-pot" type="number" value="${p.potentiel || 0}"></div>
+      <div class="field"><label>Statut</label><select id="f-statut">${Object.entries(STATUTS_PROSP).map(([k, l]) => `<option value="${k}" ${p.statut === k ? 'selected' : ''}>${l}</option>`).join('')}</select></div>
+      <div class="field"><label>Prochaine action (date)</label><input id="f-proch" type="date" value="${p.prochaine || ''}"></div>
+      <div class="field"><label>Note</label><input id="f-note" value="${esc(p.note)}"></div>
+    </div>`, footer: `<button class="btn" data-c>Annuler</button><button class="btn primary" id="save">Enregistrer</button>` });
+  m.root.querySelector('[data-c]').onclick = m.close;
+  $('#save').onclick = () => {
+    const obj = { date: $('#f-date').value, canal: $('#f-canal').value, nom: $('#f-nom').value.trim(), ville: $('#f-ville').value.trim(), objet: $('#f-objet').value.trim(), potentiel: +$('#f-pot').value || 0, statut: $('#f-statut').value, prochaine: $('#f-proch').value, note: $('#f-note').value.trim() };
+    if (!obj.nom) { toast('Le nom est obligatoire', 'err'); return; }
+    if (id) Object.assign(p, obj); else DB.data.prospection.unshift({ id: uid(), ...obj });
+    DB.save(); m.close(); toast('Contact enregistré'); go('prospection');
+  };
+}
+
+/* ---------- Facturation & encaissement ---------- */
+const STATUTS_FACT = { a_emettre: 'À émettre', emise: 'Émise', payee: 'Payée' };
+function factBadge(f) {
+  const fl = factureFlags(f);
+  if (f.statut === 'payee') return `<span class="badge b-accepte">Payée</span>`;
+  if (fl.retardPaiement) return `<span class="badge b-perdu">Impayée (retard)</span>`;
+  if (fl.retardEmission) return `<span class="badge b-perdu">À émettre (retard)</span>`;
+  return `<span class="badge ${f.statut === 'emise' ? 'b-envoye' : 'b-attente'}">${STATUTS_FACT[f.statut]}</span>`;
+}
+let factFilter = { q: '', statut: '' };
+function renderFactures(v) {
+  const list = DB.data.factures.filter(f => {
+    if (factFilter.statut && f.statut !== factFilter.statut) return false;
+    if (factFilter.q) { const s = ((f.num || '') + ' ' + (f.client || '') + ' ' + (f.objet || '')).toLowerCase(); if (!s.includes(factFilter.q.toLowerCase())) return false; }
+    return true;
+  }).sort((a, b) => (b.dateFG || b.dateEmission || '').localeCompare(a.dateFG || a.dateEmission || ''));
+  const aEmettre = DB.data.factures.filter(f => f.statut === 'a_emettre');
+  const aEmettreRetard = aEmettre.filter(f => factureFlags(f).retardEmission).length;
+  const emises = DB.data.factures.filter(f => f.statut === 'emise');
+  const impRetard = emises.filter(f => factureFlags(f).retardPaiement).length;
+  const encaisse = DB.data.factures.filter(f => f.statut === 'payee').reduce((s, f) => s + (+f.montantHT || 0), 0);
+  const emisMontant = emises.reduce((s, f) => s + (+f.montantHT || 0), 0);
+  const recouvre = (encaisse + emisMontant) ? Math.round(encaisse / (encaisse + emisMontant) * 100) : 0;
+  v.innerHTML = `
+    <div class="kpi-grid">
+      <div class="kpi"><div class="kpi-top"><span class="kpi-label">À émettre</span><span class="kpi-ico ${aEmettreRetard ? 'red' : ''}">${icon('receipt')}</span></div><div class="kpi-value">${eur(aEmettre.reduce((s, f) => s + (+f.montantHT || 0), 0))}</div><div class="kpi-sub">${aEmettre.length} facture(s)${aEmettreRetard ? ` · ${aEmettreRetard} en retard 7 j` : ''}</div></div>
+      <div class="kpi"><div class="kpi-top"><span class="kpi-label">Émises impayées</span><span class="kpi-ico ${impRetard ? 'red' : ''}">${icon('euro')}</span></div><div class="kpi-value">${eur(emisMontant)}</div><div class="kpi-sub">${emises.length} facture(s)${impRetard ? ` · ${impRetard} en retard` : ''}</div></div>
+      <div class="kpi"><div class="kpi-top"><span class="kpi-label">Encaissé</span><span class="kpi-ico green">${icon('check')}</span></div><div class="kpi-value">${eur(encaisse)}</div><div class="kpi-sub">Réglé</div></div>
+      <div class="kpi"><div class="kpi-top"><span class="kpi-label">Taux de recouvrement</span><span class="kpi-ico">${icon('trend')}</span></div><div class="kpi-value">${recouvre} %</div><div class="progress ${recouvre >= 90 ? 'green' : ''}"><i style="width:${recouvre}%"></i></div></div>
+    </div>
+    <div class="page-actions"><button class="btn primary" id="add">${icon('plus')} Nouvelle facture</button><span class="spacer"></span><button class="btn small" id="csv">${icon('download')} Export CSV</button></div>
+    <div class="filters"><span class="search-wrap">${icon('search')}<input id="q" placeholder="Rechercher…" value="${esc(factFilter.q)}"></span>
+      <select id="fs"><option value="">Tous les statuts</option>${Object.entries(STATUTS_FACT).map(([k, l]) => `<option value="${k}" ${factFilter.statut === k ? 'selected' : ''}>${l}</option>`).join('')}</select>
+      <span class="chip">${list.length} facture(s)</span></div>
+    ${list.length ? `<div class="table-wrap"><table><thead><tr><th>N°</th><th>Client</th><th>Objet</th><th>Fait générateur</th><th>Émission</th><th>Échéance</th><th class="num">Montant HT</th><th>Statut</th><th></th></tr></thead>
+      <tbody>${list.map(f => { const fl = factureFlags(f); return `<tr><td class="t-strong">${esc(f.num || '—')}</td><td>${esc(f.client || '—')}</td><td>${esc(f.objet || '—')}</td><td>${fmtDate(f.dateFG)}</td><td>${fmtDate(f.dateEmission)}</td><td class="${fl.retardPaiement ? 'deadline-late' : ''}">${fl.echeance ? fmtDate(fl.echeance) : '—'}</td><td class="num">${eur(f.montantHT)}</td><td>${factBadge(f)}</td>
+        <td class="actions-cell">${f.statut !== 'payee' ? `<button class="icon-btn" data-pay="${f.id}" title="Marquer payée">${icon('check')}</button>` : ''}<button class="icon-btn" data-edit="${f.id}" title="Modifier">${icon('edit')}</button><button class="icon-btn danger" data-del="${f.id}" title="Supprimer">${icon('trash')}</button></td></tr>`; }).join('')}</tbody>
+      <tfoot><tr><td colspan="6">Total affiché</td><td class="num">${eur(list.reduce((s, f) => s + (+f.montantHT || 0), 0))}</td><td colspan="2"></td></tr></tfoot></table></div>`
+      : emptyState('receipt', 'Aucune facture', 'Facturez chaque intervention sous 7 jours et suivez les paiements.')}`;
+  $('#add').onclick = () => factForm();
+  $('#q').oninput = e => { factFilter.q = e.target.value; renderFactures(v); const i = $('#q'); i.focus(); i.setSelectionRange(i.value.length, i.value.length); };
+  $('#fs').onchange = e => { factFilter.statut = e.target.value; renderFactures(v); };
+  $('#csv').onclick = () => exportCSV('factures', ['num', 'client', 'objet', 'dateFG', 'dateEmission', 'echeance', 'montantHT', 'statut'], list.map(f => [f.num, f.client, f.objet, f.dateFG, f.dateEmission, factureEcheance(f), f.montantHT, STATUTS_FACT[f.statut]]));
+  $$('[data-edit]', v).forEach(b => b.onclick = () => factForm(b.dataset.edit));
+  $$('[data-pay]', v).forEach(b => b.onclick = () => { const f = DB.data.factures.find(x => x.id === b.dataset.pay); f.statut = 'payee'; f.datePaiement = todayISO(); if (!f.dateEmission) f.dateEmission = todayISO(); DB.save(); toast('Facture réglée'); renderFactures(v); });
+  $$('[data-del]', v).forEach(b => b.onclick = () => confirmDialog('Supprimer cette facture ?', () => { DB.data.factures = DB.data.factures.filter(x => x.id !== b.dataset.del); DB.save(); toast('Facture supprimée'); renderFactures(v); }));
+}
+function factForm(id) {
+  const f = id ? DB.data.factures.find(x => x.id === id) : { num: '', clientId: '', client: '', chantierId: '', objet: '', dateFG: todayISO(), dateEmission: '', montantHT: 0, echeanceJours: DB.data.objectifs.delaiPaiement, datePaiement: '', statut: 'a_emettre' };
+  const clOpts = DB.data.clients.map(c => `<option value="${c.id}" ${f.clientId === c.id ? 'selected' : ''}>${esc(c.nom)}</option>`).join('');
+  const chOpts = DB.data.chantiers.map(c => `<option value="${c.id}" ${f.chantierId === c.id ? 'selected' : ''}>${esc(c.otp || '')} ${esc(c.nom)}</option>`).join('');
+  const m = modal({ title: id ? 'Modifier la facture' : 'Nouvelle facture',
+    body: `<div class="form-grid">
+      <div class="field"><label>N° de facture</label><input id="f-num" value="${esc(f.num)}" placeholder="FA-…"></div>
+      <div class="field"><label>Statut</label><select id="f-statut">${Object.entries(STATUTS_FACT).map(([k, l]) => `<option value="${k}" ${f.statut === k ? 'selected' : ''}>${l}</option>`).join('')}</select></div>
+      <div class="field"><label>Client</label><select id="f-client"><option value="">— Aucun —</option>${clOpts}</select></div>
+      <div class="field"><label>Chantier lié</label><select id="f-ch"><option value="">— Aucun —</option>${chOpts}</select></div>
+      <div class="field full"><label>Objet</label><input id="f-objet" value="${esc(f.objet)}" placeholder="Situation / prestation…"></div>
+      <div class="field"><label>Fait générateur (réception)</label><input id="f-fg" type="date" value="${f.dateFG || ''}"></div>
+      <div class="field"><label>Date d'émission</label><input id="f-em" type="date" value="${f.dateEmission || ''}"></div>
+      <div class="field"><label>Montant HT (€)</label><input id="f-montant" type="number" value="${f.montantHT || 0}"></div>
+      <div class="field"><label>Échéance de paiement (jours)</label><input id="f-ech" type="number" value="${f.echeanceJours || DB.data.objectifs.delaiPaiement}"></div>
+      <div class="field"><label>Date de paiement</label><input id="f-pay" type="date" value="${f.datePaiement || ''}"></div>
+    </div>
+    <div class="field inline" style="margin-top:8px"><input type="checkbox" id="f-nowem"><label for="f-nowem" style="cursor:pointer">Marquer comme émise aujourd'hui</label></div>`,
+    footer: `<button class="btn" data-c>Annuler</button><button class="btn primary" id="save">Enregistrer</button>` });
+  m.root.querySelector('[data-c]').onclick = m.close;
+  $('#save').onclick = () => {
+    let statut = $('#f-statut').value, dateEmission = $('#f-em').value, datePaiement = $('#f-pay').value;
+    if ($('#f-nowem').checked) { dateEmission = todayISO(); if (statut === 'a_emettre') statut = 'emise'; }
+    if (datePaiement) statut = 'payee';
+    const clientId = $('#f-client').value;
+    const obj = { num: $('#f-num').value.trim(), clientId, client: clientNom(clientId) === '—' ? '' : clientNom(clientId), chantierId: $('#f-ch').value, objet: $('#f-objet').value.trim(), dateFG: $('#f-fg').value, dateEmission, montantHT: +$('#f-montant').value || 0, echeanceJours: +$('#f-ech').value || DB.data.objectifs.delaiPaiement, datePaiement, statut };
+    if (id) Object.assign(f, obj); else DB.data.factures.unshift({ id: uid(), ...obj });
+    DB.save(); m.close(); toast('Facture enregistrée'); go('factures');
+  };
+}
+
+/* ---------- Contrats d'entretien & visites ---------- */
+let entretienTab = 'contrats';
+function renderEntretien(v) {
+  const contrats = DB.data.contrats, visites = DB.data.visites;
+  const actifs = contrats.filter(contratActif);
+  const montantAnnuel = actifs.reduce((s, c) => s + (+c.montantAnnuel || 0), 0);
+  const aProgrammer = contrats.filter(contratAProgrammer).length;
+  const rapRetard = rapportsEnRetard().length;
+  const head = `
+    <div class="kpi-grid">
+      <div class="kpi"><div class="kpi-top"><span class="kpi-label">Contrats actifs</span><span class="kpi-ico">${icon('wrench')}</span></div><div class="kpi-value">${actifs.length}</div><div class="kpi-sub">${eur(montantAnnuel)} / an</div></div>
+      <div class="kpi"><div class="kpi-top"><span class="kpi-label">Visites à programmer</span><span class="kpi-ico ${aProgrammer ? 'amber' : 'green'}">${icon('calendar')}</span></div><div class="kpi-value">${aProgrammer}</div><div class="kpi-sub">Contrats sans visite planifiée</div></div>
+      <div class="kpi"><div class="kpi-top"><span class="kpi-label">Rapports en retard</span><span class="kpi-ico ${rapRetard ? 'red' : 'green'}">${icon('file')}</span></div><div class="kpi-value">${rapRetard}</div><div class="kpi-sub">À transmettre sous 7 j</div></div>
+    </div>
+    <div class="pill-tabs"><button data-tab="contrats" class="${entretienTab === 'contrats' ? 'active' : ''}">Contrats</button><button data-tab="visites" class="${entretienTab === 'visites' ? 'active' : ''}">Visites & rapports</button></div>`;
+  let body;
+  if (entretienTab === 'contrats') {
+    body = `<div class="page-actions"><button class="btn primary" id="add-c">${icon('plus')} Nouveau contrat</button></div>
+    ${contrats.length ? `<div class="table-wrap"><table><thead><tr><th>Réf.</th><th>Client</th><th>Intitulé</th><th>Type</th><th>Période</th><th class="num">Visites/an</th><th class="num">Montant/an</th><th>Prochaine visite</th><th></th></tr></thead>
+      <tbody>${contrats.map(c => { const fut = contratVisitesFutures(c).sort((a, b) => a.datePrevue.localeCompare(b.datePrevue))[0]; const prog = contratAProgrammer(c); return `<tr><td class="t-strong">${esc(c.ref || '—')}</td><td>${esc(clientNom(c.clientId))}</td><td>${esc(c.nom)}</td><td>${esc(c.type || '—')}</td><td class="t-muted">${fmtDate(c.dateDebut)} → ${fmtDate(c.dateFin)}</td><td class="num">${c.frequence || '—'}</td><td class="num">${eur(c.montantAnnuel)}</td><td class="${prog ? 'deadline-soon' : ''}">${fut ? fmtDate(fut.datePrevue) : (contratActif(c) ? 'À programmer' : 'Clos')}</td>
+        <td class="actions-cell"><button class="icon-btn" data-plan="${c.id}" title="Programmer une visite">${icon('calendar')}</button><button class="icon-btn" data-edit="${c.id}" title="Modifier">${icon('edit')}</button><button class="icon-btn danger" data-del="${c.id}" title="Supprimer">${icon('trash')}</button></td></tr>`; }).join('')}</tbody></table></div>`
+      : emptyState('wrench', 'Aucun contrat', "Enregistrez vos contrats d'entretien et planifiez les visites.")}`;
+  } else {
+    const vs = visites.slice().sort((a, b) => (b.datePrevue || '').localeCompare(a.datePrevue || ''));
+    body = `<div class="page-actions"><button class="btn primary" id="add-v">${icon('plus')} Nouvelle visite</button></div>
+    ${vs.length ? `<div class="table-wrap"><table><thead><tr><th>Date prévue</th><th>Client / contrat</th><th>Statut</th><th>Réalisée le</th><th>Rapport</th><th></th></tr></thead>
+      <tbody>${vs.map(vz => { const c = contrats.find(x => x.id === vz.contratId); const retard = vz.statut === 'realisee' && vz.dateRealisee && !vz.rapportDate && daysBetween(vz.dateRealisee, todayISO()) > DB.data.objectifs.delaiRapport;
+        const rap = vz.rapportDate ? `<span class="deadline-ok">Transmis ${fmtDate(vz.rapportDate)}</span>` : vz.statut === 'realisee' ? `<span class="${retard ? 'deadline-late' : 'deadline-soon'}">${retard ? 'En retard' : 'À transmettre'}</span>` : '<span class="t-muted">—</span>';
+        return `<tr><td>${fmtDate(vz.datePrevue)}</td><td>${esc(c ? clientNom(c.clientId) + ' — ' + c.nom : '—')}</td><td><span class="badge ${vz.statut === 'realisee' ? 'b-receptionne' : 'b-devis'}">${vz.statut === 'realisee' ? 'Réalisée' : 'Planifiée'}</span></td><td>${fmtDate(vz.dateRealisee)}</td><td>${rap}</td>
+        <td class="actions-cell">${vz.statut !== 'realisee' ? `<button class="icon-btn" data-done="${vz.id}" title="Marquer réalisée">${icon('check')}</button>` : (!vz.rapportDate ? `<button class="icon-btn" data-rap="${vz.id}" title="Rapport transmis aujourd'hui">${icon('file')}</button>` : '')}<button class="icon-btn" data-editv="${vz.id}" title="Modifier">${icon('edit')}</button><button class="icon-btn danger" data-delv="${vz.id}" title="Supprimer">${icon('trash')}</button></td></tr>`; }).join('')}</tbody></table></div>`
+      : emptyState('calendar', 'Aucune visite', 'Planifiez les visites de vos contrats.')}`;
+  }
+  v.innerHTML = head + body;
+  $$('[data-tab]', v).forEach(b => b.onclick = () => { entretienTab = b.dataset.tab; renderEntretien(v); });
+  if (entretienTab === 'contrats') {
+    $('#add-c').onclick = () => contratForm();
+    $$('[data-edit]', v).forEach(b => b.onclick = () => contratForm(b.dataset.edit));
+    $$('[data-plan]', v).forEach(b => b.onclick = () => visiteForm(null, b.dataset.plan));
+    $$('[data-del]', v).forEach(b => b.onclick = () => confirmDialog('Supprimer ce contrat ?', () => { DB.data.contrats = DB.data.contrats.filter(x => x.id !== b.dataset.del); DB.data.visites = DB.data.visites.filter(x => x.contratId !== b.dataset.del); DB.save(); toast('Contrat supprimé'); renderEntretien(v); }));
+  } else {
+    $('#add-v').onclick = () => visiteForm();
+    $$('[data-editv]', v).forEach(b => b.onclick = () => visiteForm(b.dataset.editv));
+    $$('[data-done]', v).forEach(b => b.onclick = () => { const vz = DB.data.visites.find(x => x.id === b.dataset.done); vz.statut = 'realisee'; if (!vz.dateRealisee) vz.dateRealisee = todayISO(); DB.save(); toast('Visite réalisée'); renderEntretien(v); });
+    $$('[data-rap]', v).forEach(b => b.onclick = () => { const vz = DB.data.visites.find(x => x.id === b.dataset.rap); vz.rapportDate = todayISO(); DB.save(); toast('Rapport transmis'); renderEntretien(v); });
+    $$('[data-delv]', v).forEach(b => b.onclick = () => confirmDialog('Supprimer cette visite ?', () => { DB.data.visites = DB.data.visites.filter(x => x.id !== b.dataset.delv); DB.save(); toast('Visite supprimée'); renderEntretien(v); }));
+  }
+}
+function contratForm(id) {
+  const c = id ? DB.data.contrats.find(x => x.id === id) : { ref: '', clientId: '', nom: '', type: 'Contrat entretien', dateDebut: todayISO(), dateFin: addDays(todayISO(), 365), frequence: 2, montantAnnuel: 0, note: '' };
+  const clOpts = DB.data.clients.map(cl => `<option value="${cl.id}" ${c.clientId === cl.id ? 'selected' : ''}>${esc(cl.nom)}</option>`).join('');
+  const types = ['Contrat entretien', 'Contrat P2', 'Contrat P3', 'Garantie / SAV', 'Grand compte (BPU)'];
+  const m = modal({ title: id ? 'Modifier le contrat' : 'Nouveau contrat',
+    body: `<div class="form-grid">
+      <div class="field"><label>Référence</label><input id="f-ref" value="${esc(c.ref)}" placeholder="CE-…"></div>
+      <div class="field"><label>Type</label><select id="f-type">${types.map(t => `<option ${c.type === t ? 'selected' : ''}>${t}</option>`).join('')}</select></div>
+      <div class="field full"><label>Intitulé</label><input id="f-nom" value="${esc(c.nom)}" placeholder="Entretien toitures…"></div>
+      <div class="field full"><label>Client</label><select id="f-client"><option value="">— Aucun —</option>${clOpts}</select></div>
+      <div class="field"><label>Date de début</label><input id="f-deb" type="date" value="${c.dateDebut || ''}"></div>
+      <div class="field"><label>Date de fin</label><input id="f-fin" type="date" value="${c.dateFin || ''}"></div>
+      <div class="field"><label>Visites / an</label><input id="f-freq" type="number" value="${c.frequence || 1}"></div>
+      <div class="field"><label>Montant annuel (€ HT)</label><input id="f-mont" type="number" value="${c.montantAnnuel || 0}"></div>
+      <div class="field full"><label>Note</label><input id="f-note" value="${esc(c.note)}"></div>
+    </div>`, footer: `<button class="btn" data-c>Annuler</button><button class="btn primary" id="save">Enregistrer</button>` });
+  m.root.querySelector('[data-c]').onclick = m.close;
+  $('#save').onclick = () => {
+    const obj = { ref: $('#f-ref').value.trim(), type: $('#f-type').value, nom: $('#f-nom').value.trim(), clientId: $('#f-client').value, dateDebut: $('#f-deb').value, dateFin: $('#f-fin').value, frequence: +$('#f-freq').value || 1, montantAnnuel: +$('#f-mont').value || 0, note: $('#f-note').value.trim() };
+    if (!obj.nom) { toast("L'intitulé est obligatoire", 'err'); return; }
+    if (id) Object.assign(c, obj); else DB.data.contrats.unshift({ id: uid(), ...obj });
+    DB.save(); m.close(); toast('Contrat enregistré'); go('entretien');
+  };
+}
+function visiteForm(id, contratId) {
+  const vz = id ? DB.data.visites.find(x => x.id === id) : { contratId: contratId || '', datePrevue: todayISO(), statut: 'planifiee', dateRealisee: '', rapportDate: '', observations: '' };
+  const ctOpts = DB.data.contrats.map(c => `<option value="${c.id}" ${vz.contratId === c.id ? 'selected' : ''}>${esc(c.ref || '')} ${esc(clientNom(c.clientId))} — ${esc(c.nom)}</option>`).join('');
+  const m = modal({ title: id ? 'Modifier la visite' : 'Programmer une visite',
+    body: `<div class="form-grid">
+      <div class="field full"><label>Contrat</label><select id="f-ct"><option value="">— Aucun —</option>${ctOpts}</select></div>
+      <div class="field"><label>Date prévue</label><input id="f-dp" type="date" value="${vz.datePrevue || ''}"></div>
+      <div class="field"><label>Statut</label><select id="f-st"><option value="planifiee" ${vz.statut === 'planifiee' ? 'selected' : ''}>Planifiée</option><option value="realisee" ${vz.statut === 'realisee' ? 'selected' : ''}>Réalisée</option></select></div>
+      <div class="field"><label>Date de réalisation</label><input id="f-dr" type="date" value="${vz.dateRealisee || ''}"></div>
+      <div class="field"><label>Rapport transmis le</label><input id="f-rap" type="date" value="${vz.rapportDate || ''}"></div>
+      <div class="field full"><label>Observations</label><textarea id="f-obs" rows="2">${esc(vz.observations)}</textarea></div>
+    </div>`, footer: `<button class="btn" data-c>Annuler</button><button class="btn primary" id="save">Enregistrer</button>` });
+  m.root.querySelector('[data-c]').onclick = m.close;
+  $('#save').onclick = () => {
+    const obj = { contratId: $('#f-ct').value, datePrevue: $('#f-dp').value, statut: $('#f-st').value, dateRealisee: $('#f-dr').value, rapportDate: $('#f-rap').value, observations: $('#f-obs').value.trim() };
+    if (obj.statut === 'realisee' && !obj.dateRealisee) obj.dateRealisee = todayISO();
+    if (id) Object.assign(vz, obj); else DB.data.visites.unshift({ id: uid(), ...obj });
+    DB.save(); m.close(); toast('Visite enregistrée'); entretienTab = 'visites'; go('entretien');
+  };
+}
+
+/* ---------- Planning & pointages ---------- */
+function mondayISO(d = new Date()) { const x = new Date(d); const day = (x.getDay() + 6) % 7; x.setDate(x.getDate() - day); return x.toISOString().slice(0, 10); }
+let planWeek = mondayISO();
+function renderPlanning(v) {
+  const rows = DB.data.pointages.filter(p => p.semaine === planWeek);
+  const totPrev = rows.reduce((s, p) => s + (+p.heuresPrev || 0), 0);
+  const totReel = rows.reduce((s, p) => s + (+p.heuresReel || 0), 0);
+  const capacite = Math.max(1, DB.data.equipes.length) * 2 * 5 * HEURES_JOUR;
+  const occ = Math.round(totReel / capacite * 100);
+  const finSemaine = addDays(planWeek, 4);
+  v.innerHTML = `
+    <div class="kpi-grid">
+      <div class="kpi"><div class="kpi-top"><span class="kpi-label">Heures réalisées</span><span class="kpi-ico">${icon('clock')}</span></div><div class="kpi-value">${num(totReel)} h</div><div class="kpi-sub">Prévu ${num(totPrev)} h</div></div>
+      <div class="kpi"><div class="kpi-top"><span class="kpi-label">Écart prév./réel</span><span class="kpi-ico ${totReel - totPrev > 0 ? 'amber' : 'green'}">${icon('trend')}</span></div><div class="kpi-value ${totReel - totPrev > 0 ? 'margin-bad' : 'margin-good'}">${totReel - totPrev >= 0 ? '+' : ''}${num(totReel - totPrev)} h</div><div class="kpi-sub">Optimisation des heures</div></div>
+      <div class="kpi"><div class="kpi-top"><span class="kpi-label">Taux d'occupation</span><span class="kpi-ico ${occ >= 80 ? 'green' : 'amber'}">${icon('users')}</span></div><div class="kpi-value">${occ} %</div><div class="progress ${occ >= 80 ? 'green' : 'amber'}"><i style="width:${Math.min(100, occ)}%"></i></div></div>
+      <div class="kpi"><div class="kpi-top"><span class="kpi-label">Équipes</span><span class="kpi-ico">${icon('briefcase')}</span></div><div class="kpi-value">${DB.data.equipes.length}</div><div class="kpi-sub">${DB.data.equipes.length * 2} compagnons</div></div>
+    </div>
+    <div class="page-actions"><button class="btn primary" id="add">${icon('plus')} Affecter une équipe</button>
+      <button class="btn" id="teams">${icon('users')} Gérer les équipes</button><span class="spacer"></span>
+      <button class="btn small" id="prev">◀ Sem. préc.</button>
+      <input id="wk" type="date" value="${planWeek}" style="border:1px solid var(--line);border-radius:8px;padding:7px 10px">
+      <button class="btn small" id="next">Sem. suiv. ▶</button></div>
+    <div class="chip" style="margin-bottom:14px">Semaine du ${fmtDate(planWeek)} au ${fmtDate(finSemaine)}</div>
+    ${rows.length ? `<div class="table-wrap"><table><thead><tr><th>Équipe</th><th>Chantier</th><th class="num">Heures prévues</th><th class="num">Heures réelles</th><th class="num">Écart</th><th></th></tr></thead>
+      <tbody>${rows.map(p => { const eq = DB.data.equipes.find(e => e.id === p.equipeId); const ec = (+p.heuresReel || 0) - (+p.heuresPrev || 0); return `<tr><td class="t-strong">${esc(eq ? eq.nom : '—')}</td><td>${esc(p.chantierNom || '—')}</td><td class="num">${num(p.heuresPrev)}</td><td class="num">${num(p.heuresReel)}</td><td class="num ${ec > 0 ? 'margin-bad' : 'margin-good'}">${ec >= 0 ? '+' : ''}${num(ec)}</td>
+        <td class="actions-cell"><button class="icon-btn" data-edit="${p.id}" title="Modifier">${icon('edit')}</button><button class="icon-btn danger" data-del="${p.id}" title="Supprimer">${icon('trash')}</button></td></tr>`; }).join('')}</tbody>
+      <tfoot><tr><td colspan="2">Total semaine</td><td class="num">${num(totPrev)}</td><td class="num">${num(totReel)}</td><td class="num">${totReel - totPrev >= 0 ? '+' : ''}${num(totReel - totPrev)}</td><td></td></tr></tfoot></table></div>`
+      : emptyState('calendar', 'Aucune affectation cette semaine', 'Affectez vos équipes aux chantiers et saisissez les pointages.')}`;
+  $('#add').onclick = () => pointageForm();
+  $('#teams').onclick = () => equipesModal();
+  $('#prev').onclick = () => { planWeek = addDays(planWeek, -7); renderPlanning(v); };
+  $('#next').onclick = () => { planWeek = addDays(planWeek, 7); renderPlanning(v); };
+  $('#wk').onchange = e => { planWeek = mondayISO(new Date(e.target.value + 'T00:00:00')); renderPlanning(v); };
+  $$('[data-edit]', v).forEach(b => b.onclick = () => pointageForm(b.dataset.edit));
+  $$('[data-del]', v).forEach(b => b.onclick = () => confirmDialog('Supprimer cette affectation ?', () => { DB.data.pointages = DB.data.pointages.filter(x => x.id !== b.dataset.del); DB.save(); toast('Affectation supprimée'); renderPlanning(v); }));
+}
+function pointageForm(id) {
+  const p = id ? DB.data.pointages.find(x => x.id === id) : { semaine: planWeek, equipeId: (DB.data.equipes[0] || {}).id || '', chantierId: '', chantierNom: '', heuresPrev: 80, heuresReel: 0 };
+  const eqOpts = DB.data.equipes.map(e => `<option value="${e.id}" ${p.equipeId === e.id ? 'selected' : ''}>${esc(e.nom)} (${esc(e.chef)})</option>`).join('');
+  const chOpts = DB.data.chantiers.map(c => `<option value="${esc(c.nom)}">${esc(c.otp || '')} ${esc(c.nom)}</option>`).join('');
+  const m = modal({ title: id ? "Modifier l'affectation" : 'Affecter une équipe',
+    body: `<div class="form-grid">
+      <div class="field"><label>Semaine (lundi)</label><input id="f-wk" type="date" value="${p.semaine}"></div>
+      <div class="field"><label>Équipe</label><select id="f-eq">${eqOpts || '<option value="">— Aucune équipe —</option>'}</select></div>
+      <div class="field full"><label>Chantier</label><input id="f-ch" value="${esc(p.chantierNom)}" list="chl"><datalist id="chl">${chOpts}</datalist></div>
+      <div class="field"><label>Heures prévues</label><input id="f-hp" type="number" value="${p.heuresPrev}"></div>
+      <div class="field"><label>Heures réelles (pointées)</label><input id="f-hr" type="number" value="${p.heuresReel}"></div>
+    </div>`, footer: `<button class="btn" data-c>Annuler</button><button class="btn primary" id="save">Enregistrer</button>` });
+  m.root.querySelector('[data-c]').onclick = m.close;
+  $('#save').onclick = () => {
+    const obj = { semaine: mondayISO(new Date($('#f-wk').value + 'T00:00:00')), equipeId: $('#f-eq').value, chantierNom: $('#f-ch').value.trim(), heuresPrev: +$('#f-hp').value || 0, heuresReel: +$('#f-hr').value || 0 };
+    if (!obj.chantierNom) { toast('Le chantier est obligatoire', 'err'); return; }
+    if (id) Object.assign(p, obj); else DB.data.pointages.unshift({ id: uid(), ...obj });
+    planWeek = obj.semaine; DB.save(); m.close(); toast('Affectation enregistrée'); go('planning');
+  };
+}
+function equipesModal() {
+  const m = modal({ title: 'Équipes', wide: true,
+    body: `<div class="page-actions"><button class="btn small primary" id="e-add">${icon('plus')} Ajouter une équipe</button></div>
+    <div class="table-wrap"><table><thead><tr><th>Équipe</th><th>Chef d'équipe</th><th>Compagnon</th><th></th></tr></thead>
+      <tbody id="e-body">${DB.data.equipes.map(e => `<tr data-id="${e.id}"><td><input data-f="nom" value="${esc(e.nom)}" style="width:120px"></td><td><input data-f="chef" value="${esc(e.chef)}" style="width:150px"></td><td><input data-f="compagnon" value="${esc(e.compagnon)}" style="width:150px"></td><td class="actions-cell"><button class="icon-btn danger" data-rm title="Supprimer">${icon('trash')}</button></td></tr>`).join('')}</tbody></table></div>`,
+    footer: `<button class="btn" data-c>Fermer</button><button class="btn primary" id="e-save">Enregistrer</button>` });
+  const bind = tr => tr.querySelector('[data-rm]').onclick = () => tr.remove();
+  $$('#e-body tr').forEach(bind);
+  $('#e-add').onclick = () => { const tmp = document.createElement('tbody'); tmp.innerHTML = `<tr data-id="${uid()}"><td><input data-f="nom" value="Équipe" style="width:120px"></td><td><input data-f="chef" style="width:150px"></td><td><input data-f="compagnon" style="width:150px"></td><td class="actions-cell"><button class="icon-btn danger" data-rm title="Supprimer">${icon('trash')}</button></td></tr>`; const tr = tmp.firstElementChild; $('#e-body').appendChild(tr); bind(tr); };
+  m.root.querySelector('[data-c]').onclick = m.close;
+  $('#e-save').onclick = () => {
+    DB.data.equipes = $$('#e-body tr').map(tr => ({ id: tr.dataset.id, nom: tr.querySelector('[data-f="nom"]').value.trim() || 'Équipe', chef: tr.querySelector('[data-f="chef"]').value.trim(), compagnon: tr.querySelector('[data-f="compagnon"]').value.trim() }));
+    DB.save(); m.close(); toast('Équipes enregistrées'); go('planning');
+  };
+}
+
+/* -------------------------------------------------------------------------
+   9. Helpers UI + export/import
+   ------------------------------------------------------------------------- */
+function emptyState(ico, title, sub) { return `<div class="empty"><div class="em-ico">${icon(ico)}</div><h3>${esc(title)}</h3><div>${esc(sub)}</div></div>`; }
+function download(name, content, type = 'text/plain') {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([content], { type })); a.download = name;
+  document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+function exportCSV(name, headers, rows) {
+  const csv = [headers.join(';'), ...rows.map(r => r.map(cell => { const s = String(cell ?? '').replace(/"/g, '""'); return /[";\n]/.test(s) ? `"${s}"` : s; }).join(';'))].join('\r\n');
+  download(name + '.csv', '﻿' + csv, 'text/csv;charset=utf-8'); toast('Export CSV généré');
+}
+function exportAll() {
+  const p = DB.currentProfile();
+  download('chargepro-' + (p ? initiales(p.nom) : 'profil') + '-' + todayISO() + '.json', JSON.stringify({ profil: p, data: DB.data }, null, 2), 'application/json');
+  toast('Sauvegarde exportée');
+}
+function importAll(file) {
+  const r = new FileReader();
+  r.onload = () => { try {
+    const parsed = JSON.parse(r.result);
+    const data = parsed && parsed.data ? parsed.data : parsed; // compat ancien format
+    if (!data || typeof data !== 'object') throw 0;
+    DB.data = DB.normalize(data); DB.save(); toast('Sauvegarde restaurée dans le profil courant'); go(current);
+  } catch { toast('Fichier invalide', 'err'); } };
+  r.readAsText(file);
+}
+
+/* -------------------------------------------------------------------------
+   10. Boot
+   ------------------------------------------------------------------------- */
+function boot() {
+  $('#brand-mark').innerHTML = icon('layers');
+  buildNav();
+  $('#year-badge').textContent = 'Année ' + new Date().getFullYear();
+  $('#profile-btn').onclick = e => { e.stopPropagation(); toggleProfileMenu(); };
+  $('#btn-export').onclick = exportAll;
+  $('#btn-import').onclick = () => $('#import-file').click();
+  $('#import-file').onchange = e => { if (e.target.files[0]) importAll(e.target.files[0]); e.target.value = ''; };
+  window.addEventListener('hashchange', () => { const r = location.hash.slice(1); if (r && r !== current) go(r); });
+
+  DB.loadMeta();
+  if (!DB.meta.profiles.length) { renderProfileButton(); firstRun(); return; }
+  if (!DB.currentProfile()) DB.meta.currentId = DB.meta.profiles[0].id;
+  DB.loadProfile(DB.meta.currentId);
+  renderProfileButton();
+  go(location.hash.slice(1) || 'dashboard');
+}
+boot();
+
+</script>
+</body>
+</html>
