@@ -243,6 +243,21 @@ tfoot td{padding:11px 14px;font-weight:700;background:var(--panel-2);border-top:
 .cad-metric .cm-sub{font-size:12px;color:var(--muted)}
 .cad-steps td{white-space:normal}
 
+/* Calendar */
+.cal-wrap{overflow-x:auto}
+.cal-inner{min-width:720px}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+.cal-head{margin-bottom:6px}
+.cal-hd{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--ink-soft);padding:4px 6px}
+.cal-cell{min-height:104px;border:1px solid var(--line);border-radius:9px;background:#fff;padding:5px 6px;cursor:pointer;overflow:hidden;transition:border-color .12s}
+.cal-cell:hover{border-color:var(--brand-2)}
+.cal-cell.out{background:var(--panel-2)}
+.cal-cell.out .cal-daynum{color:var(--muted)}
+.cal-cell.today{border-color:var(--brand-2);box-shadow:inset 0 0 0 1px var(--brand-2)}
+.cal-daynum{font-size:11.5px;font-weight:700;color:var(--ink-soft);margin-bottom:3px}
+.cal-ev{display:block;font-size:10.5px;font-weight:600;color:#fff;border-radius:4px;padding:2px 6px;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
+.cal-more{font-size:10px;color:var(--muted);margin-top:3px;font-weight:600}
+
 @media(max-width:920px){
   :root{--sidebar-w:0px}
   #sidebar{transform:translateX(-100%);transition:.25s;width:246px}
@@ -441,8 +456,9 @@ const DB = {
     d.devis.forEach(x => { if (x.otp === undefined) x.otp = ''; if (x.clientId === undefined) x.clientId = ''; });
     d.factures.forEach(x => { if (x.otp === undefined) x.otp = ''; });
     d.ca.forEach(x => { if (x.sourceType === undefined) { x.sourceType = ''; x.sourceId = ''; } });
-    d.commandes.forEach(x => { if (x.dateReception === undefined) x.dateReception = ''; });
+    d.commandes.forEach(x => { if (x.dateReception === undefined) x.dateReception = ''; if (x.num === undefined) x.num = ''; });
     d.chantiers.forEach(x => { if (x.sourceDevisId === undefined) x.sourceDevisId = ''; });
+    if (!Array.isArray(d.agenda)) d.agenda = [];
     d.bte = d.bte.map(migrateBte);
     return d;
   },
@@ -477,6 +493,7 @@ const DB = {
 
 function demoData() {
   const c1 = uid(), c2 = uid(), c3 = uid(), ch1 = uid(), ch2 = uid(), ch3 = uid();
+  const eqA = uid(), eqB = uid(), eqC = uid();
   return DB.normalize({
     objectifs: { ...OBJECTIFS_DEFAUT },
     clients: [
@@ -542,16 +559,24 @@ function demoData() {
     ],
     visites: [],
     commandes: [
-      { id: uid(), date: addDays(todayISO(), -20), otp: 'OTP-24002', fournisseur: 'IKO', objet: 'Membranes + isolant', montantHT: 52000, statut: 'livree', dateReception: addDays(todayISO(), -14) },
-      { id: uid(), date: addDays(todayISO(), -12), otp: 'OTP-24002', fournisseur: 'Loxam', objet: 'Location grue (2 sem.)', montantHT: 6000, statut: 'facturee', dateReception: addDays(todayISO(), -6) },
-      { id: uid(), date: addDays(todayISO(), -8), otp: 'OTP-24001', fournisseur: 'IKO', objet: 'Complexe étanchéité bâtiment A', montantHT: 24000, statut: 'commande', dateReception: '' },
+      { id: uid(), num: '4500123456', date: addDays(todayISO(), -20), otp: 'OTP-24002', fournisseur: 'IKO', objet: 'Membranes + isolant', montantHT: 52000, statut: 'livree', dateReception: addDays(todayISO(), -14) },
+      { id: uid(), num: '4500123457', date: addDays(todayISO(), -12), otp: 'OTP-24002', fournisseur: 'Loxam', objet: 'Location grue (2 sem.)', montantHT: 6000, statut: 'facturee', dateReception: addDays(todayISO(), -6) },
+      { id: uid(), num: '4500123458', date: addDays(todayISO(), -8), otp: 'OTP-24001', fournisseur: 'IKO', objet: 'Complexe étanchéité bâtiment A', montantHT: 24000, statut: 'commande', dateReception: '' },
     ],
     equipes: [
-      { id: uid(), nom: 'Équipe A', chef: 'Karim B.', compagnon: 'Léo P.' },
-      { id: uid(), nom: 'Équipe B', chef: 'David M.', compagnon: 'Samir T.' },
-      { id: uid(), nom: 'Équipe C', chef: 'Yann L.', compagnon: 'Hugo R.' },
+      { id: eqA, nom: 'Équipe A', chef: 'Karim B.', compagnon: 'Léo P.' },
+      { id: eqB, nom: 'Équipe B', chef: 'David M.', compagnon: 'Samir T.' },
+      { id: eqC, nom: 'Équipe C', chef: 'Yann L.', compagnon: 'Hugo R.' },
     ],
-    pointages: [],
+    pointages: [
+      { id: uid(), semaine: mondayISO(), equipeId: eqA, chantierNom: 'Réfection toiture bâtiment A', heuresPrev: 80, heuresReel: 76 },
+      { id: uid(), semaine: mondayISO(), equipeId: eqB, chantierNom: 'Étanchéité parking couvert', heuresPrev: 80, heuresReel: 80 },
+    ],
+    agenda: [
+      { id: uid(), title: 'RDV client — Clinique du Parc', type: 'reunion', dateDebut: addDays(todayISO(), 1), dateFin: '', equipeId: '', otp: '', note: '' },
+      { id: uid(), title: 'Étanchéité parking couvert', type: 'chantier', dateDebut: mondayISO(), dateFin: addDays(mondayISO(), 4), equipeId: eqB, otp: 'OTP-24002', note: '' },
+      { id: uid(), title: 'Congés', type: 'conges', dateDebut: addDays(todayISO(), 7), dateFin: addDays(todayISO(), 9), equipeId: '', otp: '', note: '' },
+    ],
   });
 }
 
@@ -1560,7 +1585,17 @@ function visiteForm(id, contratId) {
 /* ---------- Planning & pointages ---------- */
 function mondayISO(d = new Date()) { const x = new Date(d); const day = (x.getDay() + 6) % 7; x.setDate(x.getDate() - day); return x.toISOString().slice(0, 10); }
 let planWeek = mondayISO();
+let planTab = 'mois';
 function renderPlanning(v) {
+  v.innerHTML = `<div class="pill-tabs">
+    <button data-t="mois" class="${planTab === 'mois' ? 'active' : ''}">${icon('calendar')} Calendrier du mois</button>
+    <button data-t="semaine" class="${planTab === 'semaine' ? 'active' : ''}">${icon('clock')} Pointages (semaine)</button></div>
+    <div id="plan-body"></div>`;
+  $$('[data-t]', v).forEach(b => b.onclick = () => { planTab = b.dataset.t; renderPlanning(v); });
+  const host = $('#plan-body', v);
+  if (planTab === 'mois') renderCalendar(host); else renderPointages(host);
+}
+function renderPointages(v) {
   const rows = DB.data.pointages.filter(p => p.semaine === planWeek);
   const totPrev = rows.reduce((s, p) => s + (+p.heuresPrev || 0), 0);
   const totReel = rows.reduce((s, p) => s + (+p.heuresReel || 0), 0);
@@ -1587,11 +1622,107 @@ function renderPlanning(v) {
       : emptyState('calendar', 'Aucune affectation cette semaine', 'Affectez vos équipes aux chantiers et saisissez les pointages.')}`;
   $('#add').onclick = () => pointageForm();
   $('#teams').onclick = () => equipesModal();
-  $('#prev').onclick = () => { planWeek = addDays(planWeek, -7); renderPlanning(v); };
-  $('#next').onclick = () => { planWeek = addDays(planWeek, 7); renderPlanning(v); };
-  $('#wk').onchange = e => { planWeek = mondayISO(new Date(e.target.value + 'T00:00:00')); renderPlanning(v); };
+  $('#prev').onclick = () => { planWeek = addDays(planWeek, -7); renderPointages(v); };
+  $('#next').onclick = () => { planWeek = addDays(planWeek, 7); renderPointages(v); };
+  $('#wk').onchange = e => { planWeek = mondayISO(new Date(e.target.value + 'T00:00:00')); renderPointages(v); };
   $$('[data-edit]', v).forEach(b => b.onclick = () => pointageForm(b.dataset.edit));
-  $$('[data-del]', v).forEach(b => b.onclick = () => confirmDialog('Supprimer cette affectation ?', () => { DB.data.pointages = DB.data.pointages.filter(x => x.id !== b.dataset.del); DB.save(); toast('Affectation supprimée'); renderPlanning(v); }));
+  $$('[data-del]', v).forEach(b => b.onclick = () => confirmDialog('Supprimer cette affectation ?', () => { DB.data.pointages = DB.data.pointages.filter(x => x.id !== b.dataset.del); DB.save(); toast('Affectation supprimée'); renderPointages(v); }));
+}
+
+/* ---------- Calendrier du mois (agenda perso + équipes) ---------- */
+const AGENDA_TYPES = { perso: 'Perso / bureau', chantier: 'Équipe sur chantier', reunion: 'Réunion / RDV', conges: 'Congés / absence', autre: 'Autre' };
+const TEAM_PALETTE = ['#2568b3', '#1f7a4d', '#9a6700', '#5b3fb0', '#b3261e', '#0e7490', '#be185d', '#4d7c0f'];
+const teamColor = id => { const i = DB.data.equipes.findIndex(e => e.id === id); return i < 0 ? '#64748b' : TEAM_PALETTE[i % TEAM_PALETTE.length]; };
+const typeColor = t => ({ perso: '#475569', reunion: '#5b3fb0', conges: '#b3261e', autre: '#0e7490' }[t] || '#475569');
+let planMonth = new Date().getMonth(), planYear = new Date().getFullYear();
+let planFilter = { perso: true, equipes: true };
+function dayEvents(iso, dateObj) {
+  const evs = [];
+  if (planFilter.perso) {
+    DB.data.agenda.filter(a => a.type !== 'chantier' && a.dateDebut && iso >= a.dateDebut && iso <= (a.dateFin || a.dateDebut)).forEach(a => evs.push({ color: typeColor(a.type), label: a.title, agendaId: a.id }));
+    DB.data.prospection.filter(p => p.date === iso).forEach(p => evs.push({ color: '#2568b3', label: 'RDV · ' + p.nom, route: 'prospection' }));
+    DB.data.visites.filter(x => x.datePrevue === iso).forEach(x => { const c = DB.data.contrats.find(y => y.id === x.contratId); evs.push({ color: '#9a6700', label: 'Visite · ' + (c ? clientNom(c.clientId) : ''), route: 'entretien' }); });
+  }
+  if (planFilter.equipes) {
+    DB.data.agenda.filter(a => a.type === 'chantier' && a.dateDebut && iso >= a.dateDebut && iso <= (a.dateFin || a.dateDebut)).forEach(a => { const eq = DB.data.equipes.find(e => e.id === a.equipeId); evs.push({ color: teamColor(a.equipeId), label: (eq ? eq.nom + ' · ' : '') + a.title, agendaId: a.id }); });
+    const dow = (dateObj.getDay() + 6) % 7;
+    if (dow < 5) { const wk = mondayISO(dateObj); DB.data.pointages.filter(p => p.semaine === wk).forEach(p => { const eq = DB.data.equipes.find(e => e.id === p.equipeId); evs.push({ color: teamColor(p.equipeId), label: (eq ? eq.nom : 'Équipe') + ' · ' + (p.chantierNom || ''), route: 'planning-sem' }); }); }
+  }
+  return evs;
+}
+function renderCalendar(v) {
+  const JOURS = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
+  const first = new Date(planYear, planMonth, 1);
+  const startOffset = (first.getDay() + 6) % 7;
+  const gridStart = new Date(planYear, planMonth, 1 - startOffset);
+  const cells = []; for (let i = 0; i < 42; i++) { const d = new Date(gridStart); d.setDate(gridStart.getDate() + i); cells.push(d); }
+  const iso = d => d.toISOString().slice(0, 10);
+  const cellHtml = d => {
+    const inMo = d.getMonth() === planMonth, isoD = iso(d), isToday = isoD === todayISO();
+    const evs = dayEvents(isoD, d);
+    const shown = evs.slice(0, 4);
+    return `<div class="cal-cell ${inMo ? '' : 'out'} ${isToday ? 'today' : ''}" data-day="${isoD}">
+      <div class="cal-daynum">${d.getDate()}</div>
+      ${shown.map((e, i) => `<span class="cal-ev" style="background:${e.color}" ${e.agendaId ? `data-ev="${e.agendaId}"` : e.route ? `data-route="${e.route}"` : ''} title="${esc(e.label)}">${esc(e.label)}</span>`).join('')}
+      ${evs.length > 4 ? `<div class="cal-more">+ ${evs.length - 4}</div>` : ''}</div>`;
+  };
+  v.innerHTML = `
+    <div class="page-actions">
+      <button class="btn primary" id="c-add">${icon('plus')} Événement</button>
+      <button class="btn" id="c-teams">${icon('users')} Équipes</button>
+      <span class="spacer"></span>
+      <button class="btn small" id="c-prev">◀</button>
+      <span class="chip" style="min-width:150px;justify-content:center">${MOIS[planMonth]} ${planYear}</span>
+      <button class="btn small" id="c-next">▶</button>
+      <button class="btn small" id="c-today">Aujourd'hui</button>
+    </div>
+    <div class="filters">
+      <label class="chip" style="cursor:pointer"><input type="checkbox" id="c-fperso" ${planFilter.perso ? 'checked' : ''}> Mon planning (RDV, visites, perso)</label>
+      <label class="chip" style="cursor:pointer"><input type="checkbox" id="c-fequipes" ${planFilter.equipes ? 'checked' : ''}> Compagnons / équipes</label>
+      ${DB.data.equipes.map(e => `<span class="chip"><i style="width:10px;height:10px;border-radius:3px;background:${teamColor(e.id)};display:inline-block"></i> ${esc(e.nom)}</span>`).join('')}
+    </div>
+    <div class="cal-wrap"><div class="cal-inner">
+      <div class="cal-grid cal-head">${JOURS.map(j => `<div class="cal-hd">${j}</div>`).join('')}</div>
+      <div class="cal-grid">${cells.map(cellHtml).join('')}</div>
+    </div></div>`;
+  $('#c-add').onclick = () => agendaForm();
+  $('#c-teams').onclick = () => equipesModal();
+  $('#c-prev').onclick = () => { planMonth--; if (planMonth < 0) { planMonth = 11; planYear--; } renderPlanning($('#view')); };
+  $('#c-next').onclick = () => { planMonth++; if (planMonth > 11) { planMonth = 0; planYear++; } renderPlanning($('#view')); };
+  $('#c-today').onclick = () => { planMonth = new Date().getMonth(); planYear = new Date().getFullYear(); renderPlanning($('#view')); };
+  $('#c-fperso').onchange = e => { planFilter.perso = e.target.checked; renderPlanning($('#view')); };
+  $('#c-fequipes').onchange = e => { planFilter.equipes = e.target.checked; renderPlanning($('#view')); };
+  $$('.cal-cell', v).forEach(cell => cell.onclick = e => { if (e.target.closest('[data-ev]') || e.target.closest('[data-route]')) return; agendaForm(null, cell.dataset.day); });
+  $$('[data-ev]', v).forEach(el => el.onclick = e => { e.stopPropagation(); agendaForm(el.dataset.ev); });
+  $$('[data-route]', v).forEach(el => el.onclick = e => { e.stopPropagation(); const r = el.dataset.route; if (r === 'planning-sem') { planTab = 'semaine'; renderPlanning($('#view')); } else go(r); });
+}
+function agendaForm(id, presetDate) {
+  const a = id ? DB.data.agenda.find(x => x.id === id) : { title: '', type: 'perso', dateDebut: presetDate || todayISO(), dateFin: '', equipeId: (DB.data.equipes[0] || {}).id || '', otp: '', note: '' };
+  const eqOpts = DB.data.equipes.map(e => `<option value="${e.id}" ${a.equipeId === e.id ? 'selected' : ''}>${esc(e.nom)} (${esc(e.chef)})</option>`).join('');
+  const m = modal({ title: id ? "Modifier l'événement" : 'Nouvel événement',
+    body: `<div class="form-grid">
+      <div class="field"><label>Type</label><select id="a-type">${Object.entries(AGENDA_TYPES).map(([k, l]) => `<option value="${k}" ${a.type === k ? 'selected' : ''}>${l}</option>`).join('')}</select></div>
+      <div class="field" id="a-eqwrap"><label>Équipe</label><select id="a-eq">${eqOpts || '<option value="">—</option>'}</select></div>
+      <div class="field full"><label>Intitulé</label><input id="a-title" value="${esc(a.title)}" placeholder="RDV client, chantier, congés…"></div>
+      <div class="field"><label>Du</label><input id="a-deb" type="date" value="${a.dateDebut || todayISO()}"></div>
+      <div class="field"><label>Au (optionnel)</label><input id="a-fin" type="date" value="${a.dateFin || ''}"></div>
+      <div class="field"><label>OTP (optionnel)</label><input id="a-otp" value="${esc(a.otp)}" list="a-otplist"><datalist id="a-otplist">${otpDistinct().map(o => `<option value="${esc(o)}">`).join('')}</datalist></div>
+      <div class="field"><label>Note</label><input id="a-note" value="${esc(a.note)}"></div>
+    </div>`,
+    footer: `${id ? `<button class="btn danger" id="a-del">${icon('trash')} Supprimer</button>` : ''}<span class="spacer"></span><button class="btn" data-c>Annuler</button><button class="btn primary" id="a-save">Enregistrer</button>` });
+  m.root.querySelector('.modal-foot').style.justifyContent = 'flex-start';
+  const syncEq = () => { $('#a-eqwrap').style.display = $('#a-type').value === 'chantier' ? '' : 'none'; };
+  $('#a-type').onchange = syncEq; syncEq();
+  m.root.querySelector('[data-c]').onclick = m.close;
+  if (id) $('#a-del').onclick = () => { DB.data.agenda = DB.data.agenda.filter(x => x.id !== id); DB.save(); m.close(); toast('Événement supprimé'); renderPlanning($('#view')); };
+  $('#a-save').onclick = () => {
+    const type = $('#a-type').value;
+    const obj = { title: $('#a-title').value.trim(), type, equipeId: type === 'chantier' ? $('#a-eq').value : '', dateDebut: $('#a-deb').value, dateFin: $('#a-fin').value, otp: $('#a-otp').value.trim(), note: $('#a-note').value.trim() };
+    if (!obj.title) { toast("L'intitulé est obligatoire", 'err'); return; }
+    if (!obj.dateDebut) { toast('La date est obligatoire', 'err'); return; }
+    if (id) Object.assign(a, obj); else DB.data.agenda.unshift({ id: uid(), ...obj });
+    DB.save(); m.close(); toast('Événement enregistré'); planTab = 'mois'; renderPlanning($('#view'));
+  };
 }
 function pointageForm(id) {
   const p = id ? DB.data.pointages.find(x => x.id === id) : { semaine: planWeek, equipeId: (DB.data.equipes[0] || {}).id || '', chantierId: '', chantierNom: '', heuresPrev: 80, heuresReel: 0 };
@@ -1636,7 +1767,7 @@ let achatFilter = { q: '', otp: '' };
 function renderAchats(v) {
   const list = DB.data.commandes.filter(c => {
     if (achatFilter.otp && c.otp !== achatFilter.otp) return false;
-    if (achatFilter.q) { const s = ((c.fournisseur || '') + ' ' + (c.objet || '') + ' ' + (c.otp || '')).toLowerCase(); if (!s.includes(achatFilter.q.toLowerCase())) return false; }
+    if (achatFilter.q) { const s = ((c.num || '') + ' ' + (c.fournisseur || '') + ' ' + (c.objet || '') + ' ' + (c.otp || '')).toLowerCase(); if (!s.includes(achatFilter.q.toLowerCase())) return false; }
     return true;
   }).sort((a, b) => (b.date || '').localeCompare(a.date || ''));
   const total = list.reduce((s, c) => s + (+c.montantHT || 0), 0);
@@ -1656,18 +1787,18 @@ function renderAchats(v) {
     <div class="filters"><span class="search-wrap">${icon('search')}<input id="q" placeholder="Rechercher (fournisseur, objet, OTP…)" value="${esc(achatFilter.q)}"></span>
       <select id="fotp"><option value="">Tous les OTP</option>${otpDistinct().map(o => `<option value="${esc(o)}" ${achatFilter.otp === o ? 'selected' : ''}>${esc(o)}</option>`).join('')}</select>
       <span class="chip">${list.length} commande(s)</span></div>
-    ${list.length ? `<div class="table-wrap"><table><thead><tr><th>Date</th><th>OTP</th><th>Fournisseur</th><th>Objet</th><th>Statut</th><th>Réception</th><th class="num">Montant HT</th><th></th></tr></thead>
-      <tbody>${list.map(c => `<tr><td>${fmtDate(c.date)}</td><td><span class="chip">${esc(c.otp || '—')}</span></td><td class="t-strong">${esc(c.fournisseur || '—')}</td><td>${esc(c.objet || '—')}</td><td>${cmdBadge(c.statut)}</td>
+    ${list.length ? `<div class="table-wrap"><table><thead><tr><th>N° commande</th><th>Date</th><th>OTP</th><th>Fournisseur</th><th>Objet</th><th>Statut</th><th>Réception</th><th class="num">Montant HT</th><th></th></tr></thead>
+      <tbody>${list.map(c => `<tr><td class="t-strong">${esc(c.num || '—')}</td><td>${fmtDate(c.date)}</td><td><span class="chip">${esc(c.otp || '—')}</span></td><td>${esc(c.fournisseur || '—')}</td><td>${esc(c.objet || '—')}</td><td>${cmdBadge(c.statut)}</td>
         <td>${c.dateReception ? `<span class="deadline-ok">Reçue ${fmtDate(c.dateReception)}</span>` : '<span class="t-muted">Non réceptionnée</span>'}</td><td class="num">${eur(c.montantHT)}</td>
         <td class="actions-cell">${c.dateReception ? '' : `<button class="icon-btn" data-recv="${c.id}" title="Réceptionner aujourd'hui">${icon('check')}</button>`}<button class="icon-btn" data-edit="${c.id}" title="Modifier">${icon('edit')}</button><button class="icon-btn danger" data-del="${c.id}" title="Supprimer">${icon('trash')}</button></td></tr>`).join('')}</tbody>
-      <tfoot><tr><td colspan="6">Total affiché${achatFilter.otp ? ' — OTP ' + esc(achatFilter.otp) : ''}</td><td class="num">${eur(total)}</td><td></td></tr></tfoot></table></div>`
+      <tfoot><tr><td colspan="7">Total affiché${achatFilter.otp ? ' — OTP ' + esc(achatFilter.otp) : ''}</td><td class="num">${eur(total)}</td><td></td></tr></tfoot></table></div>`
       : emptyState('cart', 'Aucune commande fournisseur', 'Chaque commande est imputée sur un OTP ; réceptionnez-la au mois voulu pour l\'imputer au CA.')}`;
   $('#add').onclick = () => achatForm();
   $('#recept').onclick = () => receptionPicker();
   $('#q').oninput = e => { achatFilter.q = e.target.value; renderAchats(v); const i = $('#q'); i.focus(); i.setSelectionRange(i.value.length, i.value.length); };
   $('#fotp').onchange = e => { achatFilter.otp = e.target.value; renderAchats(v); };
   $$('[data-fotp]', v).forEach(b => b.onclick = () => { achatFilter.otp = b.dataset.fotp; renderAchats(v); });
-  $('#csv').onclick = () => exportCSV('achats', ['date', 'otp', 'fournisseur', 'objet', 'statut', 'reception', 'montantHT'], list.map(c => [c.date, c.otp, c.fournisseur, c.objet, STATUTS_CMD[c.statut], c.dateReception, c.montantHT]));
+  $('#csv').onclick = () => exportCSV('achats', ['num', 'date', 'otp', 'fournisseur', 'objet', 'statut', 'reception', 'montantHT'], list.map(c => [c.num, c.date, c.otp, c.fournisseur, c.objet, STATUTS_CMD[c.statut], c.dateReception, c.montantHT]));
   $$('[data-edit]', v).forEach(b => b.onclick = () => achatForm(b.dataset.edit));
   $$('[data-recv]', v).forEach(b => b.onclick = () => { const c = DB.data.commandes.find(x => x.id === b.dataset.recv); c.dateReception = todayISO(); if (c.statut === 'commande') c.statut = 'livree'; DB.save(); toast('Commande réceptionnée'); renderAchats(v); });
   $$('[data-del]', v).forEach(b => b.onclick = () => confirmDialog('Supprimer cette commande ?', () => { DB.data.commandes = DB.data.commandes.filter(x => x.id !== b.dataset.del); DB.save(); toast('Commande supprimée'); renderAchats(v); }));
@@ -1693,9 +1824,10 @@ function receptionPicker() {
   };
 }
 function achatForm(id) {
-  const c = id ? DB.data.commandes.find(x => x.id === id) : { date: todayISO(), otp: '', fournisseur: '', objet: '', montantHT: 0, statut: 'commande', dateReception: '' };
+  const c = id ? DB.data.commandes.find(x => x.id === id) : { num: '', date: todayISO(), otp: '', fournisseur: '', objet: '', montantHT: 0, statut: 'commande', dateReception: '' };
   const m = modal({ title: id ? 'Modifier la commande' : 'Nouvelle commande fournisseur',
     body: `<div class="form-grid">
+      <div class="field"><label>N° de commande</label><input id="f-num" value="${esc(c.num)}" placeholder="45XXXXXXXX" maxlength="10" inputmode="numeric"><div class="hint">10 chiffres, commence par 45</div></div>
       <div class="field"><label>Date de commande</label><input id="f-date" type="date" value="${c.date || todayISO()}"></div>
       <div class="field"><label>N° OTP (imputation)</label><input id="f-otp" value="${esc(c.otp)}" list="cmd-otplist" placeholder="OTP…"><datalist id="cmd-otplist">${[...new Set([...otpDistinct(), ...DB.data.chantiers.map(ch => ch.otp).filter(Boolean)])].map(o => `<option value="${esc(o)}">`).join('')}</datalist></div>
       <div class="field"><label>Fournisseur</label><input id="f-four" value="${esc(c.fournisseur)}" placeholder="IKO, Loxam…"></div>
@@ -1708,7 +1840,9 @@ function achatForm(id) {
     footer: `<button class="btn" data-c>Annuler</button><button class="btn primary" id="save">Enregistrer</button>` });
   m.root.querySelector('[data-c]').onclick = m.close;
   $('#save').onclick = () => {
-    const obj = { date: $('#f-date').value, otp: $('#f-otp').value.trim(), fournisseur: $('#f-four').value.trim(), objet: $('#f-objet').value.trim(), montantHT: +$('#f-montant').value || 0, statut: $('#f-statut').value, dateReception: $('#f-recept').value };
+    const numv = $('#f-num').value.trim();
+    if (numv && !/^45\d{8}$/.test(numv)) { toast('Le n° de commande doit comporter 10 chiffres et commencer par 45', 'err'); return; }
+    const obj = { num: numv, date: $('#f-date').value, otp: $('#f-otp').value.trim(), fournisseur: $('#f-four').value.trim(), objet: $('#f-objet').value.trim(), montantHT: +$('#f-montant').value || 0, statut: $('#f-statut').value, dateReception: $('#f-recept').value };
     if (!obj.otp) { toast("L'OTP est obligatoire", 'err'); return; }
     if (id) Object.assign(c, obj); else DB.data.commandes.unshift({ id: uid(), ...obj });
     DB.save(); m.close(); toast('Commande enregistrée'); go('achats');
