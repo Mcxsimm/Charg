@@ -258,6 +258,17 @@ tfoot td{padding:11px 14px;font-weight:700;background:var(--panel-2);border-top:
 .cal-ev{display:block;font-size:10.5px;font-weight:600;color:#fff;border-radius:4px;padding:2px 6px;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
 .cal-more{font-size:10px;color:var(--muted);margin-top:3px;font-weight:600}
 
+/* Pointages grid */
+.point-grid th,.point-grid td{vertical-align:top}
+.point-grid thead th{text-align:center}
+.point-grid thead th:first-child{text-align:left}
+.pcell-td{padding:6px 6px}
+.pcell{display:flex;flex-direction:column;gap:4px;min-width:96px}
+.pcell .ph{width:100%;border:1px solid var(--line);border-radius:6px;padding:5px 6px;text-align:right;font-variant-numeric:tabular-nums}
+.pcell .po{width:100%;border:1px solid var(--line);border-radius:6px;padding:4px 4px;font-size:11.5px;background:#fff;max-width:120px}
+.pcell .ph:focus,.pcell .po:focus{outline:0;border-color:var(--brand-2);box-shadow:0 0 0 2px rgba(37,104,179,.14)}
+.point-grid .rowtot,.point-grid .coltot{font-weight:700}
+
 @media(max-width:920px){
   :root{--sidebar-w:0px}
   #sidebar{transform:translateX(-100%);transition:.25s;width:246px}
@@ -459,6 +470,7 @@ const DB = {
     d.commandes.forEach(x => { if (x.dateReception === undefined) x.dateReception = ''; if (x.num === undefined) x.num = ''; });
     d.chantiers.forEach(x => { if (x.sourceDevisId === undefined) x.sourceDevisId = ''; });
     if (!Array.isArray(d.agenda)) d.agenda = [];
+    d.pointages = d.pointages.filter(p => p.jour); // ancien format hebdo (semaine) abandonné au profit du journalier
     d.bte = d.bte.map(migrateBte);
     return d;
   },
@@ -568,10 +580,17 @@ function demoData() {
       { id: eqB, nom: 'Équipe B', chef: 'David M.', compagnon: 'Samir T.' },
       { id: eqC, nom: 'Équipe C', chef: 'Yann L.', compagnon: 'Hugo R.' },
     ],
-    pointages: [
-      { id: uid(), semaine: mondayISO(), equipeId: eqA, chantierNom: 'Réfection toiture bâtiment A', heuresPrev: 80, heuresReel: 76 },
-      { id: uid(), semaine: mondayISO(), equipeId: eqB, chantierNom: 'Étanchéité parking couvert', heuresPrev: 80, heuresReel: 80 },
-    ],
+    pointages: (() => {
+      const lundi = mondayISO(), P = [];
+      for (let j = 0; j < 5; j++) {
+        const jour = addDays(lundi, j);
+        P.push({ id: uid(), jour, workerKey: eqA + ':chef', workerNom: 'Karim B.', equipeId: eqA, otp: 'OTP-24001', chantierNom: 'Réfection toiture bâtiment A', heures: 8 });
+        P.push({ id: uid(), jour, workerKey: eqA + ':comp', workerNom: 'Léo P.', equipeId: eqA, otp: 'OTP-24001', chantierNom: 'Réfection toiture bâtiment A', heures: 8 });
+        P.push({ id: uid(), jour, workerKey: eqB + ':chef', workerNom: 'David M.', equipeId: eqB, otp: 'OTP-24002', chantierNom: 'Étanchéité parking couvert', heures: 8 });
+        P.push({ id: uid(), jour, workerKey: eqB + ':comp', workerNom: 'Samir T.', equipeId: eqB, otp: 'OTP-24002', chantierNom: 'Étanchéité parking couvert', heures: j < 4 ? 8 : 6 });
+      }
+      return P;
+    })(),
     agenda: [
       { id: uid(), title: 'RDV client — Clinique du Parc', type: 'reunion', dateDebut: addDays(todayISO(), 1), dateFin: '', equipeId: '', otp: '', note: '' },
       { id: uid(), title: 'Étanchéité parking couvert', type: 'chantier', dateDebut: mondayISO(), dateFin: addDays(mondayISO(), 4), equipeId: eqB, otp: 'OTP-24002', note: '' },
@@ -1595,38 +1614,74 @@ function renderPlanning(v) {
   const host = $('#plan-body', v);
   if (planTab === 'mois') renderCalendar(host); else renderPointages(host);
 }
+function planWorkers() {
+  const out = [];
+  DB.data.equipes.forEach(e => {
+    if (e.chef) out.push({ key: e.id + ':chef', nom: e.chef, equipeId: e.id, role: 'Chef', equipe: e.nom });
+    if (e.compagnon) out.push({ key: e.id + ':comp', nom: e.compagnon, equipeId: e.id, role: 'Compagnon', equipe: e.nom });
+  });
+  return out;
+}
+const PJOURS = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'];
 function renderPointages(v) {
-  const rows = DB.data.pointages.filter(p => p.semaine === planWeek);
-  const totPrev = rows.reduce((s, p) => s + (+p.heuresPrev || 0), 0);
-  const totReel = rows.reduce((s, p) => s + (+p.heuresReel || 0), 0);
-  const capacite = Math.max(1, DB.data.equipes.length) * 2 * 5 * HEURES_JOUR;
+  const workers = planWorkers();
+  const days = PJOURS.map((_, i) => addDays(planWeek, i));
+  const week = DB.data.pointages.filter(p => p.jour >= planWeek && p.jour <= addDays(planWeek, 5));
+  const get = (wk, jr) => week.find(p => p.workerKey === wk && p.jour === jr);
+  const totReel = week.reduce((s, p) => s + (+p.heures || 0), 0);
+  const capacite = Math.max(1, workers.length) * 5 * HEURES_JOUR;
   const occ = Math.round(totReel / capacite * 100);
-  const finSemaine = addDays(planWeek, 4);
+  // options OTP / chantier
+  const chOpts = sel => DB.data.chantiers.map(c => `<option value="${c.id}" ${sel === c.id ? 'selected' : ''}>${esc(c.otp || '')} · ${esc(c.nom)}</option>`).join('');
+  const chIdFor = p => { const c = DB.data.chantiers.find(x => x.otp === p.otp && x.nom === p.chantierNom) || DB.data.chantiers.find(x => x.otp === p.otp); return c ? c.id : ''; };
+  const cell = (w, jr) => { const p = get(w.key, jr); const chid = p ? chIdFor(p) : '';
+    return `<td class="pcell-td"><div class="pcell">
+      <input class="ph" type="number" min="0" step="0.5" placeholder="h" data-w="${w.key}" data-n="${esc(w.nom)}" data-e="${w.equipeId}" data-j="${jr}" value="${p && p.heures ? p.heures : ''}">
+      <select class="po" data-w="${w.key}" data-j="${jr}"><option value="">— OTP —</option>${chOpts(chid)}</select></div></td>`; };
+  const rowTot = w => days.reduce((s, jr) => { const p = get(w.key, jr); return s + (p ? +p.heures || 0 : 0); }, 0);
+  const colTot = jr => workers.reduce((s, w) => { const p = get(w.key, jr); return s + (p ? +p.heures || 0 : 0); }, 0);
+
   v.innerHTML = `
     <div class="kpi-grid">
-      <div class="kpi"><div class="kpi-top"><span class="kpi-label">Heures réalisées</span><span class="kpi-ico">${icon('clock')}</span></div><div class="kpi-value">${num(totReel)} h</div><div class="kpi-sub">Prévu ${num(totPrev)} h</div></div>
-      <div class="kpi"><div class="kpi-top"><span class="kpi-label">Écart prév./réel</span><span class="kpi-ico ${totReel - totPrev > 0 ? 'amber' : 'green'}">${icon('trend')}</span></div><div class="kpi-value ${totReel - totPrev > 0 ? 'margin-bad' : 'margin-good'}">${totReel - totPrev >= 0 ? '+' : ''}${num(totReel - totPrev)} h</div><div class="kpi-sub">Optimisation des heures</div></div>
-      <div class="kpi"><div class="kpi-top"><span class="kpi-label">Taux d'occupation</span><span class="kpi-ico ${occ >= 80 ? 'green' : 'amber'}">${icon('users')}</span></div><div class="kpi-value">${occ} %</div><div class="progress ${occ >= 80 ? 'green' : 'amber'}"><i style="width:${Math.min(100, occ)}%"></i></div></div>
-      <div class="kpi"><div class="kpi-top"><span class="kpi-label">Équipes</span><span class="kpi-ico">${icon('briefcase')}</span></div><div class="kpi-value">${DB.data.equipes.length}</div><div class="kpi-sub">${DB.data.equipes.length * 2} compagnons</div></div>
+      <div class="kpi"><div class="kpi-top"><span class="kpi-label">Heures pointées (semaine)</span><span class="kpi-ico">${icon('clock')}</span></div><div class="kpi-value">${num(totReel)} h</div><div class="kpi-sub">${workers.length} compagnons</div></div>
+      <div class="kpi"><div class="kpi-top"><span class="kpi-label">Taux d'occupation</span><span class="kpi-ico ${occ >= 80 ? 'green' : 'amber'}">${icon('users')}</span></div><div class="kpi-value">${occ} %</div><div class="progress ${occ >= 80 ? 'green' : 'amber'}"><i style="width:${Math.min(100, occ)}%"></i></div><div class="kpi-sub">Capacité ${num(capacite)} h</div></div>
+      <div class="kpi"><div class="kpi-top"><span class="kpi-label">Équipes</span><span class="kpi-ico">${icon('briefcase')}</span></div><div class="kpi-value">${DB.data.equipes.length}</div><div class="kpi-sub">Chef + compagnon</div></div>
     </div>
-    <div class="page-actions"><button class="btn primary" id="add">${icon('plus')} Affecter une équipe</button>
-      <button class="btn" id="teams">${icon('users')} Gérer les équipes</button><span class="spacer"></span>
-      <button class="btn small" id="prev">◀ Sem. préc.</button>
+    <div class="page-actions"><button class="btn" id="teams">${icon('users')} Gérer les équipes</button><span class="spacer"></span>
+      <button class="btn small" id="prev">◀</button>
+      <span class="chip">Semaine du ${fmtDate(planWeek)}</span>
       <input id="wk" type="date" value="${planWeek}" style="border:1px solid var(--line);border-radius:8px;padding:7px 10px">
-      <button class="btn small" id="next">Sem. suiv. ▶</button></div>
-    <div class="chip" style="margin-bottom:14px">Semaine du ${fmtDate(planWeek)} au ${fmtDate(finSemaine)}</div>
-    ${rows.length ? `<div class="table-wrap"><table><thead><tr><th>Équipe</th><th>Chantier</th><th class="num">Heures prévues</th><th class="num">Heures réelles</th><th class="num">Écart</th><th></th></tr></thead>
-      <tbody>${rows.map(p => { const eq = DB.data.equipes.find(e => e.id === p.equipeId); const ec = (+p.heuresReel || 0) - (+p.heuresPrev || 0); return `<tr><td class="t-strong">${esc(eq ? eq.nom : '—')}</td><td>${esc(p.chantierNom || '—')}</td><td class="num">${num(p.heuresPrev)}</td><td class="num">${num(p.heuresReel)}</td><td class="num ${ec > 0 ? 'margin-bad' : 'margin-good'}">${ec >= 0 ? '+' : ''}${num(ec)}</td>
-        <td class="actions-cell"><button class="icon-btn" data-edit="${p.id}" title="Modifier">${icon('edit')}</button><button class="icon-btn danger" data-del="${p.id}" title="Supprimer">${icon('trash')}</button></td></tr>`; }).join('')}</tbody>
-      <tfoot><tr><td colspan="2">Total semaine</td><td class="num">${num(totPrev)}</td><td class="num">${num(totReel)}</td><td class="num">${totReel - totPrev >= 0 ? '+' : ''}${num(totReel - totPrev)}</td><td></td></tr></tfoot></table></div>`
-      : emptyState('calendar', 'Aucune affectation cette semaine', 'Affectez vos équipes aux chantiers et saisissez les pointages.')}`;
-  $('#add').onclick = () => pointageForm();
+      <button class="btn small" id="next">▶</button>
+      <button class="btn small" id="csv">${icon('download')} CSV</button></div>
+    ${workers.length ? `<div class="table-wrap"><table class="point-grid"><thead><tr><th>Compagnon</th>${days.map((jr, i) => `<th class="num">${PJOURS[i]}<div class="t-muted" style="font-weight:400">${fmtDate(jr).slice(0, 5)}</div></th>`).join('')}<th class="num">Total</th></tr></thead>
+      <tbody>${workers.map(w => `<tr><td><div class="t-strong">${esc(w.nom)}</div><div class="t-muted" style="font-size:11px">${esc(w.equipe)} · ${w.role}</div></td>${days.map(jr => cell(w, jr)).join('')}<td class="num rowtot" data-w="${w.key}">${num(rowTot(w))} h</td></tr>`).join('')}</tbody>
+      <tfoot><tr><td>Total / jour</td>${days.map(jr => `<td class="num coltot" data-j="${jr}">${num(colTot(jr))} h</td>`).join('')}<td class="num" id="grandtot">${num(totReel)} h</td></tr></tfoot></table></div>
+      <div class="field hint" style="margin-top:8px">Saisissez les heures et l'OTP/chantier par compagnon et par jour. L'enregistrement est automatique.</div>`
+      : emptyState('users', 'Aucun compagnon', 'Ajoutez vos équipes (chef + compagnon) via « Gérer les équipes ».')}`;
   $('#teams').onclick = () => equipesModal();
   $('#prev').onclick = () => { planWeek = addDays(planWeek, -7); renderPointages(v); };
   $('#next').onclick = () => { planWeek = addDays(planWeek, 7); renderPointages(v); };
   $('#wk').onchange = e => { planWeek = mondayISO(new Date(e.target.value + 'T00:00:00')); renderPointages(v); };
-  $$('[data-edit]', v).forEach(b => b.onclick = () => pointageForm(b.dataset.edit));
-  $$('[data-del]', v).forEach(b => b.onclick = () => confirmDialog('Supprimer cette affectation ?', () => { DB.data.pointages = DB.data.pointages.filter(x => x.id !== b.dataset.del); DB.save(); toast('Affectation supprimée'); renderPointages(v); }));
+  $('#csv').onclick = () => exportCSV('pointages_' + planWeek, ['compagnon', 'equipe', 'role', 'jour', 'otp', 'chantier', 'heures'], week.filter(p => p.heures).map(p => { const w = workers.find(x => x.key === p.workerKey) || {}; return [p.workerNom, w.equipe || '', w.role || '', p.jour, p.otp, p.chantierNom, p.heures]; }));
+
+  const upsert = (wk, jr) => {
+    const inp = v.querySelector(`.ph[data-w="${CSS.escape(wk)}"][data-j="${jr}"]`);
+    const sel = v.querySelector(`.po[data-w="${CSS.escape(wk)}"][data-j="${jr}"]`);
+    const heures = +inp.value || 0; const ch = DB.data.chantiers.find(c => c.id === sel.value);
+    let p = DB.data.pointages.find(x => x.workerKey === wk && x.jour === jr);
+    if (!heures && !sel.value) { if (p) DB.data.pointages = DB.data.pointages.filter(x => x !== p); }
+    else {
+      if (!p) { p = { id: uid(), jour: jr, workerKey: wk, workerNom: inp.dataset.n, equipeId: inp.dataset.e, otp: '', chantierNom: '', heures: 0 }; DB.data.pointages.push(p); }
+      p.heures = heures; p.otp = ch ? ch.otp : ''; p.chantierNom = ch ? ch.nom : '';
+    }
+    DB.save();
+    // maj totaux sans re-render
+    workers.forEach(w => { const el = v.querySelector(`.rowtot[data-w="${CSS.escape(w.key)}"]`); if (el) el.textContent = num(days.reduce((s, d) => { const x = DB.data.pointages.find(y => y.workerKey === w.key && y.jour === d); return s + (x ? +x.heures || 0 : 0); }, 0)) + ' h'; });
+    days.forEach(d => { const el = v.querySelector(`.coltot[data-j="${d}"]`); if (el) el.textContent = num(DB.data.pointages.filter(y => y.jour === d).reduce((s, y) => s + (+y.heures || 0), 0)) + ' h'; });
+    const gt = v.querySelector('#grandtot'); if (gt) gt.textContent = num(DB.data.pointages.filter(y => y.jour >= planWeek && y.jour <= addDays(planWeek, 5)).reduce((s, y) => s + (+y.heures || 0), 0)) + ' h';
+  };
+  $$('.ph', v).forEach(inp => inp.oninput = () => upsert(inp.dataset.w, inp.dataset.j));
+  $$('.po', v).forEach(sel => sel.onchange = () => upsert(sel.dataset.w, sel.dataset.j));
 }
 
 /* ---------- Calendrier du mois (agenda perso + équipes) ---------- */
@@ -1645,8 +1700,7 @@ function dayEvents(iso, dateObj) {
   }
   if (planFilter.equipes) {
     DB.data.agenda.filter(a => a.type === 'chantier' && a.dateDebut && iso >= a.dateDebut && iso <= (a.dateFin || a.dateDebut)).forEach(a => { const eq = DB.data.equipes.find(e => e.id === a.equipeId); evs.push({ color: teamColor(a.equipeId), label: (eq ? eq.nom + ' · ' : '') + a.title, agendaId: a.id }); });
-    const dow = (dateObj.getDay() + 6) % 7;
-    if (dow < 5) { const wk = mondayISO(dateObj); DB.data.pointages.filter(p => p.semaine === wk).forEach(p => { const eq = DB.data.equipes.find(e => e.id === p.equipeId); evs.push({ color: teamColor(p.equipeId), label: (eq ? eq.nom : 'Équipe') + ' · ' + (p.chantierNom || ''), route: 'planning-sem' }); }); }
+    DB.data.pointages.filter(p => p.jour === iso && p.heures).forEach(p => evs.push({ color: teamColor(p.equipeId), label: p.workerNom + ' · ' + (p.chantierNom || p.otp || ''), route: 'planning-sem' }));
   }
   return evs;
 }
@@ -1722,26 +1776,6 @@ function agendaForm(id, presetDate) {
     if (!obj.dateDebut) { toast('La date est obligatoire', 'err'); return; }
     if (id) Object.assign(a, obj); else DB.data.agenda.unshift({ id: uid(), ...obj });
     DB.save(); m.close(); toast('Événement enregistré'); planTab = 'mois'; renderPlanning($('#view'));
-  };
-}
-function pointageForm(id) {
-  const p = id ? DB.data.pointages.find(x => x.id === id) : { semaine: planWeek, equipeId: (DB.data.equipes[0] || {}).id || '', chantierId: '', chantierNom: '', heuresPrev: 80, heuresReel: 0 };
-  const eqOpts = DB.data.equipes.map(e => `<option value="${e.id}" ${p.equipeId === e.id ? 'selected' : ''}>${esc(e.nom)} (${esc(e.chef)})</option>`).join('');
-  const chOpts = DB.data.chantiers.map(c => `<option value="${esc(c.nom)}">${esc(c.otp || '')} ${esc(c.nom)}</option>`).join('');
-  const m = modal({ title: id ? "Modifier l'affectation" : 'Affecter une équipe',
-    body: `<div class="form-grid">
-      <div class="field"><label>Semaine (lundi)</label><input id="f-wk" type="date" value="${p.semaine}"></div>
-      <div class="field"><label>Équipe</label><select id="f-eq">${eqOpts || '<option value="">— Aucune équipe —</option>'}</select></div>
-      <div class="field full"><label>Chantier</label><input id="f-ch" value="${esc(p.chantierNom)}" list="chl"><datalist id="chl">${chOpts}</datalist></div>
-      <div class="field"><label>Heures prévues</label><input id="f-hp" type="number" value="${p.heuresPrev}"></div>
-      <div class="field"><label>Heures réelles (pointées)</label><input id="f-hr" type="number" value="${p.heuresReel}"></div>
-    </div>`, footer: `<button class="btn" data-c>Annuler</button><button class="btn primary" id="save">Enregistrer</button>` });
-  m.root.querySelector('[data-c]').onclick = m.close;
-  $('#save').onclick = () => {
-    const obj = { semaine: mondayISO(new Date($('#f-wk').value + 'T00:00:00')), equipeId: $('#f-eq').value, chantierNom: $('#f-ch').value.trim(), heuresPrev: +$('#f-hp').value || 0, heuresReel: +$('#f-hr').value || 0 };
-    if (!obj.chantierNom) { toast('Le chantier est obligatoire', 'err'); return; }
-    if (id) Object.assign(p, obj); else DB.data.pointages.unshift({ id: uid(), ...obj });
-    planWeek = obj.semaine; DB.save(); m.close(); toast('Affectation enregistrée'); go('planning');
   };
 }
 function equipesModal() {
