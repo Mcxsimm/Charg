@@ -269,6 +269,21 @@ tfoot td{padding:11px 14px;font-weight:700;background:var(--panel-2);border-top:
 .pcell .ph:focus,.pcell .po:focus{outline:0;border-color:var(--brand-2);box-shadow:0 0 0 2px rgba(37,104,179,.14)}
 .point-grid .rowtot,.point-grid .coltot{font-weight:700}
 
+/* Timesheet (saisie des pointages) */
+.ts-person{display:flex;align-items:center;gap:14px;background:#fff;border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:14px 18px;margin-bottom:14px}
+.ts-avatar{width:44px;height:44px;border-radius:10px;background:var(--brand-ink);color:var(--brand);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:16px;flex:none}
+.ts-workersel{border:1px solid var(--line);border-radius:8px;padding:7px 10px;font-weight:700;font-size:14px;width:100%;background:#fff}
+.ts-prog{margin-top:8px}
+.ts-prog-lbl{font-size:12px;font-weight:700;color:var(--ink-soft);margin-bottom:4px}
+.ts-grid td,.ts-grid th{padding:6px 8px}
+.ts-grid thead th{text-align:center}
+.ts-grid thead th:nth-child(-n+3){text-align:left}
+.ts-grid input,.ts-grid select{border:1px solid var(--line);border-radius:6px;padding:5px 6px;font-size:12.5px;background:#fff}
+.ts-grid .ts-h{width:50px;text-align:right;font-variant-numeric:tabular-nums}
+.ts-grid input:focus,.ts-grid select:focus{outline:0;border-color:var(--brand-2);box-shadow:0 0 0 2px rgba(37,104,179,.14)}
+.ts-grid tbody tr:hover{background:var(--panel-2)}
+.ts-grid .rtot{background:var(--panel-2)}
+
 @media(max-width:920px){
   :root{--sidebar-w:0px}
   #sidebar{transform:translateX(-100%);transition:.25s;width:246px}
@@ -428,7 +443,7 @@ const TACHES_ML = {
 /* -------------------------------------------------------------------------
    3. Objectifs (fiche de fonction Chargé d'affaires SAS)
    ------------------------------------------------------------------------- */
-const OBJECTIFS_DEFAUT = { caAnnuel: 750000, margeCible: 0.30, devisMois: 45, rdvMois: 4, delaiDevis: 7, delaiFacture: 7, delaiRapport: 7, delaiPaiement: 45 };
+const OBJECTIFS_DEFAUT = { caAnnuel: 750000, margeCible: 0.30, devisMois: 45, rdvMois: 4, delaiDevis: 7, delaiFacture: 7, delaiRapport: 7, delaiPaiement: 45, tauxHoraireMO: 45 };
 
 /* -------------------------------------------------------------------------
    4. Store — multi-profils
@@ -470,7 +485,7 @@ const DB = {
     d.commandes.forEach(x => { if (x.dateReception === undefined) x.dateReception = ''; if (x.num === undefined) x.num = ''; });
     d.chantiers.forEach(x => { if (x.sourceDevisId === undefined) x.sourceDevisId = ''; });
     if (!Array.isArray(d.agenda)) d.agenda = [];
-    d.pointages = d.pointages.filter(p => p.jour); // ancien format hebdo (semaine) abandonné au profit du journalier
+    d.pointages = migratePointages(d.pointages);
     d.bte = d.bte.map(migrateBte);
     return d;
   },
@@ -503,6 +518,22 @@ const DB = {
   },
 };
 
+/* Pointages : modèle en LIGNES hebdo (une ligne = imputation OTP d'un compagnon,
+   heures par jour dans h[0..6]). Migration depuis l'ancien format journalier. */
+function migratePointages(list) {
+  if (!Array.isArray(list) || !list.length) return list || [];
+  if (list[0].h) return list; // déjà en lignes
+  const rows = {};
+  list.forEach(p => {
+    if (!p.jour) return;
+    const sem = mondayISO(new Date(p.jour + 'T00:00:00'));
+    const di = (new Date(p.jour + 'T00:00:00').getDay() + 6) % 7;
+    const key = [p.workerKey, sem, p.otp || '', p.chantierNom || ''].join('|');
+    if (!rows[key]) rows[key] = { id: uid(), workerKey: p.workerKey, workerNom: p.workerNom, equipeId: p.equipeId, semaine: sem, categorie: '3000111', typeHeure: 'HT', otp: p.otp || '', chantierNom: p.chantierNom || '', h: [0, 0, 0, 0, 0, 0, 0], panier: 0, trajet: 0, zone: '' };
+    rows[key].h[di] += (+p.heures || 0);
+  });
+  return Object.values(rows);
+}
 function demoData() {
   const c1 = uid(), c2 = uid(), c3 = uid(), ch1 = uid(), ch2 = uid(), ch3 = uid();
   const eqA = uid(), eqB = uid(), eqC = uid();
@@ -580,17 +611,12 @@ function demoData() {
       { id: eqB, nom: 'Équipe B', chef: 'David M.', compagnon: 'Samir T.' },
       { id: eqC, nom: 'Équipe C', chef: 'Yann L.', compagnon: 'Hugo R.' },
     ],
-    pointages: (() => {
-      const lundi = mondayISO(), P = [];
-      for (let j = 0; j < 5; j++) {
-        const jour = addDays(lundi, j);
-        P.push({ id: uid(), jour, workerKey: eqA + ':chef', workerNom: 'Karim B.', equipeId: eqA, otp: 'OTP-24001', chantierNom: 'Réfection toiture bâtiment A', heures: 8 });
-        P.push({ id: uid(), jour, workerKey: eqA + ':comp', workerNom: 'Léo P.', equipeId: eqA, otp: 'OTP-24001', chantierNom: 'Réfection toiture bâtiment A', heures: 8 });
-        P.push({ id: uid(), jour, workerKey: eqB + ':chef', workerNom: 'David M.', equipeId: eqB, otp: 'OTP-24002', chantierNom: 'Étanchéité parking couvert', heures: 8 });
-        P.push({ id: uid(), jour, workerKey: eqB + ':comp', workerNom: 'Samir T.', equipeId: eqB, otp: 'OTP-24002', chantierNom: 'Étanchéité parking couvert', heures: j < 4 ? 8 : 6 });
-      }
-      return P;
-    })(),
+    pointages: (() => { const sem = mondayISO(); return [
+      { id: uid(), workerKey: eqA + ':chef', workerNom: 'Karim B.', equipeId: eqA, semaine: sem, categorie: '3000111', typeHeure: 'HT', otp: 'OTP-24001', chantierNom: 'Réfection toiture bâtiment A', h: [8, 8, 8, 8, 8, 0, 0], panier: 5, trajet: 0, zone: '5' },
+      { id: uid(), workerKey: eqA + ':comp', workerNom: 'Léo P.', equipeId: eqA, semaine: sem, categorie: '3000111', typeHeure: 'HT', otp: 'OTP-24001', chantierNom: 'Réfection toiture bâtiment A', h: [8, 8, 8, 8, 8, 0, 0], panier: 5, trajet: 0, zone: '5' },
+      { id: uid(), workerKey: eqB + ':chef', workerNom: 'David M.', equipeId: eqB, semaine: sem, categorie: '3000111', typeHeure: 'HT', otp: 'OTP-24002', chantierNom: 'Étanchéité parking couvert', h: [8, 8, 8, 8, 8, 0, 0], panier: 5, trajet: 0, zone: '5' },
+      { id: uid(), workerKey: eqB + ':comp', workerNom: 'Samir T.', equipeId: eqB, semaine: sem, categorie: '3000111', typeHeure: 'HT', otp: 'OTP-24002', chantierNom: 'Étanchéité parking couvert', h: [8, 8, 8, 8, 6, 0, 0], panier: 5, trajet: 0, zone: '5' },
+    ]; })(),
     agenda: [
       { id: uid(), title: 'RDV client — Clinique du Parc', type: 'reunion', dateDebut: addDays(todayISO(), 1), dateFin: '', equipeId: '', otp: '', note: '' },
       { id: uid(), title: 'Étanchéité parking couvert', type: 'chantier', dateDebut: mondayISO(), dateFin: addDays(mondayISO(), 4), equipeId: eqB, otp: 'OTP-24002', note: '' },
@@ -876,13 +902,15 @@ function editObjectifs() {
       <div class="field"><label>Délai facturation (jours)</label><input id="o-df" type="number" value="${o.delaiFacture}"></div>
       <div class="field"><label>Délai rapport d'intervention (jours)</label><input id="o-dr" type="number" value="${o.delaiRapport}"></div>
       <div class="field"><label>Délai de paiement par défaut (jours)</label><input id="o-dp" type="number" value="${o.delaiPaiement}"></div>
-    </div>`, footer: `<button class="btn" data-c>Annuler</button><button class="btn primary" id="o-save">Enregistrer</button>` });
+      <div class="field"><label>Taux horaire MO SMAC (€/h chargé)</label><input id="o-mo" type="number" step="0.5" value="${o.tauxHoraireMO}"></div>
+    </div><div class="field hint" style="margin-top:6px">Le taux horaire sert à valoriser en € la main d'œuvre pointée par OTP, reprise dans le CA.</div>`, footer: `<button class="btn" data-c>Annuler</button><button class="btn primary" id="o-save">Enregistrer</button>` });
   m.root.querySelector('[data-c]').onclick = m.close;
   $('#o-save').onclick = () => {
     o.caAnnuel = +$('#o-ca').value || 0; o.margeCible = (+$('#o-marge').value || 0) / 100;
     o.devisMois = +$('#o-devis').value || 0; o.rdvMois = +$('#o-rdv').value || 0;
     o.delaiDevis = +$('#o-dd').value || 7; o.delaiFacture = +$('#o-df').value || 7;
     o.delaiRapport = +$('#o-dr').value || 7; o.delaiPaiement = +$('#o-dp').value || 45;
+    o.tauxHoraireMO = +$('#o-mo').value || 0;
     DB.save(); m.close(); toast('Objectifs mis à jour'); go('dashboard');
   };
 }
@@ -990,6 +1018,14 @@ const commandesParOtp = otp => DB.data.commandes.filter(c => c.otp === otp).redu
 const inMonth = (iso, mois, annee) => { if (!iso) return false; const d = new Date(iso + 'T00:00:00'); return d.getMonth() === mois && d.getFullYear() === annee; };
 // Fournitures = commandes RÉCEPTIONNÉES sur l'OTP durant le mois donné
 const commandesRecuesOtp = (otp, mois, annee) => DB.data.commandes.filter(c => c.otp === otp && c.dateReception && inMonth(c.dateReception, mois, annee)).reduce((s, c) => s + (+c.montantHT || 0), 0);
+// Heures de main d'œuvre pointées sur l'OTP durant le mois (modèle en lignes)
+function heuresMoOtp(otp, mois, annee) {
+  let s = 0;
+  DB.data.pointages.forEach(r => { if (r.otp !== otp || !r.h) return; r.h.forEach((h, i) => { if (h && inMonth(addDays(r.semaine, i), mois, annee)) s += +h; }); });
+  return s;
+}
+// Coût MO SMAC imputé sur l'OTP (heures × taux horaire)
+const moParOtp = (otp, mois, annee) => heuresMoOtp(otp, mois, annee) * (+DB.data.objectifs.tauxHoraireMO || 0);
 let devisFilter = { q: '', statut: '', otp: '' };
 function renderDevis(v) {
   const o = DB.data.objectifs;
@@ -1082,7 +1118,7 @@ function renderCA(v) {
     </div>
     ${rows.length ? `<div class="table-wrap"><table><thead><tr><th>OTP</th><th>Chantier</th><th class="num">Prix vente</th><th class="num">Fournitures</th><th class="num">Engins</th><th class="num">MO SMAC</th><th class="num">Marge €</th><th class="num">% Marge</th><th></th></tr></thead>
       <tbody>${rows.map(r => { const mg = marge(r), p = r.prixVente ? mg / r.prixVente : 0; return `<tr><td class="t-strong">${esc(r.otp || '—')}</td><td>${esc(r.chantier)}</td><td class="num">${eur(r.prixVente)}</td><td class="num">${eur(r.fournitures)}</td><td class="num">${eur(r.engins)}</td><td class="num">${eur(r.moSmac)}</td><td class="num t-strong">${eur(mg)}</td><td class="num ${marginCls(p)}">${pct(p)}</td>
-        <td class="actions-cell"><button class="icon-btn" data-edit="${r.id}" title="Modifier">${icon('edit')}</button><button class="icon-btn danger" data-del="${r.id}" title="Supprimer">${icon('trash')}</button></td></tr>`; }).join('')}</tbody>
+        <td class="actions-cell"><button class="icon-btn" data-sync="${r.id}" title="Recalculer fournitures & MO depuis l'OTP">${icon('swap')}</button><button class="icon-btn" data-edit="${r.id}" title="Modifier">${icon('edit')}</button><button class="icon-btn danger" data-del="${r.id}" title="Supprimer">${icon('trash')}</button></td></tr>`; }).join('')}</tbody>
       <tfoot><tr><td colspan="2">TOTAL ${MOIS[caMonth]}</td><td class="num">${eur(totVente)}</td><td class="num">${eur(tot('fournitures'))}</td><td class="num">${eur(tot('engins'))}</td><td class="num">${eur(tot('moSmac'))}</td><td class="num">${eur(totMarge)}</td><td class="num">${pct(totVente ? totMarge / totVente : 0)}</td><td></td></tr></tfoot></table></div>`
       : emptyState('euro', 'Aucune ligne pour ' + MOIS[caMonth] + ' ' + caYear, 'Ajoutez le CA réalisé de vos chantiers.')}`;
   $('#add').onclick = () => caForm();
@@ -1091,6 +1127,7 @@ function renderCA(v) {
   $('#fyear').onchange = e => { caYear = +e.target.value; renderCA(v); };
   $('#csv').onclick = () => exportCSV(`CA_${MOIS[caMonth]}_${caYear}`, ['otp', 'chantier', 'prixVente', 'fournitures', 'engins', 'moSmac', 'marge'], rows.map(r => [r.otp, r.chantier, r.prixVente, r.fournitures, r.engins, r.moSmac, marge(r)]));
   $$('[data-edit]', v).forEach(b => b.onclick = () => caForm(b.dataset.edit));
+  $$('[data-sync]', v).forEach(b => b.onclick = () => { const r = DB.data.ca.find(x => x.id === b.dataset.sync); if (!r.otp) { toast('Aucun OTP sur cette ligne', 'err'); return; } r.fournitures = commandesRecuesOtp(r.otp, r.mois, r.annee); r.moSmac = moParOtp(r.otp, r.mois, r.annee); DB.save(); toast('Fournitures & MO recalculées depuis l\'OTP'); renderCA(v); });
   $$('[data-del]', v).forEach(b => b.onclick = () => confirmDialog('Supprimer cette ligne ?', () => { DB.data.ca = DB.data.ca.filter(x => x.id !== b.dataset.del); DB.save(); toast('Ligne supprimée'); renderCA(v); }));
 }
 function yearsRange() { const cur = new Date().getFullYear(); return [...new Set([cur, cur - 1, cur + 1, ...DB.data.ca.map(r => r.annee)])].sort(); }
@@ -1107,10 +1144,13 @@ function caForm(id) {
       <div class="field"><label>Fournitures (€)</label><input id="f-fo" type="number" value="${r.fournitures}"></div>
       <div class="field"><label>Engins (€)</label><input id="f-en" type="number" value="${r.engins}"></div>
       <div class="field"><label>MO SMAC (€)</label><input id="f-mo" type="number" value="${r.moSmac}"></div>
-    </div><div id="preview" class="card-title" style="margin-top:14px"></div>`,
+    </div>
+    <div style="margin-top:8px"><button class="btn small" id="f-sync">${icon('swap')} Reprendre fournitures &amp; MO de l'OTP (mois)</button></div>
+    <div id="preview" class="card-title" style="margin-top:12px"></div>`,
     footer: `<button class="btn" data-c>Annuler</button><button class="btn primary" id="save">Enregistrer</button>` });
   const upd = () => { const pv = +$('#f-pv').value, mg = pv - (+$('#f-fo').value + +$('#f-en').value + +$('#f-mo').value); $('#preview').innerHTML = `Marge brute : <span class="${mg >= 0 ? 'margin-good' : 'margin-bad'}">${eur(mg)}</span> — ${pct(pv ? mg / pv : 0)}`; };
   ['f-pv', 'f-fo', 'f-en', 'f-mo'].forEach(k => $('#' + k).oninput = upd); upd();
+  $('#f-sync').onclick = () => { const otp = $('#f-otp').value.trim(), mo = +$('#f-mois').value, yr = +$('#f-annee').value; if (!otp) { toast('Renseignez un OTP', 'err'); return; } $('#f-fo').value = Math.round(commandesRecuesOtp(otp, mo, yr)); $('#f-mo').value = Math.round(moParOtp(otp, mo, yr)); upd(); toast('Fournitures & MO repris de l\'OTP'); };
   m.root.querySelector('[data-c]').onclick = m.close;
   $('#save').onclick = () => {
     const obj = { mois: +$('#f-mois').value, annee: +$('#f-annee').value, otp: $('#f-otp').value.trim(), chantier: $('#f-ch').value.trim(), prixVente: +$('#f-pv').value || 0, fournitures: +$('#f-fo').value || 0, engins: +$('#f-en').value || 0, moSmac: +$('#f-mo').value || 0 };
@@ -1132,19 +1172,19 @@ function caCandidates() {
 function caPicker() {
   const cand = caCandidates();
   const m = modal({ title: 'Clôture de fin de mois — affaires à mettre en CA', wide: true,
-    body: `<p class="t-muted" style="margin-top:0">Sélectionnez les chantiers <b>facturés</b> et les devis <b>acceptés</b> à intégrer au CA du mois. Les fournitures sont reprises automatiquement des <b>achats fournisseurs</b> imputés sur l'OTP.</p>
+    body: `<p class="t-muted" style="margin-top:0">Sélectionnez les chantiers <b>facturés</b> et les devis <b>acceptés</b> à intégrer au CA du mois. Les <b>fournitures</b> (achats reçus) et la <b>MO SMAC</b> (heures pointées × taux horaire) sont reprises automatiquement de l'OTP.</p>
     <div class="form-grid" style="max-width:360px">
       <div class="field"><label>Mois</label><select id="p-mois">${MOIS.map((mm, i) => `<option value="${i}" ${i === caMonth ? 'selected' : ''}>${mm}</option>`).join('')}</select></div>
       <div class="field"><label>Année</label><input id="p-annee" type="number" value="${caYear}"></div>
     </div>
-    ${cand.length ? `<div class="table-wrap" style="margin-top:14px"><table><thead><tr><th><input type="checkbox" id="p-all"></th><th>Type</th><th>OTP</th><th>Désignation</th><th class="num">Prix vente HT</th><th class="num">Fournitures (reçues du mois)</th></tr></thead>
-      <tbody>${cand.map((c, i) => `<tr><td><input type="checkbox" class="p-chk" data-i="${i}" checked></td><td><span class="badge ${c.type === 'chantier' ? 'b-receptionne' : 'b-accepte'}">${c.type === 'chantier' ? 'Chantier facturé' : 'Devis accepté'}</span></td><td class="t-strong">${esc(c.otp || '—')}</td><td>${esc(c.designation)}</td><td class="num">${eur(c.montant)}</td><td class="num p-four" data-otp="${esc(c.otp || '')}">${eur(commandesRecuesOtp(c.otp, caMonth, caYear))}</td></tr>`).join('')}</tbody></table></div>
+    ${cand.length ? `<div class="table-wrap" style="margin-top:14px"><table><thead><tr><th><input type="checkbox" id="p-all"></th><th>Type</th><th>OTP</th><th>Désignation</th><th class="num">Prix vente HT</th><th class="num">Fournitures (achats reçus)</th><th class="num">MO SMAC (pointages)</th></tr></thead>
+      <tbody>${cand.map((c, i) => `<tr><td><input type="checkbox" class="p-chk" data-i="${i}" checked></td><td><span class="badge ${c.type === 'chantier' ? 'b-receptionne' : 'b-accepte'}">${c.type === 'chantier' ? 'Chantier facturé' : 'Devis accepté'}</span></td><td class="t-strong">${esc(c.otp || '—')}</td><td>${esc(c.designation)}</td><td class="num">${eur(c.montant)}</td><td class="num p-four" data-otp="${esc(c.otp || '')}">${eur(commandesRecuesOtp(c.otp, caMonth, caYear))}</td><td class="num p-mo" data-otp="${esc(c.otp || '')}">${eur(moParOtp(c.otp, caMonth, caYear))}</td></tr>`).join('')}</tbody></table></div>
       <div class="field inline" style="margin-top:12px"><input type="checkbox" id="p-fact"><label for="p-fact" style="cursor:pointer">Créer aussi les factures correspondantes (statut « à émettre »)</label></div>`
       : `<div class="empty" style="padding:30px"><div class="em-ico">${icon('checkSquare')}</div><h3>Aucune affaire disponible</h3><div>Passez un chantier en statut « Facturé » ou acceptez un devis pour le voir apparaître ici.</div></div>`}`,
     footer: cand.length ? `<button class="btn" data-c>Annuler</button><button class="btn primary" id="p-go">Ajouter au CA du mois</button>` : `<button class="btn" data-c>Fermer</button>` });
   m.root.querySelector('[data-c]').onclick = m.close;
   if (!cand.length) return;
-  const recompFour = () => { const mo = +$('#p-mois').value, yr = +$('#p-annee').value; $$('.p-four', m.root).forEach(td => td.textContent = eur(commandesRecuesOtp(td.dataset.otp, mo, yr))); };
+  const recompFour = () => { const mo = +$('#p-mois').value, yr = +$('#p-annee').value; $$('.p-four', m.root).forEach(td => td.textContent = eur(commandesRecuesOtp(td.dataset.otp, mo, yr))); $$('.p-mo', m.root).forEach(td => td.textContent = eur(moParOtp(td.dataset.otp, mo, yr))); };
   $('#p-mois').onchange = recompFour; $('#p-annee').oninput = recompFour;
   $('#p-all').onclick = e => $$('.p-chk', m.root).forEach(c => c.checked = e.target.checked);
   $('#p-go').onclick = () => {
@@ -1153,7 +1193,7 @@ function caPicker() {
     if (!chosen.length) { toast('Sélectionnez au moins une affaire', 'err'); return; }
     const withFact = $('#p-fact').checked;
     chosen.forEach(c => {
-      DB.data.ca.unshift({ id: uid(), mois, annee, otp: c.otp || '', chantier: c.designation, prixVente: c.montant, fournitures: commandesRecuesOtp(c.otp, mois, annee), engins: 0, moSmac: 0, sourceType: c.type, sourceId: c.id });
+      DB.data.ca.unshift({ id: uid(), mois, annee, otp: c.otp || '', chantier: c.designation, prixVente: c.montant, fournitures: commandesRecuesOtp(c.otp, mois, annee), engins: 0, moSmac: moParOtp(c.otp, mois, annee), sourceType: c.type, sourceId: c.id });
       if (withFact) DB.data.factures.unshift({ id: uid(), num: '', otp: c.otp || '', clientId: c.clientId || '', client: clientNom(c.clientId) === '—' ? '' : clientNom(c.clientId), chantierId: c.type === 'chantier' ? c.id : '', objet: c.designation, dateFG: todayISO(), dateEmission: '', montantHT: c.montant, echeanceJours: DB.data.objectifs.delaiPaiement, datePaiement: '', statut: 'a_emettre' });
     });
     caMonth = mois; caYear = annee; DB.save(); m.close(); toast(chosen.length + ' affaire(s) ajoutée(s) au CA' + (withFact ? ' + factures créées' : '')); go('ca');
@@ -1622,66 +1662,93 @@ function planWorkers() {
   });
   return out;
 }
-const PJOURS = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'];
+const JSEM = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
+const TYPE_HEURE = { HT: 'HT - H Travaillées', HS: 'HS - H Supplémentaires', GD: 'GD - Grand déplacement', ABS: 'ABS - Absence', CP: 'CP - Congés payés', INT: 'INT - Intempéries' };
+let planWorkerKey = '', planWE = false;
+const HEBDO_H = 40;
 function renderPointages(v) {
   const workers = planWorkers();
-  const days = PJOURS.map((_, i) => addDays(planWeek, i));
-  const week = DB.data.pointages.filter(p => p.jour >= planWeek && p.jour <= addDays(planWeek, 5));
-  const get = (wk, jr) => week.find(p => p.workerKey === wk && p.jour === jr);
-  const totReel = week.reduce((s, p) => s + (+p.heures || 0), 0);
-  const capacite = Math.max(1, workers.length) * 5 * HEURES_JOUR;
-  const occ = Math.round(totReel / capacite * 100);
-  // options OTP / chantier
-  const chOpts = sel => DB.data.chantiers.map(c => `<option value="${c.id}" ${sel === c.id ? 'selected' : ''}>${esc(c.otp || '')} · ${esc(c.nom)}</option>`).join('');
-  const chIdFor = p => { const c = DB.data.chantiers.find(x => x.otp === p.otp && x.nom === p.chantierNom) || DB.data.chantiers.find(x => x.otp === p.otp); return c ? c.id : ''; };
-  const cell = (w, jr) => { const p = get(w.key, jr); const chid = p ? chIdFor(p) : '';
-    return `<td class="pcell-td"><div class="pcell">
-      <input class="ph" type="number" min="0" step="0.5" placeholder="h" data-w="${w.key}" data-n="${esc(w.nom)}" data-e="${w.equipeId}" data-j="${jr}" value="${p && p.heures ? p.heures : ''}">
-      <select class="po" data-w="${w.key}" data-j="${jr}"><option value="">— OTP —</option>${chOpts(chid)}</select></div></td>`; };
-  const rowTot = w => days.reduce((s, jr) => { const p = get(w.key, jr); return s + (p ? +p.heures || 0 : 0); }, 0);
-  const colTot = jr => workers.reduce((s, w) => { const p = get(w.key, jr); return s + (p ? +p.heures || 0 : 0); }, 0);
+  if (!workers.length) { v.innerHTML = `<div class="page-actions"><button class="btn" id="teams">${icon('users')} Gérer les équipes</button></div>` + emptyState('users', 'Aucun compagnon', 'Ajoutez vos équipes (chef + compagnon) via « Gérer les équipes ».'); $('#teams', v).onclick = () => equipesModal(); return; }
+  if (!workers.find(w => w.key === planWorkerKey)) planWorkerKey = workers[0].key;
+  const worker = workers.find(w => w.key === planWorkerKey);
+  const nDays = planWE ? 7 : 5;
+  const days = []; for (let i = 0; i < nDays; i++) days.push(i);
+  const rows = DB.data.pointages.filter(r => r.workerKey === planWorkerKey && r.semaine === planWeek);
+  const rowTot = r => (r.h || []).slice(0, 7).reduce((s, h) => s + (+h || 0), 0);
+  const persoTot = rows.reduce((s, r) => s + rowTot(r), 0);
+  const prog = Math.min(100, Math.round(persoTot / HEBDO_H * 100));
+  const chList = DB.data.chantiers.map(c => `<option value="${esc(c.otp)}">${esc(c.otp || '')} · ${esc(c.nom)}</option>`).join('');
+  const typeOpts = sel => Object.entries(TYPE_HEURE).map(([k, l]) => `<option value="${k}" ${sel === k ? 'selected' : ''}>${l}</option>`).join('');
+  const rowHtml = r => `<tr data-id="${r.id}">
+    <td><input class="ts-f" data-k="categorie" value="${esc(r.categorie || '3000111')}" list="ts-cats" style="width:88px"></td>
+    <td><select class="ts-f" data-k="typeHeure" style="width:170px">${typeOpts(r.typeHeure || 'HT')}</select></td>
+    <td><input class="ts-f" data-k="otp" value="${esc(r.otp)}" list="ts-otp" placeholder="Imputation" style="width:118px"></td>
+    ${days.map(i => `<td class="num"><input class="ts-h" data-i="${i}" type="number" min="0" step="0.5" value="${r.h && r.h[i] ? r.h[i] : ''}"></td>`).join('')}
+    <td class="num t-strong rtot">${num(rowTot(r))}</td>
+    <td class="num"><input class="ts-f" data-k="panier" type="number" min="0" value="${r.panier || ''}" style="width:42px"></td>
+    <td class="num"><input class="ts-f" data-k="trajet" type="number" min="0" value="${r.trajet || ''}" style="width:42px"></td>
+    <td><select class="ts-f" data-k="zone" style="width:60px"><option value=""></option>${[1, 2, 3, 4, 5].map(z => `<option ${String(r.zone) === String(z) ? 'selected' : ''}>${z}</option>`).join('')}</select></td>
+    <td><button class="icon-btn danger" data-del="${r.id}" title="Supprimer la ligne">${icon('trash')}</button></td></tr>`;
+  const colTot = i => rows.reduce((s, r) => s + (r.h && r.h[i] ? +r.h[i] : 0), 0);
 
   v.innerHTML = `
-    <div class="kpi-grid">
-      <div class="kpi"><div class="kpi-top"><span class="kpi-label">Heures pointées (semaine)</span><span class="kpi-ico">${icon('clock')}</span></div><div class="kpi-value">${num(totReel)} h</div><div class="kpi-sub">${workers.length} compagnons</div></div>
-      <div class="kpi"><div class="kpi-top"><span class="kpi-label">Taux d'occupation</span><span class="kpi-ico ${occ >= 80 ? 'green' : 'amber'}">${icon('users')}</span></div><div class="kpi-value">${occ} %</div><div class="progress ${occ >= 80 ? 'green' : 'amber'}"><i style="width:${Math.min(100, occ)}%"></i></div><div class="kpi-sub">Capacité ${num(capacite)} h</div></div>
-      <div class="kpi"><div class="kpi-top"><span class="kpi-label">Équipes</span><span class="kpi-ico">${icon('briefcase')}</span></div><div class="kpi-value">${DB.data.equipes.length}</div><div class="kpi-sub">Chef + compagnon</div></div>
+    <div class="ts-person">
+      <div class="ts-avatar">${esc(initiales(worker.nom))}</div>
+      <div style="min-width:200px">
+        <select id="ts-worker" class="ts-workersel">${workers.map(w => `<option value="${w.key}" ${w.key === planWorkerKey ? 'selected' : ''}>${esc(w.nom)} — ${esc(w.equipe)} · ${w.role}</option>`).join('')}</select>
+        <div class="ts-prog"><div class="ts-prog-lbl">${num(persoTot)} H / ${HEBDO_H}.00 H</div><div class="progress ${prog >= 100 ? 'green' : prog >= 60 ? '' : 'amber'}"><i style="width:${prog}%"></i></div></div>
+      </div>
     </div>
-    <div class="page-actions"><button class="btn" id="teams">${icon('users')} Gérer les équipes</button><span class="spacer"></span>
+    <div class="page-actions">
       <button class="btn small" id="prev">◀</button>
-      <span class="chip">Semaine du ${fmtDate(planWeek)}</span>
       <input id="wk" type="date" value="${planWeek}" style="border:1px solid var(--line);border-radius:8px;padding:7px 10px">
+      <span class="chip">${fmtDate(planWeek)} – ${fmtDate(addDays(planWeek, 6))}</span>
       <button class="btn small" id="next">▶</button>
-      <button class="btn small" id="csv">${icon('download')} CSV</button></div>
-    ${workers.length ? `<div class="table-wrap"><table class="point-grid"><thead><tr><th>Compagnon</th>${days.map((jr, i) => `<th class="num">${PJOURS[i]}<div class="t-muted" style="font-weight:400">${fmtDate(jr).slice(0, 5)}</div></th>`).join('')}<th class="num">Total</th></tr></thead>
-      <tbody>${workers.map(w => `<tr><td><div class="t-strong">${esc(w.nom)}</div><div class="t-muted" style="font-size:11px">${esc(w.equipe)} · ${w.role}</div></td>${days.map(jr => cell(w, jr)).join('')}<td class="num rowtot" data-w="${w.key}">${num(rowTot(w))} h</td></tr>`).join('')}</tbody>
-      <tfoot><tr><td>Total / jour</td>${days.map(jr => `<td class="num coltot" data-j="${jr}">${num(colTot(jr))} h</td>`).join('')}<td class="num" id="grandtot">${num(totReel)} h</td></tr></tfoot></table></div>
-      <div class="field hint" style="margin-top:8px">Saisissez les heures et l'OTP/chantier par compagnon et par jour. L'enregistrement est automatique.</div>`
-      : emptyState('users', 'Aucun compagnon', 'Ajoutez vos équipes (chef + compagnon) via « Gérer les équipes ».')}`;
-  $('#teams').onclick = () => equipesModal();
-  $('#prev').onclick = () => { planWeek = addDays(planWeek, -7); renderPointages(v); };
-  $('#next').onclick = () => { planWeek = addDays(planWeek, 7); renderPointages(v); };
-  $('#wk').onchange = e => { planWeek = mondayISO(new Date(e.target.value + 'T00:00:00')); renderPointages(v); };
-  $('#csv').onclick = () => exportCSV('pointages_' + planWeek, ['compagnon', 'equipe', 'role', 'jour', 'otp', 'chantier', 'heures'], week.filter(p => p.heures).map(p => { const w = workers.find(x => x.key === p.workerKey) || {}; return [p.workerNom, w.equipe || '', w.role || '', p.jour, p.otp, p.chantierNom, p.heures]; }));
+      <label class="chip" style="cursor:pointer"><input type="checkbox" id="we" ${planWE ? 'checked' : ''}> WE</label>
+      <span class="spacer"></span>
+      <button class="btn small" id="teams">${icon('users')} Équipes</button>
+      <button class="btn small" id="csv">${icon('download')} CSV</button>
+      <button class="btn primary" id="add">${icon('plus')} Ajouter</button>
+    </div>
+    <datalist id="ts-cats"><option value="3000111"></datalist>
+    <datalist id="ts-otp">${chList}</datalist>
+    <div class="table-wrap"><table class="ts-grid"><thead><tr>
+      <th>Catégorie</th><th>Type</th><th>Imputation</th>
+      ${days.map(i => `<th class="num">${JSEM[i]}<div class="t-muted" style="font-weight:400">${fmtDate(addDays(planWeek, i)).slice(0, 5)}</div></th>`).join('')}
+      <th class="num">Total</th><th class="num" title="Panier repas">Panier</th><th class="num" title="Trajet">Trajet</th><th>Zone</th><th></th></tr></thead>
+      <tbody id="ts-body">${rows.length ? rows.map(rowHtml).join('') : ''}</tbody>
+      <tfoot><tr><td colspan="3">Total</td>${days.map(i => `<td class="num ctot" data-i="${i}">${num(colTot(i))}</td>`).join('')}<td class="num" id="ts-grand">${num(persoTot)}</td><td colspan="4"></td></tr></tfoot>
+    </table></div>
+    ${rows.length ? '<div class="field hint" style="margin-top:8px">Saisie automatiquement enregistrée. Les heures pointées par imputation (OTP) alimentent la MO SMAC du CA.</div>' : '<div class="empty" style="padding:30px"><div class="em-ico">' + icon('clock') + '</div><h3>Aucune ligne cette semaine</h3><div>Cliquez sur « Ajouter » pour saisir une imputation.</div></div>'}`;
 
-  const upsert = (wk, jr) => {
-    const inp = v.querySelector(`.ph[data-w="${CSS.escape(wk)}"][data-j="${jr}"]`);
-    const sel = v.querySelector(`.po[data-w="${CSS.escape(wk)}"][data-j="${jr}"]`);
-    const heures = +inp.value || 0; const ch = DB.data.chantiers.find(c => c.id === sel.value);
-    let p = DB.data.pointages.find(x => x.workerKey === wk && x.jour === jr);
-    if (!heures && !sel.value) { if (p) DB.data.pointages = DB.data.pointages.filter(x => x !== p); }
-    else {
-      if (!p) { p = { id: uid(), jour: jr, workerKey: wk, workerNom: inp.dataset.n, equipeId: inp.dataset.e, otp: '', chantierNom: '', heures: 0 }; DB.data.pointages.push(p); }
-      p.heures = heures; p.otp = ch ? ch.otp : ''; p.chantierNom = ch ? ch.nom : '';
-    }
-    DB.save();
-    // maj totaux sans re-render
-    workers.forEach(w => { const el = v.querySelector(`.rowtot[data-w="${CSS.escape(w.key)}"]`); if (el) el.textContent = num(days.reduce((s, d) => { const x = DB.data.pointages.find(y => y.workerKey === w.key && y.jour === d); return s + (x ? +x.heures || 0 : 0); }, 0)) + ' h'; });
-    days.forEach(d => { const el = v.querySelector(`.coltot[data-j="${d}"]`); if (el) el.textContent = num(DB.data.pointages.filter(y => y.jour === d).reduce((s, y) => s + (+y.heures || 0), 0)) + ' h'; });
-    const gt = v.querySelector('#grandtot'); if (gt) gt.textContent = num(DB.data.pointages.filter(y => y.jour >= planWeek && y.jour <= addDays(planWeek, 5)).reduce((s, y) => s + (+y.heures || 0), 0)) + ' h';
+  const bind = () => {
+    $('#ts-worker', v).onchange = e => { planWorkerKey = e.target.value; renderPointages(v); };
+    $('#we', v).onchange = e => { planWE = e.target.checked; renderPointages(v); };
+    $('#prev', v).onclick = () => { planWeek = addDays(planWeek, -7); renderPointages(v); };
+    $('#next', v).onclick = () => { planWeek = addDays(planWeek, 7); renderPointages(v); };
+    $('#wk', v).onchange = e => { planWeek = mondayISO(new Date(e.target.value + 'T00:00:00')); renderPointages(v); };
+    $('#teams', v).onclick = () => equipesModal();
+    $('#add', v).onclick = () => { DB.data.pointages.push({ id: uid(), workerKey: planWorkerKey, workerNom: worker.nom, equipeId: worker.equipeId, semaine: planWeek, categorie: '3000111', typeHeure: 'HT', otp: '', chantierNom: '', h: [0, 0, 0, 0, 0, 0, 0], panier: 0, trajet: 0, zone: '' }); DB.save(); renderPointages(v); };
+    $('#csv', v).onclick = () => exportCSV('pointages_' + esc(worker.nom) + '_' + planWeek, ['categorie', 'type', 'imputation', ...days.map(i => JSEM[i]), 'total', 'panier', 'trajet', 'zone'], rows.map(r => [r.categorie, r.typeHeure, r.otp, ...days.map(i => r.h[i] || 0), rowTot(r), r.panier, r.trajet, r.zone]));
+    $$('#ts-body tr', v).forEach(tr => {
+      const r = DB.data.pointages.find(x => x.id === tr.dataset.id);
+      tr.querySelectorAll('.ts-h').forEach(inp => inp.oninput = () => { r.h[+inp.dataset.i] = +inp.value || 0; DB.save(); refreshTot(); });
+      tr.querySelectorAll('.ts-f').forEach(f => f.onchange = () => { const k = f.dataset.k; r[k] = (k === 'panier' || k === 'trajet') ? (+f.value || 0) : f.value; if (k === 'otp') { const c = DB.data.chantiers.find(x => x.otp === f.value); r.chantierNom = c ? c.nom : ''; } DB.save(); });
+      tr.querySelector('[data-del]').onclick = () => { DB.data.pointages = DB.data.pointages.filter(x => x.id !== r.id); DB.save(); renderPointages(v); };
+    });
   };
-  $$('.ph', v).forEach(inp => inp.oninput = () => upsert(inp.dataset.w, inp.dataset.j));
-  $$('.po', v).forEach(sel => sel.onchange = () => upsert(sel.dataset.w, sel.dataset.j));
+  const refreshTot = () => {
+    const rws = DB.data.pointages.filter(r => r.workerKey === planWorkerKey && r.semaine === planWeek);
+    $$('#ts-body tr', v).forEach(tr => { const r = rws.find(x => x.id === tr.dataset.id); if (r) tr.querySelector('.rtot').textContent = num(rowTot(r)); });
+    days.forEach(i => { const el = v.querySelector(`.ctot[data-i="${i}"]`); if (el) el.textContent = num(rws.reduce((s, r) => s + (r.h && r.h[i] ? +r.h[i] : 0), 0)); });
+    const pt = rws.reduce((s, r) => s + rowTot(r), 0);
+    $('#ts-grand', v).textContent = num(pt);
+    const pr = Math.min(100, Math.round(pt / HEBDO_H * 100));
+    v.querySelector('.ts-prog-lbl').textContent = num(pt) + ' H / ' + HEBDO_H + '.00 H';
+    const bar = v.querySelector('.ts-prog .progress'); bar.className = 'progress ' + (pr >= 100 ? 'green' : pr >= 60 ? '' : 'amber'); bar.querySelector('i').style.width = pr + '%';
+  };
+  bind();
+  return;
 }
 
 /* ---------- Calendrier du mois (agenda perso + équipes) ---------- */
@@ -1700,7 +1767,7 @@ function dayEvents(iso, dateObj) {
   }
   if (planFilter.equipes) {
     DB.data.agenda.filter(a => a.type === 'chantier' && a.dateDebut && iso >= a.dateDebut && iso <= (a.dateFin || a.dateDebut)).forEach(a => { const eq = DB.data.equipes.find(e => e.id === a.equipeId); evs.push({ color: teamColor(a.equipeId), label: (eq ? eq.nom + ' · ' : '') + a.title, agendaId: a.id }); });
-    DB.data.pointages.filter(p => p.jour === iso && p.heures).forEach(p => evs.push({ color: teamColor(p.equipeId), label: p.workerNom + ' · ' + (p.chantierNom || p.otp || ''), route: 'planning-sem' }));
+    DB.data.pointages.forEach(r => { if (!r.h) return; const di = daysBetween(r.semaine, iso); if (di >= 0 && di < 7 && r.h[di]) evs.push({ color: teamColor(r.equipeId), label: r.workerNom + ' · ' + (r.chantierNom || r.otp || ''), route: 'planning-sem' }); });
   }
   return evs;
 }
