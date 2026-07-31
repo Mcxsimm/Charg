@@ -470,7 +470,8 @@ const CAD_METIERS = {
       bacacier: { label: 'Support bac acier', opts: [['Pas de bac acier', 0], ['Bac acier moyen', 0.025]] },
     },
     tasksLin: {
-      securite: { label: 'Sécurité collective (garde-corps)', input: 'mlong', def: 1, opts: [['Pas de garde-corps', 0], ['Potelets et filins', 0.35]] },
+      gc_depose: { label: 'Dépose de garde-corps (si existant)', input: 'mlong', def: 0, opts: [['Pas de dépose', 0], ['Autoportant / à contrepoids', 0.08], ['Sur platine (dévissé)', 0.10], ['Provisoire (chantier)', 0.06], ['Scellé (dépose + réfection support)', 0.22]] },
+      securite: { label: 'Pose de garde-corps (tout type)', input: 'mlong', def: 3, opts: [['Pas de garde-corps', 0], ['Autoportant / à contrepoids (lesté)', 0.20], ['Sur platine (vissé)', 0.30], ['Potelets + lisses / filins (à sceller)', 0.35], ['En applique sur acrotère', 0.40], ['Repliable / escamotable', 0.45], ['Provisoire (potelets + filet)', 0.25]] },
       equerres_pv: { label: 'Équerres pare-vapeur', input: 'mlong', def: 1, opts: [["Pas d'équerre", 0], ['Hyrène PY 35', 0.06]] },
       releves: { label: "Relevés d'étanchéité", input: 'mlong', def: 3, opts: [['Pas de relevé', 0], ['Isolation verticale (simple)', 0.05], ['Isolation verticale (double)', 0.07], ['Autoprotégée ALUVEL ht 0,15', 0.10], ['Autoprotégée ALUVEL ht 0,50', 0.12], ['ARMA ALU ht 0,15', 0.08], ['ARMA ALU ht 0,50', 0.09], ['Membrane PVC fixée', 0.06]] },
       costieres: { label: 'Costières', input: 'mlong', opts: [['Pas de costière', 0], ['Costière 1 pli acier', 0.04], ['Costière renforcée', 0.06], ['Costière voûtes filantes', 0.30]] },
@@ -616,11 +617,16 @@ Object.values(CAD_METIERS).forEach(m => {
   m.coeffs.meteo = { label: 'Météo / saison', def: 0, opts: CO_METEO };
   m.coeffs.rotation = { label: "Contraintes d'exploitation", def: 0, opts: CO_ROTATION };
 });
-// Émergences / pénétrations en couverture
+// Émergences / pénétrations + garde-corps en couverture
+const GC_DEPOSE = [['Pas de dépose', 0], ['Autoportant / à contrepoids', 0.08], ['Sur platine (dévissé)', 0.10], ['Provisoire (chantier)', 0.06], ['Scellé (dépose + réfection)', 0.22]];
+const GC_POSE = [['Pas de garde-corps', 0], ['Autoportant / à contrepoids (lesté)', 0.20], ['Sur platine (vissé)', 0.30], ['Potelets + lisses / filins (à sceller)', 0.35], ['En applique sur acrotère', 0.40], ['Repliable / escamotable', 0.45], ['Provisoire (potelets + filet)', 0.25]];
 ['tuiles', 'ardoise', 'zinc', 'bacacier'].forEach(k => {
   const m = CAD_METIERS[k];
   m.inputs.push({ key: 'penetrations', label: 'Pénétrations / sorties de toit (nb)', def: 0, unit: 'u' });
   m.tasksLin.penetrations = { label: 'Pénétrations / sorties de toit', input: 'penetrations', def: 0, opts: [['Aucune', 0], ['Solin / sortie simple', 0.8], ['Ventilation / chatière', 1.2], ['Châssis / lanterneau', 2.5]] };
+  m.inputs.push({ key: 'gc', label: 'Périmètre garde-corps (mL)', def: 0, unit: 'mL' });
+  m.tasksLin.gc_depose = { label: 'Dépose de garde-corps (si existant)', input: 'gc', def: 0, opts: GC_DEPOSE };
+  m.tasksLin.gc_pose = { label: 'Pose de garde-corps (tout type)', input: 'gc', def: 0, opts: GC_POSE };
 });
 
 /* -------------------------------------------------------------------------
