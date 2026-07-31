@@ -178,6 +178,8 @@ tfoot td{padding:11px 14px;font-weight:700;background:var(--panel-2);border-top:
   display:flex;align-items:flex-start;justify-content:center;padding:44px 16px;overflow:auto}
 .modal{background:#fff;border-radius:14px;width:100%;max-width:600px;box-shadow:var(--shadow-lg);animation:pop .16s ease}
 .modal.wide{max-width:940px}
+.modal.xwide{max-width:min(1320px,96vw)}
+.modal.xwide .modal-body{max-height:84vh}
 @keyframes pop{from{transform:translateY(8px);opacity:0}to{transform:none;opacity:1}}
 .modal-head{display:flex;align-items:center;padding:17px 22px;border-bottom:1px solid var(--line)}
 .modal-head h3{font-size:16px}
@@ -268,6 +270,25 @@ tfoot td{padding:11px 14px;font-weight:700;background:var(--panel-2);border-top:
 .pcell .po{width:100%;border:1px solid var(--line);border-radius:6px;padding:4px 4px;font-size:11.5px;background:#fff;max-width:120px}
 .pcell .ph:focus,.pcell .po:focus{outline:0;border-color:var(--brand-2);box-shadow:0 0 0 2px rgba(37,104,179,.14)}
 .point-grid .rowtot,.point-grid .coltot{font-weight:700}
+
+/* BTE façon feuille Excel */
+.xls{border-collapse:collapse;width:100%;font-size:12.5px;background:#fff;table-layout:fixed}
+.xls td{border:1px solid #d5dce6;padding:0;height:27px;overflow:hidden;text-overflow:ellipsis}
+.xls input{border:0;background:transparent;width:100%;height:25px;padding:0 8px;font-size:12.5px;font-family:inherit;color:var(--ink)}
+.xls td.num{text-align:right}
+.xls td.num input{text-align:right;font-variant-numeric:tabular-nums}
+.xls input:focus{outline:2px solid var(--brand-2);outline-offset:-2px;background:#fff;border-radius:2px}
+.xls .xls-inline{display:inline-block;width:80px}
+.xls .xls-lbl{font-weight:700;text-align:right;padding:0 10px;background:#f6f8fb;white-space:nowrap}
+.xls .xls-val{font-weight:800;padding:0 10px;font-variant-numeric:tabular-nums}
+.xls .xls-bte{font-weight:800;text-align:center;font-size:15px;letter-spacing:3px;color:var(--brand);background:#f6f8fb}
+.xls .xls-head td{background:#fff}
+.xls .xls-colhead td{background:var(--panel-3);font-weight:700;text-transform:uppercase;font-size:10.5px;letter-spacing:.4px;padding:6px 8px;color:var(--ink-soft)}
+.xls .bte-sec td{background:#e7eef7;font-weight:700;padding:5px 9px;color:var(--ink)}
+.xls .bte-sub td{background:#f6f8fb;font-weight:700}
+.xls .tot,.xls .sub{padding:0 8px;font-variant-numeric:tabular-nums}
+.xls .xls-act{text-align:center}
+.xls .xls-act .icon-btn{padding:3px}
 
 /* Timesheet (saisie des pointages) */
 .ts-person{display:flex;align-items:center;gap:14px;background:#fff;border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:14px 18px;margin-bottom:14px}
@@ -780,9 +801,9 @@ function toast(msg, kind = 'ok') {
   setTimeout(() => { t.style.opacity = '0'; t.style.transform = 'translateY(8px)'; t.style.transition = '.3s'; }, 2200);
   setTimeout(() => t.remove(), 2600);
 }
-function modal({ title, body, wide, footer }) {
+function modal({ title, body, wide, xwide, footer }) {
   const root = $('#modal-root');
-  root.innerHTML = `<div class="modal-back"><div class="modal ${wide ? 'wide' : ''}">
+  root.innerHTML = `<div class="modal-back"><div class="modal ${xwide ? 'xwide' : wide ? 'wide' : ''}">
     <div class="modal-head"><h3>${esc(title)}</h3><button class="icon-btn" data-close>${icon('x')}</button></div>
     <div class="modal-body">${body}</div>${footer ? `<div class="modal-foot">${footer}</div>` : ''}</div></div>`;
   const close = () => { root.innerHTML = ''; };
@@ -1378,63 +1399,75 @@ function renderBTE(v) {
   $$('[data-open]', v).forEach(b => b.onclick = () => bteEditor(b.dataset.open));
   $$('[data-del]', v).forEach(b => b.onclick = () => confirmDialog('Supprimer ce BTE ?', () => { DB.data.bte = DB.data.bte.filter(x => x.id !== b.dataset.del); DB.save(); toast('BTE supprimé'); renderBTE(v); }));
 }
+const bteCatShort = cat => cat.replace(/^\d+\s*\.\s*/, '');
 function bteEditor(id) {
   const b = id ? DB.data.bte.find(x => x.id === id) : { id: uid(), nom: '', adresse: '', otp: '', dateEdition: todayISO(), margePct: 0.30, notes: '', lignes: [] };
   const isNew = !id;
   const otpList = [...new Set([...DB.data.chantiers.map(c => c.otp), ...DB.data.devis.map(d => d.otp)].filter(Boolean))];
-  const rowHtml = l => `<tr>
-    <td><input data-f="designation" value="${esc(l.designation)}" placeholder="Désignation" style="min-width:230px"></td>
-    <td><input data-f="qte" type="number" step="any" value="${l.qte || 0}" style="width:74px"></td>
-    <td><input data-f="unite" value="${esc(l.unite)}" style="width:74px" placeholder="u"></td>
-    <td><input data-f="pu" type="number" step="any" value="${l.pu || 0}" style="width:92px"></td>
+  const lineRow = l => `<tr class="bte-line">
+    <td><input data-f="designation" value="${esc(l.designation)}" placeholder="Désignation"></td>
+    <td class="num"><input data-f="qte" type="number" step="any" value="${l.qte || ''}"></td>
+    <td><input data-f="unite" value="${esc(l.unite)}" placeholder="u"></td>
+    <td class="num"><input data-f="pu" type="number" step="any" value="${l.pu || ''}"></td>
     <td class="num tot">${eur((+l.qte || 0) * (+l.pu || 0))}</td>
-    <td><button class="icon-btn danger" data-rm title="Retirer">${icon('trash')}</button></td></tr>`;
-  const catBlock = (cat, idx) => `<div class="card" style="margin-bottom:12px">
-      <div style="display:flex;align-items:center;gap:10px;padding:12px 16px 10px">
-        <div class="card-title" style="margin:0">${esc(cat)}</div><span class="spacer"></span>
-        <span class="chip">Sous-total&nbsp;<b class="cat-sub" data-cat="${idx}">${eur(0)}</b></span>
-        <button class="btn small" data-add="${idx}">${icon('plus')} Ligne</button></div>
-      <div class="table-wrap" style="border:0;box-shadow:none;border-radius:0;border-top:1px solid var(--line)"><table>
-        <thead><tr><th>Désignation</th><th class="num">Qté</th><th>Unité</th><th class="num">PU</th><th class="num">Total</th><th></th></tr></thead>
-        <tbody data-body="${idx}">${b.lignes.filter(l => l.cat === cat).map(rowHtml).join('')}</tbody></table></div></div>`;
-  const m = modal({ title: isNew ? 'Nouveau BTE' : 'BTE — ' + (b.nom || ''), wide: true,
-    body: `<div class="form-grid">
-      <div class="field"><label>Chantier</label><input id="b-nom" value="${esc(b.nom)}" placeholder="Nom du chantier"></div>
-      <div class="field"><label>N° OTP</label><input id="b-otp" value="${esc(b.otp)}" list="b-otplist"><datalist id="b-otplist">${otpList.map(o => `<option value="${esc(o)}">`).join('')}</datalist></div>
-      <div class="field"><label>Adresse chantier</label><input id="b-adr" value="${esc(b.adresse)}"></div>
-      <div class="field"><label>Date d'édition</label><input id="b-date" type="date" value="${b.dateEdition || todayISO()}"></div>
-      <div class="field"><label>Marge brute cible (%)</label><input id="b-marge" type="number" step="0.1" value="${(b.margePct * 100).toFixed(1)}"></div>
-    </div>
-    <div id="b-metrics" style="margin:16px 0"></div>
-    <div id="b-cats">${BTE_CATS.map(catBlock).join('')}</div>
-    <div class="field full" style="margin-top:6px"><label>Notes</label><textarea id="b-notes" rows="2">${esc(b.notes)}</textarea></div>`,
-    footer: `<button class="btn" data-c>Annuler</button><button class="btn small" id="b-csv">${icon('download')} CSV</button><button class="btn primary" id="b-save">Enregistrer</button>` });
+    <td class="xls-act"><button class="icon-btn danger" data-rm title="Retirer">${icon('trash')}</button></td></tr>`;
+  const secBody = (cat, idx) => `<tbody data-sec="${idx}">
+      <tr class="bte-sec"><td colspan="4">${esc(cat)}</td><td class="num"></td><td class="xls-act"><button class="icon-btn" data-add="${idx}" title="Ajouter une ligne">${icon('plus')}</button></td></tr>
+      ${b.lignes.filter(l => l.cat === cat).map(lineRow).join('')}
+      <tr class="bte-sub"><td></td><td colspan="3" class="num">Total ${esc(bteCatShort(cat))} :</td><td class="num sub" data-sub="${idx}">${eur(0)}</td><td></td></tr>
+    </tbody>`;
+  const m = modal({ title: isNew ? 'Nouveau BTE' : 'BTE — ' + (b.nom || ''), xwide: true,
+    body: `<div class="table-wrap" style="box-shadow:none"><table class="xls">
+      <colgroup><col style="width:auto"><col style="width:92px"><col style="width:70px"><col style="width:92px"><col style="width:124px"><col style="width:38px"></colgroup>
+      <tbody>
+        <tr class="xls-head"><td colspan="2"><input id="b-adr" value="${esc(b.adresse)}" placeholder="Adresse du chantier"></td><td class="xls-lbl" colspan="2">Date d'édition :</td><td colspan="2"><input id="b-date" type="date" value="${b.dateEdition || todayISO()}"></td></tr>
+        <tr class="xls-head"><td colspan="4"><input id="b-nom" value="${esc(b.nom)}" placeholder="Nom du chantier"></td><td class="xls-bte" colspan="2">BTE</td></tr>
+        <tr><td colspan="2"></td><td class="xls-lbl" colspan="2">TOTAL DÉPENSES :</td><td class="num xls-val" id="b-total">${eur(0)}</td><td></td></tr>
+        <tr><td colspan="2">OTP : <input id="b-otp" class="xls-inline" value="${esc(b.otp)}" list="b-otplist" placeholder="…"><datalist id="b-otplist">${otpList.map(o => `<option value="${esc(o)}">`).join('')}</datalist></td><td class="xls-lbl" colspan="2">MARGE BRUTE % :</td><td class="num"><input id="b-marge" type="number" step="0.1" value="${(b.margePct * 100).toFixed(1)}"></td><td></td></tr>
+        <tr><td colspan="2"></td><td class="xls-lbl" colspan="2">PRIX DE VENTE :</td><td class="num xls-val" id="b-pv">${eur(0)}</td><td></td></tr>
+        <tr class="xls-colhead"><td>DÉSIGNATIONS</td><td class="num">Quantités</td><td>Uni.</td><td class="num">PU</td><td class="num">TOTAL BTE</td><td></td></tr>
+      </tbody>
+      ${BTE_CATS.map(secBody).join('')}
+    </table></div>
+    <div class="field full" style="margin-top:12px"><label>Notes</label><textarea id="b-notes" rows="2">${esc(b.notes)}</textarea></div>`,
+    footer: `<button class="btn" data-c>Annuler</button><span class="spacer"></span>
+      <button class="btn small" id="b-xlsx">${icon('download')} Excel</button>
+      <button class="btn small" id="b-csv">${icon('download')} CSV</button>
+      <button class="btn" id="b-devis">${icon('file')} Créer un devis</button>
+      <button class="btn primary" id="b-save">Enregistrer</button>` });
+  m.root.querySelector('.modal-foot').style.flexWrap = 'wrap';
   const collect = () => {
     b.nom = $('#b-nom').value.trim(); b.otp = $('#b-otp').value.trim(); b.adresse = $('#b-adr').value.trim();
     b.dateEdition = $('#b-date').value; b.margePct = (+$('#b-marge').value || 0) / 100; b.notes = $('#b-notes').value.trim();
     b.lignes = [];
-    BTE_CATS.forEach((cat, idx) => $$(`[data-body="${idx}"] tr`).forEach(tr => {
+    BTE_CATS.forEach((cat, idx) => $$(`[data-sec="${idx}"] .bte-line`, m.root).forEach(tr => {
       const g = f => tr.querySelector(`[data-f="${f}"]`).value;
       b.lignes.push({ cat, designation: g('designation'), unite: g('unite'), qte: +g('qte') || 0, pu: +g('pu') || 0 });
     }));
   };
   const refresh = () => {
     collect(); const t = bteTotals(b);
-    BTE_CATS.forEach((cat, idx) => { const el = m.root.querySelector(`.cat-sub[data-cat="${idx}"]`); if (el) el.textContent = eur(t.parCat[cat] || 0); });
-    $('#b-metrics').innerHTML = `<div class="grid-3">
-      <div class="cad-metric"><div class="cm-label">Total dépenses</div><div class="cm-value">${eur(t.dep)}</div></div>
-      <div class="cad-metric amber"><div class="cm-label">Marge brute</div><div class="cm-value">${pct(t.margePct)}</div><div class="cm-sub">${eur(t.margeEuro)}</div></div>
-      <div class="cad-metric green"><div class="cm-label">Prix de vente HT</div><div class="cm-value">${eur(t.pv)}</div><div class="cm-sub">Dépenses ÷ (1 − marge)</div></div></div>`;
+    BTE_CATS.forEach((cat, idx) => { const el = m.root.querySelector(`.sub[data-sub="${idx}"]`); if (el) el.textContent = eur(t.parCat[cat] || 0); });
+    $$('.bte-line', m.root).forEach(tr => { const g = f => tr.querySelector(`[data-f="${f}"]`).value; tr.querySelector('.tot').textContent = eur((+g('qte') || 0) * (+g('pu') || 0)); });
+    $('#b-total').textContent = eur(t.dep); $('#b-pv').textContent = eur(t.pv);
   };
   const bindRow = tr => {
-    tr.querySelectorAll('input').forEach(inp => inp.oninput = () => { const g = f => tr.querySelector(`[data-f="${f}"]`).value; tr.querySelector('.tot').textContent = eur((+g('qte') || 0) * (+g('pu') || 0)); refresh(); });
+    tr.querySelectorAll('input').forEach(inp => inp.oninput = refresh);
     tr.querySelector('[data-rm]').onclick = () => { tr.remove(); refresh(); };
   };
-  $$('#b-cats tbody tr').forEach(bindRow);
-  ['b-marge'].forEach(k => $('#' + k).oninput = refresh);
-  $$('[data-add]', m.root).forEach(btn => btn.onclick = () => { const body = m.root.querySelector(`[data-body="${btn.dataset.add}"]`); const tmp = document.createElement('tbody'); tmp.innerHTML = rowHtml({ designation: '', unite: '', qte: 0, pu: 0 }); const tr = tmp.firstElementChild; body.appendChild(tr); bindRow(tr); refresh(); });
+  $$('.bte-line', m.root).forEach(bindRow);
+  $('#b-marge').oninput = refresh;
+  $$('[data-add]', m.root).forEach(btn => btn.onclick = () => { const tb = m.root.querySelector(`[data-sec="${btn.dataset.add}"]`); const sub = tb.querySelector('.bte-sub'); const tmp = document.createElement('tbody'); tmp.innerHTML = lineRow({ designation: '', unite: '', qte: 0, pu: 0 }); const tr = tmp.firstElementChild; tb.insertBefore(tr, sub); bindRow(tr); tr.querySelector('input').focus(); refresh(); });
   m.root.querySelector('[data-c]').onclick = m.close;
   $('#b-csv').onclick = () => { collect(); exportCSV('BTE_' + (b.otp || b.nom || 'chantier'), ['poste', 'designation', 'unite', 'qte', 'pu', 'total'], b.lignes.map(l => [l.cat, l.designation, l.unite, l.qte, l.pu, l.qte * l.pu])); };
+  $('#b-xlsx').onclick = () => { collect(); if (!b.nom) { toast('Renseignez le nom du chantier', 'err'); return; } exportBteXlsx(b); };
+  $('#b-devis').onclick = () => {
+    collect(); if (!b.nom) { toast('Renseignez le nom du chantier', 'err'); return; }
+    if (isNew && !DB.data.bte.some(x => x.id === b.id)) DB.data.bte.unshift(b);
+    const t = bteTotals(b);
+    const dv = { id: uid(), ref: 'DEV-' + new Date().toISOString().slice(2, 7).replace('-', '') + '-' + String(DB.data.devis.length + 1).padStart(2, '0'), otp: b.otp || '', clientId: '', chantierId: '', objet: b.nom, dateDemande: todayISO(), dateEnvoi: '', montantHT: Math.round(t.pv), statut: 'attente', relance: '' };
+    DB.data.devis.unshift(dv); DB.save(); m.close(); toast('Devis créé depuis le BTE (' + eur(t.pv) + ')'); go('devis');
+  };
   $('#b-save').onclick = () => { collect(); if (!b.nom) { toast('Le nom du chantier est obligatoire', 'err'); return; } if (isNew) DB.data.bte.unshift(b); DB.save(); m.close(); toast('BTE enregistré'); go('bte'); };
   refresh();
 }
@@ -2114,6 +2147,80 @@ function download(name, content, type = 'text/plain') {
 function exportCSV(name, headers, rows) {
   const csv = [headers.join(';'), ...rows.map(r => r.map(cell => { const s = String(cell ?? '').replace(/"/g, '""'); return /[";\n]/.test(s) ? `"${s}"` : s; }).join(';'))].join('\r\n');
   download(name + '.csv', '﻿' + csv, 'text/csv;charset=utf-8'); toast('Export CSV généré');
+}
+
+/* ---- Générateur XLSX minimal (autonome, sans librairie) ---- */
+const _crcTab = (() => { const t = []; for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
+function _crc32(b) { let c = 0xFFFFFFFF; for (let i = 0; i < b.length; i++) c = _crcTab[(c ^ b[i]) & 0xFF] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; }
+function _zip(files) {
+  const enc = new TextEncoder(), u16 = n => [n & 255, (n >> 8) & 255], u32 = n => [n & 255, (n >> 8) & 255, (n >> 16) & 255, (n >> 24) & 255];
+  const locals = [], centrals = []; let offset = 0;
+  files.forEach(f => {
+    const nameB = enc.encode(f.name), data = f.data, crc = _crc32(data), sz = data.length;
+    const lh = [0x50, 0x4b, 0x03, 0x04, ...u16(20), ...u16(0), ...u16(0), ...u16(0), ...u16(0), ...u32(crc), ...u32(sz), ...u32(sz), ...u16(nameB.length), ...u16(0)];
+    const la = new Uint8Array(lh.length + nameB.length + sz); la.set(lh, 0); la.set(nameB, lh.length); la.set(data, lh.length + nameB.length);
+    locals.push(la);
+    const ch = [0x50, 0x4b, 0x01, 0x02, ...u16(20), ...u16(20), ...u16(0), ...u16(0), ...u16(0), ...u16(0), ...u32(crc), ...u32(sz), ...u32(sz), ...u16(nameB.length), ...u16(0), ...u16(0), ...u16(0), ...u16(0), ...u32(0), ...u32(offset)];
+    const ca = new Uint8Array(ch.length + nameB.length); ca.set(ch, 0); ca.set(nameB, ch.length);
+    centrals.push(ca); offset += la.length;
+  });
+  const cSize = centrals.reduce((s, c) => s + c.length, 0);
+  const eocd = new Uint8Array([0x50, 0x4b, 0x05, 0x06, ...u16(0), ...u16(0), ...u16(files.length), ...u16(files.length), ...u32(cSize), ...u32(offset), ...u16(0)]);
+  const parts = [...locals, ...centrals, eocd], total = parts.reduce((s, p) => s + p.length, 0), out = new Uint8Array(total);
+  let o = 0; parts.forEach(p => { out.set(p, o); o += p.length; });
+  return out;
+}
+const _colL = i => { let s = ''; i++; while (i > 0) { const m = (i - 1) % 26; s = String.fromCharCode(65 + m) + s; i = (i - m - 1) / 26; } return s; };
+const _xe = s => String(s == null ? '' : s).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+function _sheetXml(rows, widths) {
+  let body = '';
+  rows.forEach((row, ri) => {
+    let cells = '';
+    (row || []).forEach((cell, ci) => {
+      if (cell == null) return;
+      const ref = _colL(ci) + (ri + 1), s = cell.s ? ` s="${cell.s}"` : '';
+      if (typeof cell === 'number') { cells += `<c r="${ref}"><v>${cell}</v></c>`; return; }
+      if (typeof cell === 'string') { cells += `<c r="${ref}" t="inlineStr"><is><t xml:space="preserve">${_xe(cell)}</t></is></c>`; return; }
+      if (cell.v === undefined && cell.f === undefined) { if (cell.s) cells += `<c r="${ref}"${s}/>`; return; }
+      if (typeof cell.v === 'number' || cell.n) cells += `<c r="${ref}"${s}><v>${cell.v}</v></c>`;
+      else cells += `<c r="${ref}"${s} t="inlineStr"><is><t xml:space="preserve">${_xe(cell.v)}</t></is></c>`;
+    });
+    body += `<row r="${ri + 1}">${cells}</row>`;
+  });
+  const cols = widths ? `<cols>${widths.map((w, i) => `<col min="${i + 1}" max="${i + 1}" width="${w}" customWidth="1"/>`).join('')}</cols>` : '';
+  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetViews><sheetView workbookViewId="0"/></sheetViews><sheetFormatPr defaultRowHeight="15"/>${cols}<sheetData>${body}</sheetData></worksheet>`;
+}
+const _XLSX_STYLES = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><fonts count="2"><font><sz val="10"/><name val="Calibri"/></font><font><b/><sz val="10"/><name val="Calibri"/></font></fonts><fills count="3"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FFEDF2F7"/><bgColor indexed="64"/></patternFill></fill></fills><borders count="2"><border><left/><right/><top/><bottom/><diagonal/></border><border><left style="thin"><color rgb="FFB8C2D0"/></left><right style="thin"><color rgb="FFB8C2D0"/></right><top style="thin"><color rgb="FFB8C2D0"/></top><bottom style="thin"><color rgb="FFB8C2D0"/></bottom><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="8"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1"/><xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1"/><xf numFmtId="0" fontId="1" fillId="0" borderId="1" xfId="0" applyFont="1" applyBorder="1"/><xf numFmtId="0" fontId="1" fillId="2" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1"/><xf numFmtId="4" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1" applyNumberFormat="1"/><xf numFmtId="4" fontId="1" fillId="2" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyNumberFormat="1"/><xf numFmtId="4" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1" applyNumberFormat="1"/></cellXfs></styleSheet>`;
+function writeXlsx(filename, sheetName, rows, widths) {
+  const enc = new TextEncoder();
+  const files = [
+    { name: '[Content_Types].xml', data: enc.encode(`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>`) },
+    { name: '_rels/.rels', data: enc.encode(`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>`) },
+    { name: 'xl/workbook.xml', data: enc.encode(`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="${_xe(sheetName).slice(0, 31)}" sheetId="1" r:id="rId1"/></sheets></workbook>`) },
+    { name: 'xl/_rels/workbook.xml.rels', data: enc.encode(`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>`) },
+    { name: 'xl/styles.xml', data: enc.encode(_XLSX_STYLES) },
+    { name: 'xl/worksheets/sheet1.xml', data: enc.encode(_sheetXml(rows, widths)) },
+  ];
+  download(filename, _zip(files), 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+}
+function exportBteXlsx(b) {
+  const t = bteTotals(b);
+  const N = { n: true }; // marqueur nombre
+  const rows = [];
+  rows[0] = [{ v: b.adresse || '', s: 1 }, null, { v: "Date d'édition :", s: 1 }, { v: b.dateEdition ? fmtDate(b.dateEdition) : '' }];
+  rows[2] = [{ v: b.nom || '', s: 1 }, null, null, null, { v: 'BTE', s: 1 }];
+  rows[3] = [null, null, null, { v: 'TOTAL DÉPENSES :', s: 1 }, { v: t.dep, s: 7 }];
+  rows[4] = [{ v: 'OTP : ' + (b.otp || ''), s: 1 }, null, null, { v: 'MARGE BRUTE % :', s: 1 }, { v: (t.margePct * 100).toFixed(1) + ' %', s: 1 }];
+  rows[5] = [null, null, null, { v: 'PRIX DE VENTE :', s: 1 }, { v: t.pv, s: 7 }];
+  rows[6] = [{ v: 'DÉSIGNATIONS', s: 3 }, { v: 'Quantités', s: 3 }, { v: 'Uni.', s: 3 }, { v: 'PU', s: 3 }, { v: 'TOTAL', s: 3 }];
+  let ri = 7;
+  BTE_CATS.forEach(cat => {
+    rows[ri++] = [{ v: cat, s: 4 }, { v: '', s: 4 }, { v: '', s: 4 }, { v: '', s: 4 }, { v: '', s: 4 }];
+    b.lignes.filter(l => l.cat === cat).forEach(l => { rows[ri++] = [{ v: l.designation || '', s: 2 }, { v: +l.qte || 0, s: 2 }, { v: l.unite || '', s: 2 }, { v: +l.pu || 0, s: 5 }, { v: (+l.qte || 0) * (+l.pu || 0), s: 5 }]; });
+    rows[ri++] = [null, null, null, { v: 'Total ' + cat.replace(/^\d+\s*\.\s*/, '') + ' :', s: 4 }, { v: t.parCat[cat] || 0, s: 6 }];
+  });
+  writeXlsx('BTE_' + (b.otp || b.nom || 'chantier') + '.xlsx', 'BTE', rows, [52, 11, 10, 13, 14]);
+  toast('Export Excel généré');
 }
 function exportAll() {
   const p = DB.currentProfile();
