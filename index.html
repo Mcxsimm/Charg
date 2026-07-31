@@ -431,6 +431,9 @@ function icon(name, cls = '') {
   return `<svg class="ic ${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[name] || ''}</svg>`;
 }
 
+/* Référentiel fournisseurs (liste interne — nom + n° fournisseur) */
+const FOURNISSEURS_REF = [{n:"ACCES INDUSTRIE",c:'1006145'},{n:"ALGECO",c:'1008066'},{n:"ALLIAGE PAILLE",c:'1008863'},{n:"ALTEMA",c:'1064346'},{n:"ANTARGAZ",c:'1002637'},{n:"ARCELOR",c:'1012773'},{n:"ASTURIENNE",c:'1003284'},{n:"AXEL LOCATION",c:'1006253'},{n:"AXTER",c:'1001414'},{n:"AXTER-IKO",c:'1086791'},{n:"BAOBAG",c:'1008803'},{n:"BAUDELET",c:'1080448'},{n:"BCM PLIAGE",c:'1085178'},{n:"BLUETEK",c:'1063351'},{n:"BRAND",c:'1011530'},{n:"COEUGNET",c:'1011983'},{n:"COMAT",c:'1057742'},{n:"COMPAGNIE PETROLIERE",c:'1012345'},{n:"COMPTOIR DE L'ETANCHEITE",c:'1011467'},{n:"DERICHERBOURG / REVIVAL",c:'1010203'},{n:"DML",c:'1077945'},{n:"ECHAFAUDAGE BONVOISIN",c:'1000341'},{n:"EDF",c:'1001544'},{n:"EPDM FRANCE",c:'1072813'},{n:"ETANCO",c:'1006236'},{n:"EUDIER",c:'1110976'},{n:"FEP",c:'1059399'},{n:"FOSELEV",c:'1011599'},{n:"FRANCE CARS",c:'1012879'},{n:"HAVRE ECHAFAUDAGE",c:'1085540'},{n:"HETTIER",c:'1010161'},{n:"HILTI",c:'1012203'},{n:"HLS",c:'1063606'},{n:"IKO",c:'1003278'},{n:"IKOS DARNETAL",c:'1019851'},{n:"ISOVER",c:'1062035'},{n:"JORIS",c:'1007491'},{n:"KILOUTOU",c:'1002639'},{n:"KINGSPAN LIGHT AIR",c:'1065245'},{n:"KNAUF IDF/OUEST",c:'1007669'},{n:"KNAUF INSULATION",c:'1009895'},{n:"KNIPPING",c:'1011647'},{n:"LARIVIERE",c:'1097259'},{n:"LECOUFLE ROUEN",c:'1001282'},{n:"LECOUFLE ST LO/CHERB",c:'1012186'},{n:"LEGALLAIS",c:'1002640'},{n:"LMI",c:'1068913'},{n:"LOCCAMAT 14",c:'1012293'},{n:"LOXAM",c:'1002641'},{n:"M LOC",c:'1009772'},{n:"MABEO",c:'1012881'},{n:"MONOPANEL",c:'1012464'},{n:"NESTA",c:'1012477'},{n:"NORMAPLI",c:'1012039'},{n:"NPC",c:'1000453'},{n:"OUEST ISOL",c:'1012111'},{n:"PAPREC",c:'1010645'},{n:"POINT P CAEN",c:'1000336'},{n:"POINT P CHERBOURG",c:'1061928'},{n:"POINT P ROUEN",c:'1011555'},{n:"PPP",c:'1011888'},{n:"PROLIANS",c:'1001282'},{n:"PUM",c:'1011594'},{n:"RECTICEL",c:'1009725'},{n:"REGIS LOCATION",c:'1011527'},{n:"RIKKSEN",c:'1010561'},{n:"ROCKWOOL",c:'1010138'},{n:"ROOFMART",c:'1006550'},{n:"SARENS",c:'1006774'},{n:"SCAFF THERMOS",c:'1088289'},{n:"SETIN",c:'1011861'},{n:"SKYDOM",c:'1054015'},{n:"SOPREMA",c:'1012293'},{n:"SUEZ",c:'1008081'},{n:"UNIFER",c:'1056707'},{n:"VELUX",c:'1012671'},{n:"VEOLIA",c:'1008844'},{n:"VEQ ACIER",c:'1062035'},{n:"VM DISTRIBUTION",c:'1006468'},{n:"WURTH",c:'1012112'}];
+
 /* -------------------------------------------------------------------------
    2. Référentiel Cadences multi-métiers (temps unitaires indicatifs)
    Étanchéité (fichier « Cadences V10 »), Tuiles, Ardoise, Bac acier, Zinc.
@@ -602,6 +605,24 @@ const CAD_METIERS = {
   },
 };
 
+/* Coefficients et saisies additionnels (précision) appliqués à tous les métiers */
+const CO_ACCES = [['Facile (de plain-pied)', 1.0], ['Moyen', 1.05], ['Difficile (portage, exigus)', 1.15]];
+const CO_REND = [['Équipe confirmée', 0.95], ['Standard', 1.0], ['En formation', 1.10]];
+const CO_METEO = [['Favorable', 1.0], ['Standard', 1.03], ['Défavorable (hiver/vent)', 1.10]];
+const CO_ROTATION = [['Continue (1 poste)', 1.0], ['Interruptions modérées', 1.05], ['Site occupé / phasage', 1.12]];
+Object.values(CAD_METIERS).forEach(m => {
+  m.coeffs.acces = { label: 'Accès chantier', def: 0, opts: CO_ACCES };
+  m.coeffs.rendement = { label: "Rendement de l'équipe", def: 1, opts: CO_REND };
+  m.coeffs.meteo = { label: 'Météo / saison', def: 0, opts: CO_METEO };
+  m.coeffs.rotation = { label: "Contraintes d'exploitation", def: 0, opts: CO_ROTATION };
+});
+// Émergences / pénétrations en couverture
+['tuiles', 'ardoise', 'zinc', 'bacacier'].forEach(k => {
+  const m = CAD_METIERS[k];
+  m.inputs.push({ key: 'penetrations', label: 'Pénétrations / sorties de toit (nb)', def: 0, unit: 'u' });
+  m.tasksLin.penetrations = { label: 'Pénétrations / sorties de toit', input: 'penetrations', def: 0, opts: [['Aucune', 0], ['Solin / sortie simple', 0.8], ['Ventilation / chatière', 1.2], ['Châssis / lanterneau', 2.5]] };
+});
+
 /* -------------------------------------------------------------------------
    3. Objectifs (fiche de fonction Chargé d'affaires SAS)
    ------------------------------------------------------------------------- */
@@ -647,6 +668,7 @@ const DB = {
     d.commandes.forEach(x => { if (x.dateReception === undefined) x.dateReception = ''; if (x.num === undefined) x.num = ''; });
     d.chantiers.forEach(x => { if (x.sourceDevisId === undefined) x.sourceDevisId = ''; });
     if (!Array.isArray(d.agenda)) d.agenda = [];
+    if (!Array.isArray(d.otps)) d.otps = [];
     d.pointages = migratePointages(d.pointages);
     d.bte = d.bte.map(migrateBte);
     return d;
@@ -710,12 +732,20 @@ function demoData() {
       { id: ch1, otp: 'OTP-24001', nom: 'Réfection toiture bâtiment A', clientId: c1, adresse: 'Lyon 69003', statut: 'en_cours', dateDemande: addDays(todayISO(), -40), montantHT: 84000, notes: 'Étanchéité + relevés' },
       { id: ch2, otp: 'OTP-24002', nom: 'Étanchéité parking couvert', clientId: c2, adresse: 'Villeurbanne 69100', statut: 'commande', dateDemande: addDays(todayISO(), -18), montantHT: 152000, notes: 'Grand compte, BPU' },
       { id: ch3, otp: 'OTP-24003', nom: 'Terrasse école primaire', clientId: c3, adresse: 'Bron 69500', statut: 'devis', dateDemande: addDays(todayISO(), -4), montantHT: 41000, notes: '' },
+      { id: uid(), otp: '6004345', nom: 'Collège Jean Moulin — étanchéité toiture', clientId: c3, adresse: 'Rouen 76000', statut: 'commande', dateDemande: addDays(todayISO(), -22), montantHT: 54000, notes: 'Lot département' },
+      { id: uid(), otp: '6004345', nom: 'Collège Voltaire — réfection terrasse', clientId: c3, adresse: 'Le Havre 76600', statut: 'devis', dateDemande: addDays(todayISO(), -9), montantHT: 38000, notes: 'Lot département' },
+    ],
+    otps: [
+      { code: '6004345', libelle: 'Département 76 — Collèges (lot étanchéité)', clientId: c3, notes: 'Plusieurs établissements sous le même OTP' },
+      { code: 'OTP-24002', libelle: 'Groupe Logista — parkings & toitures', clientId: c2, notes: '' },
     ],
     devis: [
       { id: uid(), ref: 'DEV-2607-01', otp: 'OTP-24003', clientId: c3, chantierId: ch3, objet: 'Terrasse école primaire', dateDemande: addDays(todayISO(), -4), dateEnvoi: addDays(todayISO(), -1), montantHT: 41000, statut: 'envoye', relance: '' },
       { id: uid(), ref: 'DEV-2607-02', otp: 'OTP-24004', clientId: c1, chantierId: '', objet: 'Recherche de fuite immeuble', dateDemande: addDays(todayISO(), -6), dateEnvoi: '', montantHT: 3200, statut: 'attente', relance: '' },
       { id: uid(), ref: 'DEV-2606-14', otp: 'OTP-24002', clientId: c2, chantierId: ch2, objet: 'Étanchéité parking couvert', dateDemande: addDays(todayISO(), -18), dateEnvoi: addDays(todayISO(), -15), montantHT: 152000, statut: 'accepte', relance: '' },
       { id: uid(), ref: 'DEV-2607-05', otp: 'OTP-24002', clientId: c2, chantierId: ch2, objet: 'Parking couvert — travaux complémentaires (relevés)', dateDemande: addDays(todayISO(), -3), dateEnvoi: addDays(todayISO(), -2), montantHT: 12500, statut: 'envoye', relance: addDays(todayISO(), 3) },
+      { id: uid(), ref: 'DEV-2606-20', otp: '6004345', clientId: c3, chantierId: '', objet: 'Collège Jean Moulin — étanchéité toiture', dateDemande: addDays(todayISO(), -22), dateEnvoi: addDays(todayISO(), -20), montantHT: 54000, statut: 'accepte', relance: '' },
+      { id: uid(), ref: 'DEV-2607-08', otp: '6004345', clientId: c3, chantierId: '', objet: 'Collège Voltaire — réfection terrasse', dateDemande: addDays(todayISO(), -9), dateEnvoi: addDays(todayISO(), -7), montantHT: 38000, statut: 'envoye', relance: addDays(todayISO(), 4) },
     ],
     ca: [
       { id: uid(), mois: new Date().getMonth(), annee: new Date().getFullYear(), otp: 'OTP-24001', chantier: 'Réfection toiture bâtiment A', prixVente: 84000, fournitures: 31000, engins: 6000, moSmac: 18000 },
@@ -827,6 +857,7 @@ const NAV = [
   { group: 'Commercial' },
   { route: 'prospection', ico: 'phone', label: 'Prospection & RDV', render: renderProspection },
   { route: 'devis', ico: 'file', label: 'Devis', render: renderDevis },
+  { route: 'otps', ico: 'layers', label: 'Comptes OTP', render: renderOtps },
   { route: 'clients', ico: 'users', label: 'Clients', render: renderClients },
   { group: 'Exploitation' },
   { route: 'chantiers', ico: 'building', label: 'Chantiers', render: renderChantiers },
@@ -1174,6 +1205,78 @@ function chantierDetail(id) {
   m.root.querySelector('[data-c]').onclick = m.close;
 }
 
+/* ---------- Comptes OTP (un OTP regroupe plusieurs sites / devis) ---------- */
+function otpRollup(code) {
+  const chantiers = DB.data.chantiers.filter(c => c.otp === code);
+  const devis = DB.data.devis.filter(d => d.otp === code);
+  const factures = DB.data.factures.filter(f => f.otp === code);
+  const caLines = DB.data.ca.filter(r => r.otp === code);
+  const montantDevis = devis.reduce((s, d) => s + (+d.montantHT || 0), 0);
+  const ca = caLines.reduce((s, r) => s + (+r.prixVente || 0), 0);
+  const margeCa = caLines.reduce((s, r) => s + marge(r), 0);
+  const achats = commandesParOtp(code);
+  const mo = moAllOtp(code);
+  const factEmis = factures.filter(f => f.statut !== 'a_emettre').reduce((s, f) => s + (+f.montantHT || 0), 0);
+  const encaisse = factures.filter(f => f.statut === 'payee').reduce((s, f) => s + (+f.montantHT || 0), 0);
+  return { chantiers, devis, factures, caLines, montantDevis, ca, margeCa, achats, mo, factEmis, encaisse };
+}
+let otpFilterQ = '';
+function renderOtps(v) {
+  const codes = otpDistinct().filter(c => { if (!otpFilterQ) return true; const s = (c + ' ' + otpLabel(c)).toLowerCase(); return s.includes(otpFilterQ.toLowerCase()); });
+  v.innerHTML = `
+    <p class="t-muted" style="margin-top:-2px;max-width:860px">Un <b>OTP</b> est un compte qui peut regrouper <b>plusieurs sites</b> (ex. les collèges d'un département), chacun avec son devis. Cette vue consolide, par OTP, les sites, devis, factures, achats et la marge.</p>
+    <div class="page-actions"><button class="btn primary" id="add">${icon('plus')} Libeller un OTP</button><span class="spacer"></span><button class="btn small" id="csv">${icon('download')} Export CSV</button></div>
+    <div class="filters"><span class="search-wrap">${icon('search')}<input id="q" placeholder="Rechercher (code, libellé…)" value="${esc(otpFilterQ)}"></span><span class="chip">${codes.length} OTP</span></div>
+    ${codes.length ? `<div class="table-wrap"><table><thead><tr><th>OTP</th><th>Libellé</th><th>Client</th><th class="num">Sites</th><th class="num">Devis</th><th class="num">Montant devis</th><th class="num">CA réalisé</th><th class="num">Marge CA</th><th></th></tr></thead>
+      <tbody>${codes.map(code => { const r = otpRollup(code); return `<tr><td class="t-strong">${esc(code)}</td><td><span class="link" data-open="${esc(code)}">${esc(otpLabel(code) || '—')}</span></td><td class="t-muted">${esc(clientNom(otpClientId(code)))}</td><td class="num">${r.chantiers.length}</td><td class="num">${r.devis.length}</td><td class="num">${eur(r.montantDevis)}</td><td class="num">${eur(r.ca)}</td><td class="num ${r.margeCa >= 0 ? 'margin-good' : 'margin-bad'}">${eur(r.margeCa)}</td>
+        <td class="actions-cell"><button class="icon-btn" data-open="${esc(code)}" title="Détail">${icon('layers')}</button><button class="icon-btn" data-edit="${esc(code)}" title="Libellé">${icon('edit')}</button></td></tr>`; }).join('')}</tbody></table></div>`
+      : emptyState('layers', 'Aucun OTP', 'Les OTP apparaissent dès qu\'ils sont utilisés sur un devis, un chantier, une facture ou un achat.')}`;
+  $('#add').onclick = () => otpForm();
+  $('#q').oninput = e => { otpFilterQ = e.target.value; renderOtps(v); const i = $('#q'); i.focus(); i.setSelectionRange(i.value.length, i.value.length); };
+  $('#csv').onclick = () => exportCSV('comptes_otp', ['otp', 'libelle', 'client', 'sites', 'devis', 'montant_devis', 'ca', 'marge_ca', 'achats', 'mo'], codes.map(c => { const r = otpRollup(c); return [c, otpLabel(c), clientNom(otpClientId(c)), r.chantiers.length, r.devis.length, r.montantDevis, r.ca, r.margeCa, r.achats, r.mo]; }));
+  $$('[data-open]', v).forEach(b => b.onclick = () => otpDetail(b.dataset.open));
+  $$('[data-edit]', v).forEach(b => b.onclick = () => otpForm(b.dataset.edit));
+}
+function otpDetail(code) {
+  const r = otpRollup(code);
+  const card = (label, val, sub, tone) => `<div class="cad-metric ${tone || ''}"><div class="cm-label">${label}</div><div class="cm-value" style="font-size:22px">${val}</div>${sub ? `<div class="cm-sub">${sub}</div>` : ''}</div>`;
+  const m = modal({ title: 'OTP ' + code + (otpLabel(code) ? ' — ' + otpLabel(code) : ''), xwide: true,
+    body: `<div class="grid-3" style="margin-bottom:14px">
+        ${card('Montant devis', eur(r.montantDevis), r.devis.length + ' devis')}
+        ${card('CA réalisé', eur(r.ca), 'Marge ' + eur(r.margeCa), 'green')}
+        ${card('Coûts imputés', eur(r.achats + r.mo), 'Achats ' + eur(r.achats) + ' · MO ' + eur(r.mo), 'amber')}
+      </div>
+      <div class="card-title">Sites / chantiers (${r.chantiers.length})</div>
+      ${r.chantiers.length ? `<div class="table-wrap" style="margin-bottom:14px"><table><thead><tr><th>Nom du site</th><th>Adresse</th><th>Statut</th><th class="num">Montant HT</th></tr></thead><tbody>${r.chantiers.map(c => `<tr><td class="t-strong">${esc(c.nom)}</td><td class="t-muted">${esc(c.adresse || '—')}</td><td>${statutBadge(c.statut)}</td><td class="num">${eur(c.montantHT)}</td></tr>`).join('')}</tbody></table></div>` : '<div class="t-muted" style="margin-bottom:14px">Aucun site.</div>'}
+      <div class="card-title">Devis (${r.devis.length})</div>
+      ${r.devis.length ? `<div class="table-wrap" style="margin-bottom:14px"><table><thead><tr><th>Réf.</th><th>Objet (site)</th><th>Statut</th><th class="num">Montant HT</th></tr></thead><tbody>${r.devis.map(d => `<tr><td class="t-strong">${esc(d.ref)}</td><td>${esc(d.objet)}</td><td>${devisBadge(d.statut)}</td><td class="num">${eur(d.montantHT)}</td></tr>`).join('')}</tbody><tfoot><tr><td colspan="3">Total devis</td><td class="num">${eur(r.montantDevis)}</td></tr></tfoot></table></div>` : '<div class="t-muted" style="margin-bottom:14px">Aucun devis.</div>'}
+      ${r.factures.length ? `<div class="card-title">Factures (${r.factures.length})</div><div class="table-wrap" style="margin-bottom:14px"><table><thead><tr><th>N°</th><th>Objet</th><th>Statut</th><th class="num">Montant HT</th></tr></thead><tbody>${r.factures.map(f => `<tr><td class="t-strong">${esc(f.num || '—')}</td><td>${esc(f.objet || '—')}</td><td>${factBadge(f)}</td><td class="num">${eur(f.montantHT)}</td></tr>`).join('')}</tbody></table></div>` : ''}
+      ${DB.data.commandes.filter(c => c.otp === code).length ? `<div class="card-title">Achats fournisseurs</div><div class="table-wrap"><table><thead><tr><th>N°</th><th>Fournisseur</th><th>Objet</th><th class="num">Montant HT</th></tr></thead><tbody>${DB.data.commandes.filter(c => c.otp === code).map(c => `<tr><td class="t-strong">${esc(c.num || '—')}</td><td>${esc(c.fournisseur || '—')}</td><td>${esc(c.objet || '—')}</td><td class="num">${eur(c.montantHT)}</td></tr>`).join('')}</tbody><tfoot><tr><td colspan="3">Total achats</td><td class="num">${eur(r.achats)}</td></tr></tfoot></table></div>` : ''}`,
+    footer: `<button class="btn" data-edit2>${icon('edit')} Modifier le libellé</button><span class="spacer"></span><button class="btn" data-c>Fermer</button>` });
+  m.root.querySelector('[data-c]').onclick = m.close;
+  m.root.querySelector('[data-edit2]').onclick = () => { m.close(); otpForm(code); };
+}
+function otpForm(code) {
+  const existing = code ? otpMeta(code) : null;
+  const o = existing || { code: code || '', libelle: '', clientId: code ? otpClientId(code) : '', notes: '' };
+  const clOpts = DB.data.clients.map(c => `<option value="${c.id}" ${o.clientId === c.id ? 'selected' : ''}>${esc(c.nom)}</option>`).join('');
+  const m = modal({ title: code ? 'Libellé OTP ' + code : 'Libeller un OTP',
+    body: `<div class="form-grid">
+      <div class="field"><label>Code OTP</label><input id="o-code" value="${esc(o.code)}" ${code ? 'readonly' : ''} list="o-otplist" placeholder="OTP…"><datalist id="o-otplist">${otpDistinct().map(c => `<option value="${esc(c)}">`).join('')}</datalist></div>
+      <div class="field"><label>Client / donneur d'ordre</label><select id="o-client"><option value="">— Aucun —</option>${clOpts}</select></div>
+      <div class="field full"><label>Libellé du compte OTP</label><input id="o-lib" value="${esc(o.libelle)}" placeholder="Ex. Département 76 — Collèges (lot étanchéité)"></div>
+      <div class="field full"><label>Notes</label><textarea id="o-notes" rows="2">${esc(o.notes)}</textarea></div>
+    </div>`, footer: `<button class="btn" data-c>Annuler</button><button class="btn primary" id="o-save">Enregistrer</button>` });
+  m.root.querySelector('[data-c]').onclick = m.close;
+  $('#o-save').onclick = () => {
+    const cd = $('#o-code').value.trim(); if (!cd) { toast('Le code OTP est obligatoire', 'err'); return; }
+    const obj = { code: cd, libelle: $('#o-lib').value.trim(), clientId: $('#o-client').value, notes: $('#o-notes').value.trim() };
+    const ex = otpMeta(cd);
+    if (ex) Object.assign(ex, obj); else DB.data.otps.push(obj);
+    DB.save(); m.close(); toast('OTP enregistré'); go('otps');
+  };
+}
+
 /* ---------- Devis ---------- */
 const otpDistinct = () => [...new Set([...DB.data.devis.map(d => d.otp), ...DB.data.chantiers.map(c => c.otp), ...DB.data.factures.map(f => f.otp), ...DB.data.commandes.map(c => c.otp)].filter(Boolean))].sort();
 const commandesParOtp = otp => DB.data.commandes.filter(c => c.otp === otp).reduce((s, c) => s + (+c.montantHT || 0), 0);
@@ -1188,6 +1291,12 @@ function heuresMoOtp(otp, mois, annee) {
 }
 // Coût MO SMAC imputé sur l'OTP (heures × taux horaire)
 const moParOtp = (otp, mois, annee) => heuresMoOtp(otp, mois, annee) * (+DB.data.objectifs.tauxHoraireMO || 0);
+// Cumuls tous mois (vue OTP)
+const heuresMoOtpAll = otp => DB.data.pointages.reduce((s, r) => r.otp === otp && r.h ? s + r.h.reduce((a, h) => a + (+h || 0), 0) : s, 0);
+const moAllOtp = otp => heuresMoOtpAll(otp) * (+DB.data.objectifs.tauxHoraireMO || 0);
+const otpMeta = code => DB.data.otps.find(o => o.code === code) || null;
+const otpLabel = code => { const o = otpMeta(code); return o && o.libelle ? o.libelle : ''; };
+function otpClientId(code) { const o = otpMeta(code); if (o && o.clientId) return o.clientId; const c = DB.data.chantiers.find(x => x.otp === code && x.clientId) || DB.data.devis.find(x => x.otp === code && x.clientId); return c ? c.clientId : ''; }
 let devisFilter = { q: '', statut: '', otp: '' };
 function renderDevis(v) {
   const o = DB.data.objectifs;
@@ -1532,7 +1641,7 @@ function renderCadences(v) {
     $$('[data-coeff]', v).forEach(sel => st.coeff[sel.dataset.coeff] = +sel.value);
     $$('[data-task]', v).forEach(sel => { const [bag, key] = sel.dataset.task.split(':'); st[bag][key] = +sel.value; });
   };
-  const recompute = () => { readInputs(); $('#cad-out').innerHTML = cadencesResult(); const b = $('#cad-csv'); if (b) b.onclick = exportCadences; };
+  const recompute = () => { readInputs(); $('#cad-out').innerHTML = cadencesResult(); const b = $('#cad-csv'); if (b) b.onclick = exportCadences; const ib = $('#cad-bte'); if (ib) ib.onclick = importCadenceToBte; };
   v.querySelectorAll('.card input,.card select').forEach(el => el.oninput = recompute);
   recompute();
 }
@@ -1545,8 +1654,30 @@ function cadencesResult() {
   ${steps.length ? `<div class="table-wrap" style="margin-top:16px"><table class="cad-steps"><thead><tr><th>Étape</th><th>Choix</th><th class="num">Cadence std</th><th class="num">Cadence corrigée</th><th class="num">Temps</th></tr></thead>
     <tbody>${steps.map(s => `<tr><td class="t-strong">${esc(s.nom)}</td><td class="t-muted">${esc(s.detail)}</td><td class="num">${esc(s.base)}</td><td class="num">${num(s.cad)} ${s.unite}</td><td class="num">${num(s.h)} h</td></tr>`).join('')}</tbody>
     <tfoot><tr><td colspan="4">TOTAL — ${num(jours)} jours équipe</td><td class="num">${num(totalH)} h</td></tr></tfoot></table></div>
-    <div class="page-actions" style="margin-top:14px"><button class="btn small" id="cad-csv">${icon('download')} Exporter l'estimation (CSV)</button></div>`
+    <div class="page-actions" style="margin-top:14px"><button class="btn" id="cad-bte">${icon('calculator')} Importer dans un BTE (main d'œuvre)</button><span class="spacer"></span><button class="btn small" id="cad-csv">${icon('download')} Exporter l'estimation (CSV)</button></div>`
     : '<p class="t-muted" style="margin-top:14px">Sélectionnez au moins un ouvrage pour lancer l\'estimation.</p>'}`;
+}
+function importCadenceToBte() {
+  const { cfg, steps, surf } = cadCompute(cadMetier);
+  if (!steps.length) { toast('Aucune tâche à importer', 'err'); return; }
+  const taux = +DB.data.objectifs.tauxHoraireMO || 0;
+  const lignes = steps.map(s => ({ cat: BTE_CATS[1], designation: s.nom, unite: 'h', qte: Math.round(s.h * 10) / 10, pu: taux }));
+  const totalH = steps.reduce((a, s) => a + s.h, 0);
+  const bteOpts = DB.data.bte.map(b => `<option value="${b.id}">${esc(b.otp || '')} ${esc(b.nom)}</option>`).join('');
+  const m = modal({ title: "Importer la main d'œuvre dans un BTE",
+    body: `<p class="t-muted" style="margin-top:0">${steps.length} tâche(s) · <b>${num(totalH)} h</b> au total, valorisées à ${eur(taux)}/h (taux MO). Ajoutées au poste « ${BTE_CATS[1]} ».</p>
+      <div class="field"><label>BTE cible</label><select id="i-bte"><option value="">➕ Nouveau BTE (${esc(cfg.label)}${surf ? ' — ' + num(surf) + ' m²' : ''})</option>${bteOpts}</select></div>
+      <div class="table-wrap" style="margin-top:12px"><table><thead><tr><th>Tâche</th><th class="num">Heures</th><th class="num">PU</th><th class="num">Total</th></tr></thead>
+        <tbody>${lignes.map(l => `<tr><td>${esc(l.designation)}</td><td class="num">${num(l.qte)} h</td><td class="num">${eur(l.pu)}</td><td class="num">${eur(l.qte * l.pu)}</td></tr>`).join('')}</tbody>
+        <tfoot><tr><td>Total main d'œuvre</td><td class="num">${num(totalH)} h</td><td></td><td class="num">${eur(totalH * taux)}</td></tr></tfoot></table></div>`,
+    footer: `<button class="btn" data-c>Annuler</button><button class="btn primary" id="i-go">Importer</button>` });
+  m.root.querySelector('[data-c]').onclick = m.close;
+  $('#i-go').onclick = () => {
+    const sel = $('#i-bte').value; let bte;
+    if (sel) { bte = DB.data.bte.find(x => x.id === sel); bte.lignes.push(...lignes); }
+    else { bte = { id: uid(), nom: cfg.label + ' — estimation cadence', adresse: '', otp: '', dateEdition: todayISO(), margePct: 0.30, notes: 'Main d\'œuvre générée depuis le calculateur de cadences', lignes: [...lignes] }; DB.data.bte.unshift(bte); }
+    DB.save(); m.close(); toast("Main d'œuvre importée dans le BTE"); go('bte'); bteEditor(bte.id);
+  };
 }
 function exportCadences() { const { cfg, steps } = cadCompute(cadMetier); exportCSV('estimation_' + cfg.label.toLowerCase(), ['etape', 'choix', 'cadence_std', 'cadence_corrigee', 'temps_h'], steps.map(s => [s.nom, s.detail, s.base, num(s.cad) + ' ' + s.unite, num(s.h)])); }
 
@@ -2116,7 +2247,7 @@ function achatForm(id) {
       <div class="field"><label>N° de commande</label><input id="f-num" value="${esc(c.num)}" placeholder="45XXXXXXXX" maxlength="10" inputmode="numeric"><div class="hint">10 chiffres, commence par 45</div></div>
       <div class="field"><label>Date de commande</label><input id="f-date" type="date" value="${c.date || todayISO()}"></div>
       <div class="field"><label>N° OTP (imputation)</label><input id="f-otp" value="${esc(c.otp)}" list="cmd-otplist" placeholder="OTP…"><datalist id="cmd-otplist">${[...new Set([...otpDistinct(), ...DB.data.chantiers.map(ch => ch.otp).filter(Boolean)])].map(o => `<option value="${esc(o)}">`).join('')}</datalist></div>
-      <div class="field"><label>Fournisseur</label><input id="f-four" value="${esc(c.fournisseur)}" placeholder="IKO, Loxam…"></div>
+      <div class="field"><label>Fournisseur</label><input id="f-four" value="${esc(c.fournisseur)}" placeholder="IKO, Loxam…" list="four-list"><datalist id="four-list">${FOURNISSEURS_REF.map(f => `<option value="${esc(f.n)}">${f.c}</option>`).join('')}</datalist><div class="hint" id="f-fourcode">${c.fournisseurCode ? 'N° ' + esc(c.fournisseurCode) : ''}</div></div>
       <div class="field"><label>Statut</label><select id="f-statut">${Object.entries(STATUTS_CMD).map(([k, l]) => `<option value="${k}" ${c.statut === k ? 'selected' : ''}>${l}</option>`).join('')}</select></div>
       <div class="field full"><label>Objet</label><input id="f-objet" value="${esc(c.objet)}" placeholder="Fournitures, location…"></div>
       <div class="field"><label>Montant HT (€)</label><input id="f-montant" type="number" value="${c.montantHT || 0}"></div>
@@ -2125,10 +2256,12 @@ function achatForm(id) {
     <div class="field hint" style="margin-top:6px">Imputée sur l'OTP indiqué. Elle alimente les fournitures du CA du <b>mois de réception</b> ; laissez la réception vide tant qu'elle n'est pas reçue.</div>`,
     footer: `<button class="btn" data-c>Annuler</button><button class="btn primary" id="save">Enregistrer</button>` });
   m.root.querySelector('[data-c]').onclick = m.close;
+  const fourCode = () => { const f = FOURNISSEURS_REF.find(x => x.n.toLowerCase() === $('#f-four').value.trim().toLowerCase()); $('#f-fourcode').textContent = f ? 'N° ' + f.c : ''; return f ? f.c : (c.fournisseurCode || ''); };
+  $('#f-four').oninput = fourCode;
   $('#save').onclick = () => {
     const numv = $('#f-num').value.trim();
     if (numv && !/^45\d{8}$/.test(numv)) { toast('Le n° de commande doit comporter 10 chiffres et commencer par 45', 'err'); return; }
-    const obj = { num: numv, date: $('#f-date').value, otp: $('#f-otp').value.trim(), fournisseur: $('#f-four').value.trim(), objet: $('#f-objet').value.trim(), montantHT: +$('#f-montant').value || 0, statut: $('#f-statut').value, dateReception: $('#f-recept').value };
+    const obj = { num: numv, date: $('#f-date').value, otp: $('#f-otp').value.trim(), fournisseur: $('#f-four').value.trim(), fournisseurCode: fourCode(), objet: $('#f-objet').value.trim(), montantHT: +$('#f-montant').value || 0, statut: $('#f-statut').value, dateReception: $('#f-recept').value };
     if (!obj.otp) { toast("L'OTP est obligatoire", 'err'); return; }
     if (id) Object.assign(c, obj); else DB.data.commandes.unshift({ id: uid(), ...obj });
     DB.save(); m.close(); toast('Commande enregistrée'); go('achats');
