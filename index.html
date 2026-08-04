@@ -805,9 +805,9 @@ function demoData() {
       { id: uid(), num: '4500123458', date: addDays(todayISO(), -8), otp: 'OTP-24001', fournisseur: 'IKO', objet: 'Complexe étanchéité bâtiment A', montantHT: 24000, statut: 'commande', dateReception: '' },
     ],
     equipes: [
-      { id: eqA, nom: 'Équipe A', chef: 'Karim B.', compagnon: 'Léo P.' },
-      { id: eqB, nom: 'Équipe B', chef: 'David M.', compagnon: 'Samir T.' },
-      { id: eqC, nom: 'Équipe C', chef: 'Yann L.', compagnon: 'Hugo R.' },
+      { id: eqA, nom: 'Équipe A', chef: 'Karim B.', compagnon: 'Léo P.', tauxChef: 48, tauxComp: 42 },
+      { id: eqB, nom: 'Équipe B', chef: 'David M.', compagnon: 'Samir T.', tauxChef: 50, tauxComp: 43 },
+      { id: eqC, nom: 'Équipe C', chef: 'Yann L.', compagnon: 'Hugo R.', tauxChef: 47, tauxComp: 41 },
     ],
     pointages: (() => { const sem = mondayISO(); return [
       { id: uid(), workerKey: eqA + ':chef', workerNom: 'Karim B.', equipeId: eqA, semaine: sem, categorie: '3000111', typeHeure: 'HT', otp: 'OTP-24001', chantierNom: 'Réfection toiture bâtiment A', h: [8, 8, 8, 8, 8, 0, 0], panier: 5, trajet: 0, zone: '5' },
@@ -1101,8 +1101,8 @@ function editObjectifs() {
       <div class="field"><label>Délai facturation (jours)</label><input id="o-df" type="number" value="${o.delaiFacture}"></div>
       <div class="field"><label>Délai rapport d'intervention (jours)</label><input id="o-dr" type="number" value="${o.delaiRapport}"></div>
       <div class="field"><label>Délai de paiement par défaut (jours)</label><input id="o-dp" type="number" value="${o.delaiPaiement}"></div>
-      <div class="field"><label>Taux horaire MO SMAC (€/h chargé)</label><input id="o-mo" type="number" step="0.5" value="${o.tauxHoraireMO}"></div>
-    </div><div class="field hint" style="margin-top:6px">Le taux horaire sert à valoriser en € la main d'œuvre pointée par OTP, reprise dans le CA.</div>`, footer: `<button class="btn" data-c>Annuler</button><button class="btn primary" id="o-save">Enregistrer</button>` });
+      <div class="field"><label>Taux horaire MO SMAC par défaut (€/h chargé)</label><input id="o-mo" type="number" step="0.5" value="${o.tauxHoraireMO}"></div>
+    </div><div class="field hint" style="margin-top:6px">Taux horaire utilisé pour valoriser en € la main d'œuvre pointée par OTP (reprise dans le CA). Il sert de valeur par défaut : chaque compagnon peut avoir son propre taux (Planning &rarr; Équipes).</div>`, footer: `<button class="btn" data-c>Annuler</button><button class="btn primary" id="o-save">Enregistrer</button>` });
   m.root.querySelector('[data-c]').onclick = m.close;
   $('#o-save').onclick = () => {
     o.caAnnuel = +$('#o-ca').value || 0; o.margeCible = (+$('#o-marge').value || 0) / 100;
@@ -1295,11 +1295,26 @@ function heuresMoOtp(otp, mois, annee) {
   DB.data.pointages.forEach(r => { if (r.otp !== otp || !r.h) return; r.h.forEach((h, i) => { if (h && inMonth(addDays(r.semaine, i), mois, annee)) s += +h; }); });
   return s;
 }
-// Coût MO SMAC imputé sur l'OTP (heures × taux horaire)
-const moParOtp = (otp, mois, annee) => heuresMoOtp(otp, mois, annee) * (+DB.data.objectifs.tauxHoraireMO || 0);
+// Taux horaire propre à un compagnon (chef/compagnon d'une équipe) ; à défaut, taux global
+function tauxWorker(workerKey) {
+  const g = +DB.data.objectifs.tauxHoraireMO || 0;
+  if (!workerKey) return g;
+  const role = /:chef$/.test(workerKey) ? 'chef' : 'comp';
+  const eqId = workerKey.replace(/:(chef|comp)$/, '');
+  const e = DB.data.equipes.find(x => x.id === eqId);
+  if (!e) return g;
+  const t = role === 'chef' ? e.tauxChef : e.tauxComp;
+  return (t === undefined || t === null || t === '') ? g : (+t || 0);
+}
+// Coût MO SMAC imputé sur l'OTP (Σ heures × taux horaire de chaque compagnon)
+function moParOtp(otp, mois, annee) {
+  let s = 0;
+  DB.data.pointages.forEach(r => { if (r.otp !== otp || !r.h) return; const taux = tauxWorker(r.workerKey); r.h.forEach((h, i) => { if (h && inMonth(addDays(r.semaine, i), mois, annee)) s += (+h) * taux; }); });
+  return s;
+}
 // Cumuls tous mois (vue OTP)
 const heuresMoOtpAll = otp => DB.data.pointages.reduce((s, r) => r.otp === otp && r.h ? s + r.h.reduce((a, h) => a + (+h || 0), 0) : s, 0);
-const moAllOtp = otp => heuresMoOtpAll(otp) * (+DB.data.objectifs.tauxHoraireMO || 0);
+const moAllOtp = otp => DB.data.pointages.reduce((s, r) => r.otp === otp && r.h ? s + r.h.reduce((a, h) => a + (+h || 0), 0) * tauxWorker(r.workerKey) : s, 0);
 const otpMeta = code => DB.data.otps.find(o => o.code === code) || null;
 const otpLabel = code => { const o = otpMeta(code); return o && o.libelle ? o.libelle : ''; };
 function otpClientId(code) { const o = otpMeta(code); if (o && o.clientId) return o.clientId; const c = DB.data.chantiers.find(x => x.otp === code && x.clientId) || DB.data.devis.find(x => x.otp === code && x.clientId); return c ? c.clientId : ''; }
@@ -2045,7 +2060,7 @@ function renderPointages(v) {
       <div class="ts-avatar">${esc(initiales(worker.nom))}</div>
       <div style="min-width:200px">
         <select id="ts-worker" class="ts-workersel">${workers.map(w => `<option value="${w.key}" ${w.key === planWorkerKey ? 'selected' : ''}>${esc(w.nom)} — ${esc(w.equipe)} · ${w.role}</option>`).join('')}</select>
-        <div class="ts-prog"><div class="ts-prog-lbl">${num(persoTot)} H / ${HEBDO_H}.00 H</div><div class="progress ${prog >= 100 ? 'green' : prog >= 60 ? '' : 'amber'}"><i style="width:${prog}%"></i></div></div>
+        <div class="ts-prog"><div class="ts-prog-lbl">${num(persoTot)} H / ${HEBDO_H}.00 H · ${eur(tauxWorker(worker.key))}/h → ${eur(persoTot * tauxWorker(worker.key))}</div><div class="progress ${prog >= 100 ? 'green' : prog >= 60 ? '' : 'amber'}"><i style="width:${prog}%"></i></div></div>
       </div>
     </div>
     <div class="page-actions">
@@ -2195,17 +2210,26 @@ function agendaForm(id, presetDate) {
   };
 }
 function equipesModal() {
+  const g = +DB.data.objectifs.tauxHoraireMO || 0;
+  const rate = val => (val === undefined || val === null || val === '') ? '' : val;
+  const rowTpl = e => `<tr data-id="${e.id}"><td><input data-f="nom" value="${esc(e.nom || '')}" style="width:110px"></td>
+    <td><input data-f="chef" value="${esc(e.chef || '')}" style="width:140px"></td>
+    <td class="num"><input data-f="tauxChef" type="number" min="0" step="0.5" value="${rate(e.tauxChef)}" placeholder="${g}" style="width:66px"></td>
+    <td><input data-f="compagnon" value="${esc(e.compagnon || '')}" style="width:140px"></td>
+    <td class="num"><input data-f="tauxComp" type="number" min="0" step="0.5" value="${rate(e.tauxComp)}" placeholder="${g}" style="width:66px"></td>
+    <td class="actions-cell"><button class="icon-btn danger" data-rm title="Supprimer">${icon('trash')}</button></td></tr>`;
   const m = modal({ title: 'Équipes', wide: true,
     body: `<div class="page-actions"><button class="btn small primary" id="e-add">${icon('plus')} Ajouter une équipe</button></div>
-    <div class="table-wrap"><table><thead><tr><th>Équipe</th><th>Chef d'équipe</th><th>Compagnon</th><th></th></tr></thead>
-      <tbody id="e-body">${DB.data.equipes.map(e => `<tr data-id="${e.id}"><td><input data-f="nom" value="${esc(e.nom)}" style="width:120px"></td><td><input data-f="chef" value="${esc(e.chef)}" style="width:150px"></td><td><input data-f="compagnon" value="${esc(e.compagnon)}" style="width:150px"></td><td class="actions-cell"><button class="icon-btn danger" data-rm title="Supprimer">${icon('trash')}</button></td></tr>`).join('')}</tbody></table></div>`,
+    <div class="table-wrap"><table><thead><tr><th>Équipe</th><th>Chef d'équipe</th><th class="num" title="Taux horaire chargé du chef (€/h)">Taux €/h</th><th>Compagnon</th><th class="num" title="Taux horaire chargé du compagnon (€/h)">Taux €/h</th><th></th></tr></thead>
+      <tbody id="e-body">${DB.data.equipes.map(rowTpl).join('')}</tbody></table></div>
+    <div class="foot-note">Taux horaire chargé par personne, utilisé pour valoriser la MO SMAC (pointages) sur les OTP. Vide = taux global (${eur(g)}/h) défini dans les objectifs.</div>`,
     footer: `<button class="btn" data-c>Fermer</button><button class="btn primary" id="e-save">Enregistrer</button>` });
   const bind = tr => tr.querySelector('[data-rm]').onclick = () => tr.remove();
   $$('#e-body tr').forEach(bind);
-  $('#e-add').onclick = () => { const tmp = document.createElement('tbody'); tmp.innerHTML = `<tr data-id="${uid()}"><td><input data-f="nom" value="Équipe" style="width:120px"></td><td><input data-f="chef" style="width:150px"></td><td><input data-f="compagnon" style="width:150px"></td><td class="actions-cell"><button class="icon-btn danger" data-rm title="Supprimer">${icon('trash')}</button></td></tr>`; const tr = tmp.firstElementChild; $('#e-body').appendChild(tr); bind(tr); };
+  $('#e-add').onclick = () => { const tmp = document.createElement('tbody'); tmp.innerHTML = rowTpl({ id: uid(), nom: 'Équipe' }); const tr = tmp.firstElementChild; $('#e-body').appendChild(tr); bind(tr); };
   m.root.querySelector('[data-c]').onclick = m.close;
   $('#e-save').onclick = () => {
-    DB.data.equipes = $$('#e-body tr').map(tr => ({ id: tr.dataset.id, nom: tr.querySelector('[data-f="nom"]').value.trim() || 'Équipe', chef: tr.querySelector('[data-f="chef"]').value.trim(), compagnon: tr.querySelector('[data-f="compagnon"]').value.trim() }));
+    DB.data.equipes = $$('#e-body tr').map(tr => { const val = k => tr.querySelector(`[data-f="${k}"]`).value.trim(); return { id: tr.dataset.id, nom: val('nom') || 'Équipe', chef: val('chef'), compagnon: val('compagnon'), tauxChef: val('tauxChef') === '' ? '' : +val('tauxChef'), tauxComp: val('tauxComp') === '' ? '' : +val('tauxComp') }; });
     DB.save(); m.close(); toast('Équipes enregistrées'); go('planning');
   };
 }
