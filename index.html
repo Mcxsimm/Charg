@@ -2417,6 +2417,13 @@ function boot() {
   $('#btn-export').onclick = exportAll;
   $('#btn-import').onclick = () => $('#import-file').click();
   $('#import-file').onchange = e => { if (e.target.files[0]) importAll(e.target.files[0]); e.target.value = ''; };
+  // Double-clic sur une ligne = ouvrir/éditer l'élément (plus intuitif)
+  $('#view').addEventListener('dblclick', e => {
+    if (e.target.closest('input,select,textarea,button,a,.link,label')) return;
+    const tr = e.target.closest('tbody tr'); if (!tr) return;
+    const btn = tr.querySelector('[data-edit],[data-editv],[data-open],[data-view]');
+    if (btn) { const sel = window.getSelection && window.getSelection(); if (sel) sel.removeAllRanges(); btn.click(); }
+  });
   window.addEventListener('hashchange', () => { const r = location.hash.slice(1); if (r && r !== current) go(r); });
 
   DB.loadMeta();
