@@ -668,7 +668,7 @@ const DB = {
     d = d || {};
     d.objectifs = Object.assign({}, OBJECTIFS_DEFAUT, d.objectifs || {});
     ['clients', 'chantiers', 'devis', 'ca', 'bte', 'prospection', 'factures', 'contrats', 'visites', 'equipes', 'pointages', 'commandes'].forEach(k => { if (!Array.isArray(d[k])) d[k] = []; });
-    d.devis.forEach(x => { if (x.otp === undefined) x.otp = ''; if (x.clientId === undefined) x.clientId = ''; });
+    d.devis.forEach(x => { if (x.otp === undefined) x.otp = ''; if (x.clientId === undefined) x.clientId = ''; if (x.derniereRelance === undefined) x.derniereRelance = ''; if (x.nbRelances === undefined) x.nbRelances = 0; if (x.horsComptes === undefined) x.horsComptes = false; });
     d.factures.forEach(x => { if (x.otp === undefined) x.otp = ''; });
     d.ca.forEach(x => { if (x.sourceType === undefined) { x.sourceType = ''; x.sourceId = ''; } });
     d.commandes.forEach(x => { if (x.dateReception === undefined) x.dateReception = ''; if (x.num === undefined) x.num = ''; });
@@ -1214,7 +1214,7 @@ function chantierDetail(id) {
 /* ---------- Comptes OTP (un OTP regroupe plusieurs sites / devis) ---------- */
 function otpRollup(code) {
   const chantiers = DB.data.chantiers.filter(c => c.otp === code);
-  const devis = DB.data.devis.filter(d => d.otp === code);
+  const devis = DB.data.devis.filter(d => d.otp === code && !d.horsComptes);
   const factures = DB.data.factures.filter(f => f.otp === code);
   const caLines = DB.data.ca.filter(r => r.otp === code);
   const montantDevis = devis.reduce((s, d) => s + (+d.montantHT || 0), 0);
@@ -1320,28 +1320,35 @@ function renderDevis(v) {
     const rest = o.delaiDevis - daysBetween(d.dateDemande, todayISO());
     return `<span class="${rest < 0 ? 'deadline-late' : rest <= 2 ? 'deadline-soon' : 'deadline-ok'}">${rest < 0 ? `Retard ${-rest} j` : rest + ' j restants'}</span>`;
   };
+  const relanceCell = d => {
+    const parts = [];
+    if (d.nbRelances) parts.push(`<span class="chip" title="${d.nbRelances} relance(s), dernière le ${fmtDate(d.derniereRelance)}">${icon('bell', 'ic-sm')} ${d.nbRelances}× · ${fmtDate(d.derniereRelance)}</span>`);
+    if (d.relance) { const late = d.relance <= todayISO() && !['accepte', 'refuse'].includes(d.statut); parts.push(`<span class="${late ? 'deadline-late' : 't-muted'}">→ ${fmtDate(d.relance)}</span>`); }
+    return parts.join(' ') || '<span class="t-muted">—</span>';
+  };
   v.innerHTML = `
     <div class="page-actions"><button class="btn primary" id="add">${icon('plus')} Nouveau devis</button><span class="spacer"></span><button class="btn small" id="csv">${icon('download')} Export CSV</button></div>
     <div class="filters"><span class="search-wrap">${icon('search')}<input id="q" placeholder="Rechercher (réf, objet, OTP, client…)" value="${esc(devisFilter.q)}"></span>
       <select id="fotp"><option value="">Tous les OTP</option>${otpDistinct().map(o2 => `<option value="${esc(o2)}" ${devisFilter.otp === o2 ? 'selected' : ''}>${esc(o2)}</option>`).join('')}</select>
       <select id="fs"><option value="">Tous les statuts</option>${Object.entries(STATUTS_DEVIS).map(([k, l]) => `<option value="${k}" ${devisFilter.statut === k ? 'selected' : ''}>${l}</option>`).join('')}</select>
       <span class="chip">${list.length} devis</span><span class="chip">Taux d'acceptation ${tauxAccept()} %</span></div>
-    ${list.length ? `<div class="table-wrap"><table><thead><tr><th>Réf.</th><th>OTP</th><th>Objet</th><th>Client</th><th>Demande</th><th>Délai 7 j</th><th>Statut</th><th class="num">Montant HT</th><th></th></tr></thead>
-      <tbody>${list.map(d => `<tr><td class="t-strong">${esc(d.ref)}</td><td><span class="chip">${esc(d.otp || '—')}</span></td><td>${esc(d.objet)}</td><td class="t-muted">${esc(clientNom(d.clientId))}</td><td>${fmtDate(d.dateDemande)}</td><td>${delaiCell(d)}</td><td>${devisBadge(d.statut)}</td><td class="num">${eur(d.montantHT)}</td>
-        <td class="actions-cell"><button class="icon-btn" data-edit="${d.id}" title="Modifier">${icon('edit')}</button><button class="icon-btn danger" data-del="${d.id}" title="Supprimer">${icon('trash')}</button></td></tr>`).join('')}</tbody>
-      <tfoot><tr><td colspan="7">Total${devisFilter.otp ? ' — OTP ' + esc(devisFilter.otp) : ''}</td><td class="num">${eur(list.reduce((s, d) => s + (+d.montantHT || 0), 0))}</td><td></td></tr></tfoot></table></div>`
+    ${list.length ? `<div class="table-wrap"><table><thead><tr><th>Réf.</th><th>OTP</th><th>Objet</th><th>Client</th><th>Demande</th><th>Délai 7 j</th><th>Relances</th><th>Statut</th><th class="num">Montant HT</th><th></th></tr></thead>
+      <tbody>${list.map(d => `<tr><td class="t-strong">${esc(d.ref)}</td><td>${d.horsComptes ? '<span class="t-muted">hors compte</span>' : `<span class="chip">${esc(d.otp || '—')}</span>`}</td><td>${esc(d.objet)}${d.horsComptes ? ' <span class="badge b-attente">hors comptes</span>' : ''}</td><td class="t-muted">${esc(clientNom(d.clientId))}</td><td>${fmtDate(d.dateDemande)}</td><td>${delaiCell(d)}</td><td>${relanceCell(d)}</td><td>${devisBadge(d.statut)}</td><td class="num">${eur(d.montantHT)}</td>
+        <td class="actions-cell">${['accepte', 'refuse'].includes(d.statut) ? '' : `<button class="icon-btn" data-relance="${d.id}" title="Relancer">${icon('bell')}</button>`}<button class="icon-btn" data-edit="${d.id}" title="Modifier">${icon('edit')}</button><button class="icon-btn danger" data-del="${d.id}" title="Supprimer">${icon('trash')}</button></td></tr>`).join('')}</tbody>
+      <tfoot><tr><td colspan="8">Total${devisFilter.otp ? ' — OTP ' + esc(devisFilter.otp) : ''}</td><td class="num">${eur(list.reduce((s, d) => s + (+d.montantHT || 0), 0))}</td><td></td></tr></tfoot></table></div>`
       : emptyState('file', 'Aucun devis', 'Objectif : 45 devis / mois, envoi sous 7 jours.')}`;
   $('#add').onclick = () => devisForm();
   $('#q').oninput = e => { devisFilter.q = e.target.value; renderDevis(v); const i = $('#q'); i.focus(); i.setSelectionRange(i.value.length, i.value.length); };
   $('#fs').onchange = e => { devisFilter.statut = e.target.value; renderDevis(v); };
   $('#fotp').onchange = e => { devisFilter.otp = e.target.value; renderDevis(v); };
-  $('#csv').onclick = () => exportCSV('devis', ['ref', 'otp', 'objet', 'client', 'dateDemande', 'dateEnvoi', 'statut', 'montantHT'], list.map(d => [d.ref, d.otp, d.objet, clientNom(d.clientId), d.dateDemande, d.dateEnvoi, STATUTS_DEVIS[d.statut], d.montantHT]));
+  $('#csv').onclick = () => exportCSV('devis', ['ref', 'otp', 'objet', 'client', 'dateDemande', 'dateEnvoi', 'statut', 'montantHT', 'nb_relances', 'derniere_relance', 'prochaine_relance', 'hors_comptes'], list.map(d => [d.ref, d.otp, d.objet, clientNom(d.clientId), d.dateDemande, d.dateEnvoi, STATUTS_DEVIS[d.statut], d.montantHT, d.nbRelances, d.derniereRelance, d.relance, d.horsComptes ? 'oui' : 'non']));
+  $$('[data-relance]', v).forEach(b => b.onclick = () => relanceDevis(b.dataset.relance));
   $$('[data-edit]', v).forEach(b => b.onclick = () => devisForm(b.dataset.edit));
   $$('[data-del]', v).forEach(b => b.onclick = () => confirmDialog('Supprimer ce devis ?', () => { DB.data.devis = DB.data.devis.filter(x => x.id !== b.dataset.del); DB.save(); toast('Devis supprimé'); renderDevis(v); }));
 }
 function tauxAccept() { const d = DB.data.devis.filter(x => ['accepte', 'refuse'].includes(x.statut)); return d.length ? Math.round(d.filter(x => x.statut === 'accepte').length / d.length * 100) : 0; }
 function devisForm(id) {
-  const d = id ? DB.data.devis.find(x => x.id === id) : { ref: 'DEV-' + new Date().toISOString().slice(2, 7).replace('-', '') + '-' + String(DB.data.devis.length + 1).padStart(2, '0'), otp: '', clientId: '', chantierId: '', objet: '', dateDemande: todayISO(), dateEnvoi: '', montantHT: 0, statut: 'attente', relance: '' };
+  const d = id ? DB.data.devis.find(x => x.id === id) : { ref: 'DEV-' + new Date().toISOString().slice(2, 7).replace('-', '') + '-' + String(DB.data.devis.length + 1).padStart(2, '0'), otp: '', clientId: '', chantierId: '', objet: '', dateDemande: todayISO(), dateEnvoi: '', montantHT: 0, statut: 'attente', relance: '', derniereRelance: '', nbRelances: 0, horsComptes: false };
   const clOpts = DB.data.clients.map(c => `<option value="${c.id}" ${d.clientId === c.id ? 'selected' : ''}>${esc(c.nom)}</option>`).join('');
   const m = modal({ title: id ? 'Modifier le devis' : 'Nouveau devis',
     body: `<div class="form-grid">
@@ -1353,19 +1360,39 @@ function devisForm(id) {
       <div class="field"><label>Date demande client</label><input id="f-dd" type="date" value="${d.dateDemande || todayISO()}"></div>
       <div class="field"><label>Date d'envoi</label><input id="f-de" type="date" value="${d.dateEnvoi || ''}"></div>
       <div class="field"><label>Montant HT (€)</label><input id="f-montant" type="number" value="${d.montantHT || 0}"></div>
-      <div class="field"><label>Date de relance prévue</label><input id="f-rel" type="date" value="${d.relance || ''}"></div>
+      <div class="field"><label>Dernière relance effectuée${d.nbRelances ? ' (' + d.nbRelances + ')' : ''}</label><input id="f-drel" type="date" value="${d.derniereRelance || ''}"></div>
+      <div class="field"><label>Prochaine relance à prévoir</label><input id="f-rel" type="date" value="${d.relance || ''}"></div>
     </div>
-    <div class="field hint" style="margin-top:6px">Plusieurs devis peuvent partager le même OTP.</div>
+    <div class="field inline" style="margin-top:8px"><input type="checkbox" id="f-hc" ${d.horsComptes ? 'checked' : ''}><label for="f-hc" style="cursor:pointer">Devis <b>hors comptes</b> (n'entre pas dans le CA ni les comptes OTP)</label></div>
     <div class="field inline" style="margin-top:6px"><input type="checkbox" id="f-now"><label for="f-now" style="cursor:pointer">Marquer comme envoyé aujourd'hui (${fmtDate(todayISO())})</label></div>`,
     footer: `<button class="btn" data-c>Annuler</button><button class="btn primary" id="save">Enregistrer</button>` });
   m.root.querySelector('[data-c]').onclick = m.close;
   $('#save').onclick = () => {
     let dateEnvoi = $('#f-de').value, statut = $('#f-statut').value;
     if ($('#f-now').checked) { dateEnvoi = todayISO(); if (statut === 'attente') statut = 'envoye'; }
-    const obj = { ref: $('#f-ref').value.trim(), otp: $('#f-otp').value.trim(), clientId: $('#f-client').value, chantierId: d.chantierId || '', objet: $('#f-objet').value.trim(), dateDemande: $('#f-dd').value, dateEnvoi, montantHT: +$('#f-montant').value || 0, statut, relance: $('#f-rel').value };
+    const obj = { ref: $('#f-ref').value.trim(), otp: $('#f-otp').value.trim(), clientId: $('#f-client').value, chantierId: d.chantierId || '', objet: $('#f-objet').value.trim(), dateDemande: $('#f-dd').value, dateEnvoi, montantHT: +$('#f-montant').value || 0, statut, relance: $('#f-rel').value, derniereRelance: $('#f-drel').value, nbRelances: +d.nbRelances || 0, horsComptes: $('#f-hc').checked };
     if (!obj.objet) { toast("L'objet est obligatoire", 'err'); return; }
     if (id) Object.assign(d, obj); else DB.data.devis.unshift({ id: uid(), ...obj });
     DB.save(); m.close(); toast('Devis enregistré'); go('devis');
+  };
+}
+function relanceDevis(id) {
+  const d = DB.data.devis.find(x => x.id === id); if (!d) return;
+  const next = addDays(todayISO(), 7);
+  const m = modal({ title: 'Relancer le devis ' + d.ref,
+    body: `<p class="t-muted" style="margin-top:0">${esc(d.objet)}${d.nbRelances ? ' — déjà ' + d.nbRelances + ' relance(s), dernière le ' + fmtDate(d.derniereRelance) : ''}</p>
+      <div class="form-grid">
+        <div class="field"><label>Relance effectuée le</label><input id="r-fait" type="date" value="${todayISO()}"></div>
+        <div class="field"><label>Prochaine relance à prévoir</label><input id="r-next" type="date" value="${next}"></div>
+      </div>`,
+    footer: `<button class="btn" data-c>Annuler</button><button class="btn primary" id="r-ok">Enregistrer la relance</button>` });
+  m.root.querySelector('[data-c]').onclick = m.close;
+  $('#r-ok').onclick = () => {
+    d.derniereRelance = $('#r-fait').value || todayISO();
+    d.relance = $('#r-next').value || '';
+    d.nbRelances = (+d.nbRelances || 0) + 1;
+    if (d.statut === 'envoye' || d.statut === 'attente') d.statut = 'relance';
+    DB.save(); m.close(); toast('Relance enregistrée (n°' + d.nbRelances + ')'); go('devis');
   };
 }
 
@@ -1443,7 +1470,7 @@ function caCandidates() {
   // devis déjà transformés en chantier : ne pas les proposer en double
   const devisLies = new Set(DB.data.chantiers.map(c => c.sourceDevisId).filter(Boolean));
   DB.data.chantiers.filter(c => c.statut === 'facture' && !caIsConsumed('chantier', c.id)).forEach(c => out.push({ type: 'chantier', id: c.id, otp: c.otp, clientId: c.clientId, designation: c.nom, montant: +c.montantHT || 0 }));
-  DB.data.devis.filter(d => d.statut === 'accepte' && !caIsConsumed('devis', d.id) && !devisLies.has(d.id)).forEach(d => out.push({ type: 'devis', id: d.id, otp: d.otp, clientId: d.clientId, designation: d.objet, montant: +d.montantHT || 0 }));
+  DB.data.devis.filter(d => d.statut === 'accepte' && !d.horsComptes && !caIsConsumed('devis', d.id) && !devisLies.has(d.id)).forEach(d => out.push({ type: 'devis', id: d.id, otp: d.otp, clientId: d.clientId, designation: d.objet, montant: +d.montantHT || 0 }));
   return out;
 }
 function caPicker() {
