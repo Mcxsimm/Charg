@@ -369,7 +369,9 @@ tfoot td{padding:11px 14px;font-weight:700;background:var(--panel-2);border-top:
 const $  = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
-const todayISO = () => new Date().toISOString().slice(0, 10);
+// Date locale au format YYYY-MM-DD (évite le décalage d'un jour dû au fuseau UTC de toISOString)
+const isoDate = d => { const x = new Date(d); return `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, '0')}-${String(x.getDate()).padStart(2, '0')}`; };
+const todayISO = () => isoDate(new Date());
 
 const eur  = n => (isFinite(n) ? n : 0).toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 });
 const pct  = n => (isFinite(n) ? n * 100 : 0).toLocaleString('fr-FR', { maximumFractionDigits: 1 }) + ' %';
@@ -381,7 +383,7 @@ function fmtDate(iso) {
   return new Date(iso + 'T00:00:00').toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
 }
 const daysBetween = (a, b) => Math.round((new Date(b + 'T00:00:00') - new Date(a + 'T00:00:00')) / 864e5);
-function addDays(iso, n) { const d = new Date(iso + 'T00:00:00'); d.setDate(d.getDate() + n); return d.toISOString().slice(0, 10); }
+function addDays(iso, n) { const d = new Date(iso + 'T00:00:00'); d.setDate(d.getDate() + n); return isoDate(d); }
 const MOIS = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
 const initiales = s => (String(s || '?').trim().split(/\s+/).map(w => w[0]).slice(0, 2).join('') || '?').toUpperCase();
 
@@ -816,9 +818,9 @@ function demoData() {
       { id: uid(), workerKey: eqB + ':comp', workerNom: 'Samir T.', equipeId: eqB, semaine: sem, categorie: '3000111', typeHeure: 'HT', otp: 'OTP-24002', chantierNom: 'Étanchéité parking couvert', h: [8, 8, 8, 8, 6, 0, 0], panier: 5, trajet: 0, zone: '5' },
     ]; })(),
     agenda: [
-      { id: uid(), title: 'RDV client — Clinique du Parc', type: 'reunion', dateDebut: addDays(todayISO(), 1), dateFin: '', equipeId: '', otp: '', note: '' },
-      { id: uid(), title: 'Étanchéité parking couvert', type: 'chantier', dateDebut: mondayISO(), dateFin: addDays(mondayISO(), 4), equipeId: eqB, otp: 'OTP-24002', note: '' },
-      { id: uid(), title: 'Congés', type: 'conges', dateDebut: addDays(todayISO(), 7), dateFin: addDays(todayISO(), 9), equipeId: '', otp: '', note: '' },
+      { id: uid(), title: 'RDV client — Clinique du Parc', type: 'reunion', dateDebut: addDays(todayISO(), 1), dateFin: '', heureDebut: '09:00', heureFin: '10:00', equipeId: '', companions: ['Karim B.', 'Léo P.'], otp: '', note: '' },
+      { id: uid(), title: 'Étanchéité parking couvert', type: 'chantier', dateDebut: mondayISO(), dateFin: addDays(mondayISO(), 4), heureDebut: '', heureFin: '', equipeId: eqB, companions: ['David M.', 'Samir T.'], otp: 'OTP-24002', note: '' },
+      { id: uid(), title: 'Congés', type: 'conges', dateDebut: addDays(todayISO(), 7), dateFin: addDays(todayISO(), 9), heureDebut: '', heureFin: '', equipeId: '', companions: [], otp: '', note: '' },
     ],
   });
 }
@@ -1363,7 +1365,7 @@ function renderDevis(v) {
 }
 function tauxAccept() { const d = DB.data.devis.filter(x => ['accepte', 'refuse'].includes(x.statut)); return d.length ? Math.round(d.filter(x => x.statut === 'accepte').length / d.length * 100) : 0; }
 function devisForm(id) {
-  const d = id ? DB.data.devis.find(x => x.id === id) : { ref: 'DEV-' + new Date().toISOString().slice(2, 7).replace('-', '') + '-' + String(DB.data.devis.length + 1).padStart(2, '0'), otp: '', clientId: '', chantierId: '', objet: '', dateDemande: todayISO(), dateEnvoi: '', montantHT: 0, statut: 'attente', relance: '', derniereRelance: '', nbRelances: 0, horsComptes: false };
+  const d = id ? DB.data.devis.find(x => x.id === id) : { ref: 'DEV-' + isoDate(new Date()).slice(2, 7).replace('-', '') + '-' + String(DB.data.devis.length + 1).padStart(2, '0'), otp: '', clientId: '', chantierId: '', objet: '', dateDemande: todayISO(), dateEnvoi: '', montantHT: 0, statut: 'attente', relance: '', derniereRelance: '', nbRelances: 0, horsComptes: false };
   const clOpts = DB.data.clients.map(c => `<option value="${c.id}" ${d.clientId === c.id ? 'selected' : ''}>${esc(c.nom)}</option>`).join('');
   const m = modal({ title: id ? 'Modifier le devis' : 'Nouveau devis',
     body: `<div class="form-grid">
@@ -1622,7 +1624,7 @@ function bteEditor(id) {
     collect(); if (!b.nom) { toast('Renseignez le nom du chantier', 'err'); return; }
     if (isNew && !DB.data.bte.some(x => x.id === b.id)) DB.data.bte.unshift(b);
     const t = bteTotals(b);
-    const dv = { id: uid(), ref: 'DEV-' + new Date().toISOString().slice(2, 7).replace('-', '') + '-' + String(DB.data.devis.length + 1).padStart(2, '0'), otp: b.otp || '', clientId: '', chantierId: '', objet: b.nom, dateDemande: todayISO(), dateEnvoi: '', montantHT: Math.round(t.pv), statut: 'attente', relance: '' };
+    const dv = { id: uid(), ref: 'DEV-' + isoDate(new Date()).slice(2, 7).replace('-', '') + '-' + String(DB.data.devis.length + 1).padStart(2, '0'), otp: b.otp || '', clientId: '', chantierId: '', objet: b.nom, dateDemande: todayISO(), dateEnvoi: '', montantHT: Math.round(t.pv), statut: 'attente', relance: '' };
     DB.data.devis.unshift(dv); DB.save(); m.close(); toast('Devis créé depuis le BTE (' + eur(t.pv) + ')'); go('devis');
   };
   $('#b-save').onclick = () => { collect(); if (!b.nom) { toast('Le nom du chantier est obligatoire', 'err'); return; } if (isNew) DB.data.bte.unshift(b); DB.save(); m.close(); toast('BTE enregistré'); go('bte'); };
@@ -2006,7 +2008,7 @@ function visiteForm(id, contratId) {
 }
 
 /* ---------- Planning & pointages ---------- */
-function mondayISO(d = new Date()) { const x = new Date(d); const day = (x.getDay() + 6) % 7; x.setDate(x.getDate() - day); return x.toISOString().slice(0, 10); }
+function mondayISO(d = new Date()) { const x = new Date(d); const day = (x.getDay() + 6) % 7; x.setDate(x.getDate() - day); return isoDate(x); }
 let planWeek = mondayISO();
 let planTab = 'mois';
 function renderPlanning(v) {
@@ -2122,15 +2124,19 @@ const teamColor = id => { const i = DB.data.equipes.findIndex(e => e.id === id);
 const typeColor = t => ({ perso: '#475569', reunion: '#5b3fb0', conges: '#b3261e', autre: '#0e7490' }[t] || '#475569');
 let planMonth = new Date().getMonth(), planYear = new Date().getFullYear();
 let planFilter = { perso: true, equipes: true };
+// Étiquette d'un événement agenda : heure de début en préfixe + libellé
+const agEventLabel = (a, base) => (a.heureDebut ? a.heureDebut + ' ' : '') + base;
+// Détail des compagnons pour l'infobulle
+const agCompTip = a => (a.companions && a.companions.length) ? '\n👥 ' + a.companions.join(', ') : '';
 function dayEvents(iso, dateObj) {
   const evs = [];
   if (planFilter.perso) {
-    DB.data.agenda.filter(a => a.type !== 'chantier' && a.dateDebut && iso >= a.dateDebut && iso <= (a.dateFin || a.dateDebut)).forEach(a => evs.push({ color: typeColor(a.type), label: a.title, agendaId: a.id }));
+    DB.data.agenda.filter(a => a.type !== 'chantier' && a.dateDebut && iso >= a.dateDebut && iso <= (a.dateFin || a.dateDebut)).forEach(a => evs.push({ color: typeColor(a.type), label: agEventLabel(a, a.title), tip: agEventLabel(a, a.title) + agCompTip(a), agendaId: a.id }));
     DB.data.prospection.filter(p => p.date === iso).forEach(p => evs.push({ color: '#2568b3', label: 'RDV · ' + p.nom, route: 'prospection' }));
     DB.data.visites.filter(x => x.datePrevue === iso).forEach(x => { const c = DB.data.contrats.find(y => y.id === x.contratId); evs.push({ color: '#9a6700', label: 'Visite · ' + (c ? clientNom(c.clientId) : ''), route: 'entretien' }); });
   }
   if (planFilter.equipes) {
-    DB.data.agenda.filter(a => a.type === 'chantier' && a.dateDebut && iso >= a.dateDebut && iso <= (a.dateFin || a.dateDebut)).forEach(a => { const eq = DB.data.equipes.find(e => e.id === a.equipeId); evs.push({ color: teamColor(a.equipeId), label: (eq ? eq.nom + ' · ' : '') + a.title, agendaId: a.id }); });
+    DB.data.agenda.filter(a => a.type === 'chantier' && a.dateDebut && iso >= a.dateDebut && iso <= (a.dateFin || a.dateDebut)).forEach(a => { const eq = DB.data.equipes.find(e => e.id === a.equipeId); const base = (eq ? eq.nom + ' · ' : '') + a.title; evs.push({ color: teamColor(a.equipeId), label: agEventLabel(a, base), tip: agEventLabel(a, base) + agCompTip(a), agendaId: a.id }); });
     DB.data.pointages.forEach(r => { if (!r.h) return; const di = daysBetween(r.semaine, iso); if (di >= 0 && di < 7 && r.h[di]) evs.push({ color: teamColor(r.equipeId), label: r.workerNom + ' · ' + (r.chantierNom || r.otp || ''), route: 'planning-sem' }); });
   }
   return evs;
@@ -2141,14 +2147,14 @@ function renderCalendar(v) {
   const startOffset = (first.getDay() + 6) % 7;
   const gridStart = new Date(planYear, planMonth, 1 - startOffset);
   const cells = []; for (let i = 0; i < 42; i++) { const d = new Date(gridStart); d.setDate(gridStart.getDate() + i); cells.push(d); }
-  const iso = d => d.toISOString().slice(0, 10);
+  const iso = d => isoDate(d);
   const cellHtml = d => {
     const inMo = d.getMonth() === planMonth, isoD = iso(d), isToday = isoD === todayISO();
     const evs = dayEvents(isoD, d);
     const shown = evs.slice(0, 4);
     return `<div class="cal-cell ${inMo ? '' : 'out'} ${isToday ? 'today' : ''}" data-day="${isoD}">
       <div class="cal-daynum">${d.getDate()}</div>
-      ${shown.map((e, i) => `<span class="cal-ev" style="background:${e.color}" ${e.agendaId ? `data-ev="${e.agendaId}"` : e.route ? `data-route="${e.route}"` : ''} title="${esc(e.label)}">${esc(e.label)}</span>`).join('')}
+      ${shown.map((e, i) => `<span class="cal-ev" style="background:${e.color}" ${e.agendaId ? `data-ev="${e.agendaId}"` : e.route ? `data-route="${e.route}"` : ''} title="${esc(e.tip || e.label)}">${esc(e.label)}</span>`).join('')}
       ${evs.length > 4 ? `<div class="cal-more">+ ${evs.length - 4}</div>` : ''}</div>`;
   };
   v.innerHTML = `
@@ -2182,29 +2188,47 @@ function renderCalendar(v) {
   $$('[data-route]', v).forEach(el => el.onclick = e => { e.stopPropagation(); const r = el.dataset.route; if (r === 'planning-sem') { planTab = 'semaine'; renderPlanning($('#view')); } else go(r); });
 }
 function agendaForm(id, presetDate) {
-  const a = id ? DB.data.agenda.find(x => x.id === id) : { title: '', type: 'perso', dateDebut: presetDate || todayISO(), dateFin: '', equipeId: (DB.data.equipes[0] || {}).id || '', otp: '', note: '' };
+  const a = id ? DB.data.agenda.find(x => x.id === id) : { title: '', type: 'perso', dateDebut: presetDate || todayISO(), dateFin: '', heureDebut: '', heureFin: '', equipeId: (DB.data.equipes[0] || {}).id || '', companions: [], otp: '', note: '' };
   const eqOpts = DB.data.equipes.map(e => `<option value="${e.id}" ${a.equipeId === e.id ? 'selected' : ''}>${esc(e.nom)} (${esc(e.chef)})</option>`).join('');
+  // Compagnons connus (chefs + compagnons de toutes les équipes), dédoublonnés par nom
+  const knownNames = [...new Set(planWorkers().map(w => w.nom).filter(Boolean))];
+  const selected = Array.isArray(a.companions) ? a.companions.filter(Boolean) : [];
+  const extraNames = selected.filter(n => !knownNames.includes(n));
+  const compChecks = knownNames.length
+    ? knownNames.map((n, i) => `<label class="chip" style="cursor:pointer"><input type="checkbox" class="a-comp" value="${esc(n)}" ${selected.includes(n) ? 'checked' : ''}> ${esc(n)}</label>`).join('')
+    : '<span class="t-muted" style="font-size:12px">Aucune équipe enregistrée — ajoutez des noms ci-dessous.</span>';
   const m = modal({ title: id ? "Modifier l'événement" : 'Nouvel événement',
     body: `<div class="form-grid">
       <div class="field"><label>Type</label><select id="a-type">${Object.entries(AGENDA_TYPES).map(([k, l]) => `<option value="${k}" ${a.type === k ? 'selected' : ''}>${l}</option>`).join('')}</select></div>
-      <div class="field" id="a-eqwrap"><label>Équipe</label><select id="a-eq">${eqOpts || '<option value="">—</option>'}</select></div>
+      <div class="field" id="a-eqwrap"><label>Équipe de référence (optionnel)</label><select id="a-eq"><option value="">—</option>${eqOpts}</select></div>
       <div class="field full"><label>Intitulé</label><input id="a-title" value="${esc(a.title)}" placeholder="RDV client, chantier, congés…"></div>
       <div class="field"><label>Du</label><input id="a-deb" type="date" value="${a.dateDebut || todayISO()}"></div>
       <div class="field"><label>Au (optionnel)</label><input id="a-fin" type="date" value="${a.dateFin || ''}"></div>
+      <div class="field"><label>Heure de début</label><input id="a-hdeb" type="time" value="${esc(a.heureDebut || '')}"></div>
+      <div class="field"><label>Heure de fin (optionnel)</label><input id="a-hfin" type="time" value="${esc(a.heureFin || '')}"></div>
+      <div class="field full"><label>Compagnons — équipe composée pour ce rendez-vous</label>
+        <div class="a-comp-list" style="display:flex;flex-wrap:wrap;gap:8px;padding:8px;background:var(--panel-3);border-radius:8px">${compChecks}</div>
+        <input id="a-compextra" value="${esc(extraNames.join(', '))}" placeholder="Autres compagnons (séparés par des virgules)" style="margin-top:8px">
+        <div class="hint">Cochez les compagnons présents ce jour-là ; l'équipe peut changer à chaque rendez-vous.</div>
+      </div>
       <div class="field"><label>OTP (optionnel)</label><input id="a-otp" value="${esc(a.otp)}" list="a-otplist"><datalist id="a-otplist">${otpDistinct().map(o => `<option value="${esc(o)}">`).join('')}</datalist></div>
       <div class="field"><label>Note</label><input id="a-note" value="${esc(a.note)}"></div>
     </div>`,
     footer: `${id ? `<button class="btn danger" id="a-del">${icon('trash')} Supprimer</button>` : ''}<span class="spacer"></span><button class="btn" data-c>Annuler</button><button class="btn primary" id="a-save">Enregistrer</button>` });
   m.root.querySelector('.modal-foot').style.justifyContent = 'flex-start';
-  const syncEq = () => { $('#a-eqwrap').style.display = $('#a-type').value === 'chantier' ? '' : 'none'; };
-  $('#a-type').onchange = syncEq; syncEq();
   m.root.querySelector('[data-c]').onclick = m.close;
   if (id) $('#a-del').onclick = () => { DB.data.agenda = DB.data.agenda.filter(x => x.id !== id); DB.save(); m.close(); toast('Événement supprimé'); renderPlanning($('#view')); };
+  const collectCompanions = () => {
+    const checked = $$('.a-comp', m.root).filter(c => c.checked).map(c => c.value);
+    const extra = ($('#a-compextra').value || '').split(',').map(s => s.trim()).filter(Boolean);
+    return [...new Set([...checked, ...extra])];
+  };
   $('#a-save').onclick = () => {
     const type = $('#a-type').value;
-    const obj = { title: $('#a-title').value.trim(), type, equipeId: type === 'chantier' ? $('#a-eq').value : '', dateDebut: $('#a-deb').value, dateFin: $('#a-fin').value, otp: $('#a-otp').value.trim(), note: $('#a-note').value.trim() };
+    const obj = { title: $('#a-title').value.trim(), type, equipeId: $('#a-eq').value, companions: collectCompanions(), dateDebut: $('#a-deb').value, dateFin: $('#a-fin').value, heureDebut: $('#a-hdeb').value, heureFin: $('#a-hfin').value, otp: $('#a-otp').value.trim(), note: $('#a-note').value.trim() };
     if (!obj.title) { toast("L'intitulé est obligatoire", 'err'); return; }
     if (!obj.dateDebut) { toast('La date est obligatoire', 'err'); return; }
+    if (obj.heureFin && obj.heureDebut && obj.heureFin < obj.heureDebut) { toast("L'heure de fin est avant l'heure de début", 'err'); return; }
     if (id) Object.assign(a, obj); else DB.data.agenda.unshift({ id: uid(), ...obj });
     DB.save(); m.close(); toast('Événement enregistré'); planTab = 'mois'; renderPlanning($('#view'));
   };
