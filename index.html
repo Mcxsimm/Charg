@@ -208,6 +208,19 @@ tfoot td{padding:11px 14px;font-weight:700;background:var(--panel-2);border-top:
 .stat-line{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--line);font-size:13px}
 .stat-line:last-child{border-bottom:0}
 .stat-line b{font-variant-numeric:tabular-nums}
+.todo-add{display:flex;gap:8px;margin-top:6px;margin-bottom:12px}
+.todo-add input{flex:1;padding:9px 12px;border:1px solid var(--line);border-radius:8px;font:inherit;color:var(--ink);background:var(--panel)}
+.todo-add input:focus{outline:none;border-color:var(--brand-2);box-shadow:0 0 0 3px var(--brand-soft)}
+.todo-list{display:flex;flex-direction:column}
+.todo-item{display:flex;align-items:center;gap:12px;padding:9px 4px;border-bottom:1px solid var(--line)}
+.todo-item:last-child{border-bottom:0}
+.todo-check{display:inline-flex;cursor:pointer}
+.todo-check input{width:18px;height:18px;accent-color:var(--green);cursor:pointer}
+.todo-text{flex:1;font-size:13.5px;color:var(--ink);word-break:break-word}
+.todo-item.done .todo-text{text-decoration:line-through;color:var(--muted)}
+.todo-del{opacity:0;transition:opacity .12s}
+.todo-item:hover .todo-del{opacity:1}
+@media(hover:none){.todo-del{opacity:1}}
 .pill-tabs{display:inline-flex;gap:4px;background:var(--panel-3);padding:4px;border-radius:9px;margin-bottom:16px}
 .pill-tabs button{border:0;background:transparent;padding:7px 14px;border-radius:7px;font-weight:600;font-size:13px;color:var(--ink-soft)}
 .pill-tabs button.active{background:#fff;color:var(--brand);box-shadow:var(--shadow)}
@@ -676,6 +689,7 @@ const DB = {
     d.commandes.forEach(x => { if (x.dateReception === undefined) x.dateReception = ''; if (x.num === undefined) x.num = ''; });
     d.chantiers.forEach(x => { if (x.sourceDevisId === undefined) x.sourceDevisId = ''; });
     if (!Array.isArray(d.agenda)) d.agenda = [];
+    if (!Array.isArray(d.todos)) d.todos = [];
     if (!Array.isArray(d.otps)) d.otps = [];
     d.pointages = migratePointages(d.pointages);
     d.bte = d.bte.map(migrateBte);
@@ -821,6 +835,11 @@ function demoData() {
       { id: uid(), title: 'RDV client — Clinique du Parc', type: 'reunion', dateDebut: addDays(todayISO(), 1), dateFin: '', heureDebut: '09:00', heureFin: '10:00', equipeId: '', companions: ['Karim B.', 'Léo P.'], otp: '', note: '' },
       { id: uid(), title: 'Étanchéité parking couvert', type: 'chantier', dateDebut: mondayISO(), dateFin: addDays(mondayISO(), 4), heureDebut: '', heureFin: '', equipeId: eqB, companions: ['David M.', 'Samir T.'], otp: 'OTP-24002', note: '' },
       { id: uid(), title: 'Congés', type: 'conges', dateDebut: addDays(todayISO(), 7), dateFin: addDays(todayISO(), 9), heureDebut: '', heureFin: '', equipeId: '', companions: [], otp: '', note: '' },
+    ],
+    todos: [
+      { id: uid(), text: 'Relancer le client pour le devis parking couvert', done: false, date: todayISO() },
+      { id: uid(), text: 'Commander les membranes IKO pour le bâtiment A', done: false, date: todayISO() },
+      { id: uid(), text: 'Envoyer le rapport de visite Collège Jean Moulin', done: true, date: addDays(todayISO(), -2) },
     ],
   });
 }
@@ -1064,6 +1083,7 @@ function renderDashboard(v) {
         <div class="stat-line"><span>Chantiers actifs</span><b>${DB.data.chantiers.filter(c => ['commande', 'en_cours'].includes(c.statut)).length}</b></div>
       </div>
     </div>
+    <div class="card card-pad" id="todo-card" style="margin-top:16px"></div>
     <div class="card card-pad" style="margin-top:16px">
       <div class="section-head">${icon('bar')}<h2>CA & Marge par mois — ${yr}</h2></div>
       ${monthlyBarChart(yr)}
@@ -1075,6 +1095,36 @@ function renderDashboard(v) {
     </div>`;
   $('#edit-obj').onclick = editObjectifs;
   $$('[data-goto]', v).forEach(b => b.onclick = () => go(b.dataset.goto));
+  renderTodos();
+}
+function renderTodos() {
+  const host = $('#todo-card');
+  if (!host) return;
+  const todos = DB.data.todos || (DB.data.todos = []);
+  const open = todos.filter(t => !t.done).length;
+  host.innerHTML = `
+    <div class="section-head">${icon('checkSquare')}<h2>Ma to-do list</h2><span class="spacer"></span>${open ? `<span class="chip">${open} à faire</span>` : `<span class="chip">Tout est fait ✓</span>`}</div>
+    <div class="todo-add">
+      <input id="todo-input" placeholder="Ajouter une tâche (Entrée pour valider)…" maxlength="200">
+      <button class="btn primary small" id="todo-addbtn">${icon('plus')} Ajouter</button>
+    </div>
+    ${todos.length ? `<div class="todo-list">${todos.map(t => `
+      <div class="todo-item ${t.done ? 'done' : ''}" data-id="${t.id}">
+        <label class="todo-check"><input type="checkbox" class="todo-toggle" ${t.done ? 'checked' : ''}></label>
+        <span class="todo-text">${esc(t.text)}</span>
+        <button class="icon-btn danger todo-del" title="Supprimer">${icon('trash')}</button>
+      </div>`).join('')}</div>`
+      : `<div class="t-muted" style="margin-top:8px">Aucune tâche pour le moment. Ajoutez ce que vous ne voulez pas oublier.</div>`}`;
+  const addTodo = () => {
+    const inp = $('#todo-input', host); const txt = (inp.value || '').trim();
+    if (!txt) return;
+    DB.data.todos.push({ id: uid(), text: txt, done: false, date: todayISO() });
+    DB.save(); renderTodos(); const ni = $('#todo-input'); if (ni) ni.focus();
+  };
+  $('#todo-addbtn', host).onclick = addTodo;
+  $('#todo-input', host).onkeydown = e => { if (e.key === 'Enter') { e.preventDefault(); addTodo(); } };
+  $$('.todo-toggle', host).forEach(c => c.onchange = e => { const id = e.target.closest('.todo-item').dataset.id; const t = DB.data.todos.find(x => x.id === id); if (t) { t.done = e.target.checked; DB.save(); renderTodos(); } });
+  $$('.todo-del', host).forEach(b => b.onclick = e => { const id = e.target.closest('.todo-item').dataset.id; DB.data.todos = DB.data.todos.filter(x => x.id !== id); DB.save(); renderTodos(); });
 }
 function monthlyBarChart(yr) {
   const caM = Array(12).fill(0), maM = Array(12).fill(0);
