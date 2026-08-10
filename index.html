@@ -242,8 +242,9 @@ tfoot td{padding:11px 14px;font-weight:700;background:var(--panel-2);border-top:
 .stat-line{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--line);font-size:13px}
 .stat-line:last-child{border-bottom:0}
 .stat-line b{font-variant-numeric:tabular-nums}
-.todo-add{display:flex;gap:8px;margin-top:6px;margin-bottom:12px}
-.todo-add input{flex:1;padding:9px 12px;border:1px solid var(--line);border-radius:8px;font:inherit;color:var(--ink);background:var(--panel)}
+.todo-add{display:flex;gap:8px;margin-top:6px;margin-bottom:12px;flex-wrap:wrap}
+.todo-add input{flex:1;min-width:180px;padding:9px 12px;border:1px solid var(--line);border-radius:8px;font:inherit;color:var(--ink);background:var(--panel)}
+.todo-add input[type=date]{flex:0 0 auto;min-width:0;width:auto;color:var(--ink-soft)}
 .todo-add input:focus{outline:none;border-color:var(--brand-2);box-shadow:0 0 0 3px var(--brand-soft)}
 .todo-list{display:flex;flex-direction:column}
 .todo-item{display:flex;align-items:center;gap:12px;padding:9px 4px;border-bottom:1px solid var(--line)}
@@ -258,6 +259,21 @@ tfoot td{padding:11px 14px;font-weight:700;background:var(--panel-2);border-top:
 .todo-edit-input{flex:1;min-width:0;padding:6px 10px;border:1px solid var(--brand-2);border-radius:7px;
   font:inherit;font-size:13.5px;color:var(--ink);background:#fff;box-shadow:0 0 0 3px rgba(37,104,179,.14)}
 .todo-edit-input:focus{outline:0}
+.todo-due{display:inline-flex;align-items:center;gap:5px;padding:3px 8px;border-radius:6px;font-size:11.5px;font-weight:700;
+  border:1px solid var(--line);background:var(--panel-3);color:var(--ink-soft);white-space:nowrap;flex:none;
+  transition:background .15s var(--ease-out),color .15s var(--ease-out),border-color .15s var(--ease-out),transform .13s var(--ease-out)}
+.todo-due .ic{width:13px;height:13px}
+.todo-due:active{transform:scale(.95)}
+.todo-due.ok{background:var(--brand-soft);color:var(--brand);border-color:var(--brand-ink)}
+.todo-due.soon{background:var(--amber-bg);color:var(--amber);border-color:#f0dca6}
+.todo-due.late{background:var(--red-bg);color:var(--red);border-color:#eec4c1}
+.todo-due.add{opacity:0;background:transparent;border-style:dashed;color:var(--muted);font-weight:600}
+.todo-item:hover .todo-due.add{opacity:1}
+@media(hover:none){.todo-due.add{opacity:1}}
+.todo-item.done .todo-due{background:var(--panel-3);color:var(--muted);border-color:var(--line)}
+.todo-due-input{flex:none;padding:5px 8px;border:1px solid var(--brand-2);border-radius:6px;
+  font:inherit;font-size:12px;color:var(--ink);background:#fff;box-shadow:0 0 0 3px rgba(37,104,179,.14)}
+.todo-due-input:focus{outline:0}
 .pill-tabs{display:inline-flex;gap:4px;background:var(--panel-3);padding:4px;border-radius:9px;margin-bottom:16px}
 .pill-tabs button{border:0;background:transparent;padding:7px 14px;border-radius:7px;font-weight:600;font-size:13px;color:var(--ink-soft);
   transition:background .18s var(--ease-out),color .18s var(--ease-out),box-shadow .18s var(--ease-out),transform .13s var(--ease-out)}
@@ -532,12 +548,13 @@ const CAD_METIERS = {
     inputs: [{ key: 'surface', label: 'Surface de terrasse (m²)', def: 300, unit: 'm²' }, { key: 'mlong', label: 'Métré linéaire relevés / costières (mL)', def: 80, unit: 'mL' }],
     tasksSurf: {
       depose_protection: { label: 'Dépose de la protection', def: 1, opts: [['Pas de protection', 0], ['Gravillon', 0.10], ['Dalles sur plots (réutilisation)', 0.20], ['Dalles sur plots (évacuation)', 1.0]] },
-      depose_complexe: { label: "Dépose du complexe d'étanchéité", def: 1, opts: [['Pas de dépose', 0], ['Multi-couches (léger)', 0.12], ['Multi-couches (moyen)', 0.15], ['Multi-couches (lourd)', 0.42], ['Multi-couches (très lourd)', 0.45]] },
+      depose_complexe: { label: "Dépose du complexe d'étanchéité", def: 4, opts: [['Pas de dépose', 0], ['Monocouche synthétique (fixée méca.)', 0.06], ['Monocouche synthétique (collée)', 0.08], ['Monocouche bitume (autoprotégée)', 0.10], ['Multi-couches (léger)', 0.12], ['Multi-couches (moyen)', 0.15], ['Multi-couches (lourd)', 0.42], ['Multi-couches (très lourd)', 0.45]] },
       vernis: { label: 'Vernis (EIF)', def: 1, opts: [['Pas de vernis', 0], ['Vernis (EIF - Aquadère)', 0.015]] },
       parevapeur: { label: 'Pare-vapeur', def: 4, opts: [['Pas de pare-vapeur', 0], ['VAP ou acoustique (soudé)', 0.015], ['VAP adhésif (à froid)', 0.025], ['VAP adhésif (froid, complexe)', 0.07], ['Hyrène 25/25 (béton)', 0.035]] },
       isolant: { label: "Isolant (hors d'eau)", def: 1, opts: [["Pas d'isolant", 0], ['Polyuréthane ou PSE', 0.03], ['Laine de roche nue', 0.04], ['Laine de roche nue (2 lits)', 0.07], ['Laine de roche soudée', 0.05], ['Laine de roche soudée (2 lits)', 0.08], ['Verre cellulaire (Foamglas)', 0.10]] },
       couche1: { label: "1ère couche d'étanchéité", def: 1, opts: [['Pas de 1ère couche', 0], ['TOPFIX FMP (fixée)', 0.0375]] },
       couche2: { label: "2nde couche / finition", def: 1, opts: [['Pas de 2nde couche', 0], ['TOPAZ soudé (ardoisé)', 0.0375]] },
+      monocouche: { label: 'Étanchéité monocouche (membrane synthétique)', def: 0, opts: [['Pas de monocouche', 0], ['Membrane PVC (fixée méca.)', 0.04], ['Membrane PVC (collée)', 0.055], ['Membrane TPO/FPO (soudée)', 0.05], ['Membrane EPDM (collée)', 0.06], ['Bitume monocouche autoprotégé (soudé)', 0.045]] },
       bacacier: { label: 'Support bac acier', opts: [['Pas de bac acier', 0], ['Bac acier moyen', 0.025]] },
     },
     tasksLin: {
@@ -1161,24 +1178,39 @@ function renderTodos() {
   if (!host) return;
   const todos = DB.data.todos || (DB.data.todos = []);
   const open = todos.filter(t => !t.done).length;
+  const sorted = todos.slice().sort((a, b) => {
+    if (!!a.done !== !!b.done) return a.done ? 1 : -1;
+    const ad = a.due || '', bd = b.due || '';
+    if (ad && bd) return ad < bd ? -1 : ad > bd ? 1 : 0;
+    if (ad) return -1; if (bd) return 1;
+    return 0;
+  });
   host.innerHTML = `
     <div class="section-head">${icon('checkSquare')}<h2>Ma to-do list</h2><span class="spacer"></span>${open ? `<span class="chip">${open} à faire</span>` : `<span class="chip">Tout est fait ✓</span>`}</div>
     <div class="todo-add">
       <input id="todo-input" placeholder="Ajouter une tâche (Entrée pour valider)…" maxlength="200">
+      <input id="todo-due" type="date" title="Échéance (optionnel)">
       <button class="btn primary small" id="todo-addbtn">${icon('plus')} Ajouter</button>
     </div>
-    ${todos.length ? `<div class="todo-list">${todos.map(t => `
-      <div class="todo-item ${t.done ? 'done' : ''}" data-id="${t.id}">
+    ${sorted.length ? `<div class="todo-list">${sorted.map(t => {
+      const m = todoDueMeta(t);
+      const due = m
+        ? `<button class="todo-due ${m.cls}" data-due title="${m.title}">${icon('calendar', 'ic-sm')} ${fmtDate(t.due)}</button>`
+        : `<button class="todo-due add" data-due title="Ajouter une échéance">${icon('calendar', 'ic-sm')} Échéance</button>`;
+      return `<div class="todo-item ${t.done ? 'done' : ''}" data-id="${t.id}">
         <label class="todo-check"><input type="checkbox" class="todo-toggle" ${t.done ? 'checked' : ''}></label>
         <span class="todo-text" title="Double-cliquez pour modifier">${esc(t.text)}</span>
+        ${due}
         <button class="icon-btn todo-edit" title="Modifier">${icon('edit')}</button>
         <button class="icon-btn danger todo-del" title="Supprimer">${icon('trash')}</button>
-      </div>`).join('')}</div>`
+      </div>`;
+    }).join('')}</div>`
       : `<div class="t-muted" style="margin-top:8px">Aucune tâche pour le moment. Ajoutez ce que vous ne voulez pas oublier.</div>`}`;
   const addTodo = () => {
     const inp = $('#todo-input', host); const txt = (inp.value || '').trim();
     if (!txt) return;
-    DB.data.todos.push({ id: uid(), text: txt, done: false, date: todayISO() });
+    const due = ($('#todo-due', host).value || '');
+    DB.data.todos.push({ id: uid(), text: txt, due, done: false, date: todayISO() });
     DB.save(); renderTodos(); const ni = $('#todo-input'); if (ni) ni.focus();
   };
   $('#todo-addbtn', host).onclick = addTodo;
@@ -1187,6 +1219,41 @@ function renderTodos() {
   $$('.todo-del', host).forEach(b => b.onclick = e => { const id = e.target.closest('.todo-item').dataset.id; DB.data.todos = DB.data.todos.filter(x => x.id !== id); DB.save(); renderTodos(); });
   $$('.todo-edit', host).forEach(b => b.onclick = e => beginEditTodo(e.target.closest('.todo-item')));
   $$('.todo-text', host).forEach(s => s.ondblclick = e => beginEditTodo(e.target.closest('.todo-item')));
+  $$('.todo-due', host).forEach(b => b.onclick = e => beginEditDue(e.target.closest('.todo-item')));
+}
+function todoDueMeta(t) {
+  if (!t.due) return null;
+  const d = daysBetween(todayISO(), t.due); // >0 : à venir · 0 : aujourd'hui · <0 : passé
+  let cls = 'ok', title = 'Échéance : ' + fmtDate(t.due);
+  if (!t.done) {
+    if (d < 0) { cls = 'late'; title = 'En retard de ' + (-d) + ' j — échéance ' + fmtDate(t.due); }
+    else if (d === 0) { cls = 'soon'; title = "Échéance aujourd'hui"; }
+    else if (d <= 3) { cls = 'soon'; title = 'Dans ' + d + ' j — échéance ' + fmtDate(t.due); }
+  }
+  return { cls, title, d };
+}
+function beginEditDue(item) {
+  if (!item || item.querySelector('.todo-due-input')) return;
+  const id = item.dataset.id;
+  const t = DB.data.todos.find(x => x.id === id);
+  if (!t) return;
+  const chip = item.querySelector('.todo-due');
+  const input = document.createElement('input');
+  input.type = 'date'; input.className = 'todo-due-input'; if (t.due) input.value = t.due;
+  chip.replaceWith(input);
+  input.focus(); if (input.showPicker) { try { input.showPicker(); } catch (e) {} }
+  let settled = false;
+  const commit = save => {
+    if (settled) return; settled = true;
+    if (save) { t.due = input.value || ''; DB.save(); }
+    renderTodos();
+  };
+  input.onchange = () => commit(true);
+  input.onkeydown = e => {
+    if (e.key === 'Enter') { e.preventDefault(); commit(true); }
+    else if (e.key === 'Escape') { e.preventDefault(); commit(false); }
+  };
+  input.onblur = () => commit(true);
 }
 function beginEditTodo(item) {
   if (!item || item.querySelector('.todo-edit-input')) return;
