@@ -532,12 +532,13 @@ const CAD_METIERS = {
     inputs: [{ key: 'surface', label: 'Surface de terrasse (m²)', def: 300, unit: 'm²' }, { key: 'mlong', label: 'Métré linéaire relevés / costières (mL)', def: 80, unit: 'mL' }],
     tasksSurf: {
       depose_protection: { label: 'Dépose de la protection', def: 1, opts: [['Pas de protection', 0], ['Gravillon', 0.10], ['Dalles sur plots (réutilisation)', 0.20], ['Dalles sur plots (évacuation)', 1.0]] },
-      depose_complexe: { label: "Dépose du complexe d'étanchéité", def: 1, opts: [['Pas de dépose', 0], ['Multi-couches (léger)', 0.12], ['Multi-couches (moyen)', 0.15], ['Multi-couches (lourd)', 0.42], ['Multi-couches (très lourd)', 0.45]] },
+      depose_complexe: { label: "Dépose du complexe d'étanchéité", def: 4, opts: [['Pas de dépose', 0], ['Monocouche synthétique (fixée méca.)', 0.06], ['Monocouche synthétique (collée)', 0.08], ['Monocouche bitume (autoprotégée)', 0.10], ['Multi-couches (léger)', 0.12], ['Multi-couches (moyen)', 0.15], ['Multi-couches (lourd)', 0.42], ['Multi-couches (très lourd)', 0.45]] },
       vernis: { label: 'Vernis (EIF)', def: 1, opts: [['Pas de vernis', 0], ['Vernis (EIF - Aquadère)', 0.015]] },
       parevapeur: { label: 'Pare-vapeur', def: 4, opts: [['Pas de pare-vapeur', 0], ['VAP ou acoustique (soudé)', 0.015], ['VAP adhésif (à froid)', 0.025], ['VAP adhésif (froid, complexe)', 0.07], ['Hyrène 25/25 (béton)', 0.035]] },
       isolant: { label: "Isolant (hors d'eau)", def: 1, opts: [["Pas d'isolant", 0], ['Polyuréthane ou PSE', 0.03], ['Laine de roche nue', 0.04], ['Laine de roche nue (2 lits)', 0.07], ['Laine de roche soudée', 0.05], ['Laine de roche soudée (2 lits)', 0.08], ['Verre cellulaire (Foamglas)', 0.10]] },
       couche1: { label: "1ère couche d'étanchéité", def: 1, opts: [['Pas de 1ère couche', 0], ['TOPFIX FMP (fixée)', 0.0375]] },
       couche2: { label: "2nde couche / finition", def: 1, opts: [['Pas de 2nde couche', 0], ['TOPAZ soudé (ardoisé)', 0.0375]] },
+      monocouche: { label: 'Étanchéité monocouche (membrane synthétique)', def: 0, opts: [['Pas de monocouche', 0], ['Membrane PVC (fixée méca.)', 0.04], ['Membrane PVC (collée)', 0.055], ['Membrane TPO/FPO (soudée)', 0.05], ['Membrane EPDM (collée)', 0.06], ['Bitume monocouche autoprotégé (soudé)', 0.045]] },
       bacacier: { label: 'Support bac acier', opts: [['Pas de bac acier', 0], ['Bac acier moyen', 0.025]] },
     },
     tasksLin: {
