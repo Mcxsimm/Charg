@@ -250,11 +250,14 @@ tfoot td{padding:11px 14px;font-weight:700;background:var(--panel-2);border-top:
 .todo-item:last-child{border-bottom:0}
 .todo-check{display:inline-flex;cursor:pointer}
 .todo-check input{width:18px;height:18px;accent-color:var(--green);cursor:pointer}
-.todo-text{flex:1;font-size:13.5px;color:var(--ink);word-break:break-word}
+.todo-text{flex:1;font-size:13.5px;color:var(--ink);word-break:break-word;cursor:text}
 .todo-item.done .todo-text{text-decoration:line-through;color:var(--muted)}
-.todo-del{opacity:0;transition:opacity .15s var(--ease-out)}
-.todo-item:hover .todo-del{opacity:1}
-@media(hover:none){.todo-del{opacity:1}}
+.todo-edit,.todo-del{opacity:0;transition:opacity .15s var(--ease-out)}
+.todo-item:hover .todo-edit,.todo-item:hover .todo-del{opacity:1}
+@media(hover:none){.todo-edit,.todo-del{opacity:1}}
+.todo-edit-input{flex:1;min-width:0;padding:6px 10px;border:1px solid var(--brand-2);border-radius:7px;
+  font:inherit;font-size:13.5px;color:var(--ink);background:#fff;box-shadow:0 0 0 3px rgba(37,104,179,.14)}
+.todo-edit-input:focus{outline:0}
 .pill-tabs{display:inline-flex;gap:4px;background:var(--panel-3);padding:4px;border-radius:9px;margin-bottom:16px}
 .pill-tabs button{border:0;background:transparent;padding:7px 14px;border-radius:7px;font-weight:600;font-size:13px;color:var(--ink-soft);
   transition:background .18s var(--ease-out),color .18s var(--ease-out),box-shadow .18s var(--ease-out),transform .13s var(--ease-out)}
@@ -1167,7 +1170,8 @@ function renderTodos() {
     ${todos.length ? `<div class="todo-list">${todos.map(t => `
       <div class="todo-item ${t.done ? 'done' : ''}" data-id="${t.id}">
         <label class="todo-check"><input type="checkbox" class="todo-toggle" ${t.done ? 'checked' : ''}></label>
-        <span class="todo-text">${esc(t.text)}</span>
+        <span class="todo-text" title="Double-cliquez pour modifier">${esc(t.text)}</span>
+        <button class="icon-btn todo-edit" title="Modifier">${icon('edit')}</button>
         <button class="icon-btn danger todo-del" title="Supprimer">${icon('trash')}</button>
       </div>`).join('')}</div>`
       : `<div class="t-muted" style="margin-top:8px">Aucune tâche pour le moment. Ajoutez ce que vous ne voulez pas oublier.</div>`}`;
@@ -1181,6 +1185,30 @@ function renderTodos() {
   $('#todo-input', host).onkeydown = e => { if (e.key === 'Enter') { e.preventDefault(); addTodo(); } };
   $$('.todo-toggle', host).forEach(c => c.onchange = e => { const id = e.target.closest('.todo-item').dataset.id; const t = DB.data.todos.find(x => x.id === id); if (t) { t.done = e.target.checked; DB.save(); renderTodos(); } });
   $$('.todo-del', host).forEach(b => b.onclick = e => { const id = e.target.closest('.todo-item').dataset.id; DB.data.todos = DB.data.todos.filter(x => x.id !== id); DB.save(); renderTodos(); });
+  $$('.todo-edit', host).forEach(b => b.onclick = e => beginEditTodo(e.target.closest('.todo-item')));
+  $$('.todo-text', host).forEach(s => s.ondblclick = e => beginEditTodo(e.target.closest('.todo-item')));
+}
+function beginEditTodo(item) {
+  if (!item || item.querySelector('.todo-edit-input')) return;
+  const id = item.dataset.id;
+  const t = DB.data.todos.find(x => x.id === id);
+  if (!t) return;
+  const span = item.querySelector('.todo-text');
+  const input = document.createElement('input');
+  input.className = 'todo-edit-input'; input.value = t.text; input.maxLength = 200;
+  span.replaceWith(input);
+  input.focus(); input.select();
+  let settled = false;
+  const commit = save => {
+    if (settled) return; settled = true;
+    if (save) { const val = (input.value || '').trim(); if (val) { t.text = val; DB.save(); } }
+    renderTodos();
+  };
+  input.onkeydown = e => {
+    if (e.key === 'Enter') { e.preventDefault(); commit(true); }
+    else if (e.key === 'Escape') { e.preventDefault(); commit(false); }
+  };
+  input.onblur = () => commit(true);
 }
 function monthlyBarChart(yr) {
   const caM = Array(12).fill(0), maM = Array(12).fill(0);
