@@ -290,6 +290,19 @@ tfoot td{padding:11px 14px;font-weight:700;background:var(--panel-2);border-top:
 .todo-status-input{align-self:flex-start;min-width:200px;max-width:100%;padding:5px 8px;border:1px solid var(--brand-2);border-radius:6px;
   font:inherit;font-size:12px;color:var(--ink);background:var(--panel);box-shadow:0 0 0 3px rgba(37,104,179,.14)}
 .todo-status-input:focus{outline:0}
+.todo-wait{display:inline-flex;align-items:center;gap:5px;padding:3px 8px;border-radius:6px;font-size:11.5px;font-weight:700;
+  border:1px solid var(--line);background:var(--panel-3);color:var(--ink-soft);white-space:nowrap;flex:none;cursor:pointer;
+  transition:background .15s var(--ease-out),color .15s var(--ease-out),border-color .15s var(--ease-out),transform .13s var(--ease-out)}
+.todo-wait .ic{width:13px;height:13px}
+.todo-wait:active{transform:scale(.95)}
+.todo-wait.on{background:var(--amber-bg);color:var(--amber);border-color:#f0dca6}
+.todo-wait .todo-wait-date{font-weight:600;opacity:.8}
+.todo-wait.add{opacity:0;background:transparent;border-style:dashed;color:var(--muted);font-weight:600}
+.todo-item:hover .todo-wait.add{opacity:1}
+@media(hover:none){.todo-wait.add{opacity:1}}
+.todo-item.waiting{background:var(--amber-bg)}
+.todo-item.waiting .todo-text{color:var(--ink-soft)}
+.todo-item.done .todo-wait{opacity:.6}
 .pill-tabs{display:inline-flex;gap:4px;background:var(--panel-3);padding:4px;border-radius:9px;margin-bottom:16px}
 .pill-tabs button{border:0;background:transparent;padding:7px 14px;border-radius:7px;font-weight:600;font-size:13px;color:var(--ink-soft);
   transition:background .18s var(--ease-out),color .18s var(--ease-out),box-shadow .18s var(--ease-out),transform .13s var(--ease-out)}
@@ -1196,16 +1209,21 @@ function renderTodos() {
   const host = $('#todo-card');
   if (!host) return;
   const todos = DB.data.todos || (DB.data.todos = []);
-  const open = todos.filter(t => !t.done).length;
+  const open = todos.filter(t => !t.done && !t.waiting).length;
+  const waiting = todos.filter(t => !t.done && t.waiting).length;
+  const rank = t => t.done ? 2 : (t.waiting ? 1 : 0); // actionnable · en attente · fait
   const sorted = todos.slice().sort((a, b) => {
-    if (!!a.done !== !!b.done) return a.done ? 1 : -1;
+    const ra = rank(a), rb = rank(b); if (ra !== rb) return ra - rb;
     const ad = a.due || '', bd = b.due || '';
     if (ad && bd) return ad < bd ? -1 : ad > bd ? 1 : 0;
     if (ad) return -1; if (bd) return 1;
     return 0;
   });
+  const countChip = (open || waiting)
+    ? `<span class="chip">${open ? open + ' à faire' : 'Rien à faire'}${waiting ? ' · ' + waiting + ' en attente' : ''}</span>`
+    : `<span class="chip">Tout est fait ✓</span>`;
   host.innerHTML = `
-    <div class="section-head">${icon('checkSquare')}<h2>Ma to-do list</h2><span class="spacer"></span>${open ? `<span class="chip">${open} à faire</span>` : `<span class="chip">Tout est fait ✓</span>`}</div>
+    <div class="section-head">${icon('checkSquare')}<h2>Ma to-do list</h2><span class="spacer"></span>${countChip}</div>
     <div class="todo-add">
       <input id="todo-input" placeholder="Ajouter une tâche (Entrée pour valider)…" maxlength="200">
       <input id="todo-due" type="date" title="Échéance (optionnel)">
@@ -1219,12 +1237,16 @@ function renderTodos() {
       const status = t.status
         ? `<button class="todo-status" data-status title="Avancement noté le ${fmtDate(t.statusDate)} — cliquez pour modifier">${icon('activity', 'ic-sm')}<span class="todo-status-note">${esc(t.status)}</span><span class="todo-status-date">· ${fmtDate(t.statusDate)}</span></button>`
         : `<button class="todo-status add" data-status title="Noter un état d'avancement">${icon('activity', 'ic-sm')} Avancement</button>`;
-      return `<div class="todo-item ${t.done ? 'done' : ''}" data-id="${t.id}">
+      const wait = (t.waiting && !t.done)
+        ? `<button class="todo-wait on" data-wait title="En attente de retour depuis le ${fmtDate(t.waitingSince)} — cliquez pour reprendre la main">${icon('clock', 'ic-sm')} En attente<span class="todo-wait-date">· ${fmtDate(t.waitingSince)}</span></button>`
+        : `<button class="todo-wait add" data-wait title="Marquer en attente de retour (la balle n'est plus dans votre camp)">${icon('clock', 'ic-sm')} En attente</button>`;
+      return `<div class="todo-item ${t.done ? 'done' : ''} ${t.waiting && !t.done ? 'waiting' : ''}" data-id="${t.id}">
         <label class="todo-check"><input type="checkbox" class="todo-toggle" ${t.done ? 'checked' : ''}></label>
         <div class="todo-main">
           <span class="todo-text" title="Double-cliquez pour modifier">${esc(t.text)}</span>
           ${status}
         </div>
+        ${wait}
         ${due}
         <button class="icon-btn todo-edit" title="Modifier">${icon('edit')}</button>
         <button class="icon-btn danger todo-del" title="Supprimer">${icon('trash')}</button>
@@ -1240,7 +1262,8 @@ function renderTodos() {
   };
   $('#todo-addbtn', host).onclick = addTodo;
   $('#todo-input', host).onkeydown = e => { if (e.key === 'Enter') { e.preventDefault(); addTodo(); } };
-  $$('.todo-toggle', host).forEach(c => c.onchange = e => { const id = e.target.closest('.todo-item').dataset.id; const t = DB.data.todos.find(x => x.id === id); if (t) { t.done = e.target.checked; DB.save(); renderTodos(); } });
+  $$('.todo-toggle', host).forEach(c => c.onchange = e => { const id = e.target.closest('.todo-item').dataset.id; const t = DB.data.todos.find(x => x.id === id); if (t) { t.done = e.target.checked; if (t.done) { t.waiting = false; t.waitingSince = ''; } DB.save(); renderTodos(); } });
+  $$('.todo-wait', host).forEach(b => b.onclick = e => { const id = e.target.closest('.todo-item').dataset.id; const t = DB.data.todos.find(x => x.id === id); if (!t) return; t.waiting = !t.waiting; t.waitingSince = t.waiting ? todayISO() : ''; DB.save(); renderTodos(); });
   $$('.todo-del', host).forEach(b => b.onclick = e => { const id = e.target.closest('.todo-item').dataset.id; DB.data.todos = DB.data.todos.filter(x => x.id !== id); DB.save(); renderTodos(); });
   $$('.todo-edit', host).forEach(b => b.onclick = e => beginEditTodo(e.target.closest('.todo-item')));
   $$('.todo-text', host).forEach(s => s.ondblclick = e => beginEditTodo(e.target.closest('.todo-item')));
