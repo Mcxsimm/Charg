@@ -1574,6 +1574,27 @@ function rafSummary(code) {
   const marche = r.chantiers.reduce((s, c) => s + (+c.montantHT || 0), 0) || r.montantDevis;
   return { r, marche, factEmis: r.factEmis, encaisse: r.encaisse, raf: marche - r.factEmis, depenses: r.achats + r.mo };
 }
+// Budget prévu par nature : d'abord le(s) BTE de l'OTP, à défaut les lignes CA.
+// Renvoie hasBudget=false pour les comptes sans budget (ex. PIP, Habitat 76…).
+function rafBudget(code) {
+  const lignes = DB.data.bte.filter(b => b.otp === code).flatMap(b => b.lignes || []);
+  let mo = 0, four = 0, mat = 0;
+  lignes.forEach(l => {
+    const v = (+l.qte || 0) * (+l.pu || 0), c = (l.cat || '').toLowerCase();
+    if (c.includes('main') || c.includes('œuvre') || c.includes('oeuvre')) mo += v;
+    else if (c.includes('matériel') || c.includes('materiel') || c.includes('location') || c.includes('engin')) mat += v;
+    else four += v; // fournitures, sous-traitance, études, autres
+  });
+  let tot = mo + four + mat, src = 'BTE';
+  if (tot <= 0) {
+    const cl = DB.data.ca.filter(x => x.otp === code);
+    mo = cl.reduce((a, x) => a + (+x.moSmac || 0), 0);
+    four = cl.reduce((a, x) => a + (+x.fournitures || 0), 0);
+    mat = cl.reduce((a, x) => a + (+x.engins || 0), 0);
+    tot = mo + four + mat; src = 'CA';
+  }
+  return { hasBudget: tot > 0, src, mo, four, mat, tot };
+}
 function renderRAF(v) {
   if (rafOtp) { rafAnalyse(v); return; }
   const codes = otpDistinct();
@@ -1602,10 +1623,7 @@ function renderRAF(v) {
 function rafAnalyse(v) {
   const code = rafOtp, s = rafSummary(code), r = s.r;
   const pctFact = s.marche ? s.factEmis / s.marche * 100 : 0;
-  const bMo = r.caLines.reduce((a, l) => a + (+l.moSmac || 0), 0);
-  const bFour = r.caLines.reduce((a, l) => a + (+l.fournitures || 0), 0);
-  const bEng = r.caLines.reduce((a, l) => a + (+l.engins || 0), 0);
-  const budgetTot = bMo + bFour + bEng;
+  const bud = rafBudget(code);
   // Main d'œuvre imputée : cumul par compagnon (heures × taux horaire)
   const moRows = {};
   DB.data.pointages.filter(p => p.otp === code && p.h).forEach(p => {
@@ -1643,15 +1661,25 @@ function rafAnalyse(v) {
       <tr class="t-strong"><td>Reste à facturer</td><td class="num ${s.raf > 0 ? 'margin-bad' : 'margin-good'}">${eur(s.raf)}</td></tr>
       <tr><td>% facturé</td><td class="num">${pctFact.toFixed(1)} %</td></tr>
     </tbody></table></div>
-    <div class="card-title">Dépenses imputées par nature</div>
-    <div class="table-wrap" style="margin-bottom:18px"><table><thead><tr><th>Nature</th><th class="num">Budget (BTE/CA)</th><th class="num">Réel imputé</th><th class="num">Écart</th></tr></thead>
+    ${bud.hasBudget
+      ? `<div class="card-title">Dépenses imputées par nature — budget prévu (${bud.src}) vs réel</div>
+    <div class="table-wrap" style="margin-bottom:18px"><table><thead><tr><th>Nature</th><th class="num">Budget prévu</th><th class="num">Réel imputé</th><th class="num">Écart</th></tr></thead>
       <tbody>
-        <tr><td>Main d'œuvre</td><td class="num">${eur(bMo)}</td><td class="num">${eur(r.mo)}</td><td class="num">${eur(bMo - r.mo)}</td></tr>
-        <tr><td>Fournitures &amp; achats</td><td class="num">${eur(bFour)}</td><td class="num">${eur(r.achats)}</td><td class="num">${eur(bFour - r.achats)}</td></tr>
-        <tr><td>Matériel / engins</td><td class="num">${eur(bEng)}</td><td class="num">${eur(0)}</td><td class="num">${eur(bEng)}</td></tr>
+        <tr><td>Main d'œuvre</td><td class="num">${eur(bud.mo)}</td><td class="num">${eur(r.mo)}</td><td class="num">${eur(bud.mo - r.mo)}</td></tr>
+        <tr><td>Fournitures &amp; achats</td><td class="num">${eur(bud.four)}</td><td class="num">${eur(r.achats)}</td><td class="num">${eur(bud.four - r.achats)}</td></tr>
+        <tr><td>Matériel / engins</td><td class="num">${eur(bud.mat)}</td><td class="num">${eur(0)}</td><td class="num">${eur(bud.mat)}</td></tr>
       </tbody>
-      <tfoot><tr class="t-strong"><td>Total dépenses</td><td class="num">${eur(budgetTot)}</td><td class="num">${eur(s.depenses)}</td><td class="num">${eur(budgetTot - s.depenses)}</td></tr></tfoot>
-    </table></div>
+      <tfoot><tr class="t-strong"><td>Total dépenses</td><td class="num">${eur(bud.tot)}</td><td class="num">${eur(s.depenses)}</td><td class="num">${eur(bud.tot - s.depenses)}</td></tr></tfoot>
+    </table></div>`
+      : `<div class="card-title">Dépenses imputées par nature</div>
+    <p class="t-muted" style="margin-top:-6px;margin-bottom:10px">Aucun budget prévu (BTE) rattaché à ce compte OTP — seul le réel imputé est affiché.</p>
+    <div class="table-wrap" style="margin-bottom:18px"><table><thead><tr><th>Nature</th><th class="num">Réel imputé</th></tr></thead>
+      <tbody>
+        <tr><td>Main d'œuvre</td><td class="num">${eur(r.mo)}</td></tr>
+        <tr><td>Fournitures &amp; achats</td><td class="num">${eur(r.achats)}</td></tr>
+      </tbody>
+      <tfoot><tr class="t-strong"><td>Total dépenses</td><td class="num">${eur(s.depenses)}</td></tr></tfoot>
+    </table></div>`}
     <div class="card-title">Détail des dépenses imputées (${achats.length + moList.length})</div>
     ${(achats.length + moList.length) ? `<div class="table-wrap" style="margin-bottom:18px"><table><thead><tr><th>Type</th><th>Désignation</th><th>Détail</th><th class="num">Montant HT</th></tr></thead>
       <tbody>
