@@ -1643,12 +1643,15 @@ function rafFinance(code) {
   const factCumul = emises.filter(f => rafInCumul(f.dateEmission || f.dateFG)).reduce((a, f) => a + (+f.montantHT || 0), 0);
   const encaisse = factures.filter(f => f.statut === 'payee' && rafInCumul(f.datePaiement || f.dateEmission || f.dateFG)).reduce((a, f) => a + (+f.montantHT || 0), 0);
   const dep = achats + moP.cout, depCumul = achatsCumul + moC.cout;
-  const marge = ca - dep, margeCumul = caCumul - depCumul;
+  // Référence = prix de vente HT (le « budget prévu »). Marge = PV HT − coûts imputés,
+  // pourcentage rapporté au PV (marge brute). Indicateur de projet → coûts cumulés.
+  const marge = marche - depCumul;
+  const margePct = marche ? marge / marche : 0;
+  const resultatPeriode = ca - dep;  // résultat du seul périmètre affiché (CA imputé − dépenses)
   return { code, chantiers, devis, factures, achatsList, marche,
     ca, caCumul, achats, achatsCumul, engage,
     mo: moP.cout, moCumul: moC.cout, moHeures: moP.heures, moList: moP.list,
-    dep, depCumul, marge, margeCumul,
-    margePct: ca ? marge / ca : 0, margePctCumul: caCumul ? margeCumul / caCumul : 0,
+    dep, depCumul, marge, margePct, resultatPeriode,
     fact, factCumul, encaisse, raf: marche - factCumul, pctFact: marche ? factCumul / marche : 0 };
 }
 // Budget prévu par nature : d'abord le(s) BTE de l'OTP, à défaut les lignes CA.
@@ -1691,11 +1694,11 @@ function renderRAF(v) {
   const codes = all.filter(c => !rafQ || (c + ' ' + otpLabel(c) + ' ' + clientNom(otpClientId(c))).toLowerCase().includes(rafQ.toLowerCase()));
   const fin = codes.map(c => rafFinance(c));
   const T = fin.reduce((a, f) => ({ marche: a.marche + f.marche, ca: a.ca + f.ca, dep: a.dep + f.dep, marge: a.marge + f.marge, fact: a.fact + f.factCumul, raf: a.raf + f.raf }), { marche: 0, ca: 0, dep: 0, marge: 0, fact: 0, raf: 0 });
-  const Tpct = T.ca ? T.marge / T.ca : 0;
+  const Tpct = T.marche ? T.marge / T.marche : 0;
   const mCls = x => x >= 0 ? 'margin-good' : 'margin-bad';
   v.innerHTML = `
     <div class="section-head" style="margin-top:0">${icon('target')}<h2>RAF — suivi financier par OTP</h2><span class="spacer"></span><span class="chip">${rafPerLabel()}</span></div>
-    <p class="t-muted" style="margin-top:-8px;max-width:900px">Pour chaque <b>OTP</b> : le <b>CA imputé</b>, les <b>dépenses imputées</b> (achats réceptionnés + main d'œuvre pointée), la <b>marge</b> et son <b>pourcentage</b>, puis le <b>reste à facturer</b>. Tous les flux suivent le <b>périmètre de période</b> choisi ci-dessous ; le reste à facturer est toujours cumulé à fin de période.</p>
+    <p class="t-muted" style="margin-top:-8px;max-width:900px">Pour chaque <b>OTP</b> : le <b>CA imputé</b>, les <b>dépenses imputées</b> (achats réceptionnés + main d'œuvre pointée), la <b>marge</b> et son <b>pourcentage</b>, puis le <b>reste à facturer</b>. La marge est calculée <b>prix de vente HT − coûts imputés</b>, le pourcentage étant rapporté au prix de vente. Les flux (CA imputé, dépenses) suivent le <b>périmètre de période</b> choisi ci-dessous ; marge et reste à facturer restent cumulés à fin de période.</p>
     <div class="card card-pad" style="margin-bottom:16px">
       <div class="form-grid">
         <div class="field full"><label>Élément d'OTP (ouvrir la fiche d'analyse)</label>
@@ -1705,13 +1708,13 @@ function renderRAF(v) {
       <div style="display:flex;justify-content:flex-end;margin-top:14px"><button class="btn primary" id="raf-run">${icon('trend')} Exécuter</button></div>
     </div>
     <div class="filters"><span class="search-wrap">${icon('search')}<input id="raf-q" placeholder="Rechercher (OTP, libellé, client…)" value="${esc(rafQ)}"></span><span class="chip">${codes.length} OTP</span><span class="spacer"></span><button class="btn small" id="raf-list-csv">${icon('download')} Excel</button></div>
-    ${codes.length ? `<div class="table-wrap"><table><thead><tr><th>OTP</th><th>Libellé</th><th>Client</th><th class="num">Marché HT</th><th class="num">CA imputé</th><th class="num">Dépenses</th><th class="num">Marge</th><th class="num">% marge</th><th class="num">Facturé cum.</th><th class="num">Reste à facturer</th><th></th></tr></thead>
+    ${codes.length ? `<div class="table-wrap"><table><thead><tr><th>OTP</th><th>Libellé</th><th>Client</th><th class="num" title="Prix de vente HT — la référence (budget prévu)">PV HT</th><th class="num">CA imputé</th><th class="num">Dépenses</th><th class="num" title="Prix de vente HT − coûts imputés cumulés">Marge</th><th class="num" title="Marge rapportée au prix de vente HT">% marge</th><th class="num">Facturé cum.</th><th class="num">Reste à facturer</th><th></th></tr></thead>
       <tbody>${fin.map(f => `<tr><td class="t-strong">${esc(f.code)}</td><td><span class="link" data-run="${esc(f.code)}">${esc(otpLabel(f.code) || '—')}</span></td><td class="t-muted">${esc(clientNom(otpClientId(f.code)))}</td>
         <td class="num">${eur(f.marche)}</td><td class="num">${eur(f.ca)}</td><td class="num">${eur(f.dep)}</td>
-        <td class="num ${mCls(f.marge)}">${f.ca ? eur(f.marge) : '—'}</td><td class="num ${mCls(f.marge)}">${f.ca ? pct(f.margePct) : '—'}</td>
+        <td class="num ${mCls(f.marge)}">${f.marche ? eur(f.marge) : '—'}</td><td class="num ${mCls(f.marge)}">${f.marche ? pct(f.margePct) : '—'}</td>
         <td class="num">${eur(f.factCumul)}</td><td class="num ${f.raf > 0 ? 'margin-bad' : 'margin-good'}">${eur(f.raf)}</td>
         <td class="actions-cell"><button class="icon-btn" data-run="${esc(f.code)}" title="Analyser">${icon('target')}</button></td></tr>`).join('')}</tbody>
-      <tfoot><tr class="t-strong"><td colspan="3">TOTAL (${codes.length} OTP)</td><td class="num">${eur(T.marche)}</td><td class="num">${eur(T.ca)}</td><td class="num">${eur(T.dep)}</td><td class="num ${mCls(T.marge)}">${eur(T.marge)}</td><td class="num ${mCls(T.marge)}">${T.ca ? pct(Tpct) : '—'}</td><td class="num">${eur(T.fact)}</td><td class="num">${eur(T.raf)}</td><td></td></tr></tfoot></table></div>`
+      <tfoot><tr class="t-strong"><td colspan="3">TOTAL (${codes.length} OTP)</td><td class="num">${eur(T.marche)}</td><td class="num">${eur(T.ca)}</td><td class="num">${eur(T.dep)}</td><td class="num ${mCls(T.marge)}">${eur(T.marge)}</td><td class="num ${mCls(T.marge)}">${T.marche ? pct(Tpct) : '—'}</td><td class="num">${eur(T.fact)}</td><td class="num">${eur(T.raf)}</td><td></td></tr></tfoot></table></div>`
       : emptyState('target', 'Aucun OTP', 'Les OTP apparaissent dès qu\'ils sont utilisés sur un devis, un chantier, une facture ou un achat.')}`;
   rafBindPeriod(v);
   $('#raf-run').onclick = () => {
@@ -1753,8 +1756,8 @@ function rafAnalyse(v) {
       ${card('Reste à facturer', eur(F.raf), pct(F.pctFact) + ' facturé', F.raf > 0 ? 'amber' : 'green')}
     </div>
     <div class="grid-3" style="margin-bottom:18px">
-      ${card('Marge prévisionnelle', bud.hasBudget ? eur(margePrev) : '—', bud.hasBudget ? pct(pctPrev) + ' du marché' : 'Pas de budget prévu', bud.hasBudget ? (margePrev >= 0 ? 'green' : 'amber') : '')}
-      ${card('% marge réalisée', F.caCumul ? pct(F.margePctCumul) : '—', F.caCumul ? eur(F.margeCumul) + ' sur ' + eur(F.caCumul) + ' de CA' : 'CA non imputé', F.caCumul ? (F.margeCumul >= 0 ? 'green' : 'amber') : '')}
+      ${card('% marge prévisionnelle', bud.hasBudget ? pct(pctPrev) : '—', bud.hasBudget ? eur(margePrev) + ' — PV − coûts prévus' : 'Pas de coûts prévus (BTE)', bud.hasBudget ? (margePrev >= 0 ? 'green' : 'amber') : '')}
+      ${card('% marge réalisée', F.marche ? pct(F.margePct) : '—', F.marche ? eur(F.marge) + ' — PV − coûts imputés' : 'Pas de prix de vente', F.marche ? (F.marge >= 0 ? 'green' : 'amber') : '')}
       ${card('Coûts imputés', eur(F.depCumul), 'Achats ' + eur(F.achatsCumul) + ' · MO ' + eur(F.moCumul), 'amber')}
     </div>
     <div class="card-title">Facturation &amp; reste à facturer</div>
@@ -1767,18 +1770,20 @@ function rafAnalyse(v) {
     </tbody></table></div>
     <div class="card-title">Suivi financier${dual ? ' — période vs cumulé' : ''}</div>
     <div class="table-wrap" style="margin-bottom:18px"><table>${HD('Indicateur')}<tbody>
-      ${L('Prix de vente (marché HT)', '—', eur(F.marche))}
-      ${bud.hasBudget ? L('Coûts prévus (budget ' + bud.src + ')', '—', eur(bud.tot))
-        + L('Marge prévisionnelle', '—', eur(margePrev), mCls(margePrev), true)
-        + L('% marge prévisionnelle', '—', pct(pctPrev), mCls(margePrev)) : ''}
+      ${L('<b>Prix de vente HT</b> (budget prévu)', '—', eur(F.marche), '', true)}
+      ${bud.hasBudget ? L('Coûts prévus (BTE)', '—', eur(bud.tot))
+        + L('Marge prévisionnelle (PV − coûts prévus)', '—', eur(margePrev), mCls(margePrev), true)
+        + L('% marge prévisionnelle', '—', pct(pctPrev), mCls(margePrev), true) : ''}
       ${L('CA imputé', eur(F.ca), eur(F.caCumul))}
-      ${L('Dépenses imputées', eur(F.dep), eur(F.depCumul))}
+      ${L('Coûts imputés', eur(F.dep), eur(F.depCumul))}
       ${L('— dont achats réceptionnés', eur(F.achats), eur(F.achatsCumul))}
       ${L("— dont main d'œuvre", eur(F.mo), eur(F.moCumul))}
       ${L('Engagé (commandes non réceptionnées)', '—', eur(F.engage))}
-      ${L('Marge réalisée', F.ca ? eur(F.marge) : '—', F.caCumul ? eur(F.margeCumul) : '—', mCls(F.margeCumul), true)}
-      ${L('% marge réalisée', F.ca ? pct(F.margePct) : '—', F.caCumul ? pct(F.margePctCumul) : '—', mCls(F.margeCumul), true)}
-      ${bud.hasBudget ? L('Reste à dépenser (budget − réel)', '—', eur(resteADepenser)) : ''}
+      ${L('Marge réalisée (PV − coûts imputés)', '—', F.marche ? eur(F.marge) : '—', mCls(F.marge), true)}
+      ${L('% marge réalisée', '—', F.marche ? pct(F.margePct) : '—', mCls(F.marge), true)}
+      ${bud.hasBudget ? L('Écart de marge (réalisée − prévisionnelle)', '—', eur(F.marge - margePrev), mCls(F.marge - margePrev)) : ''}
+      ${bud.hasBudget ? L('Reste à dépenser (coûts prévus − imputés)', '—', eur(resteADepenser)) : ''}
+      ${dual ? L('Résultat de la période (CA imputé − coûts)', eur(F.resultatPeriode), '—') : ''}
     </tbody></table></div>
     ${bud.hasBudget
       ? `<div class="card-title">Dépenses par nature — budget prévu (${bud.src}) vs réel</div>
@@ -1841,20 +1846,24 @@ function exportRafXlsx(code) {
     LN('% facturé', TX('—'), PC(F.pctFact)),
     [],
     SH('Suivi financier'),
-    LN('Prix de vente (marché HT)', TX('—'), EU(F.marche)),
+    LN('Prix de vente HT (budget prévu)', TX('—'), EU(F.marche), true),
     ...(bud.hasBudget ? [
-      LN('Coûts prévus (budget ' + bud.src + ')', TX('—'), EU(bud.tot)),
-      LN('Marge prévisionnelle', TX('—'), ET(margePrev), true),
-      LN('% marge prévisionnelle', TX('—'), PC(pctPrev)),
+      LN('Coûts prévus (BTE)', TX('—'), EU(bud.tot)),
+      LN('Marge prévisionnelle (PV − coûts prévus)', TX('—'), ET(margePrev), true),
+      LN('% marge prévisionnelle', TX('—'), PT(pctPrev), true),
     ] : []),
     LN('CA imputé', EU(F.ca), EU(F.caCumul)),
-    LN('Dépenses imputées', EU(F.dep), EU(F.depCumul)),
+    LN('Coûts imputés', EU(F.dep), EU(F.depCumul)),
     LN('— dont achats réceptionnés', EU(F.achats), EU(F.achatsCumul)),
     LN("— dont main d'œuvre", EU(F.mo), EU(F.moCumul)),
     LN('Engagé (non réceptionné)', TX('—'), EU(F.engage)),
-    LN('Marge réalisée', F.ca ? ET(F.marge) : TX('—'), F.caCumul ? ET(F.margeCumul) : TX('—'), true),
-    LN('% marge réalisée', F.ca ? PC(F.margePct) : TX('—'), F.caCumul ? PT(F.margePctCumul) : TX('—'), true),
-    ...(bud.hasBudget ? [LN('Reste à dépenser (budget − réel)', TX('—'), EU(bud.tot - F.depCumul))] : []),
+    LN('Marge réalisée (PV − coûts imputés)', TX('—'), F.marche ? ET(F.marge) : TX('—'), true),
+    LN('% marge réalisée', TX('—'), F.marche ? PT(F.margePct) : TX('—'), true),
+    ...(bud.hasBudget ? [
+      LN('Écart de marge (réalisée − prévisionnelle)', TX('—'), EU(F.marge - margePrev)),
+      LN('Reste à dépenser (coûts prévus − imputés)', TX('—'), EU(bud.tot - F.depCumul)),
+    ] : []),
+    ...(dual ? [LN('Résultat de la période (CA imputé − coûts)', EU(F.resultatPeriode), TX('—'))] : []),
   ];
   const natRow = (lab, b, p, c) => dual ? [TX(lab), EU(b), EU(p), EU(c), EU(b - c), PC(pM(c))] : [TX(lab), EU(b), EU(c), EU(b - c), PC(pM(c))];
   const nat = [dual ? [H('Nature'), H('Budget prévu'), H('Réel ' + PL), H('Réel cumulé'), H('Écart'), H('% marché')] : [H('Nature'), H('Budget prévu'), H('Réel cumulé'), H('Écart'), H('% marché')],
@@ -1880,10 +1889,10 @@ function exportRafXlsx(code) {
 // Export RAF — vue portefeuille (tous les OTP filtrés), avec marges et % de marge
 function exportRafListXlsx(fin) {
   const H = v => ({ v, s: 4 }), TX = v => ({ v, s: 2 }), BD = v => ({ v, s: 3 }), EU = v => ({ v, s: 8 }), ET = v => ({ v, s: 10 }), PC = v => ({ v, s: 11 }), PT = v => ({ v, s: 12 });
-  const rows = [[H('OTP'), H('Libellé'), H('Client'), H('Marché HT'), H('CA imputé'), H('Dépenses'), H('dont achats'), H("dont MO"), H('Marge'), H('% marge'), H('Facturé cumulé'), H('Reste à facturer')]];
+  const rows = [[H('OTP'), H('Libellé'), H('Client'), H('PV HT'), H('CA imputé'), H('Coûts imputés'), H('dont achats'), H("dont MO"), H('Marge (PV − coûts)'), H('% marge'), H('Facturé cumulé'), H('Reste à facturer')]];
   fin.forEach(f => rows.push([TX(f.code), TX(otpLabel(f.code) || ''), TX(clientNom(otpClientId(f.code))), EU(f.marche), EU(f.ca), EU(f.dep), EU(f.achats), EU(Math.round(f.mo)), EU(Math.round(f.marge)), PC(f.margePct), EU(f.factCumul), EU(f.raf)]));
   const T = fin.reduce((a, f) => ({ marche: a.marche + f.marche, ca: a.ca + f.ca, dep: a.dep + f.dep, ach: a.ach + f.achats, mo: a.mo + f.mo, marge: a.marge + f.marge, fact: a.fact + f.factCumul, raf: a.raf + f.raf }), { marche: 0, ca: 0, dep: 0, ach: 0, mo: 0, marge: 0, fact: 0, raf: 0 });
-  rows.push([BD('TOTAL'), TX(''), TX(''), ET(T.marche), ET(T.ca), ET(T.dep), ET(T.ach), ET(Math.round(T.mo)), ET(Math.round(T.marge)), PT(T.ca ? T.marge / T.ca : 0), ET(T.fact), ET(T.raf)]);
+  rows.push([BD('TOTAL'), TX(''), TX(''), ET(T.marche), ET(T.ca), ET(T.dep), ET(T.ach), ET(Math.round(T.mo)), ET(Math.round(T.marge)), PT(T.marche ? T.marge / T.marche : 0), ET(T.fact), ET(T.raf)]);
   writeXlsxBook('RAF_par_OTP_' + rafExercice + '.xlsx', [
     { name: 'RAF par OTP', rows, widths: [14, 32, 24, 15, 15, 15, 14, 13, 14, 11, 16, 17], opts: { freeze: true, filterRef: 'A1:L1' } },
     { name: 'Périmètre', rows: [[BD('Périmètre'), TX(rafPerLabel())], [BD('Période'), TX(rafPeriode)], [BD('Exercice'), TX(rafExercice)], [BD('Édité le'), TX(fmtDate(todayISO()))], [BD('Nb OTP'), { v: fin.length, s: 9 }]], widths: [24, 30] },
