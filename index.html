@@ -988,6 +988,7 @@ const NAV = [
   { group: 'Finances' },
   { route: 'ca', ico: 'euro', label: 'CA & Marge', render: renderCA },
   { route: 'factures', ico: 'receipt', label: 'Facturation', render: renderFactures },
+  { route: 'raf', ico: 'target', label: 'RAF — Reste à facturer', render: renderRAF },
 ];
 const ROUTES = Object.fromEntries(NAV.filter(n => n.route).map(n => [n.route, n]));
 let current = 'dashboard';
@@ -1001,6 +1002,7 @@ function buildNav() {
 function go(route) {
   if (!ROUTES[route]) route = 'dashboard';
   current = route;
+  if (route === 'raf') rafOtp = ''; // entrer dans la section RAF ouvre toujours l'écran de sélection
   $$('.nav-item').forEach(b => b.classList.toggle('active', b.dataset.route === route));
   $('#page-title').textContent = ROUTES[route].label;
   location.hash = route;
@@ -1538,6 +1540,114 @@ function otpForm(code) {
     if (ex) Object.assign(ex, obj); else DB.data.otps.push(obj);
     DB.save(); m.close(); toast('OTP enregistré'); go('otps');
   };
+}
+
+/* ---------- RAF — Reste à facturer (analyse par OTP) ----------
+   Écran 1 : sélection d'un OTP (période / exercice) → « Exécuter ».
+   Écran 2 : fiche d'analyse — dépenses imputées + reste à facturer. */
+let rafOtp = '', rafPeriode = String(new Date().getMonth() + 1), rafExercice = String(new Date().getFullYear());
+function rafSummary(code) {
+  const r = otpRollup(code);
+  const marche = r.chantiers.reduce((s, c) => s + (+c.montantHT || 0), 0) || r.montantDevis;
+  return { r, marche, factEmis: r.factEmis, encaisse: r.encaisse, raf: marche - r.factEmis, depenses: r.achats + r.mo };
+}
+function renderRAF(v) {
+  if (rafOtp) { rafAnalyse(v); return; }
+  const codes = otpDistinct();
+  v.innerHTML = `
+    <div class="section-head" style="margin-top:0">${icon('target')}<h2>Sélection RAF — reste à facturer par OTP</h2></div>
+    <p class="t-muted" style="margin-top:-8px;max-width:840px">Choisissez un <b>OTP</b> pour ouvrir sa fiche d'analyse : dépenses imputées (achats fournisseurs, main d'œuvre), facturation émise et <b>reste à facturer</b>.</p>
+    <div class="card card-pad" style="max-width:660px;margin-bottom:18px">
+      <div class="form-grid">
+        <div class="field full"><label>Élément d'OTP</label>
+          <select id="raf-otp"><option value="">— Choisir un OTP —</option>${codes.map(c => `<option value="${esc(c)}">${esc(c)}${otpLabel(c) ? ' — ' + esc(otpLabel(c)) : ''}</option>`).join('')}</select></div>
+        <div class="field"><label>Période</label><select id="raf-per">${MOIS.map((m, i) => `<option value="${i + 1}" ${String(i + 1) === rafPeriode ? 'selected' : ''}>${i + 1} — ${m}</option>`).join('')}</select></div>
+        <div class="field"><label>Exercice comptable</label><input id="raf-ex" type="number" value="${esc(rafExercice)}"></div>
+      </div>
+      <div style="display:flex;justify-content:flex-end;margin-top:14px"><button class="btn primary" id="raf-run">${icon('trend')} Exécuter</button></div>
+    </div>
+    ${codes.length ? `<div class="table-wrap"><table><thead><tr><th>OTP</th><th>Libellé</th><th>Client</th><th class="num">Marché HT</th><th class="num">Facturé</th><th class="num">Reste à facturer</th><th></th></tr></thead>
+      <tbody>${codes.map(c => { const s = rafSummary(c); return `<tr><td class="t-strong">${esc(c)}</td><td><span class="link" data-run="${esc(c)}">${esc(otpLabel(c) || '—')}</span></td><td class="t-muted">${esc(clientNom(otpClientId(c)))}</td><td class="num">${eur(s.marche)}</td><td class="num">${eur(s.factEmis)}</td><td class="num ${s.raf > 0 ? 'margin-bad' : 'margin-good'}">${eur(s.raf)}</td><td class="actions-cell"><button class="icon-btn" data-run="${esc(c)}" title="Analyser">${icon('target')}</button></td></tr>`; }).join('')}</tbody></table></div>`
+      : emptyState('target', 'Aucun OTP', 'Les OTP apparaissent dès qu\'ils sont utilisés sur un devis, un chantier, une facture ou un achat.')}`;
+  const run = () => {
+    const sel = $('#raf-otp').value; if (!sel) { toast('Sélectionnez un OTP', 'err'); return; }
+    rafPeriode = $('#raf-per').value; rafExercice = $('#raf-ex').value; rafOtp = sel; renderRAF(v);
+  };
+  $('#raf-run').onclick = run;
+  $$('[data-run]', v).forEach(b => b.onclick = () => { rafPeriode = ($('#raf-per') || {}).value || rafPeriode; rafExercice = ($('#raf-ex') || {}).value || rafExercice; rafOtp = b.dataset.run; renderRAF(v); });
+}
+function rafAnalyse(v) {
+  const code = rafOtp, s = rafSummary(code), r = s.r;
+  const pctFact = s.marche ? s.factEmis / s.marche * 100 : 0;
+  const bMo = r.caLines.reduce((a, l) => a + (+l.moSmac || 0), 0);
+  const bFour = r.caLines.reduce((a, l) => a + (+l.fournitures || 0), 0);
+  const bEng = r.caLines.reduce((a, l) => a + (+l.engins || 0), 0);
+  const budgetTot = bMo + bFour + bEng;
+  // Main d'œuvre imputée : cumul par compagnon (heures × taux horaire)
+  const moRows = {};
+  DB.data.pointages.filter(p => p.otp === code && p.h).forEach(p => {
+    const heures = p.h.reduce((a, h) => a + (+h || 0), 0); if (!heures) return;
+    const k = p.workerNom || '—'; if (!moRows[k]) moRows[k] = { nom: k, heures: 0, cout: 0 };
+    moRows[k].heures += heures; moRows[k].cout += heures * tauxWorker(p.workerKey);
+  });
+  const moList = Object.values(moRows);
+  const achats = DB.data.commandes.filter(c => c.otp === code);
+  const meta = otpMeta(code) || {};
+  const card = (label, val, sub, tone) => `<div class="cad-metric ${tone || ''}"><div class="cm-label">${label}</div><div class="cm-value" style="font-size:22px">${val}</div>${sub ? `<div class="cm-sub">${sub}</div>` : ''}</div>`;
+  const lbl = t => `<div class="t-muted" style="font-size:11px;text-transform:uppercase;letter-spacing:.4px;font-weight:600">${t}</div>`;
+  v.innerHTML = `
+    <div class="page-actions"><button class="btn" id="raf-back">${icon('chevron')} Changer d'OTP</button><span class="spacer"></span><span class="chip">Période ${esc(rafPeriode)} · Exercice ${esc(rafExercice)}</span><button class="btn small" id="raf-csv">${icon('download')} Export CSV</button></div>
+    <div class="card card-pad" style="margin-bottom:16px">
+      <div class="section-head" style="margin-top:0">${icon('target')}<h2>Élément d'OTP ${esc(code)}</h2></div>
+      <div class="grid-3" style="gap:10px 24px">
+        <div>${lbl('Libellé')}<div class="t-strong">${esc(otpLabel(code) || '—')}</div></div>
+        <div>${lbl("Client / donneur d'ordre")}<div class="t-strong">${esc(clientNom(otpClientId(code)))}</div></div>
+        <div>${lbl("Date d'analyse")}<div class="t-strong">${fmtDate(todayISO())}</div></div>
+      </div>
+      <div class="field full" style="margin-top:14px"><label>Commentaires</label><input id="raf-com" value="${esc(meta.rafComment || '')}" placeholder="Note d'analyse RAF (facultatif)…" maxlength="200"></div>
+    </div>
+    <div class="grid-3" style="margin-bottom:18px">
+      ${card('Marché HT', eur(s.marche), r.chantiers.length + ' site(s)')}
+      ${card('Facturé émis', eur(s.factEmis), 'Encaissé ' + eur(s.encaisse))}
+      ${card('Reste à facturer', eur(s.raf), pctFact.toFixed(1) + ' % facturé', s.raf > 0 ? 'amber' : 'green')}
+    </div>
+    <div class="card-title">Facturation &amp; reste à facturer</div>
+    <div class="table-wrap" style="margin-bottom:18px"><table><tbody>
+      <tr><td>Marché HT (marché signé)</td><td class="num">${eur(s.marche)}</td></tr>
+      <tr><td>CA réalisé</td><td class="num">${eur(r.ca)}</td></tr>
+      <tr><td>Facturé émis</td><td class="num">${eur(s.factEmis)}</td></tr>
+      <tr><td>Encaissé</td><td class="num">${eur(s.encaisse)}</td></tr>
+      <tr class="t-strong"><td>Reste à facturer</td><td class="num ${s.raf > 0 ? 'margin-bad' : 'margin-good'}">${eur(s.raf)}</td></tr>
+      <tr><td>% facturé</td><td class="num">${pctFact.toFixed(1)} %</td></tr>
+    </tbody></table></div>
+    <div class="card-title">Dépenses imputées par nature</div>
+    <div class="table-wrap" style="margin-bottom:18px"><table><thead><tr><th>Nature</th><th class="num">Budget (BTE/CA)</th><th class="num">Réel imputé</th><th class="num">Écart</th></tr></thead>
+      <tbody>
+        <tr><td>Main d'œuvre</td><td class="num">${eur(bMo)}</td><td class="num">${eur(r.mo)}</td><td class="num">${eur(bMo - r.mo)}</td></tr>
+        <tr><td>Fournitures &amp; achats</td><td class="num">${eur(bFour)}</td><td class="num">${eur(r.achats)}</td><td class="num">${eur(bFour - r.achats)}</td></tr>
+        <tr><td>Matériel / engins</td><td class="num">${eur(bEng)}</td><td class="num">${eur(0)}</td><td class="num">${eur(bEng)}</td></tr>
+      </tbody>
+      <tfoot><tr class="t-strong"><td>Total dépenses</td><td class="num">${eur(budgetTot)}</td><td class="num">${eur(s.depenses)}</td><td class="num">${eur(budgetTot - s.depenses)}</td></tr></tfoot>
+    </table></div>
+    <div class="card-title">Détail des dépenses imputées (${achats.length + moList.length})</div>
+    ${(achats.length + moList.length) ? `<div class="table-wrap" style="margin-bottom:18px"><table><thead><tr><th>Type</th><th>Désignation</th><th>Détail</th><th class="num">Montant HT</th></tr></thead>
+      <tbody>
+        ${achats.map(c => `<tr><td>Achat</td><td class="t-strong">${esc(c.fournisseur || '—')}</td><td class="t-muted">${esc(c.objet || '—')}${c.num ? ' · ' + esc(c.num) : ''}</td><td class="num">${eur(c.montantHT)}</td></tr>`).join('')}
+        ${moList.map(w => `<tr><td>Main d'œuvre</td><td class="t-strong">${esc(w.nom)}</td><td class="t-muted">${w.heures.toFixed(1)} h</td><td class="num">${eur(w.cout)}</td></tr>`).join('')}
+      </tbody>
+      <tfoot><tr class="t-strong"><td colspan="3">Total imputé</td><td class="num">${eur(s.depenses)}</td></tr></tfoot></table></div>`
+      : '<div class="t-muted" style="margin-bottom:18px">Aucune dépense imputée sur cet OTP.</div>'}
+    ${r.chantiers.length ? `<div class="card-title">Sites / chantiers (${r.chantiers.length})</div><div class="table-wrap" style="margin-bottom:18px"><table><thead><tr><th>Nom du site</th><th>Adresse</th><th>Statut</th><th class="num">Montant HT</th></tr></thead><tbody>${r.chantiers.map(c => `<tr><td class="t-strong">${esc(c.nom)}</td><td class="t-muted">${esc(c.adresse || '—')}</td><td>${statutBadge(c.statut)}</td><td class="num">${eur(c.montantHT)}</td></tr>`).join('')}</tbody></table></div>` : ''}
+    ${r.factures.length ? `<div class="card-title">Factures (${r.factures.length})</div><div class="table-wrap"><table><thead><tr><th>N°</th><th>Objet</th><th>Statut</th><th class="num">Montant HT</th></tr></thead><tbody>${r.factures.map(f => `<tr><td class="t-strong">${esc(f.num || '—')}</td><td>${esc(f.objet || '—')}</td><td>${factBadge(f)}</td><td class="num">${eur(f.montantHT)}</td></tr>`).join('')}</tbody></table></div>` : ''}`;
+  $('#raf-back').onclick = () => { rafOtp = ''; renderRAF(v); };
+  $('#raf-com').onchange = e => {
+    let o = otpMeta(code);
+    if (!o) { o = { code, libelle: '', clientId: '', notes: '' }; DB.data.otps.push(o); }
+    o.rafComment = e.target.value.trim(); DB.save();
+  };
+  $('#raf-csv').onclick = () => exportCSV('raf_' + code, ['type', 'designation', 'detail', 'montant_ht'],
+    [...achats.map(c => ['Achat', c.fournisseur || '', (c.objet || '') + (c.num ? ' ' + c.num : ''), c.montantHT || 0]),
+     ...moList.map(w => ["Main d'œuvre", w.nom, w.heures.toFixed(1) + ' h', Math.round(w.cout)])]);
 }
 
 /* ---------- Devis ---------- */
