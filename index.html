@@ -1412,7 +1412,7 @@ function renderChantiers(v) {
   });
   v.innerHTML = `
     <div class="page-actions"><button class="btn primary" id="add">${icon('plus')} Nouveau chantier</button><span class="spacer"></span>
-      <button class="btn small" id="csv">${icon('download')} Export CSV</button></div>
+      <button class="btn small" id="csv">${icon('download')} Excel</button></div>
     <div class="filters">
       <span class="search-wrap">${icon('search')}<input id="q" placeholder="Rechercher (OTP, nom, client…)" value="${esc(chantierFilter.q)}"></span>
       <select id="fs"><option value="">Tous les statuts</option>${Object.entries(STATUTS_CHANTIER).map(([k, l]) => `<option value="${k}" ${chantierFilter.statut === k ? 'selected' : ''}>${l}</option>`).join('')}</select>
@@ -1427,7 +1427,7 @@ function renderChantiers(v) {
   $('#add').onclick = () => chantierForm();
   $('#q').oninput = e => { chantierFilter.q = e.target.value; renderChantiers(v); const i = $('#q'); i.focus(); i.setSelectionRange(i.value.length, i.value.length); };
   $('#fs').onchange = e => { chantierFilter.statut = e.target.value; renderChantiers(v); };
-  $('#csv').onclick = () => exportCSV('chantiers', ['otp', 'nom', 'client', 'adresse', 'statut', 'montantHT'], list.map(c => [c.otp, c.nom, clientNom(c.clientId), c.adresse, STATUTS_CHANTIER[c.statut], c.montantHT]));
+  $('#csv').onclick = () => exportXlsx('chantiers', ['otp', 'nom', 'client', 'adresse', 'statut', 'montantHT'], list.map(c => [c.otp, c.nom, clientNom(c.clientId), c.adresse, STATUTS_CHANTIER[c.statut], c.montantHT]), { sheet: 'Chantiers' });
   $$('[data-edit]', v).forEach(b => b.onclick = () => chantierForm(b.dataset.edit));
   $$('[data-view]', v).forEach(b => b.onclick = () => chantierDetail(b.dataset.view));
   $$('[data-del]', v).forEach(b => b.onclick = () => confirmDialog('Supprimer ce chantier ?', () => { DB.data.chantiers = DB.data.chantiers.filter(x => x.id !== b.dataset.del); DB.save(); toast('Chantier supprimé'); renderChantiers(v); }));
@@ -1513,7 +1513,7 @@ function renderOtps(v) {
   const codes = otpDistinct().filter(c => { if (!otpFilterQ) return true; const s = (c + ' ' + otpLabel(c)).toLowerCase(); return s.includes(otpFilterQ.toLowerCase()); });
   v.innerHTML = `
     <p class="t-muted" style="margin-top:-2px;max-width:860px">Un <b>OTP</b> est un compte qui peut regrouper <b>plusieurs sites</b> (ex. les collèges d'un département), chacun avec son devis. Cette vue consolide, par OTP, les sites, devis, factures, achats et la marge.</p>
-    <div class="page-actions"><button class="btn primary" id="add">${icon('plus')} Libeller un OTP</button><span class="spacer"></span><button class="btn small" id="csv">${icon('download')} Export CSV</button></div>
+    <div class="page-actions"><button class="btn primary" id="add">${icon('plus')} Libeller un OTP</button><span class="spacer"></span><button class="btn small" id="csv">${icon('download')} Excel</button></div>
     <div class="filters"><span class="search-wrap">${icon('search')}<input id="q" placeholder="Rechercher (code, libellé…)" value="${esc(otpFilterQ)}"></span><span class="chip">${codes.length} OTP</span></div>
     ${codes.length ? `<div class="table-wrap"><table><thead><tr><th>OTP</th><th>Libellé</th><th>Client</th><th class="num">Sites</th><th class="num">Devis</th><th class="num">Montant devis</th><th class="num">CA réalisé</th><th class="num">Marge CA</th><th></th></tr></thead>
       <tbody>${codes.map(code => { const r = otpRollup(code); return `<tr><td class="t-strong">${esc(code)}</td><td><span class="link" data-open="${esc(code)}">${esc(otpLabel(code) || '—')}</span></td><td class="t-muted">${esc(clientNom(otpClientId(code)))}</td><td class="num">${r.chantiers.length}</td><td class="num">${r.devis.length}</td><td class="num">${eur(r.montantDevis)}</td><td class="num">${eur(r.ca)}</td><td class="num ${r.margeCa >= 0 ? 'margin-good' : 'margin-bad'}">${eur(r.margeCa)}</td>
@@ -1521,7 +1521,7 @@ function renderOtps(v) {
       : emptyState('layers', 'Aucun OTP', 'Les OTP apparaissent dès qu\'ils sont utilisés sur un devis, un chantier, une facture ou un achat.')}`;
   $('#add').onclick = () => otpForm();
   $('#q').oninput = e => { otpFilterQ = e.target.value; renderOtps(v); const i = $('#q'); i.focus(); i.setSelectionRange(i.value.length, i.value.length); };
-  $('#csv').onclick = () => exportCSV('comptes_otp', ['otp', 'libelle', 'client', 'sites', 'devis', 'montant_devis', 'ca', 'marge_ca', 'achats', 'mo'], codes.map(c => { const r = otpRollup(c); return [c, otpLabel(c), clientNom(otpClientId(c)), r.chantiers.length, r.devis.length, r.montantDevis, r.ca, r.margeCa, r.achats, r.mo]; }));
+  $('#csv').onclick = () => exportXlsx('comptes_otp', ['otp', 'libelle', 'client', 'sites', 'devis', 'montant_devis', 'ca', 'marge_ca', 'achats', 'mo'], codes.map(c => { const r = otpRollup(c); return [c, otpLabel(c), clientNom(otpClientId(c)), r.chantiers.length, r.devis.length, r.montantDevis, r.ca, r.margeCa, r.achats, r.mo]; }), { sheet: 'Comptes OTP' });
   $$('[data-open]', v).forEach(b => b.onclick = () => otpDetail(b.dataset.open));
   $$('[data-edit]', v).forEach(b => b.onclick = () => otpForm(b.dataset.edit));
 }
@@ -1634,10 +1634,19 @@ function rafAnalyse(v) {
   const moList = Object.values(moRows);
   const achats = DB.data.commandes.filter(c => c.otp === code);
   const meta = otpMeta(code) || {};
+  // Suivi financier
+  const engage = DB.data.commandes.filter(c => c.otp === code && !c.dateReception).reduce((a, c) => a + (+c.montantHT || 0), 0);
+  const caRef = r.ca || s.factEmis;                    // revenu réalisé de référence
+  const margeReel = caRef - s.depenses;                // marge à date
+  const pctMargeReel = caRef ? margeReel / caRef * 100 : 0;
+  const margePrev = s.marche - bud.tot;                // marge prévisionnelle (si budget)
+  const pctMargePrev = s.marche ? margePrev / s.marche * 100 : 0;
+  const resteADepenser = bud.tot - s.depenses;
+  const pctM = val => s.marche ? (val / s.marche * 100).toFixed(1) + ' %' : '—';
   const card = (label, val, sub, tone) => `<div class="cad-metric ${tone || ''}"><div class="cm-label">${label}</div><div class="cm-value" style="font-size:22px">${val}</div>${sub ? `<div class="cm-sub">${sub}</div>` : ''}</div>`;
   const lbl = t => `<div class="t-muted" style="font-size:11px;text-transform:uppercase;letter-spacing:.4px;font-weight:600">${t}</div>`;
   v.innerHTML = `
-    <div class="page-actions"><button class="btn" id="raf-back">${icon('chevron')} Changer d'OTP</button><span class="spacer"></span><span class="chip">Période ${esc(rafPeriode)} · Exercice ${esc(rafExercice)}</span><button class="btn small" id="raf-csv">${icon('download')} Export CSV</button></div>
+    <div class="page-actions"><button class="btn" id="raf-back">${icon('chevron')} Changer d'OTP</button><span class="spacer"></span><span class="chip">Période ${esc(rafPeriode)} · Exercice ${esc(rafExercice)}</span><button class="btn small" id="raf-csv">${icon('download')} Excel</button></div>
     <div class="card card-pad" style="margin-bottom:16px">
       <div class="section-head" style="margin-top:0">${icon('target')}<h2>Élément d'OTP ${esc(code)}</h2></div>
       <div class="grid-3" style="gap:10px 24px">
@@ -1647,10 +1656,15 @@ function rafAnalyse(v) {
       </div>
       <div class="field full" style="margin-top:14px"><label>Commentaires</label><input id="raf-com" value="${esc(meta.rafComment || '')}" placeholder="Note d'analyse RAF (facultatif)…" maxlength="200"></div>
     </div>
-    <div class="grid-3" style="margin-bottom:18px">
+    <div class="grid-3" style="margin-bottom:14px">
       ${card('Marché HT', eur(s.marche), r.chantiers.length + ' site(s)')}
       ${card('Facturé émis', eur(s.factEmis), 'Encaissé ' + eur(s.encaisse))}
       ${card('Reste à facturer', eur(s.raf), pctFact.toFixed(1) + ' % facturé', s.raf > 0 ? 'amber' : 'green')}
+    </div>
+    <div class="grid-3" style="margin-bottom:18px">
+      ${card('Marge prévisionnelle', bud.hasBudget ? eur(margePrev) : '—', bud.hasBudget ? pctMargePrev.toFixed(1) + ' % du marché' : 'Pas de budget prévu', bud.hasBudget ? (margePrev >= 0 ? 'green' : 'amber') : '')}
+      ${card('Marge réalisée à date', caRef ? eur(margeReel) : '—', caRef ? pctMargeReel.toFixed(1) + ' % du CA réalisé' : 'CA non réalisé', caRef ? (margeReel >= 0 ? 'green' : 'amber') : '')}
+      ${card('Coûts imputés', eur(s.depenses), 'Achats ' + eur(r.achats) + ' · MO ' + eur(r.mo), 'amber')}
     </div>
     <div class="card-title">Facturation &amp; reste à facturer</div>
     <div class="table-wrap" style="margin-bottom:18px"><table><tbody>
@@ -1661,24 +1675,37 @@ function rafAnalyse(v) {
       <tr class="t-strong"><td>Reste à facturer</td><td class="num ${s.raf > 0 ? 'margin-bad' : 'margin-good'}">${eur(s.raf)}</td></tr>
       <tr><td>% facturé</td><td class="num">${pctFact.toFixed(1)} %</td></tr>
     </tbody></table></div>
+    <div class="card-title">Suivi financier</div>
+    <div class="table-wrap" style="margin-bottom:18px"><table><tbody>
+      <tr><td>Prix de vente (marché HT)</td><td class="num">${eur(s.marche)}</td></tr>
+      ${bud.hasBudget ? `<tr><td>Coûts prévus (budget ${bud.src})</td><td class="num">${eur(bud.tot)}</td></tr>
+      <tr class="t-strong"><td>Marge prévisionnelle</td><td class="num ${margePrev >= 0 ? 'margin-good' : 'margin-bad'}">${eur(margePrev)}</td></tr>
+      <tr><td>% marge prévisionnelle</td><td class="num ${margePrev >= 0 ? 'margin-good' : 'margin-bad'}">${pctMargePrev.toFixed(1)} %</td></tr>` : ''}
+      <tr><td>CA réalisé</td><td class="num">${eur(r.ca)}</td></tr>
+      <tr><td>Coûts réels imputés à date</td><td class="num">${eur(s.depenses)}</td></tr>
+      <tr><td>Engagé (commandes non réceptionnées)</td><td class="num">${eur(engage)}</td></tr>
+      <tr class="t-strong"><td>Marge réalisée à date</td><td class="num ${margeReel >= 0 ? 'margin-good' : 'margin-bad'}">${caRef ? eur(margeReel) : '—'}</td></tr>
+      <tr><td>% marge réalisée à date</td><td class="num ${margeReel >= 0 ? 'margin-good' : 'margin-bad'}">${caRef ? pctMargeReel.toFixed(1) + ' %' : '—'}</td></tr>
+      ${bud.hasBudget ? `<tr><td>Reste à dépenser (budget − réel)</td><td class="num">${eur(resteADepenser)}</td></tr>` : ''}
+    </tbody></table></div>
     ${bud.hasBudget
       ? `<div class="card-title">Dépenses imputées par nature — budget prévu (${bud.src}) vs réel</div>
-    <div class="table-wrap" style="margin-bottom:18px"><table><thead><tr><th>Nature</th><th class="num">Budget prévu</th><th class="num">Réel imputé</th><th class="num">Écart</th></tr></thead>
+    <div class="table-wrap" style="margin-bottom:18px"><table><thead><tr><th>Nature</th><th class="num">Budget prévu</th><th class="num">Réel imputé</th><th class="num">Écart</th><th class="num">% marché</th></tr></thead>
       <tbody>
-        <tr><td>Main d'œuvre</td><td class="num">${eur(bud.mo)}</td><td class="num">${eur(r.mo)}</td><td class="num">${eur(bud.mo - r.mo)}</td></tr>
-        <tr><td>Fournitures &amp; achats</td><td class="num">${eur(bud.four)}</td><td class="num">${eur(r.achats)}</td><td class="num">${eur(bud.four - r.achats)}</td></tr>
-        <tr><td>Matériel / engins</td><td class="num">${eur(bud.mat)}</td><td class="num">${eur(0)}</td><td class="num">${eur(bud.mat)}</td></tr>
+        <tr><td>Main d'œuvre</td><td class="num">${eur(bud.mo)}</td><td class="num">${eur(r.mo)}</td><td class="num">${eur(bud.mo - r.mo)}</td><td class="num">${pctM(r.mo)}</td></tr>
+        <tr><td>Fournitures &amp; achats</td><td class="num">${eur(bud.four)}</td><td class="num">${eur(r.achats)}</td><td class="num">${eur(bud.four - r.achats)}</td><td class="num">${pctM(r.achats)}</td></tr>
+        <tr><td>Matériel / engins</td><td class="num">${eur(bud.mat)}</td><td class="num">${eur(0)}</td><td class="num">${eur(bud.mat)}</td><td class="num">${pctM(0)}</td></tr>
       </tbody>
-      <tfoot><tr class="t-strong"><td>Total dépenses</td><td class="num">${eur(bud.tot)}</td><td class="num">${eur(s.depenses)}</td><td class="num">${eur(bud.tot - s.depenses)}</td></tr></tfoot>
+      <tfoot><tr class="t-strong"><td>Total dépenses</td><td class="num">${eur(bud.tot)}</td><td class="num">${eur(s.depenses)}</td><td class="num">${eur(bud.tot - s.depenses)}</td><td class="num">${pctM(s.depenses)}</td></tr></tfoot>
     </table></div>`
       : `<div class="card-title">Dépenses imputées par nature</div>
     <p class="t-muted" style="margin-top:-6px;margin-bottom:10px">Aucun budget prévu (BTE) rattaché à ce compte OTP — seul le réel imputé est affiché.</p>
-    <div class="table-wrap" style="margin-bottom:18px"><table><thead><tr><th>Nature</th><th class="num">Réel imputé</th></tr></thead>
+    <div class="table-wrap" style="margin-bottom:18px"><table><thead><tr><th>Nature</th><th class="num">Réel imputé</th><th class="num">% marché</th></tr></thead>
       <tbody>
-        <tr><td>Main d'œuvre</td><td class="num">${eur(r.mo)}</td></tr>
-        <tr><td>Fournitures &amp; achats</td><td class="num">${eur(r.achats)}</td></tr>
+        <tr><td>Main d'œuvre</td><td class="num">${eur(r.mo)}</td><td class="num">${pctM(r.mo)}</td></tr>
+        <tr><td>Fournitures &amp; achats</td><td class="num">${eur(r.achats)}</td><td class="num">${pctM(r.achats)}</td></tr>
       </tbody>
-      <tfoot><tr class="t-strong"><td>Total dépenses</td><td class="num">${eur(s.depenses)}</td></tr></tfoot>
+      <tfoot><tr class="t-strong"><td>Total dépenses</td><td class="num">${eur(s.depenses)}</td><td class="num">${pctM(s.depenses)}</td></tr></tfoot>
     </table></div>`}
     <div class="card-title">Détail des dépenses imputées (${achats.length + moList.length})</div>
     ${(achats.length + moList.length) ? `<div class="table-wrap" style="margin-bottom:18px"><table><thead><tr><th>Type</th><th>Désignation</th><th>Détail</th><th class="num">Montant HT</th></tr></thead>
@@ -1696,9 +1723,63 @@ function rafAnalyse(v) {
     if (!o) { o = { code, libelle: '', clientId: '', notes: '' }; DB.data.otps.push(o); }
     o.rafComment = e.target.value.trim(); DB.save();
   };
-  $('#raf-csv').onclick = () => exportCSV('raf_' + code, ['type', 'designation', 'detail', 'montant_ht'],
-    [...achats.map(c => ['Achat', c.fournisseur || '', (c.objet || '') + (c.num ? ' ' + c.num : ''), c.montantHT || 0]),
-     ...moList.map(w => ["Main d'œuvre", w.nom, w.heures.toFixed(1) + ' h', Math.round(w.cout)])]);
+  $('#raf-csv').onclick = () => exportRafXlsx(code);
+}
+// Export RAF — classeur multi-feuilles (Synthèse, Dépenses par nature, Détail, Sites, Factures)
+function exportRafXlsx(code) {
+  const s = rafSummary(code), r = s.r, bud = rafBudget(code);
+  const engage = DB.data.commandes.filter(c => c.otp === code && !c.dateReception).reduce((a, c) => a + (+c.montantHT || 0), 0);
+  const caRef = r.ca || s.factEmis;
+  const margeReel = caRef - s.depenses, pctMargeReel = caRef ? margeReel / caRef : 0;
+  const margePrev = s.marche - bud.tot, pctMargePrev = s.marche ? margePrev / s.marche : 0;
+  const pctFact = s.marche ? s.factEmis / s.marche : 0, pM = v => s.marche ? v / s.marche : 0;
+  const moRows = {};
+  DB.data.pointages.filter(p => p.otp === code && p.h).forEach(p => { const h = p.h.reduce((a, x) => a + (+x || 0), 0); if (!h) return; const k = p.workerNom || '—'; (moRows[k] = moRows[k] || { nom: k, heures: 0, cout: 0 }); moRows[k].heures += h; moRows[k].cout += h * tauxWorker(p.workerKey); });
+  const moList = Object.values(moRows);
+  const achats = DB.data.commandes.filter(c => c.otp === code);
+  const H = v => ({ v, s: 4 }), TX = v => ({ v, s: 2 }), BD = v => ({ v, s: 3 }), EU = v => ({ v, s: 8 }), ET = v => ({ v, s: 10 }), PC = v => ({ v, s: 11 }), PT = v => ({ v, s: 12 });
+  const synth = [
+    [BD("Élément d'OTP"), TX(code)],
+    [BD('Libellé'), TX(otpLabel(code) || '')],
+    [BD('Client'), TX(clientNom(otpClientId(code)))],
+    [BD("Date d'analyse"), TX(fmtDate(todayISO()))],
+    [BD('Période / Exercice'), TX(rafPeriode + ' / ' + rafExercice)],
+    [],
+    [H('Facturation'), H('')],
+    [TX('Marché HT'), EU(s.marche)],
+    [TX('CA réalisé'), EU(r.ca)],
+    [TX('Facturé émis'), EU(s.factEmis)],
+    [TX('Encaissé'), EU(s.encaisse)],
+    [BD('Reste à facturer'), ET(s.raf)],
+    [TX('% facturé'), PC(pctFact)],
+    [],
+    [H('Suivi financier'), H('')],
+    [TX('Prix de vente (marché HT)'), EU(s.marche)],
+    ...(bud.hasBudget ? [[TX('Coûts prévus (budget ' + bud.src + ')'), EU(bud.tot)], [BD('Marge prévisionnelle'), ET(margePrev)], [TX('% marge prévisionnelle'), PC(pctMargePrev)]] : []),
+    [TX('Coûts réels imputés à date'), EU(s.depenses)],
+    [TX('Engagé (non réceptionné)'), EU(engage)],
+    [BD('Marge réalisée à date'), ET(margeReel)],
+    [TX('% marge réalisée à date'), PC(pctMargeReel)],
+    ...(bud.hasBudget ? [[TX('Reste à dépenser (budget − réel)'), EU(bud.tot - s.depenses)]] : []),
+  ];
+  const nat = [[H('Nature'), H('Budget prévu'), H('Réel imputé'), H('Écart'), H('% marché')],
+    [TX("Main d'œuvre"), EU(bud.mo), EU(r.mo), EU(bud.mo - r.mo), PC(pM(r.mo))],
+    [TX('Fournitures & achats'), EU(bud.four), EU(r.achats), EU(bud.four - r.achats), PC(pM(r.achats))],
+    [TX('Matériel / engins'), EU(bud.mat), EU(0), EU(bud.mat), PC(0)],
+    [BD('Total dépenses'), ET(bud.tot), ET(s.depenses), ET(bud.tot - s.depenses), PT(pM(s.depenses))]];
+  const det = [[H('Type'), H('Désignation'), H('Détail'), H('Montant HT')],
+    ...achats.map(c => [TX('Achat'), TX(c.fournisseur || ''), TX((c.objet || '') + (c.num ? ' · ' + c.num : '')), EU(+c.montantHT || 0)]),
+    ...moList.map(w => [TX("Main d'œuvre"), TX(w.nom), TX(w.heures.toFixed(1) + ' h'), EU(Math.round(w.cout))]),
+    [BD('Total imputé'), TX(''), TX(''), ET(s.depenses)]];
+  const sheets = [
+    { name: 'Synthèse', rows: synth, widths: [36, 18] },
+    { name: 'Dépenses par nature', rows: nat, widths: [26, 15, 15, 15, 12], opts: { freeze: true, filterRef: 'A1:E1' } },
+    { name: 'Détail dépenses', rows: det, widths: [16, 30, 36, 15], opts: { freeze: true, filterRef: 'A1:D1' } },
+  ];
+  if (r.chantiers.length) sheets.push({ name: 'Sites', rows: [[H('Nom du site'), H('Adresse'), H('Statut'), H('Montant HT')], ...r.chantiers.map(c => [TX(c.nom || ''), TX(c.adresse || ''), TX(STATUTS_CHANTIER[c.statut] || c.statut || ''), EU(+c.montantHT || 0)])], widths: [34, 26, 16, 15], opts: { freeze: true, filterRef: 'A1:D1' } });
+  if (r.factures.length) sheets.push({ name: 'Factures', rows: [[H('N°'), H('Objet'), H('Statut'), H('Montant HT')], ...r.factures.map(f => [TX(f.num || ''), TX(f.objet || ''), TX(STATUTS_FACT[f.statut] || f.statut || ''), EU(+f.montantHT || 0)])], widths: [16, 34, 16, 15], opts: { freeze: true, filterRef: 'A1:D1' } });
+  writeXlsxBook('RAF_' + code + '.xlsx', sheets);
+  toast('Export Excel RAF généré');
 }
 
 /* ---------- Devis ---------- */
@@ -1760,7 +1841,7 @@ function renderDevis(v) {
     return parts.join(' ') || '<span class="t-muted">—</span>';
   };
   v.innerHTML = `
-    <div class="page-actions"><button class="btn primary" id="add">${icon('plus')} Nouveau devis</button><span class="spacer"></span><button class="btn small" id="csv">${icon('download')} Export CSV</button></div>
+    <div class="page-actions"><button class="btn primary" id="add">${icon('plus')} Nouveau devis</button><span class="spacer"></span><button class="btn small" id="csv">${icon('download')} Excel</button></div>
     <div class="filters"><span class="search-wrap">${icon('search')}<input id="q" placeholder="Rechercher (réf, objet, OTP, client…)" value="${esc(devisFilter.q)}"></span>
       <select id="fotp"><option value="">Tous les OTP</option>${otpDistinct().map(o2 => `<option value="${esc(o2)}" ${devisFilter.otp === o2 ? 'selected' : ''}>${esc(o2)}</option>`).join('')}</select>
       <select id="fs"><option value="">Tous les statuts</option>${Object.entries(STATUTS_DEVIS).map(([k, l]) => `<option value="${k}" ${devisFilter.statut === k ? 'selected' : ''}>${l}</option>`).join('')}</select>
@@ -1774,7 +1855,7 @@ function renderDevis(v) {
   $('#q').oninput = e => { devisFilter.q = e.target.value; renderDevis(v); const i = $('#q'); i.focus(); i.setSelectionRange(i.value.length, i.value.length); };
   $('#fs').onchange = e => { devisFilter.statut = e.target.value; renderDevis(v); };
   $('#fotp').onchange = e => { devisFilter.otp = e.target.value; renderDevis(v); };
-  $('#csv').onclick = () => exportCSV('devis', ['ref', 'otp', 'objet', 'client', 'dateDemande', 'dateEnvoi', 'statut', 'montantHT', 'nb_relances', 'derniere_relance', 'prochaine_relance', 'hors_comptes'], list.map(d => [d.ref, d.otp, d.objet, clientNom(d.clientId), d.dateDemande, d.dateEnvoi, STATUTS_DEVIS[d.statut], d.montantHT, d.nbRelances, d.derniereRelance, d.relance, d.horsComptes ? 'oui' : 'non']));
+  $('#csv').onclick = () => exportXlsx('devis', ['ref', 'otp', 'objet', 'client', 'dateDemande', 'dateEnvoi', 'statut', 'montantHT', 'nb_relances', 'derniere_relance', 'prochaine_relance', 'hors_comptes'], list.map(d => [d.ref, d.otp, d.objet, clientNom(d.clientId), d.dateDemande, d.dateEnvoi, STATUTS_DEVIS[d.statut], d.montantHT, d.nbRelances, d.derniereRelance, d.relance, d.horsComptes ? 'oui' : 'non']), { sheet: 'Devis', money: ['montantHT'] });
   $$('[data-relance]', v).forEach(b => b.onclick = () => relanceDevis(b.dataset.relance));
   $$('[data-edit]', v).forEach(b => b.onclick = () => devisForm(b.dataset.edit));
   $$('[data-del]', v).forEach(b => b.onclick = () => confirmDialog('Supprimer ce devis ?', () => { DB.data.devis = DB.data.devis.filter(x => x.id !== b.dataset.del); DB.save(); toast('Devis supprimé'); renderDevis(v); }));
@@ -1843,7 +1924,7 @@ function renderCA(v) {
   v.innerHTML = `
     <div class="page-actions"><button class="btn primary" id="add">${icon('plus')} Ajouter une ligne</button>
       <button class="btn" id="cloture">${icon('checkSquare')} Fin de mois — sélectionner les affaires${cand.length ? ` &nbsp;<span class="badge b-relance">${cand.length}</span>` : ''}</button>
-      <span class="spacer"></span><button class="btn small" id="csv">${icon('download')} Export CSV du mois</button></div>
+      <span class="spacer"></span><button class="btn small" id="csv">${icon('download')} Excel du mois</button></div>
     <div class="filters">
       <select id="fmonth">${MOIS.map((mm, i) => `<option value="${i}" ${i === caMonth ? 'selected' : ''}>${mm}</option>`).join('')}</select>
       <select id="fyear">${yearsRange().map(y => `<option value="${y}" ${y === caYear ? 'selected' : ''}>${y}</option>`).join('')}</select>
@@ -1862,7 +1943,7 @@ function renderCA(v) {
   $('#cloture').onclick = () => caPicker();
   $('#fmonth').onchange = e => { caMonth = +e.target.value; renderCA(v); };
   $('#fyear').onchange = e => { caYear = +e.target.value; renderCA(v); };
-  $('#csv').onclick = () => exportCSV(`CA_${MOIS[caMonth]}_${caYear}`, ['otp', 'chantier', 'prixVente', 'fournitures', 'engins', 'moSmac', 'marge'], rows.map(r => [r.otp, r.chantier, r.prixVente, r.fournitures, r.engins, r.moSmac, marge(r)]));
+  $('#csv').onclick = () => exportXlsx(`CA_${MOIS[caMonth]}_${caYear}`, ['otp', 'chantier', 'prixVente', 'fournitures', 'engins', 'moSmac', 'marge'], rows.map(r => [r.otp, r.chantier, r.prixVente, r.fournitures, r.engins, r.moSmac, marge(r)]), { sheet: `CA ${MOIS[caMonth]} ${caYear}`, money: ['prixVente', 'fournitures', 'engins', 'moSmac', 'marge'] });
   $$('[data-edit]', v).forEach(b => b.onclick = () => caForm(b.dataset.edit));
   $$('[data-sync]', v).forEach(b => b.onclick = () => { const r = DB.data.ca.find(x => x.id === b.dataset.sync); if (!r.otp) { toast('Aucun OTP sur cette ligne', 'err'); return; } r.fournitures = commandesRecuesOtp(r.otp, r.mois, r.annee); r.moSmac = moParOtp(r.otp, r.mois, r.annee); DB.save(); toast('Fournitures & MO recalculées depuis l\'OTP'); renderCA(v); });
   $$('[data-del]', v).forEach(b => b.onclick = () => confirmDialog('Supprimer cette ligne ?', () => { DB.data.ca = DB.data.ca.filter(x => x.id !== b.dataset.del); DB.save(); toast('Ligne supprimée'); renderCA(v); }));
@@ -2034,7 +2115,7 @@ function bteEditor(id) {
   $('#b-marge').oninput = refresh;
   $$('[data-add]', m.root).forEach(btn => btn.onclick = () => { const tb = m.root.querySelector(`[data-sec="${btn.dataset.add}"]`); const sub = tb.querySelector('.bte-sub'); const tmp = document.createElement('tbody'); tmp.innerHTML = lineRow({ designation: '', unite: '', qte: 0, pu: 0 }); const tr = tmp.firstElementChild; tb.insertBefore(tr, sub); bindRow(tr); tr.querySelector('input').focus(); refresh(); });
   m.root.querySelector('[data-c]').onclick = m.close;
-  $('#b-csv').onclick = () => { collect(); exportCSV('BTE_' + (b.otp || b.nom || 'chantier'), ['poste', 'designation', 'unite', 'qte', 'pu', 'total'], b.lignes.map(l => [l.cat, l.designation, l.unite, l.qte, l.pu, l.qte * l.pu])); };
+  $('#b-csv').onclick = () => { collect(); exportXlsx('BTE_' + (b.otp || b.nom || 'chantier'), ['poste', 'designation', 'unite', 'qte', 'pu', 'total'], b.lignes.map(l => [l.cat, l.designation, l.unite, l.qte, l.pu, l.qte * l.pu]), { sheet: 'BTE', money: ['pu', 'total'] }); };
   $('#b-xlsx').onclick = () => { collect(); if (!b.nom) { toast('Renseignez le nom du chantier', 'err'); return; } exportBteXlsx(b); };
   $('#b-devis').onclick = () => {
     collect(); if (!b.nom) { toast('Renseignez le nom du chantier', 'err'); return; }
@@ -2145,7 +2226,7 @@ function importCadenceToBte() {
     DB.save(); m.close(); toast("Main d'œuvre importée dans le BTE"); go('bte'); bteEditor(bte.id);
   };
 }
-function exportCadences() { const { cfg, steps } = cadCompute(cadMetier); exportCSV('estimation_' + cfg.label.toLowerCase(), ['etape', 'choix', 'cadence_std', 'cadence_corrigee', 'temps_h'], steps.map(s => [s.nom, s.detail, s.base, num(s.cad) + ' ' + s.unite, num(s.h)])); }
+function exportCadences() { const { cfg, steps } = cadCompute(cadMetier); exportXlsx('estimation_' + cfg.label.toLowerCase(), ['etape', 'choix', 'cadence_std', 'cadence_corrigee', 'temps_h'], steps.map(s => [s.nom, s.detail, s.base, num(s.cad) + ' ' + s.unite, num(s.h)]), { sheet: 'Estimation', money: [], totals: false }); }
 
 /* ---------- Clients ---------- */
 function renderClients(v) {
@@ -2201,7 +2282,7 @@ function renderProspection(v) {
       <div class="kpi"><div class="kpi-top"><span class="kpi-label">Potentiel en cours</span><span class="kpi-ico">${icon('euro')}</span></div><div class="kpi-value">${eur(potentielOuvert)}</div><div class="kpi-sub">Pipeline ouvert</div></div>
       <div class="kpi"><div class="kpi-top"><span class="kpi-label">Contacts</span><span class="kpi-ico">${icon('users')}</span></div><div class="kpi-value">${DB.data.prospection.length}</div><div class="kpi-sub">Total suivi</div></div>
     </div>
-    <div class="page-actions"><button class="btn primary" id="add">${icon('plus')} Nouveau contact / RDV</button><span class="spacer"></span><button class="btn small" id="csv">${icon('download')} Export CSV</button></div>
+    <div class="page-actions"><button class="btn primary" id="add">${icon('plus')} Nouveau contact / RDV</button><span class="spacer"></span><button class="btn small" id="csv">${icon('download')} Excel</button></div>
     <div class="filters"><span class="search-wrap">${icon('search')}<input id="q" placeholder="Rechercher…" value="${esc(prospFilter.q)}"></span>
       <select id="fs"><option value="">Tous les statuts</option>${Object.entries(STATUTS_PROSP).map(([k, l]) => `<option value="${k}" ${prospFilter.statut === k ? 'selected' : ''}>${l}</option>`).join('')}</select>
       <span class="chip">${list.length} contact(s)</span></div>
@@ -2212,7 +2293,7 @@ function renderProspection(v) {
   $('#add').onclick = () => prospForm();
   $('#q').oninput = e => { prospFilter.q = e.target.value; renderProspection(v); const i = $('#q'); i.focus(); i.setSelectionRange(i.value.length, i.value.length); };
   $('#fs').onchange = e => { prospFilter.statut = e.target.value; renderProspection(v); };
-  $('#csv').onclick = () => exportCSV('prospection', ['date', 'nom', 'ville', 'canal', 'objet', 'potentiel', 'prochaine', 'statut'], list.map(p => [p.date, p.nom, p.ville, CANAUX[p.canal], p.objet, p.potentiel, p.prochaine, STATUTS_PROSP[p.statut]]));
+  $('#csv').onclick = () => exportXlsx('prospection', ['date', 'nom', 'ville', 'canal', 'objet', 'potentiel', 'prochaine', 'statut'], list.map(p => [p.date, p.nom, p.ville, CANAUX[p.canal], p.objet, p.potentiel, p.prochaine, STATUTS_PROSP[p.statut]]), { sheet: 'Prospection', money: ['potentiel'] });
   $$('[data-edit]', v).forEach(b => b.onclick = () => prospForm(b.dataset.edit));
   $$('[data-del]', v).forEach(b => b.onclick = () => confirmDialog('Supprimer ce contact ?', () => { DB.data.prospection = DB.data.prospection.filter(x => x.id !== b.dataset.del); DB.save(); toast('Contact supprimé'); renderProspection(v); }));
 }
@@ -2278,7 +2359,7 @@ function renderFactures(v) {
           <tbody>${keys.sort().map(k => `<tr><td class="t-strong">${esc(k)}</td><td class="t-muted">${esc(grp[k].client || '—')}</td><td class="num">${grp[k].n}</td><td class="num t-strong">${eur(grp[k].m)}</td><td class="actions-cell"><button class="link" data-fotp="${esc(k === '(sans OTP)' ? '' : k)}">Filtrer</button></td></tr>`).join('')}</tbody>
           <tfoot><tr><td colspan="3">Total à facturer</td><td class="num">${eur(aEmettre.reduce((s, f) => s + (+f.montantHT || 0), 0))}</td><td></td></tr></tfoot></table></div>`; })()}
     </div>
-    <div class="page-actions"><button class="btn primary" id="add">${icon('plus')} Nouvelle facture</button><span class="spacer"></span><button class="btn small" id="csv">${icon('download')} Export CSV</button></div>
+    <div class="page-actions"><button class="btn primary" id="add">${icon('plus')} Nouvelle facture</button><span class="spacer"></span><button class="btn small" id="csv">${icon('download')} Excel</button></div>
     <div class="filters"><span class="search-wrap">${icon('search')}<input id="q" placeholder="Rechercher (n°, client, objet, OTP…)" value="${esc(factFilter.q)}"></span>
       <select id="fotp"><option value="">Tous les OTP</option>${otpDistinct().map(o => `<option value="${esc(o)}" ${factFilter.otp === o ? 'selected' : ''}>${esc(o)}</option>`).join('')}</select>
       <select id="fs"><option value="">Tous les statuts</option>${Object.entries(STATUTS_FACT).map(([k, l]) => `<option value="${k}" ${factFilter.statut === k ? 'selected' : ''}>${l}</option>`).join('')}</select>
@@ -2293,7 +2374,7 @@ function renderFactures(v) {
   $('#fs').onchange = e => { factFilter.statut = e.target.value; renderFactures(v); };
   $('#fotp').onchange = e => { factFilter.otp = e.target.value; renderFactures(v); };
   $$('[data-fotp]', v).forEach(b => b.onclick = () => { factFilter.otp = b.dataset.fotp; renderFactures(v); });
-  $('#csv').onclick = () => exportCSV('factures', ['num', 'otp', 'client', 'objet', 'dateFG', 'dateEmission', 'echeance', 'montantHT', 'statut'], list.map(f => [f.num, f.otp, f.client, f.objet, f.dateFG, f.dateEmission, factureEcheance(f), f.montantHT, STATUTS_FACT[f.statut]]));
+  $('#csv').onclick = () => exportXlsx('factures', ['num', 'otp', 'client', 'objet', 'dateFG', 'dateEmission', 'echeance', 'montantHT', 'statut'], list.map(f => [f.num, f.otp, f.client, f.objet, f.dateFG, f.dateEmission, factureEcheance(f), f.montantHT, STATUTS_FACT[f.statut]]), { sheet: 'Factures', money: ['montantHT'] });
   $$('[data-edit]', v).forEach(b => b.onclick = () => factForm(b.dataset.edit));
   $$('[data-pay]', v).forEach(b => b.onclick = () => { const f = DB.data.factures.find(x => x.id === b.dataset.pay); f.statut = 'payee'; f.datePaiement = todayISO(); if (!f.dateEmission) f.dateEmission = todayISO(); DB.save(); toast('Facture réglée'); renderFactures(v); });
   $$('[data-del]', v).forEach(b => b.onclick = () => confirmDialog('Supprimer cette facture ?', () => { DB.data.factures = DB.data.factures.filter(x => x.id !== b.dataset.del); DB.save(); toast('Facture supprimée'); renderFactures(v); }));
@@ -2511,7 +2592,7 @@ function renderPointages(v) {
     $('#wk', v).onchange = e => { planWeek = mondayISO(new Date(e.target.value + 'T00:00:00')); renderPointages(v); };
     $('#teams', v).onclick = () => equipesModal();
     $('#add', v).onclick = () => { DB.data.pointages.push({ id: uid(), workerKey: planWorkerKey, workerNom: worker.nom, equipeId: worker.equipeId, semaine: planWeek, categorie: '3000111', typeHeure: 'HT', otp: '', chantierNom: '', h: [0, 0, 0, 0, 0, 0, 0], panier: 0, trajet: 0, zone: '' }); DB.save(); renderPointages(v); };
-    $('#csv', v).onclick = () => exportCSV('pointages_' + esc(worker.nom) + '_' + planWeek, ['categorie', 'type', 'imputation', ...days.map(i => JSEM[i]), 'total', 'panier', 'trajet', 'zone'], rows.map(r => [r.categorie, r.typeHeure, r.otp, ...days.map(i => r.h[i] || 0), rowTot(r), r.panier, r.trajet, r.zone]));
+    $('#csv', v).onclick = () => exportXlsx('pointages_' + esc(worker.nom) + '_' + planWeek, ['categorie', 'type', 'imputation', ...days.map(i => JSEM[i]), 'total', 'panier', 'trajet', 'zone'], rows.map(r => [r.categorie, r.typeHeure, r.otp, ...days.map(i => r.h[i] || 0), rowTot(r), r.panier, r.trajet, r.zone]), { sheet: 'Pointages', money: [] });
     $$('#ts-body tr', v).forEach(tr => {
       const r = DB.data.pointages.find(x => x.id === tr.dataset.id);
       tr.querySelectorAll('.ts-h').forEach(inp => inp.oninput = () => { r.h[+inp.dataset.i] = +inp.value || 0; DB.save(); refreshTot(); });
@@ -2697,7 +2778,7 @@ function renderAchats(v) {
     </div>
     <div class="page-actions"><button class="btn primary" id="add">${icon('plus')} Nouvelle commande</button>
       <button class="btn" id="recept">${icon('checkSquare')} Réception du mois${DB.data.commandes.filter(c => !c.dateReception).length ? ` &nbsp;<span class="badge b-relance">${DB.data.commandes.filter(c => !c.dateReception).length}</span>` : ''}</button>
-      <span class="spacer"></span><button class="btn small" id="csv">${icon('download')} Export CSV</button></div>
+      <span class="spacer"></span><button class="btn small" id="csv">${icon('download')} Excel</button></div>
     <div class="filters"><span class="search-wrap">${icon('search')}<input id="q" placeholder="Rechercher (fournisseur, objet, OTP…)" value="${esc(achatFilter.q)}"></span>
       <select id="fotp"><option value="">Tous les OTP</option>${otpDistinct().map(o => `<option value="${esc(o)}" ${achatFilter.otp === o ? 'selected' : ''}>${esc(o)}</option>`).join('')}</select>
       <span class="chip">${list.length} commande(s)</span></div>
@@ -2712,7 +2793,7 @@ function renderAchats(v) {
   $('#q').oninput = e => { achatFilter.q = e.target.value; renderAchats(v); const i = $('#q'); i.focus(); i.setSelectionRange(i.value.length, i.value.length); };
   $('#fotp').onchange = e => { achatFilter.otp = e.target.value; renderAchats(v); };
   $$('[data-fotp]', v).forEach(b => b.onclick = () => { achatFilter.otp = b.dataset.fotp; renderAchats(v); });
-  $('#csv').onclick = () => exportCSV('achats', ['num', 'date', 'otp', 'fournisseur', 'objet', 'statut', 'reception', 'montantHT'], list.map(c => [c.num, c.date, c.otp, c.fournisseur, c.objet, STATUTS_CMD[c.statut], c.dateReception, c.montantHT]));
+  $('#csv').onclick = () => exportXlsx('achats', ['num', 'date', 'otp', 'fournisseur', 'objet', 'statut', 'reception', 'montantHT'], list.map(c => [c.num, c.date, c.otp, c.fournisseur, c.objet, STATUTS_CMD[c.statut], c.dateReception, c.montantHT]), { sheet: 'Achats', money: ['montantHT'] });
   $$('[data-edit]', v).forEach(b => b.onclick = () => achatForm(b.dataset.edit));
   $$('[data-recv]', v).forEach(b => b.onclick = () => { const c = DB.data.commandes.find(x => x.id === b.dataset.recv); c.dateReception = todayISO(); if (c.statut === 'commande') c.statut = 'livree'; DB.save(); toast('Commande réceptionnée'); renderAchats(v); });
   $$('[data-del]', v).forEach(b => b.onclick = () => confirmDialog('Supprimer cette commande ?', () => { DB.data.commandes = DB.data.commandes.filter(x => x.id !== b.dataset.del); DB.save(); toast('Commande supprimée'); renderAchats(v); }));
@@ -2802,7 +2883,8 @@ function _zip(files) {
 }
 const _colL = i => { let s = ''; i++; while (i > 0) { const m = (i - 1) % 26; s = String.fromCharCode(65 + m) + s; i = (i - m - 1) / 26; } return s; };
 const _xe = s => String(s == null ? '' : s).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
-function _sheetXml(rows, widths) {
+function _sheetXml(rows, widths, opts) {
+  opts = opts || {};
   let body = '';
   rows.forEach((row, ri) => {
     let cells = '';
@@ -2818,20 +2900,66 @@ function _sheetXml(rows, widths) {
     body += `<row r="${ri + 1}">${cells}</row>`;
   });
   const cols = widths ? `<cols>${widths.map((w, i) => `<col min="${i + 1}" max="${i + 1}" width="${w}" customWidth="1"/>`).join('')}</cols>` : '';
-  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetViews><sheetView workbookViewId="0"/></sheetViews><sheetFormatPr defaultRowHeight="15"/>${cols}<sheetData>${body}</sheetData></worksheet>`;
+  const view = opts.freeze
+    ? `<sheetView workbookViewId="0"><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/><selection pane="bottomLeft" activeCell="A2" sqref="A2"/></sheetView>`
+    : `<sheetView workbookViewId="0"/>`;
+  const filter = opts.filterRef ? `<autoFilter ref="${opts.filterRef}"/>` : '';
+  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetViews>${view}</sheetViews><sheetFormatPr defaultRowHeight="15"/>${cols}<sheetData>${body}</sheetData>${filter}</worksheet>`;
 }
-const _XLSX_STYLES = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><fonts count="2"><font><sz val="10"/><name val="Calibri"/></font><font><b/><sz val="10"/><name val="Calibri"/></font></fonts><fills count="3"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FFEDF2F7"/><bgColor indexed="64"/></patternFill></fill></fills><borders count="2"><border><left/><right/><top/><bottom/><diagonal/></border><border><left style="thin"><color rgb="FFB8C2D0"/></left><right style="thin"><color rgb="FFB8C2D0"/></right><top style="thin"><color rgb="FFB8C2D0"/></top><bottom style="thin"><color rgb="FFB8C2D0"/></bottom><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="8"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1"/><xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1"/><xf numFmtId="0" fontId="1" fillId="0" borderId="1" xfId="0" applyFont="1" applyBorder="1"/><xf numFmtId="0" fontId="1" fillId="2" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1"/><xf numFmtId="4" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1" applyNumberFormat="1"/><xf numFmtId="4" fontId="1" fillId="2" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyNumberFormat="1"/><xf numFmtId="4" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1" applyNumberFormat="1"/></cellXfs></styleSheet>`;
-function writeXlsx(filename, sheetName, rows, widths) {
-  const enc = new TextEncoder();
+const _XLSX_STYLES = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><numFmts count="3"><numFmt numFmtId="164" formatCode="#,##0\ &quot;€&quot;"/><numFmt numFmtId="165" formatCode="0.0%"/><numFmt numFmtId="166" formatCode="#,##0"/></numFmts><fonts count="2"><font><sz val="10"/><name val="Calibri"/></font><font><b/><sz val="10"/><name val="Calibri"/></font></fonts><fills count="3"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FFEDF2F7"/><bgColor indexed="64"/></patternFill></fill></fills><borders count="2"><border><left/><right/><top/><bottom/><diagonal/></border><border><left style="thin"><color rgb="FFB8C2D0"/></left><right style="thin"><color rgb="FFB8C2D0"/></right><top style="thin"><color rgb="FFB8C2D0"/></top><bottom style="thin"><color rgb="FFB8C2D0"/></bottom><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="14"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1"/><xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1"/><xf numFmtId="0" fontId="1" fillId="0" borderId="1" xfId="0" applyFont="1" applyBorder="1"/><xf numFmtId="0" fontId="1" fillId="2" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1"/><xf numFmtId="4" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1" applyNumberFormat="1"/><xf numFmtId="4" fontId="1" fillId="2" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyNumberFormat="1"/><xf numFmtId="4" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1" applyNumberFormat="1"/><xf numFmtId="164" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1" applyNumberFormat="1"/><xf numFmtId="166" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1" applyNumberFormat="1"/><xf numFmtId="164" fontId="1" fillId="2" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyNumberFormat="1"/><xf numFmtId="165" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1" applyNumberFormat="1"/><xf numFmtId="165" fontId="1" fillId="2" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyNumberFormat="1"/><xf numFmtId="166" fontId="1" fillId="2" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyNumberFormat="1"/></cellXfs></styleSheet>`;
+// Classeur multi-feuilles. sheets = [{ name, rows, widths, opts }]
+function writeXlsxBook(filename, sheets) {
+  const enc = new TextEncoder(), n = sheets.length;
+  const ctOverrides = sheets.map((s, i) => `<Override PartName="/xl/worksheets/sheet${i + 1}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`).join('');
+  const wbSheets = sheets.map((s, i) => `<sheet name="${_xe(s.name || ('Feuille' + (i + 1))).slice(0, 31)}" sheetId="${i + 1}" r:id="rId${i + 1}"/>`).join('');
+  const wbRels = sheets.map((s, i) => `<Relationship Id="rId${i + 1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet${i + 1}.xml"/>`).join('')
+    + `<Relationship Id="rId${n + 1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>`;
   const files = [
-    { name: '[Content_Types].xml', data: enc.encode(`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>`) },
+    { name: '[Content_Types].xml', data: enc.encode(`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>${ctOverrides}<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>`) },
     { name: '_rels/.rels', data: enc.encode(`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>`) },
-    { name: 'xl/workbook.xml', data: enc.encode(`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="${_xe(sheetName).slice(0, 31)}" sheetId="1" r:id="rId1"/></sheets></workbook>`) },
-    { name: 'xl/_rels/workbook.xml.rels', data: enc.encode(`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>`) },
+    { name: 'xl/workbook.xml', data: enc.encode(`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets>${wbSheets}</sheets></workbook>`) },
+    { name: 'xl/_rels/workbook.xml.rels', data: enc.encode(`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${wbRels}</Relationships>`) },
     { name: 'xl/styles.xml', data: enc.encode(_XLSX_STYLES) },
-    { name: 'xl/worksheets/sheet1.xml', data: enc.encode(_sheetXml(rows, widths)) },
+    ...sheets.map((s, i) => ({ name: `xl/worksheets/sheet${i + 1}.xml`, data: enc.encode(_sheetXml(s.rows, s.widths, s.opts)) })),
   ];
   download(filename, _zip(files), 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+}
+function writeXlsx(filename, sheetName, rows, widths) { writeXlsxBook(filename, [{ name: sheetName, rows, widths }]); }
+// Largeurs auto d'après en-têtes + données
+function _autoWidths(headers, rows) {
+  return headers.map((h, ci) => {
+    let w = String(h).length + 2;
+    rows.forEach(r => { const s = String(r[ci] == null ? '' : r[ci]); if (s.length + 2 > w) w = s.length + 2; });
+    return Math.min(Math.max(w, 9), 46);
+  });
+}
+/* Exporteur Excel générique — remplace les anciens CSV.
+   En-tête gras figé + autofiltre, colonnes typées (€, entier, %), ligne de totaux.
+   opts.money : liste des en-têtes monétaires (défaut : détection auto ; passer [] pour aucun). */
+function exportXlsx(name, headers, rows, opts) {
+  opts = opts || {};
+  const auto = opts.money === undefined, moneySet = new Set((opts.money || []).map(String));
+  const nonMoney = h => /qte|quantit|nb[_ ]|nombre|^sites$|^devis$|cadence|heures?|^total$|zone|panier|trajet|jour|^h_|lun|mar|mer|jeu|ven|sam|dim/i.test(h);
+  const isMoney = (h, ci) => auto ? !nonMoney(h) : (moneySet.has(h) || moneySet.has(String(ci)));
+  const out = [headers.map(h => ({ v: h, s: 4 }))];
+  const colNum = headers.map(() => false);
+  rows.forEach(r => {
+    out.push(headers.map((h, ci) => {
+      const cell = r[ci];
+      if (typeof cell === 'number') { colNum[ci] = true; return { v: cell, s: isMoney(h, ci) ? 8 : (Number.isInteger(cell) ? 9 : 5) }; }
+      return { v: cell == null ? '' : String(cell), s: 2 };
+    }));
+  });
+  if (opts.totals !== false && rows.length) {
+    out.push(headers.map((h, ci) => {
+      if (!colNum[ci]) return { v: ci === 0 ? 'TOTAL' : '', s: 4 };
+      const sum = rows.reduce((a, r) => a + (typeof r[ci] === 'number' ? r[ci] : 0), 0);
+      return { v: sum, s: isMoney(h, ci) ? 10 : 13 };
+    }));
+  }
+  const filterRef = 'A1:' + _colL(headers.length - 1) + '1';
+  writeXlsxBook(name + '.xlsx', [{ name: (opts.sheet || 'Données').slice(0, 31), rows: out, widths: _autoWidths(headers, rows), opts: { freeze: true, filterRef } }]);
+  toast('Export Excel généré');
 }
 function exportBteXlsx(b) {
   const t = bteTotals(b);
