@@ -169,6 +169,8 @@ tfoot td{padding:11px 14px;font-weight:700;background:var(--panel-2);border-top:
 .link{color:var(--brand);cursor:pointer;font-weight:600}
 .link:hover{text-decoration:underline}
 .actions-cell{text-align:right;white-space:nowrap}
+/* Cellule longue (libellé…) tronquée pour ne pas repousser les colonnes chiffrées hors écran */
+.cell-clip{max-width:180px;overflow:hidden;text-overflow:ellipsis}
 
 /* Badges */
 .badge{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:6px;font-size:11px;font-weight:700;line-height:1.5}
@@ -1570,6 +1572,8 @@ function otpForm(code) {
    Écran 2 : fiche d'analyse — dépenses imputées + reste à facturer. */
 let rafOtp = '', rafPeriode = String(new Date().getMonth() + 1), rafExercice = String(new Date().getFullYear()), rafPerimetre = 'ytd', rafQ = '';
 const RAF_PERIMETRES = { ytd: 'Cumulé à fin de période', month: 'Période seule (mois M)', all: 'Cumul — toutes périodes' };
+// Origine du « reste à dépenser » utilisé pour le coût à terme
+const RAF_RESTE_SRC = { saisi: 'ré-estimé à la main', BTE: 'budget BTE', CA: 'lignes CA', aucun: 'aucun budget' };
 function rafPer() {
   const m = Math.min(12, Math.max(1, parseInt(rafPeriode, 10) || 1)) - 1;
   const y = parseInt(rafExercice, 10) || new Date().getFullYear();
@@ -1654,9 +1658,28 @@ function rafFinance(code) {
   const depEngage = depCumul + engage;
   const margeEngage = marche - depEngage;
   const margeEngagePct = marche ? margeEngage / marche : 0;
+  /* Marge à terme = ce que l'affaire rapportera une fois TOUT compté :
+     coût à terme = coûts imputés + engagements + reste à dépenser estimé.
+     Le reste à dépenser vient de la ré-estimation saisie sur l'OTP si elle existe,
+     sinon du budget (BTE, à défaut lignes CA) diminué du réel et de l'engagé. */
+  const bud = rafBudget(code);
+  const meta = otpMeta(code) || {};
+  const saisi = (meta.rafReste === undefined || meta.rafReste === null || meta.rafReste === '') ? null : +meta.rafReste;
+  const resteSaisi = (saisi !== null && !isNaN(saisi)) ? saisi : null;
+  const resteAuto = bud.hasBudget ? Math.max(0, bud.tot - depEngage) : 0;
+  const resteEstime = resteSaisi !== null ? resteSaisi : resteAuto;
+  const resteSource = resteSaisi !== null ? 'saisi' : (bud.hasBudget ? bud.src : 'aucun');
+  const coutATerme = depEngage + resteEstime;
+  const margeATerme = marche - coutATerme;
+  const margeATermePct = marche ? margeATerme / marche : 0;
+  /* Sans budget ni ré-estimation, le reste à dépenser vaut 0 : le coût à terme serait
+     sous-évalué et la marge à terme flatteuse. On marque alors la prévision non fiable
+     plutôt que d'afficher un chiffre faux. */
+  const atermeFiable = !!marche && resteSource !== 'aucun';
   return { code, chantiers, devis, factures, achatsList, marche,
     ca, caCumul, achats, achatsCumul, engage, engageList,
     depEngage, margeEngage, margeEngagePct,
+    bud, resteSaisi, resteAuto, resteEstime, resteSource, coutATerme, margeATerme, margeATermePct, atermeFiable,
     mo: moP.cout, moCumul: moC.cout, moHeures: moP.heures, moList: moP.list,
     dep, depCumul, marge, margePct, resultatPeriode,
     fact, factCumul, encaisse, raf: marche - factCumul, pctFact: marche ? factCumul / marche : 0 };
@@ -1700,12 +1723,12 @@ function renderRAF(v) {
   const all = otpDistinct();
   const codes = all.filter(c => !rafQ || (c + ' ' + otpLabel(c) + ' ' + clientNom(otpClientId(c))).toLowerCase().includes(rafQ.toLowerCase()));
   const fin = codes.map(c => rafFinance(c));
-  const T = fin.reduce((a, f) => ({ marche: a.marche + f.marche, ca: a.ca + f.ca, dep: a.dep + f.dep, engage: a.engage + f.engage, marge: a.marge + f.marge, fact: a.fact + f.factCumul, raf: a.raf + f.raf }), { marche: 0, ca: 0, dep: 0, engage: 0, marge: 0, fact: 0, raf: 0 });
-  const Tpct = T.marche ? T.marge / T.marche : 0;
+  const T = fin.reduce((a, f) => ({ marche: a.marche + f.marche, ca: a.ca + f.ca, dep: a.dep + f.dep, engage: a.engage + f.engage, marge: a.marge + f.marge, aterme: a.aterme + (f.atermeFiable ? f.margeATerme : 0), atMarche: a.atMarche + (f.atermeFiable ? f.marche : 0), atNb: a.atNb + (f.atermeFiable ? 1 : 0), fact: a.fact + f.factCumul, raf: a.raf + f.raf }), { marche: 0, ca: 0, dep: 0, engage: 0, marge: 0, aterme: 0, atMarche: 0, atNb: 0, fact: 0, raf: 0 });
+  const Tpct = T.marche ? T.marge / T.marche : 0, TpctAT = T.atMarche ? T.aterme / T.atMarche : 0;
   const mCls = x => x >= 0 ? 'margin-good' : 'margin-bad';
   v.innerHTML = `
     <div class="section-head" style="margin-top:0">${icon('target')}<h2>RAF — suivi financier par OTP</h2><span class="spacer"></span><span class="chip">${rafPerLabel()}</span></div>
-    <p class="t-muted" style="margin-top:-8px;max-width:900px">Pour chaque <b>OTP</b> : le <b>CA imputé</b>, les <b>dépenses imputées</b> (achats réceptionnés + main d'œuvre pointée), la <b>marge</b> et son <b>pourcentage</b>, puis le <b>reste à facturer</b>. La colonne <b>Engagé</b> donne les <b>commandes passées non réceptionnées</b> (coût déjà engagé, pas encore imputé). La marge est calculée <b>prix de vente HT − coûts imputés</b>, le pourcentage étant rapporté au prix de vente. Les flux (CA imputé, dépenses) suivent le <b>périmètre de période</b> choisi ci-dessous ; marge et reste à facturer restent cumulés à fin de période.</p>
+    <p class="t-muted" style="margin-top:-8px;max-width:900px">Pour chaque <b>OTP</b> : le <b>CA imputé</b>, les <b>dépenses imputées</b> (achats réceptionnés + main d'œuvre pointée), la <b>marge</b> et son <b>pourcentage</b>, puis le <b>reste à facturer</b>. La colonne <b>Engagé</b> donne les <b>commandes passées non réceptionnées</b> (coût déjà engagé, pas encore imputé). La marge est calculée <b>prix de vente HT − coûts imputés</b>, le pourcentage étant rapporté au prix de vente ; la <b>marge à terme</b> compte en plus les <b>engagements</b> et le <b>reste à dépenser</b> jusqu'à la fin du chantier. Les flux (CA imputé, dépenses) suivent le <b>périmètre de période</b> choisi ci-dessous ; marge et reste à facturer restent cumulés à fin de période.</p>
     <div class="card card-pad" style="margin-bottom:16px">
       <div class="form-grid">
         <div class="field full"><label>Élément d'OTP (ouvrir la fiche d'analyse)</label>
@@ -1715,14 +1738,16 @@ function renderRAF(v) {
       <div style="display:flex;justify-content:flex-end;margin-top:14px"><button class="btn primary" id="raf-run">${icon('trend')} Exécuter</button></div>
     </div>
     <div class="filters"><span class="search-wrap">${icon('search')}<input id="raf-q" placeholder="Rechercher (OTP, libellé, client…)" value="${esc(rafQ)}"></span><span class="chip">${codes.length} OTP</span><span class="spacer"></span><button class="btn small" id="raf-list-csv">${icon('download')} Excel</button></div>
-    ${codes.length ? `<div class="table-wrap"><table><thead><tr><th>OTP</th><th>Libellé</th><th>Client</th><th class="num" title="Prix de vente HT — la référence (budget prévu)">PV HT</th><th class="num">CA imputé</th><th class="num">Dépenses</th><th class="num" title="Commandes passées non réceptionnées (coût engagé, pas encore imputé)">Engagé</th><th class="num" title="Prix de vente HT − coûts imputés cumulés">Marge</th><th class="num" title="Marge rapportée au prix de vente HT">% marge</th><th class="num">Facturé cum.</th><th class="num">Reste à facturer</th><th></th></tr></thead>
-      <tbody>${fin.map(f => `<tr><td class="t-strong">${esc(f.code)}</td><td><span class="link" data-run="${esc(f.code)}">${esc(otpLabel(f.code) || '—')}</span></td><td class="t-muted">${esc(clientNom(otpClientId(f.code)))}</td>
+    ${codes.length ? `<div class="table-wrap"><table><thead><tr><th>OTP</th><th>Libellé</th><th>Client</th><th class="num" title="Prix de vente HT — la référence (budget prévu)">PV HT</th><th class="num">CA imputé</th><th class="num">Dépenses</th><th class="num" title="Commandes passées non réceptionnées (coût engagé, pas encore imputé)">Engagé</th><th class="num" title="Prix de vente HT − coûts imputés cumulés">Marge</th><th class="num" title="Marge rapportée au prix de vente HT">% marge</th><th class="num" title="Prix de vente HT − coût à terme (imputés + engagés + reste à dépenser)">Marge à terme</th><th class="num" title="Marge à terme rapportée au prix de vente HT">% à terme</th><th class="num">Facturé cum.</th><th class="num">Reste à facturer</th><th></th></tr></thead>
+      <tbody>${fin.map(f => `<tr><td class="t-strong">${esc(f.code)}</td><td class="cell-clip" title="${esc(otpLabel(f.code) || '')}"><span class="link" data-run="${esc(f.code)}">${esc(otpLabel(f.code) || '—')}</span></td><td class="t-muted cell-clip" title="${esc(clientNom(otpClientId(f.code)))}">${esc(clientNom(otpClientId(f.code)))}</td>
         <td class="num">${eur(f.marche)}</td><td class="num">${eur(f.ca)}</td><td class="num">${eur(f.dep)}</td>
         <td class="num" title="${f.engage ? f.engageList.length + ' commande(s) non réceptionnée(s)' : 'Aucune commande en attente de réception'}">${f.engage ? eur(f.engage) : '—'}</td>
         <td class="num ${mCls(f.marge)}">${f.marche ? eur(f.marge) : '—'}</td><td class="num ${mCls(f.marge)}">${f.marche ? pct(f.margePct) : '—'}</td>
+        <td class="num ${f.atermeFiable ? mCls(f.margeATerme) : ''}" title="${f.atermeFiable ? 'Coût à terme ' + eur(f.coutATerme) + ' — dont reste à dépenser ' + eur(f.resteEstime) + ' (' + RAF_RESTE_SRC[f.resteSource] + ')' : 'Prévision impossible : ni budget (BTE) ni reste à dépenser ré-estimé sur cet OTP'}">${f.atermeFiable ? eur(f.margeATerme) : '—'}</td>
+        <td class="num ${f.atermeFiable ? mCls(f.margeATerme) : ''}">${f.atermeFiable ? pct(f.margeATermePct) : '—'}</td>
         <td class="num">${eur(f.factCumul)}</td><td class="num ${f.raf > 0 ? 'margin-bad' : 'margin-good'}">${eur(f.raf)}</td>
         <td class="actions-cell"><button class="icon-btn" data-run="${esc(f.code)}" title="Analyser">${icon('target')}</button></td></tr>`).join('')}</tbody>
-      <tfoot><tr class="t-strong"><td colspan="3">TOTAL (${codes.length} OTP)</td><td class="num">${eur(T.marche)}</td><td class="num">${eur(T.ca)}</td><td class="num">${eur(T.dep)}</td><td class="num">${eur(T.engage)}</td><td class="num ${mCls(T.marge)}">${eur(T.marge)}</td><td class="num ${mCls(T.marge)}">${T.marche ? pct(Tpct) : '—'}</td><td class="num">${eur(T.fact)}</td><td class="num">${eur(T.raf)}</td><td></td></tr></tfoot></table></div>`
+      <tfoot><tr class="t-strong"><td colspan="3">TOTAL (${codes.length} OTP)</td><td class="num">${eur(T.marche)}</td><td class="num">${eur(T.ca)}</td><td class="num">${eur(T.dep)}</td><td class="num">${eur(T.engage)}</td><td class="num ${mCls(T.marge)}">${eur(T.marge)}</td><td class="num ${mCls(T.marge)}">${T.marche ? pct(Tpct) : '—'}</td><td class="num ${T.atNb ? mCls(T.aterme) : ''}" title="Somme sur les ${T.atNb} OTP disposant d'un budget ou d'un reste à dépenser ré-estimé">${T.atNb ? eur(T.aterme) : '—'}</td><td class="num ${T.atNb ? mCls(T.aterme) : ''}">${T.atNb ? pct(TpctAT) : '—'}</td><td class="num">${eur(T.fact)}</td><td class="num">${eur(T.raf)}</td><td></td></tr></tfoot></table></div>`
       : emptyState('target', 'Aucun OTP', 'Les OTP apparaissent dès qu\'ils sont utilisés sur un devis, un chantier, une facture ou un achat.')}`;
   rafBindPeriod(v);
   $('#raf-run').onclick = () => {
@@ -1734,6 +1759,7 @@ function renderRAF(v) {
   $$('[data-run]', v).forEach(b => b.onclick = () => { rafOtp = b.dataset.run; renderRAF(v); });
 }
 function rafAnalyse(v) {
+  const v0 = v;   // conteneur de vue, réutilisé par les callbacks pour re-rendre
   const code = rafOtp, F = rafFinance(code), bud = rafBudget(code);
   const meta = otpMeta(code) || {};
   const dual = rafPerimetre === 'month';   // afficher « Période » ET « Cumulé »
@@ -1763,10 +1789,15 @@ function rafAnalyse(v) {
       ${card('Facturé cumulé', eur(F.factCumul), 'Encaissé ' + eur(F.encaisse))}
       ${card('Reste à facturer', eur(F.raf), pct(F.pctFact) + ' facturé', F.raf > 0 ? 'amber' : 'green')}
     </div>
-    <div class="grid-3" style="margin-bottom:18px">
+    <div class="grid-3" style="margin-bottom:14px">
       ${card('% marge prévisionnelle', bud.hasBudget ? pct(pctPrev) : '—', bud.hasBudget ? eur(margePrev) + ' — PV − coûts prévus' : 'Pas de coûts prévus (BTE)', bud.hasBudget ? (margePrev >= 0 ? 'green' : 'amber') : '')}
       ${card('% marge réalisée', F.marche ? pct(F.margePct) : '—', F.marche ? eur(F.marge) + ' — PV − coûts imputés' : 'Pas de prix de vente', F.marche ? (F.marge >= 0 ? 'green' : 'amber') : '')}
-      ${card('Coûts imputés', eur(F.depCumul), 'Achats ' + eur(F.achatsCumul) + ' · MO ' + eur(F.moCumul) + (F.engage ? ' · Engagé ' + eur(F.engage) : ''), 'amber')}
+      ${card('% marge à terme', F.atermeFiable ? pct(F.margeATermePct) : '—', F.atermeFiable ? eur(F.margeATerme) + ' — PV − coût à terme' : (F.marche ? 'Renseignez le reste à dépenser' : 'Pas de prix de vente'), F.atermeFiable ? (F.margeATerme >= 0 ? 'green' : 'amber') : '')}
+    </div>
+    <div class="grid-3" style="margin-bottom:18px">
+      ${card('Coûts imputés', eur(F.depCumul), 'Achats ' + eur(F.achatsCumul) + " · MO " + eur(F.moCumul), 'amber')}
+      ${card('Engagé (non réceptionné)', eur(F.engage), F.engageList.length + ' commande(s) en attente', F.engage ? 'amber' : '')}
+      ${card('Coût à terme', F.atermeFiable ? eur(F.coutATerme) : '—', 'Reste à dépenser ' + eur(F.resteEstime) + ' (' + RAF_RESTE_SRC[F.resteSource] + ')', 'amber')}
     </div>
     <div class="card-title">Facturation &amp; reste à facturer</div>
     <div class="table-wrap" style="margin-bottom:18px"><table>${HD('Facturation')}<tbody>
@@ -1794,9 +1825,28 @@ function rafAnalyse(v) {
         + L('% marge après engagements', '—', F.marche ? pct(F.margeEngagePct) : '—', mCls(F.margeEngage), true) : ''}
       ${bud.hasBudget ? L('Écart de marge (réalisée − prévisionnelle)', '—', eur(F.marge - margePrev), mCls(F.marge - margePrev)) : ''}
       ${bud.hasBudget ? L('Reste à dépenser (coûts prévus − imputés)', '—', eur(resteADepenser)) : ''}
-      ${bud.hasBudget && F.engage ? L('Reste à dépenser hors engagements (coûts prévus − imputés − engagés)', '—', eur(resteADepenser - F.engage), mCls(resteADepenser - F.engage)) : ''}
       ${dual ? L('Résultat de la période (CA imputé − coûts)', eur(F.resultatPeriode), '—') : ''}
     </tbody></table></div>
+    <div class="card-title">Marge à terme — prévision de fin d'affaire</div>
+    <p class="t-muted" style="margin-top:-6px;margin-bottom:10px">Ce que l'affaire dégagera <b>une fois tout compté</b> : au réel déjà imputé s'ajoutent les <b>commandes engagées</b> et le <b>reste à dépenser</b> jusqu'à la fin du chantier.</p>
+    <div class="table-wrap" style="margin-bottom:12px"><table><thead><tr><th>Construction du coût à terme</th><th class="num">Montant</th></tr></thead><tbody>
+      <tr class="t-strong"><td>Prix de vente HT</td><td class="num">${eur(F.marche)}</td></tr>
+      <tr><td>Coûts imputés (réel)</td><td class="num">${eur(F.depCumul)}</td></tr>
+      <tr><td>+ Engagé (commandes non réceptionnées)</td><td class="num">${eur(F.engage)}</td></tr>
+      <tr><td>+ Reste à dépenser estimé <span class="t-muted">(${RAF_RESTE_SRC[F.resteSource]})</span></td><td class="num">${eur(F.resteEstime)}</td></tr>
+      <tr class="t-strong"><td>= Coût à terme</td><td class="num">${F.atermeFiable ? eur(F.coutATerme) : '—'}</td></tr>
+      <tr class="t-strong"><td>Marge à terme (PV − coût à terme)</td><td class="num ${F.atermeFiable ? mCls(F.margeATerme) : ''}">${F.atermeFiable ? eur(F.margeATerme) : '—'}</td></tr>
+      <tr class="t-strong"><td>% marge à terme</td><td class="num ${F.atermeFiable ? mCls(F.margeATerme) : ''}">${F.atermeFiable ? pct(F.margeATermePct) : '—'}</td></tr>
+      ${F.atermeFiable && bud.hasBudget ? `<tr><td>Écart avec la marge prévisionnelle</td><td class="num ${mCls(F.margeATerme - margePrev)}">${eur(F.margeATerme - margePrev)}</td></tr>` : ''}
+    </tbody></table></div>
+    ${F.atermeFiable ? '' : `<p class="t-muted" style="margin-top:-4px;margin-bottom:12px"><b>Marge à terme non calculée</b> : cet OTP n'a ni budget (BTE) ni reste à dépenser ré-estimé — le coût à terme se limiterait au réel déjà connu (${eur(F.depEngage)}) et la marge serait surévaluée. Saisissez le reste à dépenser ci-dessous pour l'obtenir.</p>`}
+    <div class="card card-pad" style="margin-bottom:18px">
+      <div class="form-grid">
+        <div class="field"><label>Reste à dépenser estimé (€ HT)</label><input id="raf-reste" type="number" value="${F.resteSaisi !== null ? F.resteSaisi : ''}" placeholder="${Math.round(F.resteAuto)}">
+          <div class="hint">Laisser vide pour reprendre automatiquement le budget ${bud.hasBudget ? esc(bud.src) : '(aucun budget rattaché : 0 €)'}${bud.hasBudget ? ' restant, soit ' + eur(F.resteAuto) : ''}. Saisissez votre propre ré-estimation pour figer la marge à terme.</div></div>
+        <div class="field"><label>&nbsp;</label><button class="btn" id="raf-reste-auto">${icon('trend')} Revenir au calcul automatique</button></div>
+      </div>
+    </div>
     ${bud.hasBudget
       ? `<div class="card-title">Dépenses par nature — budget prévu (${bud.src}) vs réel</div>
     <div class="table-wrap" style="margin-bottom:18px"><table><thead><tr><th>Nature</th><th class="num">Budget prévu</th>${dual ? `<th class="num">Réel ${MOIS[rafPer().m]}</th>` : ''}<th class="num">Réel cumulé</th><th class="num">Écart</th><th class="num">% marché</th></tr></thead>
@@ -1834,11 +1884,15 @@ function rafAnalyse(v) {
     ${F.factures.length ? `<div class="card-title">Factures (${F.factures.length})</div><div class="table-wrap"><table><thead><tr><th>N°</th><th>Objet</th><th>Statut</th><th class="num">Montant HT</th></tr></thead><tbody>${F.factures.map(f => `<tr><td class="t-strong">${esc(f.num || '—')}</td><td>${esc(f.objet || '—')}</td><td>${factBadge(f)}</td><td class="num">${eur(f.montantHT)}</td></tr>`).join('')}</tbody></table></div>` : ''}`;
   rafBindPeriod(v);
   $('#raf-back').onclick = () => { rafOtp = ''; renderRAF(v); };
-  $('#raf-com').onchange = e => {
-    let o = otpMeta(code);
-    if (!o) { o = { code, libelle: '', clientId: '', notes: '' }; DB.data.otps.push(o); }
-    o.rafComment = e.target.value.trim(); DB.save();
+  const otpRow = () => { let o = otpMeta(code); if (!o) { o = { code, libelle: '', clientId: '', notes: '' }; DB.data.otps.push(o); } return o; };
+  $('#raf-com').onchange = e => { otpRow().rafComment = e.target.value.trim(); DB.save(); };
+  // Ré-estimation manuelle du reste à dépenser : vide = retour au calcul sur budget
+  $('#raf-reste').onchange = e => {
+    const raw = e.target.value.trim();
+    otpRow().rafReste = raw === '' ? '' : Math.max(0, +raw || 0);
+    DB.save(); toast(raw === '' ? 'Reste à dépenser recalculé sur le budget' : 'Reste à dépenser mis à jour'); rafAnalyse(v0);
   };
+  $('#raf-reste-auto').onclick = () => { otpRow().rafReste = ''; DB.save(); toast('Reste à dépenser recalculé sur le budget'); rafAnalyse(v0); };
   $('#raf-csv').onclick = () => exportRafXlsx(code);
 }
 // Export RAF — classeur multi-feuilles (Synthèse, Dépenses par nature, Détail, Sites, Factures)
@@ -1885,9 +1939,19 @@ function exportRafXlsx(code) {
     ...(bud.hasBudget ? [
       LN('Écart de marge (réalisée − prévisionnelle)', TX('—'), EU(F.marge - margePrev)),
       LN('Reste à dépenser (coûts prévus − imputés)', TX('—'), EU(bud.tot - F.depCumul)),
-      ...(F.engage ? [LN('Reste à dépenser hors engagements', TX('—'), EU(bud.tot - F.depEngage))] : []),
     ] : []),
     ...(dual ? [LN('Résultat de la période (CA imputé − coûts)', EU(F.resultatPeriode), TX('—'))] : []),
+    [],
+    SH('Marge à terme'),
+    LN('Prix de vente HT', TX('—'), EU(F.marche), true),
+    LN('Coûts imputés (réel)', TX('—'), EU(F.depCumul)),
+    LN('+ Engagé (commandes non réceptionnées)', TX('—'), EU(F.engage)),
+    LN('+ Reste à dépenser estimé (' + RAF_RESTE_SRC[F.resteSource] + ')', TX('—'), EU(F.resteEstime)),
+    LN('= Coût à terme', TX('—'), F.atermeFiable ? ET(F.coutATerme) : TX('—'), true),
+    LN('Marge à terme (PV − coût à terme)', TX('—'), F.atermeFiable ? ET(F.margeATerme) : TX('—'), true),
+    LN('% marge à terme', TX('—'), F.atermeFiable ? PT(F.margeATermePct) : TX('—'), true),
+    ...(F.atermeFiable && bud.hasBudget ? [LN('Écart avec la marge prévisionnelle', TX('—'), EU(F.margeATerme - margePrev))] : []),
+    ...(F.atermeFiable ? [] : [LN('Marge à terme non calculée', TX('—'), TX('Ni budget (BTE) ni reste à dépenser ré-estimé'))]),
   ];
   const natRow = (lab, b, p, c) => dual ? [TX(lab), EU(b), EU(p), EU(c), EU(b - c), PC(pM(c))] : [TX(lab), EU(b), EU(c), EU(b - c), PC(pM(c))];
   const nat = [dual ? [H('Nature'), H('Budget prévu'), H('Réel ' + PL), H('Réel cumulé'), H('Écart'), H('% marché')] : [H('Nature'), H('Budget prévu'), H('Réel cumulé'), H('Écart'), H('% marché')],
@@ -1917,12 +1981,12 @@ function exportRafXlsx(code) {
 // Export RAF — vue portefeuille (tous les OTP filtrés), avec marges et % de marge
 function exportRafListXlsx(fin) {
   const H = v => ({ v, s: 4 }), TX = v => ({ v, s: 2 }), BD = v => ({ v, s: 3 }), EU = v => ({ v, s: 8 }), ET = v => ({ v, s: 10 }), PC = v => ({ v, s: 11 }), PT = v => ({ v, s: 12 });
-  const rows = [[H('OTP'), H('Libellé'), H('Client'), H('PV HT'), H('CA imputé'), H('Coûts imputés'), H('dont achats'), H("dont MO"), H('Engagé (non réceptionné)'), H('Marge (PV − coûts)'), H('% marge'), H('Facturé cumulé'), H('Reste à facturer')]];
-  fin.forEach(f => rows.push([TX(f.code), TX(otpLabel(f.code) || ''), TX(clientNom(otpClientId(f.code))), EU(f.marche), EU(f.ca), EU(f.dep), EU(f.achats), EU(Math.round(f.mo)), EU(f.engage), EU(Math.round(f.marge)), PC(f.margePct), EU(f.factCumul), EU(f.raf)]));
-  const T = fin.reduce((a, f) => ({ marche: a.marche + f.marche, ca: a.ca + f.ca, dep: a.dep + f.dep, ach: a.ach + f.achats, mo: a.mo + f.mo, engage: a.engage + f.engage, marge: a.marge + f.marge, fact: a.fact + f.factCumul, raf: a.raf + f.raf }), { marche: 0, ca: 0, dep: 0, ach: 0, mo: 0, engage: 0, marge: 0, fact: 0, raf: 0 });
-  rows.push([BD('TOTAL'), TX(''), TX(''), ET(T.marche), ET(T.ca), ET(T.dep), ET(T.ach), ET(Math.round(T.mo)), ET(T.engage), ET(Math.round(T.marge)), PT(T.marche ? T.marge / T.marche : 0), ET(T.fact), ET(T.raf)]);
+  const rows = [[H('OTP'), H('Libellé'), H('Client'), H('PV HT'), H('CA imputé'), H('Coûts imputés'), H('dont achats'), H("dont MO"), H('Engagé (non réceptionné)'), H('Marge (PV − coûts)'), H('% marge'), H('Reste à dépenser'), H('Coût à terme'), H('Marge à terme'), H('% marge à terme'), H('Facturé cumulé'), H('Reste à facturer')]];
+  fin.forEach(f => rows.push([TX(f.code), TX(otpLabel(f.code) || ''), TX(clientNom(otpClientId(f.code))), EU(f.marche), EU(f.ca), EU(f.dep), EU(f.achats), EU(Math.round(f.mo)), EU(f.engage), EU(Math.round(f.marge)), PC(f.margePct), EU(Math.round(f.resteEstime)), f.atermeFiable ? EU(Math.round(f.coutATerme)) : TX('—'), f.atermeFiable ? EU(Math.round(f.margeATerme)) : TX('—'), f.atermeFiable ? PC(f.margeATermePct) : TX('—'), EU(f.factCumul), EU(f.raf)]));
+  const T = fin.reduce((a, f) => ({ marche: a.marche + f.marche, ca: a.ca + f.ca, dep: a.dep + f.dep, ach: a.ach + f.achats, mo: a.mo + f.mo, engage: a.engage + f.engage, marge: a.marge + f.marge, reste: a.reste + f.resteEstime, cout: a.cout + (f.atermeFiable ? f.coutATerme : 0), aterme: a.aterme + (f.atermeFiable ? f.margeATerme : 0), atMarche: a.atMarche + (f.atermeFiable ? f.marche : 0), fact: a.fact + f.factCumul, raf: a.raf + f.raf }), { marche: 0, ca: 0, dep: 0, ach: 0, mo: 0, engage: 0, marge: 0, reste: 0, cout: 0, aterme: 0, atMarche: 0, fact: 0, raf: 0 });
+  rows.push([BD('TOTAL'), TX(''), TX(''), ET(T.marche), ET(T.ca), ET(T.dep), ET(T.ach), ET(Math.round(T.mo)), ET(T.engage), ET(Math.round(T.marge)), PT(T.marche ? T.marge / T.marche : 0), ET(Math.round(T.reste)), ET(Math.round(T.cout)), ET(Math.round(T.aterme)), PT(T.atMarche ? T.aterme / T.atMarche : 0), ET(T.fact), ET(T.raf)]);
   writeXlsxBook('RAF_par_OTP_' + rafExercice + '.xlsx', [
-    { name: 'RAF par OTP', rows, widths: [14, 32, 24, 15, 15, 15, 14, 13, 16, 14, 11, 16, 17], opts: { freeze: true, filterRef: 'A1:M1' } },
+    { name: 'RAF par OTP', rows, widths: [14, 32, 24, 15, 15, 15, 14, 13, 16, 14, 11, 16, 15, 15, 14, 16, 17], opts: { freeze: true, filterRef: 'A1:Q1' } },
     { name: 'Périmètre', rows: [[BD('Périmètre'), TX(rafPerLabel())], [BD('Période'), TX(rafPeriode)], [BD('Exercice'), TX(rafExercice)], [BD('Édité le'), TX(fmtDate(todayISO()))], [BD('Nb OTP'), { v: fin.length, s: 9 }]], widths: [24, 30] },
   ]);
   toast('Export Excel généré');
