@@ -176,11 +176,20 @@ h1,h2,h3{margin:0}
 /* Tables */
 .table-wrap{overflow-x:auto;border-radius:var(--radius);border:1px solid var(--line);background:#fff;box-shadow:var(--shadow)}
 table{border-collapse:collapse;width:100%;font-size:var(--table-fs);white-space:nowrap}
-thead th{background:var(--panel-2);text-align:left;padding:var(--th-py) var(--row-px);font-size:10.5px;text-transform:uppercase;
+thead th{position:relative;background:var(--panel-2);text-align:left;padding:var(--th-py) var(--row-px);font-size:10.5px;text-transform:uppercase;
   letter-spacing:.5px;color:var(--ink-soft);border-bottom:1px solid var(--line);font-weight:700}
 tbody td{padding:var(--row-py) var(--row-px);border-bottom:1px solid var(--line)}
 /* Colonne « texte long » : se replie au lieu de pousser le tableau en scroll horizontal */
 td.wrap,th.wrap{white-space:normal;min-width:220px}
+/* Colonnes étirables — poignée sur le bord droit de chaque en-tête */
+.col-rsz{position:absolute;top:0;right:-3px;width:7px;height:100%;cursor:col-resize;z-index:2;touch-action:none}
+.col-rsz::after{content:"";position:absolute;left:3px;top:5px;bottom:5px;width:1px;background:transparent;transition:background .15s var(--ease-out)}
+.col-rsz:hover::after,.col-rsz.active::after{background:var(--brand-2)}
+thead th:last-child .col-rsz{right:0}
+body.col-resizing{cursor:col-resize;user-select:none}
+/* Largeurs figées par l'utilisateur : on tronque proprement ce qui dépasse */
+table.rsz{table-layout:fixed}
+table.rsz td,table.rsz th{overflow:hidden;text-overflow:ellipsis}
 tbody tr:last-child td{border-bottom:0}
 tbody tr{transition:background .13s var(--ease-out)}
 tbody tr:hover{background:var(--panel-2)}
@@ -1120,6 +1129,79 @@ const UI = {
 };
 
 /* -------------------------------------------------------------------------
+   6 ter. Colonnes étirables
+   Chaque en-tête porte une poignée : on tire pour élargir/rétrécir la colonne,
+   double-clic pour revenir à l'automatique. Largeurs mémorisées par poste et
+   par tableau (route + rang du tableau + nombre de colonnes).
+   ------------------------------------------------------------------------- */
+const COLS_KEY = 'chargepro.cols';
+const COL_MIN = 48; // largeur mini d'une colonne, en px
+const Cols = {
+  map: null,
+  load() {
+    if (!this.map) { let m = null; try { m = JSON.parse(localStorage.getItem(COLS_KEY)); } catch {} this.map = (m && typeof m === 'object') ? m : {}; }
+    return this.map;
+  },
+  save() { try { localStorage.setItem(COLS_KEY, JSON.stringify(this.map)); } catch {} },
+  get(key) { const v = this.load()[key]; return Array.isArray(v) ? v : null; },
+  set(key, widths) { this.load()[key] = widths.map(w => Math.round(w)); this.save(); },
+  clear(key) { this.load(); if (key) delete this.map[key]; else this.map = {}; this.save(); },
+  any() { return Object.keys(this.load()).length > 0; }
+};
+const headCells = t => (t.tHead && t.tHead.rows.length) ? [...t.tHead.rows[0].cells] : [];
+function colKey(t, i) { return current + '#' + i + ':' + headCells(t).length; }
+// Fige les largeurs courantes : indispensable pour que l'étirement soit prévisible.
+function freezeCols(t, widths) {
+  headCells(t).forEach((th, i) => { th.style.width = widths[i] + 'px'; th.style.minWidth = '0'; });
+  t.style.width = widths.reduce((a, b) => a + b, 0) + 'px';
+  t.classList.add('rsz');
+}
+function measureCols(t) {
+  const w = headCells(t).map(th => th.getBoundingClientRect().width);
+  const slack = t.parentElement.clientWidth - w.reduce((a, b) => a + b, 0);
+  if (slack > 1 && w.length) w[w.length - 1] += slack; // la dernière colonne absorbe l'espace libre
+  return w;
+}
+function clearCols(t) {
+  headCells(t).forEach(th => { th.style.width = ''; th.style.minWidth = ''; });
+  t.style.width = ''; t.classList.remove('rsz');
+}
+function startColDrag(e, t, key, i, handle) {
+  if (e.button) return;
+  e.preventDefault(); e.stopPropagation();
+  if (!t.classList.contains('rsz')) freezeCols(t, measureCols(t));
+  const ths = headCells(t), startX = e.clientX, startW = parseFloat(ths[i].style.width);
+  const total = () => ths.reduce((sum, th) => sum + parseFloat(th.style.width), 0);
+  handle.classList.add('active'); document.body.classList.add('col-resizing');
+  try { handle.setPointerCapture(e.pointerId); } catch {}
+  const move = ev => { ths[i].style.width = Math.max(COL_MIN, startW + (ev.clientX - startX)) + 'px'; t.style.width = total() + 'px'; };
+  const up = () => {
+    handle.removeEventListener('pointermove', move); handle.removeEventListener('pointerup', up); handle.removeEventListener('pointercancel', up);
+    handle.classList.remove('active'); document.body.classList.remove('col-resizing');
+    Cols.set(key, ths.map(th => parseFloat(th.style.width)));
+  };
+  handle.addEventListener('pointermove', move); handle.addEventListener('pointerup', up); handle.addEventListener('pointercancel', up);
+}
+function setupResizable(t, key) {
+  if (!headCells(t).length) return;
+  t.dataset.rsz = '1';
+  const saved = Cols.get(key);
+  if (saved && saved.length === headCells(t).length) freezeCols(t, saved);
+  headCells(t).forEach((th, i) => {
+    const h = document.createElement('span');
+    h.className = 'col-rsz';
+    h.title = 'Étirer la colonne — double-clic pour revenir à la largeur automatique';
+    h.onpointerdown = e => startColDrag(e, t, key, i, h);
+    h.ondblclick = e => { e.stopPropagation(); Cols.clear(key); clearCols(t); toast('Largeur automatique rétablie'); };
+    th.appendChild(h);
+  });
+}
+let colsRaf = 0;
+function initResizableTables() { $$('#view .table-wrap > table').forEach((t, i) => { if (!t.dataset.rsz) setupResizable(t, colKey(t, i)); }); }
+function scheduleCols() { cancelAnimationFrame(colsRaf); colsRaf = requestAnimationFrame(initResizableTables); }
+function resetAllCols() { Cols.clear(); $$('#view .table-wrap > table').forEach(clearCols); toast('Largeurs de colonnes réinitialisées'); }
+
+/* -------------------------------------------------------------------------
    7. Profils — bouton & menu
    ------------------------------------------------------------------------- */
 function renderProfileButton() {
@@ -1150,6 +1232,7 @@ function profileMenuHTML() {
     <div class="menu-pref"><span>Densité</span>${segHTML('density', UI_DENSITES, {
       normal: 'Espacements standards', compact: 'Lignes serrées — plus d\'infos à l\'écran' })}</div>
     <button class="menu-item" data-navtoggle>${icon('menu')} ${UI.prefs.nav === 'compact' ? 'Déployer le menu latéral' : 'Réduire le menu latéral'}</button>
+    ${Cols.any() ? `<button class="menu-item" data-colreset>${icon('swap')} Réinitialiser les largeurs de colonnes</button>` : ''}
     <div class="menu-sep"></div>
     <button class="menu-item danger" data-del>${icon('trash')} Supprimer ce profil</button>
   </div>`;
@@ -1159,6 +1242,8 @@ function bindProfileMenu(root, close) {
   $$('[data-switch]', root).forEach(b => b.onclick = () => { close(); DB.switchTo(b.dataset.switch); afterProfileChange(); });
   $$('.menu-seg button', root).forEach(b => b.onclick = e => { e.stopPropagation(); UI.set(b.parentElement.dataset.pref, b.dataset.v); refresh(); });
   root.querySelector('[data-navtoggle]').onclick = e => { e.stopPropagation(); UI.toggleNav(); refresh(); };
+  const cr = root.querySelector('[data-colreset]');
+  if (cr) cr.onclick = e => { e.stopPropagation(); resetAllCols(); refresh(); };
   root.querySelector('[data-new]').onclick = () => { close(); profileForm(); };
   root.querySelector('[data-edit]').onclick = () => { close(); profileForm(DB.meta.currentId); };
   root.querySelector('[data-demo]').onclick = () => { close(); confirmDialog(
@@ -3254,6 +3339,8 @@ function boot() {
     if (btn) { const sel = window.getSelection && window.getSelection(); if (sel) sel.removeAllRanges(); btn.click(); }
   });
   window.addEventListener('hashchange', () => { const r = location.hash.slice(1); if (r && r !== current) go(r); });
+  // Les vues se redessinent seules (filtres, onglets…) : on réarme les poignées à chaque rendu.
+  new MutationObserver(scheduleCols).observe($('#view'), { childList: true, subtree: true });
 
   DB.loadMeta();
   if (!DB.meta.profiles.length) { renderProfileButton(); firstRun(); return; }
