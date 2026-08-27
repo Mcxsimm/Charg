@@ -21,6 +21,17 @@
   --shadow-md:0 4px 12px -3px rgba(16,30,54,.10),0 14px 34px -10px rgba(16,30,54,.16);
   --shadow-lg:0 24px 60px -14px rgba(16,30,54,.30);
   --sidebar-w:246px;
+  /* Affichage adaptatif — pilotés par les préférences d'écran (voir html[data-*]) */
+  --content-max:1720px;   /* largeur utile maxi du contenu */
+  --view-pad-x:26px;      /* marges latérales de la vue */
+  --view-pad-t:24px;
+  --gap:16px;             /* gouttière des grilles */
+  --card-pad:18px 20px;
+  --kpi-min:232px;        /* largeur mini d'une tuile KPI */
+  --row-py:10px;          /* hauteur de ligne des tableaux */
+  --row-px:14px;
+  --th-py:11px;
+  --table-fs:13px;
   --font:'Segoe UI',system-ui,-apple-system,BlinkMacSystemFont,Roboto,Helvetica,Arial,sans-serif;
   /* Motion — courbes fortes façon Emil Kowalski (les easings CSS natifs manquent de punch) */
   --ease-out:cubic-bezier(0.23,1,0.32,1);
@@ -74,8 +85,9 @@ h1,h2,h3{margin:0}
 /* ---------------- Main ---------------- */
 #main{margin-left:var(--sidebar-w);flex:1;min-width:0;display:flex;flex-direction:column}
 #topbar{position:sticky;top:0;z-index:20;background:rgba(246,248,251,.92);backdrop-filter:blur(8px);
-  border-bottom:1px solid var(--line);display:flex;align-items:center;gap:14px;padding:0 26px;height:60px}
+  border-bottom:1px solid var(--line);display:flex;align-items:center;gap:14px;padding:0 var(--view-pad-x);height:60px}
 #menu-toggle{display:none;background:none;border:0;color:var(--ink);padding:6px}
+#nav-collapse{display:inline-flex;margin-left:-6px}
 #page-title{font-size:18px;font-weight:700}
 .topbar-right{margin-left:auto;display:flex;align-items:center;gap:12px}
 .year-badge{color:var(--ink-soft);font-weight:600;font-size:12.5px}
@@ -90,7 +102,7 @@ h1,h2,h3{margin:0}
   display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;flex:none}
 .profile-btn .p-name{max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .profile-btn .ic{color:var(--muted)}
-.menu{position:absolute;top:54px;right:26px;background:#fff;border:1px solid var(--line);border-radius:12px;
+.menu{position:absolute;top:54px;right:var(--view-pad-x);background:#fff;border:1px solid var(--line);border-radius:12px;
   box-shadow:var(--shadow-lg);width:280px;z-index:50;overflow:hidden;
   transform-origin:top right;animation:menu-in .16s var(--ease-out)}
 @keyframes menu-in{from{transform:scale(.94);opacity:0}to{transform:scale(1);opacity:1}}
@@ -104,8 +116,15 @@ h1,h2,h3{margin:0}
 .menu-item.active .ic{color:var(--brand)}
 .menu-sep{height:1px;background:var(--line);margin:4px 0}
 .menu-item.danger{color:var(--red)} .menu-item.danger .ic{color:var(--red)}
+.menu-pref{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:7px 14px 8px}
+.menu-pref>span{font-size:12px;font-weight:600;color:var(--ink-soft)}
+.menu-seg{display:inline-flex;gap:3px;background:var(--panel-3);padding:3px;border-radius:8px}
+.menu-seg button{border:0;background:transparent;padding:5px 9px;border-radius:6px;font-size:11.5px;font-weight:600;color:var(--ink-soft);
+  transition:background .16s var(--ease-out),color .16s var(--ease-out),box-shadow .16s var(--ease-out)}
+.menu-seg button:hover{color:var(--ink)}
+.menu-seg button.active{background:#fff;color:var(--brand);box-shadow:var(--shadow-sm)}
 
-#view{padding:24px 26px 64px;max-width:1260px;width:100%}
+#view{padding:var(--view-pad-t) var(--view-pad-x) 64px;max-width:var(--content-max);width:100%}
 #view.view-enter{animation:view-in .22s var(--ease-out)}
 @keyframes view-in{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 
@@ -129,7 +148,7 @@ h1,h2,h3{margin:0}
 .icon-btn.danger:hover{background:var(--red-bg);color:var(--red)}
 
 .card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow)}
-.card-pad{padding:18px 20px}
+.card-pad{padding:var(--card-pad)}
 .card-title{font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--ink-soft);margin:0 0 14px}
 .section-head{display:flex;align-items:center;gap:9px;margin:2px 0 14px}
 .section-head .ic{color:var(--brand-2)}
@@ -137,7 +156,7 @@ h1,h2,h3{margin:0}
 .spacer{flex:1}
 
 /* KPI */
-.kpi-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(232px,1fr));gap:15px;margin-bottom:20px}
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(var(--kpi-min),1fr));gap:var(--gap);margin-bottom:20px}
 .kpi{background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:16px 18px;box-shadow:var(--shadow);position:relative}
 .kpi[data-goto]{transition:transform .16s var(--ease-out),box-shadow .16s var(--ease-out),border-color .16s var(--ease-out)}
 @media(hover:hover) and (pointer:fine){.kpi[data-goto]:hover{transform:translateY(-2px);box-shadow:var(--shadow-md);border-color:#d3dce8}}
@@ -156,15 +175,17 @@ h1,h2,h3{margin:0}
 
 /* Tables */
 .table-wrap{overflow-x:auto;border-radius:var(--radius);border:1px solid var(--line);background:#fff;box-shadow:var(--shadow)}
-table{border-collapse:collapse;width:100%;font-size:13px;white-space:nowrap}
-thead th{background:var(--panel-2);text-align:left;padding:11px 14px;font-size:10.5px;text-transform:uppercase;
+table{border-collapse:collapse;width:100%;font-size:var(--table-fs);white-space:nowrap}
+thead th{background:var(--panel-2);text-align:left;padding:var(--th-py) var(--row-px);font-size:10.5px;text-transform:uppercase;
   letter-spacing:.5px;color:var(--ink-soft);border-bottom:1px solid var(--line);font-weight:700}
-tbody td{padding:10px 14px;border-bottom:1px solid var(--line)}
+tbody td{padding:var(--row-py) var(--row-px);border-bottom:1px solid var(--line)}
+/* Colonne « texte long » : se replie au lieu de pousser le tableau en scroll horizontal */
+td.wrap,th.wrap{white-space:normal;min-width:220px}
 tbody tr:last-child td{border-bottom:0}
 tbody tr{transition:background .13s var(--ease-out)}
 tbody tr:hover{background:var(--panel-2)}
 td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
-tfoot td{padding:11px 14px;font-weight:700;background:var(--panel-2);border-top:2px solid var(--line);font-variant-numeric:tabular-nums}
+tfoot td{padding:var(--th-py) var(--row-px);font-weight:700;background:var(--panel-2);border-top:2px solid var(--line);font-variant-numeric:tabular-nums}
 .t-strong{font-weight:700}.t-muted{color:var(--muted)}
 .link{color:var(--brand);cursor:pointer;font-weight:600}
 .link:hover{text-decoration:underline}
@@ -210,8 +231,8 @@ tfoot td{padding:11px 14px;font-weight:700;background:var(--panel-2);border-top:
 @keyframes back-in{from{opacity:0}to{opacity:1}}
 .modal{background:#fff;border-radius:14px;width:100%;max-width:600px;box-shadow:var(--shadow-lg);
   transform-origin:center;animation:modal-in .24s var(--ease-out)}
-.modal.wide{max-width:940px}
-.modal.xwide{max-width:min(1320px,96vw)}
+.modal.wide{max-width:min(1080px,94vw)}
+.modal.xwide{max-width:min(1600px,96vw)}
 .modal.xwide .modal-body{max-height:84vh}
 @keyframes modal-in{from{transform:translateY(10px) scale(.96);opacity:0}to{transform:none;opacity:1}}
 .modal-head{display:flex;align-items:center;padding:17px 22px;border-bottom:1px solid var(--line)}
@@ -237,8 +258,8 @@ tfoot td{padding:11px 14px;font-weight:700;background:var(--panel-2);border-top:
 
 /* Layout helpers */
 .page-actions{display:flex;gap:10px;align-items:center;margin-bottom:16px;flex-wrap:wrap}
-.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
-.grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:15px}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:var(--gap)}
+.grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--gap)}
 .stat-line{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--line);font-size:13px}
 .stat-line:last-child{border-bottom:0}
 .stat-line b{font-variant-numeric:tabular-nums}
@@ -409,12 +430,56 @@ tfoot td{padding:11px 14px;font-weight:700;background:var(--panel-2);border-top:
 .ts-grid tbody tr:hover{background:var(--panel-2)}
 .ts-grid .rtot{background:var(--panel-2)}
 
+/* ---------------- Affichage adaptatif : largeur, densité, menu ----------------
+   Les préférences sont posées sur <html> (data-width / data-density / data-nav)
+   et stockées par poste — chacun règle l'outil selon la taille de son écran. */
+html[data-width="confort"]{--content-max:1260px}
+html[data-width="large"]{--content-max:1720px}
+html[data-width="plein"]{--content-max:100%}
+
+html[data-density="compact"]{
+  --view-pad-t:16px;--view-pad-x:18px;--gap:11px;--card-pad:13px 15px;--kpi-min:196px;
+  --row-py:6px;--row-px:10px;--th-py:8px;--table-fs:12.3px}
+html[data-density="compact"] body{font-size:13px}
+html[data-density="compact"] #topbar{height:52px}
+html[data-density="compact"] .kpi{padding:12px 14px}
+html[data-density="compact"] .kpi-value{font-size:22px}
+html[data-density="compact"] .kpi-grid{margin-bottom:13px}
+html[data-density="compact"] .page-actions,html[data-density="compact"] .filters{margin-bottom:11px}
+html[data-density="compact"] .card-title{margin-bottom:10px}
+html[data-density="compact"] .field input,html[data-density="compact"] .field select,
+html[data-density="compact"] .field textarea{padding:7px 9px}
+
+/* Écrans peu larges : on récupère la place perdue dans les marges */
+@media(max-width:1400px){:root{--view-pad-x:20px}}
+@media(max-width:1150px){:root{--view-pad-x:14px;--row-px:11px}}
+/* Écrans peu hauts (portables 768 px) : on gagne des lignes visibles */
+@media(max-height:800px){:root{--view-pad-t:16px;--row-py:8px}}
+
+/* Menu latéral réduit aux icônes */
+@media(min-width:921px){
+  html[data-nav="compact"]{--sidebar-w:66px}
+  html[data-nav="compact"] .nav-item>span,
+  html[data-nav="compact"] .brand>div,
+  html[data-nav="compact"] .mini-btn span,
+  html[data-nav="compact"] .foot-note{display:none}
+  html[data-nav="compact"] .brand{justify-content:center;padding:18px 8px 16px}
+  html[data-nav="compact"] #nav{padding:10px 8px}
+  html[data-nav="compact"] .nav-item{justify-content:center;padding:10px 0}
+  html[data-nav="compact"] .nav-item.active::before{display:none}
+  html[data-nav="compact"] .nav-group{font-size:0;height:1px;padding:0;margin:9px 10px;background:rgba(255,255,255,.09);border-radius:1px}
+  html[data-nav="compact"] .sidebar-foot{padding:8px}
+  html[data-nav="compact"] .foot-row{flex-direction:column}
+  html[data-nav="compact"] .mini-btn{padding:9px 0}
+}
+
 @media(max-width:920px){
   :root{--sidebar-w:0px}
   #sidebar{transform:translateX(-100%);transition:transform .32s var(--ease-drawer);width:246px}
   #sidebar.open{transform:none}
   #main{margin-left:0}
   #menu-toggle{display:inline-flex}
+  #nav-collapse{display:none}
   .form-grid,.grid-2,.grid-3{grid-template-columns:1fr}
   .menu{right:12px}
 }
@@ -455,6 +520,7 @@ tfoot td{padding:11px 14px;font-weight:700;background:var(--panel-2);border-top:
     <main id="main">
       <header id="topbar">
         <button id="menu-toggle" aria-label="Menu"></button>
+        <button id="nav-collapse" class="icon-btn" aria-label="Réduire ou déployer le menu" title="Réduire / déployer le menu latéral"></button>
         <h1 id="page-title">Tableau de bord</h1>
         <div class="topbar-right">
           <span id="year-badge" class="year-badge"></span>
@@ -1009,7 +1075,7 @@ let current = 'dashboard';
 function buildNav() {
   $('#nav').innerHTML = NAV.map(n => n.group
     ? `<div class="nav-group">${n.group}</div>`
-    : `<button class="nav-item" data-route="${n.route}">${icon(n.ico)} <span>${n.label}</span></button>`).join('');
+    : `<button class="nav-item" data-route="${n.route}" title="${esc(n.label)}">${icon(n.ico)} <span>${n.label}</span></button>`).join('');
   $$('.nav-item').forEach(b => b.onclick = () => go(b.dataset.route));
 }
 function go(route) {
@@ -1026,6 +1092,34 @@ function go(route) {
 }
 
 /* -------------------------------------------------------------------------
+   6 bis. Affichage — largeur, densité, menu latéral
+   Réglages liés au poste (taille d'écran), pas au profil : stockés à part.
+   ------------------------------------------------------------------------- */
+const UI_KEY = 'chargepro.ui';
+const UI_WIDTHS = { confort: 'Confort', large: 'Large', plein: 'Plein' };
+const UI_DENSITES = { normal: 'Normale', compact: 'Compacte' };
+const UI = {
+  prefs: { width: 'large', density: 'normal', nav: 'full' },
+  load() {
+    let saved = null; try { saved = JSON.parse(localStorage.getItem(UI_KEY)); } catch {}
+    if (saved && typeof saved === 'object') {
+      if (Object.prototype.hasOwnProperty.call(UI_WIDTHS, saved.width)) this.prefs.width = saved.width;
+      if (Object.prototype.hasOwnProperty.call(UI_DENSITES, saved.density)) this.prefs.density = saved.density;
+      if (saved.nav === 'compact' || saved.nav === 'full') this.prefs.nav = saved.nav;
+    }
+    this.apply();
+  },
+  set(k, v) { this.prefs[k] = v; try { localStorage.setItem(UI_KEY, JSON.stringify(this.prefs)); } catch {} this.apply(); },
+  toggleNav() { this.set('nav', this.prefs.nav === 'compact' ? 'full' : 'compact'); },
+  apply() {
+    const r = document.documentElement;
+    r.dataset.width = this.prefs.width;
+    r.dataset.density = this.prefs.density;
+    r.dataset.nav = this.prefs.nav;
+  }
+};
+
+/* -------------------------------------------------------------------------
    7. Profils — bouton & menu
    ------------------------------------------------------------------------- */
 function renderProfileButton() {
@@ -1033,11 +1127,13 @@ function renderProfileButton() {
   $('#profile-btn').innerHTML = `<span class="avatar">${esc(initiales(p ? p.nom : '?'))}</span>
     <span class="p-name">${esc(p ? p.nom : 'Profil')}</span>${icon('chevron')}`;
 }
-function toggleProfileMenu() {
-  const root = $('#menu-root');
-  if (root.innerHTML) { root.innerHTML = ''; return; }
+function segHTML(pref, options, titres) {
+  return `<div class="menu-seg" data-pref="${pref}">${Object.entries(options).map(([k, l]) =>
+    `<button data-v="${k}" class="${UI.prefs[pref] === k ? 'active' : ''}" title="${esc(titres[k] || l)}">${l}</button>`).join('')}</div>`;
+}
+function profileMenuHTML() {
   const p = DB.currentProfile();
-  root.innerHTML = `<div class="menu">
+  return `<div class="menu">
     <div class="menu-head">Chargé d'affaires${p && p.agence ? ' · ' + esc(p.agence) : ''}</div>
     ${DB.meta.profiles.map(pr => `<button class="menu-item ${pr.id === DB.meta.currentId ? 'active' : ''}" data-switch="${pr.id}">
       <span class="avatar" style="width:24px;height:24px;font-size:11px">${esc(initiales(pr.nom))}</span>
@@ -1048,10 +1144,21 @@ function toggleProfileMenu() {
     <button class="menu-item" data-edit>${icon('edit')} Renommer ce profil</button>
     <button class="menu-item" data-demo>${icon('layers')} Charger des données de démonstration</button>
     <div class="menu-sep"></div>
+    <div class="menu-head">${icon('sliders', 'ic-sm')} Affichage — adapté à cet écran</div>
+    <div class="menu-pref"><span>Largeur</span>${segHTML('width', UI_WIDTHS, {
+      confort: 'Colonne de lecture (1260 px)', large: 'Tableaux plus larges (1720 px)', plein: 'Toute la largeur de l\'écran' })}</div>
+    <div class="menu-pref"><span>Densité</span>${segHTML('density', UI_DENSITES, {
+      normal: 'Espacements standards', compact: 'Lignes serrées — plus d\'infos à l\'écran' })}</div>
+    <button class="menu-item" data-navtoggle>${icon('menu')} ${UI.prefs.nav === 'compact' ? 'Déployer le menu latéral' : 'Réduire le menu latéral'}</button>
+    <div class="menu-sep"></div>
     <button class="menu-item danger" data-del>${icon('trash')} Supprimer ce profil</button>
   </div>`;
-  const close = () => { root.innerHTML = ''; };
+}
+function bindProfileMenu(root, close) {
+  const refresh = () => { root.innerHTML = profileMenuHTML(); bindProfileMenu(root, close); };
   $$('[data-switch]', root).forEach(b => b.onclick = () => { close(); DB.switchTo(b.dataset.switch); afterProfileChange(); });
+  $$('.menu-seg button', root).forEach(b => b.onclick = e => { e.stopPropagation(); UI.set(b.parentElement.dataset.pref, b.dataset.v); refresh(); });
+  root.querySelector('[data-navtoggle]').onclick = e => { e.stopPropagation(); UI.toggleNav(); refresh(); };
   root.querySelector('[data-new]').onclick = () => { close(); profileForm(); };
   root.querySelector('[data-edit]').onclick = () => { close(); profileForm(DB.meta.currentId); };
   root.querySelector('[data-demo]').onclick = () => { close(); confirmDialog(
@@ -1061,6 +1168,13 @@ function toggleProfileMenu() {
     if (DB.meta.profiles.length <= 1) { toast('Impossible de supprimer le dernier profil', 'err'); return; }
     confirmDialog(`Supprimer définitivement le profil « ${DB.currentProfile().nom} » et toutes ses données ?`,
       () => { DB.deleteProfile(DB.meta.currentId); afterProfileChange(); toast('Profil supprimé'); }); };
+}
+function toggleProfileMenu() {
+  const root = $('#menu-root');
+  if (root.innerHTML) { root.innerHTML = ''; return; }
+  root.innerHTML = profileMenuHTML();
+  const close = () => { root.innerHTML = ''; };
+  bindProfileMenu(root, close);
   // fermeture au clic extérieur
   setTimeout(() => document.addEventListener('click', function h(e) {
     if (!root.contains(e.target) && e.target.id !== 'profile-btn' && !$('#profile-btn').contains(e.target)) { close(); document.removeEventListener('click', h); }
@@ -1417,10 +1531,10 @@ function renderChantiers(v) {
       <span class="search-wrap">${icon('search')}<input id="q" placeholder="Rechercher (OTP, nom, client…)" value="${esc(chantierFilter.q)}"></span>
       <select id="fs"><option value="">Tous les statuts</option>${Object.entries(STATUTS_CHANTIER).map(([k, l]) => `<option value="${k}" ${chantierFilter.statut === k ? 'selected' : ''}>${l}</option>`).join('')}</select>
       <span class="chip">${list.length} chantier(s)</span></div>
-    ${list.length ? `<div class="table-wrap"><table><thead><tr><th>OTP</th><th>Chantier</th><th>Client</th><th>Adresse</th><th>Statut</th><th class="num">Montant HT</th><th></th></tr></thead>
+    ${list.length ? `<div class="table-wrap"><table><thead><tr><th>OTP</th><th>Chantier</th><th>Client</th><th class="wrap">Adresse</th><th>Statut</th><th class="num">Montant HT</th><th></th></tr></thead>
       <tbody>${list.map(c => `<tr><td class="t-strong">${esc(c.otp || '—')}</td>
         <td><span class="link" data-view="${c.id}">${esc(c.nom)}</span></td><td>${esc(clientNom(c.clientId))}</td>
-        <td class="t-muted">${esc(c.adresse || '—')}</td><td>${statutBadge(c.statut)}</td><td class="num">${eur(c.montantHT)}</td>
+        <td class="t-muted wrap">${esc(c.adresse || '—')}</td><td>${statutBadge(c.statut)}</td><td class="num">${eur(c.montantHT)}</td>
         <td class="actions-cell"><button class="icon-btn" data-edit="${c.id}" title="Modifier">${icon('edit')}</button><button class="icon-btn danger" data-del="${c.id}" title="Supprimer">${icon('trash')}</button></td></tr>`).join('')}</tbody>
       <tfoot><tr><td colspan="5">Total</td><td class="num">${eur(list.reduce((s, c) => s + (+c.montantHT || 0), 0))}</td><td></td></tr></tfoot></table></div>`
       : emptyState('building', 'Aucun chantier', 'Créez votre premier chantier pour suivre vos affaires.')}`;
@@ -1964,8 +2078,8 @@ function renderDevis(v) {
       <select id="fotp"><option value="">Tous les OTP</option>${otpDistinct().map(o2 => `<option value="${esc(o2)}" ${devisFilter.otp === o2 ? 'selected' : ''}>${esc(o2)}</option>`).join('')}</select>
       <select id="fs"><option value="">Tous les statuts</option>${Object.entries(STATUTS_DEVIS).map(([k, l]) => `<option value="${k}" ${devisFilter.statut === k ? 'selected' : ''}>${l}</option>`).join('')}</select>
       <span class="chip">${list.length} devis</span><span class="chip">Taux d'acceptation ${tauxAccept()} %</span></div>
-    ${list.length ? `<div class="table-wrap"><table><thead><tr><th>Réf.</th><th>OTP</th><th>Objet</th><th>Client</th><th>Demande</th><th>Délai 7 j</th><th>Relances</th><th>Statut</th><th class="num">Montant HT</th><th></th></tr></thead>
-      <tbody>${list.map(d => `<tr><td class="t-strong">${esc(d.ref)}</td><td>${d.horsComptes ? '<span class="t-muted">hors compte</span>' : `<span class="chip">${esc(d.otp || '—')}</span>`}</td><td>${esc(d.objet)}${d.horsComptes ? ' <span class="badge b-attente">hors comptes</span>' : ''}</td><td class="t-muted">${esc(clientNom(d.clientId))}</td><td>${fmtDate(d.dateDemande)}</td><td>${delaiCell(d)}</td><td>${relanceCell(d)}</td><td>${devisBadge(d.statut)}</td><td class="num">${eur(d.montantHT)}</td>
+    ${list.length ? `<div class="table-wrap"><table><thead><tr><th>Réf.</th><th>OTP</th><th class="wrap">Objet</th><th>Client</th><th>Demande</th><th>Délai 7 j</th><th>Relances</th><th>Statut</th><th class="num">Montant HT</th><th></th></tr></thead>
+      <tbody>${list.map(d => `<tr><td class="t-strong">${esc(d.ref)}</td><td>${d.horsComptes ? '<span class="t-muted">hors compte</span>' : `<span class="chip">${esc(d.otp || '—')}</span>`}</td><td class="wrap">${esc(d.objet)}${d.horsComptes ? ' <span class="badge b-attente">hors comptes</span>' : ''}</td><td class="t-muted">${esc(clientNom(d.clientId))}</td><td>${fmtDate(d.dateDemande)}</td><td>${delaiCell(d)}</td><td>${relanceCell(d)}</td><td>${devisBadge(d.statut)}</td><td class="num">${eur(d.montantHT)}</td>
         <td class="actions-cell">${['accepte', 'refuse'].includes(d.statut) ? '' : `<button class="icon-btn" data-relance="${d.id}" title="Relancer">${icon('bell')}</button>`}<button class="icon-btn" data-edit="${d.id}" title="Modifier">${icon('edit')}</button><button class="icon-btn danger" data-del="${d.id}" title="Supprimer">${icon('trash')}</button></td></tr>`).join('')}</tbody>
       <tfoot><tr><td colspan="8">Total${devisFilter.otp ? ' — OTP ' + esc(devisFilter.otp) : ''}</td><td class="num">${eur(list.reduce((s, d) => s + (+d.montantHT || 0), 0))}</td><td></td></tr></tfoot></table></div>`
       : emptyState('file', 'Aucun devis', 'Objectif : 45 devis / mois, envoi sous 7 jours.')}`;
@@ -2482,8 +2596,8 @@ function renderFactures(v) {
       <select id="fotp"><option value="">Tous les OTP</option>${otpDistinct().map(o => `<option value="${esc(o)}" ${factFilter.otp === o ? 'selected' : ''}>${esc(o)}</option>`).join('')}</select>
       <select id="fs"><option value="">Tous les statuts</option>${Object.entries(STATUTS_FACT).map(([k, l]) => `<option value="${k}" ${factFilter.statut === k ? 'selected' : ''}>${l}</option>`).join('')}</select>
       <span class="chip">${list.length} facture(s)</span></div>
-    ${list.length ? `<div class="table-wrap"><table><thead><tr><th>N°</th><th>OTP</th><th>Client</th><th>Objet</th><th>Fait générateur</th><th>Émission</th><th>Échéance</th><th class="num">Montant HT</th><th>Statut</th><th></th></tr></thead>
-      <tbody>${list.map(f => { const fl = factureFlags(f); return `<tr><td class="t-strong">${esc(f.num || '—')}</td><td><span class="chip">${esc(f.otp || '—')}</span></td><td>${esc(f.client || '—')}</td><td>${esc(f.objet || '—')}</td><td>${fmtDate(f.dateFG)}</td><td>${fmtDate(f.dateEmission)}</td><td class="${fl.retardPaiement ? 'deadline-late' : ''}">${fl.echeance ? fmtDate(fl.echeance) : '—'}</td><td class="num">${eur(f.montantHT)}</td><td>${factBadge(f)}</td>
+    ${list.length ? `<div class="table-wrap"><table><thead><tr><th>N°</th><th>OTP</th><th>Client</th><th class="wrap">Objet</th><th>Fait générateur</th><th>Émission</th><th>Échéance</th><th class="num">Montant HT</th><th>Statut</th><th></th></tr></thead>
+      <tbody>${list.map(f => { const fl = factureFlags(f); return `<tr><td class="t-strong">${esc(f.num || '—')}</td><td><span class="chip">${esc(f.otp || '—')}</span></td><td>${esc(f.client || '—')}</td><td class="wrap">${esc(f.objet || '—')}</td><td>${fmtDate(f.dateFG)}</td><td>${fmtDate(f.dateEmission)}</td><td class="${fl.retardPaiement ? 'deadline-late' : ''}">${fl.echeance ? fmtDate(fl.echeance) : '—'}</td><td class="num">${eur(f.montantHT)}</td><td>${factBadge(f)}</td>
         <td class="actions-cell">${f.statut !== 'payee' ? `<button class="icon-btn" data-pay="${f.id}" title="Marquer payée">${icon('check')}</button>` : ''}<button class="icon-btn" data-edit="${f.id}" title="Modifier">${icon('edit')}</button><button class="icon-btn danger" data-del="${f.id}" title="Supprimer">${icon('trash')}</button></td></tr>`; }).join('')}</tbody>
       <tfoot><tr><td colspan="7">Total affiché${factFilter.otp ? ' — OTP ' + esc(factFilter.otp) : ''}</td><td class="num">${eur(list.reduce((s, f) => s + (+f.montantHT || 0), 0))}</td><td colspan="2"></td></tr></tfoot></table></div>`
       : emptyState('receipt', 'Aucune facture', 'Facturez chaque intervention sous 7 jours et suivez les paiements.')}`;
@@ -2900,8 +3014,8 @@ function renderAchats(v) {
     <div class="filters"><span class="search-wrap">${icon('search')}<input id="q" placeholder="Rechercher (fournisseur, objet, OTP…)" value="${esc(achatFilter.q)}"></span>
       <select id="fotp"><option value="">Tous les OTP</option>${otpDistinct().map(o => `<option value="${esc(o)}" ${achatFilter.otp === o ? 'selected' : ''}>${esc(o)}</option>`).join('')}</select>
       <span class="chip">${list.length} commande(s)</span></div>
-    ${list.length ? `<div class="table-wrap"><table><thead><tr><th>N° commande</th><th>Date</th><th>OTP</th><th>Fournisseur</th><th>Objet</th><th>Statut</th><th>Réception</th><th class="num">Montant HT</th><th></th></tr></thead>
-      <tbody>${list.map(c => `<tr><td class="t-strong">${esc(c.num || '—')}</td><td>${fmtDate(c.date)}</td><td><span class="chip">${esc(c.otp || '—')}</span></td><td>${esc(c.fournisseur || '—')}</td><td>${esc(c.objet || '—')}</td><td>${cmdBadge(c.statut)}</td>
+    ${list.length ? `<div class="table-wrap"><table><thead><tr><th>N° commande</th><th>Date</th><th>OTP</th><th>Fournisseur</th><th class="wrap">Objet</th><th>Statut</th><th>Réception</th><th class="num">Montant HT</th><th></th></tr></thead>
+      <tbody>${list.map(c => `<tr><td class="t-strong">${esc(c.num || '—')}</td><td>${fmtDate(c.date)}</td><td><span class="chip">${esc(c.otp || '—')}</span></td><td>${esc(c.fournisseur || '—')}</td><td class="wrap">${esc(c.objet || '—')}</td><td>${cmdBadge(c.statut)}</td>
         <td>${c.dateReception ? `<span class="deadline-ok">Reçue ${fmtDate(c.dateReception)}</span>` : '<span class="t-muted">Non réceptionnée</span>'}</td><td class="num">${eur(c.montantHT)}</td>
         <td class="actions-cell">${c.dateReception ? '' : `<button class="icon-btn" data-recv="${c.id}" title="Réceptionner aujourd'hui">${icon('check')}</button>`}<button class="icon-btn" data-edit="${c.id}" title="Modifier">${icon('edit')}</button><button class="icon-btn danger" data-del="${c.id}" title="Supprimer">${icon('trash')}</button></td></tr>`).join('')}</tbody>
       <tfoot><tr><td colspan="7">Total affiché${achatFilter.otp ? ' — OTP ' + esc(achatFilter.otp) : ''}</td><td class="num">${eur(total)}</td><td></td></tr></tfoot></table></div>`
@@ -3118,8 +3232,13 @@ function importAll(file) {
    10. Boot
    ------------------------------------------------------------------------- */
 function boot() {
+  UI.load();
   $('#brand-mark').innerHTML = icon('layers');
   $('#menu-toggle').innerHTML = icon('menu');
+  $('#nav-collapse').innerHTML = icon('menu');
+  $('#nav-collapse').onclick = () => UI.toggleNav();
+  $('#btn-export').innerHTML = icon('download', 'ic-sm') + '<span>Sauvegarde</span>';
+  $('#btn-import').innerHTML = icon('upload', 'ic-sm') + '<span>Restaurer</span>';
   buildNav();
   $('#year-badge').textContent = 'Année ' + new Date().getFullYear();
   $('#menu-toggle').onclick = () => $('#sidebar').classList.toggle('open');
