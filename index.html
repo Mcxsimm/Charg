@@ -1915,7 +1915,7 @@ function otpForm(code) {
    Écran 1 : sélection d'un OTP (période / exercice) → « Exécuter ».
    Écran 2 : fiche d'analyse — dépenses imputées + reste à facturer. */
 let rafOtp = '', rafPeriode = String(new Date().getMonth() + 1), rafExercice = String(new Date().getFullYear()), rafPerimetre = 'ytd', rafQ = '', rafVue = 'coffre';
-const RAF_VUES = { coffre: 'Boîte à affaires (coffre)', mois: 'Mise en facturation du mois', synthese: 'Marge & reste à facturer' };
+const RAF_VUES = { coffre: 'Boîte à affaires (coffre)', mois: 'Mise en facturation du mois', engagements: 'Engagements (non réceptionné)', synthese: 'Marge & reste à facturer' };
 const RAF_PERIMETRES = { ytd: 'Cumulé à fin de période', month: 'Période seule (mois M)', all: 'Cumul — toutes périodes' };
 function rafPer() {
   const m = Math.min(12, Math.max(1, parseInt(rafPeriode, 10) || 1)) - 1;
@@ -2019,6 +2019,14 @@ function rafFinance(code) {
   const coffre = commandeHT - caCumul;                                  // reste à mettre en facturation
   const coffreFait = Math.max(0, Math.min(coffre, faitHT - caCumul));   // travaux faits, non mis en facturation
   const coffreAFaire = coffre - coffreFait;                             // commandes restant à réaliser
+  /* --- ENGAGEMENTS ---
+     Commandes fournisseurs passées et NON réceptionnées : jamais comptées dans la marge
+     (seul le réceptionné est imputé), mais suivies comme engagement de dépense à venir. */
+  const engageMois = engageList.filter(c => rafInMois(c.date)).reduce((a, c) => a + (+c.montantHT || 0), 0);
+  const engageAge = engageList.reduce((a, c) => c.date ? Math.max(a, daysBetween(c.date, todayISO())) : a, 0);
+  const depProj = depCumul + engage;                 // coût projeté si tout l'engagé est réceptionné
+  const margeProj = marche - depProj;
+  const margeProjPct = marche ? margeProj / marche : 0;
   // Référence = prix de vente HT (le « budget prévu »). Marge = PV HT − coûts imputés,
   // pourcentage rapporté au PV (marge brute). Indicateur de projet → coûts cumulés.
   const marge = marche - depCumul;
@@ -2031,6 +2039,7 @@ function rafFinance(code) {
     caMois, achatsMois, achatsMoisList, moMois: moM.cout, moHeuresMois: moM.heures, moMoisList: moM.list,
     depMois, margeMois, pctMargeMois,
     commandeHT, faitHT, coffre, coffreFait, coffreAFaire,
+    engageMois, engageAge, depProj, margeProj, margeProjPct,
     fact, factCumul, encaisse, raf: marche - factCumul, pctFact: marche ? factCumul / marche : 0 };
 }
 // Budget prévu par nature : d'abord le(s) BTE de l'OTP, à défaut les lignes CA.
@@ -2072,8 +2081,8 @@ function renderRAF(v) {
   const all = otpDistinct();
   const codes = all.filter(c => !rafQ || (c + ' ' + otpLabel(c) + ' ' + clientNom(otpClientId(c))).toLowerCase().includes(rafQ.toLowerCase()));
   const fin = codes.map(c => rafFinance(c));
-  const TK = ['marche', 'ca', 'caCumul', 'dep', 'marge', 'raf', 'commandeHT', 'coffre', 'coffreFait', 'coffreAFaire', 'engage', 'caMois', 'achatsMois', 'moMois', 'moHeuresMois', 'depMois', 'margeMois'];
-  const T = fin.reduce((a, f) => { TK.forEach(k => { a[k] += (+f[k] || 0); }); a.fact += f.factCumul; return a; }, Object.fromEntries([...TK, 'fact'].map(k => [k, 0])));
+  const TK = ['marche', 'ca', 'caCumul', 'dep', 'depCumul', 'marge', 'raf', 'commandeHT', 'coffre', 'coffreFait', 'coffreAFaire', 'engage', 'engageMois', 'margeProj', 'caMois', 'achatsMois', 'moMois', 'moHeuresMois', 'depMois', 'margeMois'];
+  const T = fin.reduce((a, f) => { TK.forEach(k => { a[k] += (+f[k] || 0); }); a.fact += f.factCumul; a.nbEngage += f.engageList.length; return a; }, Object.fromEntries([...TK, 'fact', 'nbEngage'].map(k => [k, 0])));
   const Tpct = T.marche ? T.marge / T.marche : 0;
   const TpctMois = T.caMois ? T.margeMois / T.caMois : 0;
   const mCls = x => x >= 0 ? 'margin-good' : 'margin-bad';
@@ -2102,14 +2111,34 @@ function renderRAF(v) {
       <th class="num">Heures</th>
       <th class="num" title="Achats réceptionnés + pointage du mois">Total réceptionné</th>
       <th class="num" title="Mise en facturation − réceptionné (mois)">Marge du mois</th>
-      <th class="num">% marge</th><th></th></tr></thead>
+      <th class="num">% marge</th>
+      <th class="num" title="Commandes passées et non réceptionnées — pas encore dans la marge">Engagé non reçu</th><th></th></tr></thead>
     <tbody>${fin.map(f => `<tr>${nom(f)}<td class="num">${eur(f.caMois)}</td><td class="num">${eur(f.achatsMois)}</td>
       <td class="num">${eur(f.moMois)}</td><td class="num t-muted">${f.moHeuresMois ? f.moHeuresMois.toFixed(1) : '—'}</td>
       <td class="num">${eur(f.depMois)}</td>
       <td class="num t-strong ${mCls(f.margeMois)}">${(f.caMois || f.depMois) ? eur(f.margeMois) : '—'}</td>
-      <td class="num ${mCls(f.margeMois)}">${f.caMois ? pct(f.pctMargeMois) : '—'}</td>${act(f)}</tr>`).join('')}</tbody>
-    <tfoot><tr class="t-strong"><td colspan="3">TOTAL (${codes.length} OTP)</td><td class="num">${eur(T.caMois)}</td><td class="num">${eur(T.achatsMois)}</td><td class="num">${eur(T.moMois)}</td><td class="num">${T.moHeuresMois.toFixed(1)}</td><td class="num">${eur(T.depMois)}</td><td class="num ${mCls(T.margeMois)}">${eur(T.margeMois)}</td><td class="num ${mCls(T.margeMois)}">${T.caMois ? pct(TpctMois) : '—'}</td><td></td></tr></tfoot></table></div>`;
-  // Vue 3 — synthèse historique : marge réalisée et reste à facturer
+      <td class="num ${mCls(f.margeMois)}">${f.caMois ? pct(f.pctMargeMois) : '—'}</td>
+      <td class="num t-muted">${eur(f.engage)}</td>${act(f)}</tr>`).join('')}</tbody>
+    <tfoot><tr class="t-strong"><td colspan="3">TOTAL (${codes.length} OTP)</td><td class="num">${eur(T.caMois)}</td><td class="num">${eur(T.achatsMois)}</td><td class="num">${eur(T.moMois)}</td><td class="num">${T.moHeuresMois.toFixed(1)}</td><td class="num">${eur(T.depMois)}</td><td class="num ${mCls(T.margeMois)}">${eur(T.margeMois)}</td><td class="num ${mCls(T.margeMois)}">${T.caMois ? pct(TpctMois) : '—'}</td><td class="num">${eur(T.engage)}</td><td></td></tr></tfoot></table></div>`;
+  // Vue 3 — les engagements : commandes passées, non réceptionnées, donc hors marge
+  const tblEngagements = () => `<p class="t-muted" style="margin-bottom:10px">Tant qu'une commande n'est pas <b>réceptionnée</b>, elle ne pèse pas sur la marge : elle reste un <b>engagement</b> de dépense à venir. La colonne « marge si tout réceptionné » n'est qu'une projection — elle ne remplace pas la marge réalisée.</p>
+    <div class="table-wrap"><table><thead><tr><th>OTP</th><th>Libellé</th><th>Client</th>
+      <th class="num" title="Nombre de commandes passées et non réceptionnées">En attente</th>
+      <th class="num" title="Montant HT commandé et non réceptionné">Engagé non reçu</th>
+      <th class="num" title="Commandes passées dans le mois et non réceptionnées">dont engagé ${esc(PL)}</th>
+      <th class="num" title="Ancienneté de la plus vieille commande non réceptionnée">Plus ancienne</th>
+      <th class="num" title="Achats réceptionnés + main d'œuvre, cumulés — la seule chose qui pèse sur la marge">Coûts réceptionnés</th>
+      <th class="num" title="Prix de vente HT − coûts réceptionnés cumulés">Marge réalisée</th>
+      <th class="num" title="Projection : prix de vente HT − (coûts réceptionnés + engagé)">Marge si tout réceptionné</th><th></th></tr></thead>
+    <tbody>${fin.map(f => `<tr>${nom(f)}<td class="num">${f.engageList.length || '—'}</td>
+      <td class="num t-strong ${f.engage ? 'margin-bad' : ''}">${eur(f.engage)}</td>
+      <td class="num">${eur(f.engageMois)}</td>
+      <td class="num t-muted">${f.engageList.length ? f.engageAge + ' j' : '—'}</td>
+      <td class="num">${eur(f.depCumul)}</td>
+      <td class="num ${mCls(f.marge)}">${f.marche ? eur(f.marge) : '—'}</td>
+      <td class="num ${mCls(f.margeProj)}">${f.marche ? eur(f.margeProj) : '—'}</td>${act(f)}</tr>`).join('')}</tbody>
+    <tfoot><tr class="t-strong"><td colspan="3">TOTAL (${codes.length} OTP)</td><td class="num">${T.nbEngage || '—'}</td><td class="num">${eur(T.engage)}</td><td class="num">${eur(T.engageMois)}</td><td></td><td class="num">${eur(T.depCumul)}</td><td class="num ${mCls(T.marge)}">${eur(T.marge)}</td><td class="num ${mCls(T.margeProj)}">${eur(T.margeProj)}</td><td></td></tr></tfoot></table></div>`;
+  // Vue 4 — synthèse historique : marge réalisée et reste à facturer
   const tblSynthese = () => `<div class="table-wrap"><table><thead><tr><th>OTP</th><th>Libellé</th><th>Client</th><th class="num" title="Prix de vente HT — la référence (budget prévu)">PV HT</th><th class="num">CA imputé</th><th class="num">Dépenses</th><th class="num" title="Prix de vente HT − coûts imputés cumulés">Marge</th><th class="num" title="Marge rapportée au prix de vente HT">% marge</th><th class="num">Facturé cum.</th><th class="num">Reste à facturer</th><th></th></tr></thead>
       <tbody>${fin.map(f => `<tr>${nom(f)}
         <td class="num">${eur(f.marche)}</td><td class="num">${eur(f.ca)}</td><td class="num">${eur(f.dep)}</td>
@@ -2122,12 +2151,14 @@ function renderRAF(v) {
     <p class="t-muted" style="margin-top:-8px;max-width:960px">Deux lectures distinctes, à ne pas confondre :
       <b>la boîte à affaires</b> — ce qui est <b>commandé</b> (travaux faits ou restant à faire) mais <b>pas encore mis en facturation</b> : c'est le coffre —
       et <b>le mois</b> — ce que je <b>mets en facturation</b> sur le mois, <b>moins</b> ce qui est réellement <b>réceptionné</b> dessus (commandes fournisseurs reçues + pointage).
-      La troisième vue conserve la synthèse historique (marge réalisée et reste à facturer sur le marché signé).</p>
+      S'y ajoutent <b>les engagements</b> : une commande fournisseur <b>non réceptionnée</b> ne compte jamais dans la marge — seul le réceptionné est imputé — mais elle reste une dépense à venir, suivie à part.
+      La dernière vue conserve la synthèse historique (marge réalisée et reste à facturer sur le marché signé).</p>
     <div class="kpi-grid">
       ${cardK('Boîte à affaires (mon coffre)', eur(T.coffre), 'Commandé ' + eur(T.commandeHT) + ' − mis en factu. ' + eur(T.caCumul), T.coffre >= 0 ? 'green' : 'amber')}
       ${cardK('Mis en facturation — ' + PL, eur(T.caMois), 'Lignes CA du mois')}
       ${cardK('Réceptionné — ' + PL, eur(T.depMois), 'Achats ' + eur(T.achatsMois) + ' · Pointage ' + eur(T.moMois), 'amber')}
       ${cardK('Marge du mois', (T.caMois || T.depMois) ? eur(T.margeMois) : '—', T.caMois ? pct(TpctMois) + ' de la mise en facturation' : 'Aucune mise en facturation', T.margeMois >= 0 ? 'green' : 'amber')}
+      ${cardK('Engagé non réceptionné', eur(T.engage), T.nbEngage + ' commande(s) en attente · hors marge', T.engage ? 'amber' : 'green')}
     </div>
     <div class="card card-pad" style="margin-bottom:16px">
       <div class="form-grid">
@@ -2140,7 +2171,7 @@ function renderRAF(v) {
     <div class="filters"><span class="search-wrap">${icon('search')}<input id="raf-q" placeholder="Rechercher (OTP, libellé, client…)" value="${esc(rafQ)}"></span><span class="chip">${codes.length} OTP</span>
       ${Object.entries(RAF_VUES).map(([k, l]) => `<button class="btn small ${rafVue === k ? 'primary' : ''}" data-vue="${k}">${esc(l)}</button>`).join('')}
       <span class="spacer"></span><button class="btn small" id="raf-list-csv">${icon('download')} Excel</button></div>
-    ${codes.length ? (rafVue === 'coffre' ? tblCoffre() : rafVue === 'mois' ? tblMois() : tblSynthese())
+    ${codes.length ? (rafVue === 'coffre' ? tblCoffre() : rafVue === 'mois' ? tblMois() : rafVue === 'engagements' ? tblEngagements() : tblSynthese())
       : emptyState('target', 'Aucun OTP', 'Les OTP apparaissent dès qu\'ils sont utilisés sur un devis, un chantier, une facture ou un achat.')}`;
   rafBindPeriod(v);
   $('#raf-run').onclick = () => {
@@ -2196,6 +2227,7 @@ function rafAnalyse(v) {
       ${card('Mis en facturation — ' + PL, eur(F.caMois), 'Lignes CA du mois')}
       ${card('Réceptionné — ' + PL, eur(F.depMois), 'Achats ' + eur(F.achatsMois) + ' · Pointage ' + eur(F.moMois), 'amber')}
       ${card('Marge du mois', (F.caMois || F.depMois) ? eur(F.margeMois) : '—', F.caMois ? pct(F.pctMargeMois) + ' de la mise en facturation' : 'Aucune mise en facturation', F.margeMois >= 0 ? 'green' : 'amber')}
+      ${card('Engagé non réceptionné', eur(F.engage), F.engageList.length + ' commande(s) en attente · hors marge', F.engage ? 'amber' : 'green')}
     </div>
     <div class="card-title">Boîte à affaires — mon coffre</div>
     <p class="t-muted" style="margin-top:-6px;margin-bottom:10px">Ce qui est <b>commandé</b> (travaux déjà réalisés ou restant à faire) et <b>pas encore mis en facturation</b>. Indépendant du périmètre de période.</p>
@@ -2224,6 +2256,19 @@ function rafAnalyse(v) {
       </tbody>
       <tfoot><tr class="t-strong"><td colspan="3">Total réceptionné ${esc(PL)}</td><td class="num">${eur(F.depMois)}</td></tr></tfoot></table></div>`
       : `<div class="t-muted" style="margin-bottom:18px">Rien de réceptionné ni de pointé sur ${esc(PL)}.</div>`}
+    <div class="card-title">Engagements — commandes non réceptionnées (${F.engageList.length})</div>
+    <p class="t-muted" style="margin-top:-6px;margin-bottom:10px">Tant qu'elles ne sont pas <b>réceptionnées</b>, ces commandes <b>ne comptent pas dans la marge</b> : elles n'y entreront qu'à la réception. Elles sont suivies ici comme <b>engagement</b> de dépense à venir.</p>
+    ${F.engageList.length ? `<div class="table-wrap" style="margin-bottom:12px"><table><thead><tr><th>N° commande</th><th>Fournisseur</th><th>Objet</th><th>Commandée le</th><th class="num">Ancienneté</th><th>Statut</th><th class="num">Montant HT</th></tr></thead>
+      <tbody>${F.engageList.map(c => `<tr><td class="t-strong">${esc(c.num || '—')}</td><td>${esc(c.fournisseur || '—')}</td><td class="wrap t-muted">${esc(c.objet || '—')}</td><td>${c.date ? fmtDate(c.date) : '—'}</td><td class="num t-muted">${c.date ? daysBetween(c.date, todayISO()) + ' j' : '—'}</td><td>${cmdBadge(c.statut)}</td><td class="num">${eur(c.montantHT)}</td></tr>`).join('')}</tbody>
+      <tfoot><tr class="t-strong"><td colspan="6">Total engagé non réceptionné${F.engageMois ? ' — dont ' + eur(F.engageMois) + ' commandé en ' + esc(PL) : ''}</td><td class="num">${eur(F.engage)}</td></tr></tfoot></table></div>`
+      : `<div class="t-muted" style="margin-bottom:12px">Aucune commande en attente de réception sur cet OTP.</div>`}
+    <div class="table-wrap" style="margin-bottom:18px"><table><thead><tr><th>Engagement vs marge</th><th class="num">Montant</th></tr></thead><tbody>
+      ${R2('Coûts réceptionnés cumulés (comptés dans la marge)', eur(F.depCumul))}
+      ${R2('+ Engagé non réceptionné (hors marge)', eur(F.engage))}
+      ${R2('= Coût projeté si tout est réceptionné', eur(F.depProj))}
+      ${R2('Marge réalisée (hors engagé)', F.marche ? eur(F.marge) : '—', mCls(F.marge), true)}
+      ${R2('Marge projetée si tout est réceptionné (indicatif)', F.marche ? eur(F.margeProj) + ' · ' + pct(F.margeProjPct) : '—', mCls(F.margeProj))}
+    </tbody></table></div>
     <div class="card-title">Facturation &amp; reste à facturer</div>
     <div class="table-wrap" style="margin-bottom:18px"><table>${HD('Facturation')}<tbody>
       ${L('Marché HT (marché signé)', '—', eur(F.marche))}
@@ -2242,7 +2287,7 @@ function rafAnalyse(v) {
       ${L('Coûts imputés', eur(F.dep), eur(F.depCumul))}
       ${L('— dont achats réceptionnés', eur(F.achats), eur(F.achatsCumul))}
       ${L("— dont main d'œuvre", eur(F.mo), eur(F.moCumul))}
-      ${L('Engagé (commandes non réceptionnées)', '—', eur(F.engage))}
+      ${L('Engagé — commandes non réceptionnées (hors marge)', '—', eur(F.engage))}
       ${L('Marge réalisée (PV − coûts imputés)', '—', F.marche ? eur(F.marge) : '—', mCls(F.marge), true)}
       ${L('% marge réalisée', '—', F.marche ? pct(F.margePct) : '—', mCls(F.marge), true)}
       ${bud.hasBudget ? L('Écart de marge (réalisée − prévisionnelle)', '—', eur(F.marge - margePrev), mCls(F.marge - margePrev)) : ''}
@@ -2318,6 +2363,13 @@ function exportRafXlsx(code) {
     LN('= Marge du mois', TX(''), ET(F.margeMois), true),
     LN('% marge du mois', TX(''), PT(F.pctMargeMois), true),
     [],
+    SH2('Engagements (commandes non réceptionnées)'),
+    LN('Coûts réceptionnés cumulés (comptés dans la marge)', TX(''), EU(F.depCumul)),
+    LN('+ Engagé non réceptionné (hors marge)', TX(''), EU(F.engage)),
+    LN('= Coût projeté si tout est réceptionné', TX(''), EU(F.depProj)),
+    LN('Marge réalisée (hors engagé)', TX(''), F.marche ? ET(F.marge) : TX('—'), true),
+    LN('Marge projetée si tout est réceptionné (indicatif)', TX(''), F.marche ? EU(F.margeProj) : TX('—')),
+    [],
     SH('Facturation'),
     LN('Marché HT', TX('—'), EU(F.marche)),
     LN('Facturé émis', EU(F.fact), EU(F.factCumul)),
@@ -2336,7 +2388,7 @@ function exportRafXlsx(code) {
     LN('Coûts imputés', EU(F.dep), EU(F.depCumul)),
     LN('— dont achats réceptionnés', EU(F.achats), EU(F.achatsCumul)),
     LN("— dont main d'œuvre", EU(F.mo), EU(F.moCumul)),
-    LN('Engagé (non réceptionné)', TX('—'), EU(F.engage)),
+    LN('Engagé — non réceptionné (hors marge)', TX('—'), EU(F.engage)),
     LN('Marge réalisée (PV − coûts imputés)', TX('—'), F.marche ? ET(F.marge) : TX('—'), true),
     LN('% marge réalisée', TX('—'), F.marche ? PT(F.margePct) : TX('—'), true),
     ...(bud.hasBudget ? [
@@ -2364,6 +2416,9 @@ function exportRafXlsx(code) {
       ...F.achatsMoisList.map(c => [TX('Commande réceptionnée'), TX(c.fournisseur || ''), TX((c.objet || '') + (c.num ? ' · ' + c.num : '') + ' · reçu le ' + fmtDate(c.dateReception)), EU(+c.montantHT || 0)]),
       ...F.moMoisList.map(w => [TX('Pointage'), TX(w.nom), TX(w.heures.toFixed(1) + ' h'), EU(Math.round(w.cout))]),
       [BD('Total réceptionné ' + PL), TX(''), TX(''), ET(F.depMois)]], widths: [22, 30, 42, 15], opts: { freeze: true, filterRef: 'A1:D1' } },
+    { name: 'Engagements', rows: [[H('N° commande'), H('Fournisseur'), H('Objet'), H('Commandée le'), H('Ancienneté (j)'), H('Statut'), H('Montant HT')],
+      ...F.engageList.map(c => [TX(c.num || ''), TX(c.fournisseur || ''), TX(c.objet || ''), TX(c.date ? fmtDate(c.date) : ''), { v: c.date ? daysBetween(c.date, todayISO()) : 0, s: 9 }, TX(STATUTS_CMD[c.statut] || c.statut || ''), EU(+c.montantHT || 0)]),
+      [BD('Total engagé non réceptionné'), TX(''), TX(''), TX(''), TX(''), TX(''), ET(F.engage)]], widths: [16, 24, 40, 15, 14, 14, 15], opts: { freeze: true, filterRef: 'A1:G1' } },
   ];
   if (F.chantiers.length) sheets.push({ name: 'Sites', rows: [[H('Nom du site'), H('Adresse'), H('Statut'), H('Montant HT')], ...F.chantiers.map(c => [TX(c.nom || ''), TX(c.adresse || ''), TX(STATUTS_CHANTIER[c.statut] || c.statut || ''), EU(+c.montantHT || 0)])], widths: [34, 26, 16, 15], opts: { freeze: true, filterRef: 'A1:D1' } });
   if (F.factures.length) sheets.push({ name: 'Factures', rows: [[H('N°'), H('Objet'), H('Statut'), H('Montant HT')], ...F.factures.map(f => [TX(f.num || ''), TX(f.objet || ''), TX(STATUTS_FACT[f.statut] || f.statut || ''), EU(+f.montantHT || 0)])], widths: [16, 34, 16, 15], opts: { freeze: true, filterRef: 'A1:D1' } });
@@ -2377,8 +2432,8 @@ function exportRafListXlsx(fin) {
   fin.forEach(f => rows.push([TX(f.code), TX(otpLabel(f.code) || ''), TX(clientNom(otpClientId(f.code))), EU(f.marche), EU(f.ca), EU(f.dep), EU(f.achats), EU(Math.round(f.mo)), EU(Math.round(f.marge)), PC(f.margePct), EU(f.factCumul), EU(f.raf)]));
   const T = fin.reduce((a, f) => ({ marche: a.marche + f.marche, ca: a.ca + f.ca, dep: a.dep + f.dep, ach: a.ach + f.achats, mo: a.mo + f.mo, marge: a.marge + f.marge, fact: a.fact + f.factCumul, raf: a.raf + f.raf }), { marche: 0, ca: 0, dep: 0, ach: 0, mo: 0, marge: 0, fact: 0, raf: 0 });
   rows.push([BD('TOTAL'), TX(''), TX(''), ET(T.marche), ET(T.ca), ET(T.dep), ET(T.ach), ET(Math.round(T.mo)), ET(Math.round(T.marge)), PT(T.marche ? T.marge / T.marche : 0), ET(T.fact), ET(T.raf)]);
-  const S = fin.reduce((a, f) => { ['commandeHT', 'caCumul', 'coffreFait', 'coffreAFaire', 'coffre', 'engage', 'caMois', 'achatsMois', 'moMois', 'moHeuresMois', 'depMois', 'margeMois'].forEach(k => { a[k] += (+f[k] || 0); }); return a; },
-    { commandeHT: 0, caCumul: 0, coffreFait: 0, coffreAFaire: 0, coffre: 0, engage: 0, caMois: 0, achatsMois: 0, moMois: 0, moHeuresMois: 0, depMois: 0, margeMois: 0 });
+  const S = fin.reduce((a, f) => { ['commandeHT', 'caCumul', 'coffreFait', 'coffreAFaire', 'coffre', 'engage', 'engageMois', 'depCumul', 'marge', 'margeProj', 'caMois', 'achatsMois', 'moMois', 'moHeuresMois', 'depMois', 'margeMois'].forEach(k => { a[k] += (+f[k] || 0); }); a.nbEngage += f.engageList.length; return a; },
+    { commandeHT: 0, caCumul: 0, coffreFait: 0, coffreAFaire: 0, coffre: 0, engage: 0, engageMois: 0, depCumul: 0, marge: 0, margeProj: 0, caMois: 0, achatsMois: 0, moMois: 0, moHeuresMois: 0, depMois: 0, margeMois: 0, nbEngage: 0 });
   const PLX = MOIS[rafPer().m] + ' ' + rafPer().y;
   const coffreRows = [[H('OTP'), H('Libellé'), H('Client'), H('Commandé HT'), H('Déjà mis en factu.'), H('Fait à mettre en factu.'), H('Restant à réaliser'), H('Boîte à affaires'), H('Engagé non reçu')],
     ...fin.map(f => [TX(f.code), TX(otpLabel(f.code) || ''), TX(clientNom(otpClientId(f.code))), EU(f.commandeHT), EU(f.caCumul), EU(f.coffreFait), EU(f.coffreAFaire), EU(f.coffre), EU(f.engage)]),
@@ -2386,9 +2441,17 @@ function exportRafListXlsx(fin) {
   const moisRows = [[H('OTP'), H('Libellé'), H('Client'), H('Mis en factu. ' + PLX), H('Achats réceptionnés'), H('Pointage'), H('Heures'), H('Total réceptionné'), H('Marge du mois'), H('% marge')],
     ...fin.map(f => [TX(f.code), TX(otpLabel(f.code) || ''), TX(clientNom(otpClientId(f.code))), EU(f.caMois), EU(f.achatsMois), EU(Math.round(f.moMois)), { v: +f.moHeuresMois.toFixed(1), s: 9 }, EU(Math.round(f.depMois)), EU(Math.round(f.margeMois)), PC(f.pctMargeMois)]),
     [BD('TOTAL'), TX(''), TX(''), ET(S.caMois), ET(S.achatsMois), ET(Math.round(S.moMois)), { v: +S.moHeuresMois.toFixed(1), s: 9 }, ET(Math.round(S.depMois)), ET(Math.round(S.margeMois)), PT(S.caMois ? S.margeMois / S.caMois : 0)]];
+  const engRows = [[H('OTP'), H('Libellé'), H('Client'), H('En attente'), H('Engagé non reçu'), H('dont engagé ' + PLX), H('Plus ancienne (j)'), H('Coûts réceptionnés'), H('Marge réalisée'), H('Marge si tout réceptionné')],
+    ...fin.map(f => [TX(f.code), TX(otpLabel(f.code) || ''), TX(clientNom(otpClientId(f.code))), { v: f.engageList.length, s: 9 }, EU(f.engage), EU(f.engageMois), { v: f.engageList.length ? f.engageAge : 0, s: 9 }, EU(Math.round(f.depCumul)), EU(Math.round(f.marge)), EU(Math.round(f.margeProj))]),
+    [BD('TOTAL'), TX(''), TX(''), { v: S.nbEngage, s: 9 }, ET(S.engage), ET(S.engageMois), TX(''), ET(Math.round(S.depCumul)), ET(Math.round(S.marge)), ET(Math.round(S.margeProj))]];
+  const cmdRows = [[H('OTP'), H('N° commande'), H('Fournisseur'), H('Objet'), H('Commandée le'), H('Ancienneté (j)'), H('Statut'), H('Montant HT')],
+    ...fin.flatMap(f => f.engageList.map(c => [TX(f.code), TX(c.num || ''), TX(c.fournisseur || ''), TX(c.objet || ''), TX(c.date ? fmtDate(c.date) : ''), { v: c.date ? daysBetween(c.date, todayISO()) : 0, s: 9 }, TX(STATUTS_CMD[c.statut] || c.statut || ''), EU(+c.montantHT || 0)])),
+    [BD('TOTAL'), TX(''), TX(''), TX(''), TX(''), TX(''), TX(''), ET(S.engage)]];
   writeXlsxBook('RAF_par_OTP_' + rafExercice + '.xlsx', [
     { name: 'Boîte à affaires', rows: coffreRows, widths: [14, 32, 24, 15, 17, 19, 17, 16, 15], opts: { freeze: true, filterRef: 'A1:I1' } },
     { name: 'Mois — mise en factu.', rows: moisRows, widths: [14, 32, 24, 18, 17, 14, 10, 16, 15, 11], opts: { freeze: true, filterRef: 'A1:J1' } },
+    { name: 'Engagements par OTP', rows: engRows, widths: [14, 32, 24, 11, 16, 17, 16, 17, 15, 20], opts: { freeze: true, filterRef: 'A1:J1' } },
+    { name: 'Commandes non reçues', rows: cmdRows, widths: [14, 16, 24, 38, 15, 14, 14, 15], opts: { freeze: true, filterRef: 'A1:H1' } },
     { name: 'RAF par OTP', rows, widths: [14, 32, 24, 15, 15, 15, 14, 13, 14, 11, 16, 17], opts: { freeze: true, filterRef: 'A1:L1' } },
     { name: 'Périmètre', rows: [[BD('Périmètre'), TX(rafPerLabel())], [BD('Période'), TX(rafPeriode)], [BD('Exercice'), TX(rafExercice)], [BD('Édité le'), TX(fmtDate(todayISO()))], [BD('Nb OTP'), { v: fin.length, s: 9 }], [BD('Vue affichée'), TX(RAF_VUES[rafVue] || '')]], widths: [24, 30] },
   ]);
