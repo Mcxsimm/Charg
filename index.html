@@ -1914,7 +1914,8 @@ function otpForm(code) {
 /* ---------- RAF — Reste à facturer (analyse par OTP) ----------
    Écran 1 : sélection d'un OTP (période / exercice) → « Exécuter ».
    Écran 2 : fiche d'analyse — dépenses imputées + reste à facturer. */
-let rafOtp = '', rafPeriode = String(new Date().getMonth() + 1), rafExercice = String(new Date().getFullYear()), rafPerimetre = 'ytd', rafQ = '';
+let rafOtp = '', rafPeriode = String(new Date().getMonth() + 1), rafExercice = String(new Date().getFullYear()), rafPerimetre = 'ytd', rafQ = '', rafVue = 'coffre';
+const RAF_VUES = { coffre: 'Boîte à affaires (coffre)', mois: 'Mise en facturation du mois', synthese: 'Marge & reste à facturer' };
 const RAF_PERIMETRES = { ytd: 'Cumulé à fin de période', month: 'Période seule (mois M)', all: 'Cumul — toutes périodes' };
 function rafPer() {
   const m = Math.min(12, Math.max(1, parseInt(rafPeriode, 10) || 1)) - 1;
@@ -1948,8 +1949,16 @@ const rafCaIn = (l, cumul) => {
   const ly = +l.annee, lm = +l.mois;
   return (mode === 'month' && !cumul) ? (ly === y && lm === m) : (ly < y || (ly === y && lm <= m));
 };
-// Main d'œuvre pointée sur l'OTP (heures × taux), filtrée par le périmètre
-function rafMo(code, cumul) {
+// Mois M seul — indépendant du périmètre choisi. Sert à isoler ce qui est
+// RÉELLEMENT tombé sur le mois (achats réceptionnés, heures pointées, mise en facturation).
+function rafInMois(iso) {
+  const { m, y } = rafPer();
+  if (!iso) return false;
+  const d = new Date(iso + 'T00:00:00'); if (isNaN(d)) return false;
+  return d.getFullYear() === y && d.getMonth() === m;
+}
+// Main d'œuvre pointée sur l'OTP (heures × taux), filtrée par un test de date
+function rafMo(code, test) {
   let heures = 0, cout = 0; const rows = {};
   DB.data.pointages.forEach(p => {
     if (p.otp !== code || !p.h) return;
@@ -1957,7 +1966,7 @@ function rafMo(code, cumul) {
     p.h.forEach((h, i) => {
       if (!h) return;
       const iso = addDays(p.semaine, i);
-      if (!(cumul ? rafInCumul(iso) : rafInScope(iso))) return;
+      if (!test(iso)) return;
       heures += +h; cout += (+h) * taux;
       const k = p.workerNom || '—';
       (rows[k] = rows[k] || { nom: k, heures: 0, cout: 0 });
@@ -1981,23 +1990,47 @@ function rafFinance(code) {
   const achatsList = cmds.filter(c => c.dateReception && rafInScope(c.dateReception));
   const achats = achatsList.reduce((a, c) => a + (+c.montantHT || 0), 0);
   const achatsCumul = cmds.filter(c => c.dateReception && rafInCumul(c.dateReception)).reduce((a, c) => a + (+c.montantHT || 0), 0);
-  const engage = cmds.filter(c => !c.dateReception).reduce((a, c) => a + (+c.montantHT || 0), 0);
-  const moP = rafMo(code, false), moC = rafMo(code, true);
+  const engageList = cmds.filter(c => !c.dateReception);
+  const engage = engageList.reduce((a, c) => a + (+c.montantHT || 0), 0);
+  const moP = rafMo(code, rafInScope), moC = rafMo(code, rafInCumul), moM = rafMo(code, rafInMois);
   const factures = DB.data.factures.filter(f => f.otp === code);
   const emises = factures.filter(f => f.statut !== 'a_emettre');
   const fact = emises.filter(f => rafInScope(f.dateEmission || f.dateFG)).reduce((a, f) => a + (+f.montantHT || 0), 0);
   const factCumul = emises.filter(f => rafInCumul(f.dateEmission || f.dateFG)).reduce((a, f) => a + (+f.montantHT || 0), 0);
   const encaisse = factures.filter(f => f.statut === 'payee' && rafInCumul(f.datePaiement || f.dateEmission || f.dateFG)).reduce((a, f) => a + (+f.montantHT || 0), 0);
   const dep = achats + moP.cout, depCumul = achatsCumul + moC.cout;
+  /* --- MOIS M : ce qui tombe réellement sur le mois, quel que soit le périmètre ---
+     Mise en facturation du mois (lignes CA du mois) MOINS ce qui est réceptionné
+     sur le mois : commandes fournisseurs reçues + heures pointées. */
+  const { m: pm, y: py } = rafPer();
+  const caMois = caL.filter(x => +x.annee === py && +x.mois === pm).reduce((a, x) => a + (+x.prixVente || 0), 0);
+  const achatsMoisList = cmds.filter(c => rafInMois(c.dateReception));
+  const achatsMois = achatsMoisList.reduce((a, c) => a + (+c.montantHT || 0), 0);
+  const depMois = achatsMois + moM.cout;
+  const margeMois = caMois - depMois, pctMargeMois = caMois ? margeMois / caMois : 0;
+  /* --- BOÎTE À AFFAIRES (« le coffre ») ---
+     Ce qui est commandé (affaires gagnées) et pas encore mis en facturation :
+     travaux déjà réalisés en attente de mise en facturation + commandes restant à réaliser. */
+  const signes = chantiers.filter(c => ['commande', 'en_cours', 'receptionne', 'facture'].includes(c.statut));
+  const commandeHT = signes.length
+    ? signes.reduce((a, c) => a + (+c.montantHT || 0), 0)
+    : devis.filter(d => d.statut === 'accepte').reduce((a, d) => a + (+d.montantHT || 0), 0);
+  const faitHT = chantiers.filter(c => ['receptionne', 'facture'].includes(c.statut)).reduce((a, c) => a + (+c.montantHT || 0), 0);
+  const coffre = commandeHT - caCumul;                                  // reste à mettre en facturation
+  const coffreFait = Math.max(0, Math.min(coffre, faitHT - caCumul));   // travaux faits, non mis en facturation
+  const coffreAFaire = coffre - coffreFait;                             // commandes restant à réaliser
   // Référence = prix de vente HT (le « budget prévu »). Marge = PV HT − coûts imputés,
   // pourcentage rapporté au PV (marge brute). Indicateur de projet → coûts cumulés.
   const marge = marche - depCumul;
   const margePct = marche ? marge / marche : 0;
   const resultatPeriode = ca - dep;  // résultat du seul périmètre affiché (CA imputé − dépenses)
   return { code, chantiers, devis, factures, achatsList, marche,
-    ca, caCumul, achats, achatsCumul, engage,
+    ca, caCumul, achats, achatsCumul, engage, engageList,
     mo: moP.cout, moCumul: moC.cout, moHeures: moP.heures, moList: moP.list,
     dep, depCumul, marge, margePct, resultatPeriode,
+    caMois, achatsMois, achatsMoisList, moMois: moM.cout, moHeuresMois: moM.heures, moMoisList: moM.list,
+    depMois, margeMois, pctMargeMois,
+    commandeHT, faitHT, coffre, coffreFait, coffreAFaire,
     fact, factCumul, encaisse, raf: marche - factCumul, pctFact: marche ? factCumul / marche : 0 };
 }
 // Budget prévu par nature : d'abord le(s) BTE de l'OTP, à défaut les lignes CA.
@@ -2039,12 +2072,63 @@ function renderRAF(v) {
   const all = otpDistinct();
   const codes = all.filter(c => !rafQ || (c + ' ' + otpLabel(c) + ' ' + clientNom(otpClientId(c))).toLowerCase().includes(rafQ.toLowerCase()));
   const fin = codes.map(c => rafFinance(c));
-  const T = fin.reduce((a, f) => ({ marche: a.marche + f.marche, ca: a.ca + f.ca, dep: a.dep + f.dep, marge: a.marge + f.marge, fact: a.fact + f.factCumul, raf: a.raf + f.raf }), { marche: 0, ca: 0, dep: 0, marge: 0, fact: 0, raf: 0 });
+  const TK = ['marche', 'ca', 'caCumul', 'dep', 'marge', 'raf', 'commandeHT', 'coffre', 'coffreFait', 'coffreAFaire', 'engage', 'caMois', 'achatsMois', 'moMois', 'moHeuresMois', 'depMois', 'margeMois'];
+  const T = fin.reduce((a, f) => { TK.forEach(k => { a[k] += (+f[k] || 0); }); a.fact += f.factCumul; return a; }, Object.fromEntries([...TK, 'fact'].map(k => [k, 0])));
   const Tpct = T.marche ? T.marge / T.marche : 0;
+  const TpctMois = T.caMois ? T.margeMois / T.caMois : 0;
   const mCls = x => x >= 0 ? 'margin-good' : 'margin-bad';
+  const PL = MOIS[rafPer().m] + ' ' + rafPer().y;
+  const cardK = (label, val, sub, tone) => `<div class="cad-metric ${tone || ''}"><div class="cm-label">${label}</div><div class="cm-value" style="font-size:22px">${val}</div>${sub ? `<div class="cm-sub">${sub}</div>` : ''}</div>`;
+  const nom = f => `<td class="t-strong">${esc(f.code)}</td><td><span class="link" data-run="${esc(f.code)}">${esc(otpLabel(f.code) || '—')}</span></td><td class="t-muted">${esc(clientNom(otpClientId(f.code)))}</td>`;
+  const act = f => `<td class="actions-cell"><button class="icon-btn" data-run="${esc(f.code)}" title="Analyser">${icon('target')}</button></td>`;
+  // Vue 1 — la boîte à affaires : commandé mais pas encore mis en facturation (« le coffre »)
+  const tblCoffre = () => `<div class="table-wrap"><table><thead><tr><th>OTP</th><th>Libellé</th><th>Client</th>
+      <th class="num" title="Chantiers signés : commande, en cours, réceptionnés, facturés">Commandé HT</th>
+      <th class="num" title="CA déjà mis en facturation (lignes CA imputées), cumulé">Déjà mis en factu.</th>
+      <th class="num" title="Travaux réalisés (chantiers réceptionnés) pas encore mis en facturation">Fait à mettre en factu.</th>
+      <th class="num" title="Commandes signées restant à réaliser">Restant à réaliser</th>
+      <th class="num" title="Commandé − déjà mis en facturation">Boîte à affaires</th>
+      <th class="num" title="Commandes fournisseurs passées et non réceptionnées">Engagé non reçu</th><th></th></tr></thead>
+    <tbody>${fin.map(f => `<tr>${nom(f)}<td class="num">${eur(f.commandeHT)}</td><td class="num">${eur(f.caCumul)}</td>
+      <td class="num">${eur(f.coffreFait)}</td><td class="num">${eur(f.coffreAFaire)}</td>
+      <td class="num t-strong ${f.coffre >= 0 ? 'margin-good' : 'margin-bad'}">${eur(f.coffre)}</td>
+      <td class="num t-muted">${eur(f.engage)}</td>${act(f)}</tr>`).join('')}</tbody>
+    <tfoot><tr class="t-strong"><td colspan="3">TOTAL (${codes.length} OTP)</td><td class="num">${eur(T.commandeHT)}</td><td class="num">${eur(T.caCumul)}</td><td class="num">${eur(T.coffreFait)}</td><td class="num">${eur(T.coffreAFaire)}</td><td class="num ${T.coffre >= 0 ? 'margin-good' : 'margin-bad'}">${eur(T.coffre)}</td><td class="num">${eur(T.engage)}</td><td></td></tr></tfoot></table></div>`;
+  // Vue 2 — le mois : ce que je mets en facturation MOINS ce qui est réceptionné sur le mois
+  const tblMois = () => `<div class="table-wrap"><table><thead><tr><th>OTP</th><th>Libellé</th><th>Client</th>
+      <th class="num" title="Lignes CA du mois — ce que je mets en facturation">Mis en factu. ${esc(PL)}</th>
+      <th class="num" title="Commandes fournisseurs réceptionnées dans le mois">Achats réceptionnés</th>
+      <th class="num" title="Heures pointées dans le mois × taux">Pointage</th>
+      <th class="num">Heures</th>
+      <th class="num" title="Achats réceptionnés + pointage du mois">Total réceptionné</th>
+      <th class="num" title="Mise en facturation − réceptionné (mois)">Marge du mois</th>
+      <th class="num">% marge</th><th></th></tr></thead>
+    <tbody>${fin.map(f => `<tr>${nom(f)}<td class="num">${eur(f.caMois)}</td><td class="num">${eur(f.achatsMois)}</td>
+      <td class="num">${eur(f.moMois)}</td><td class="num t-muted">${f.moHeuresMois ? f.moHeuresMois.toFixed(1) : '—'}</td>
+      <td class="num">${eur(f.depMois)}</td>
+      <td class="num t-strong ${mCls(f.margeMois)}">${(f.caMois || f.depMois) ? eur(f.margeMois) : '—'}</td>
+      <td class="num ${mCls(f.margeMois)}">${f.caMois ? pct(f.pctMargeMois) : '—'}</td>${act(f)}</tr>`).join('')}</tbody>
+    <tfoot><tr class="t-strong"><td colspan="3">TOTAL (${codes.length} OTP)</td><td class="num">${eur(T.caMois)}</td><td class="num">${eur(T.achatsMois)}</td><td class="num">${eur(T.moMois)}</td><td class="num">${T.moHeuresMois.toFixed(1)}</td><td class="num">${eur(T.depMois)}</td><td class="num ${mCls(T.margeMois)}">${eur(T.margeMois)}</td><td class="num ${mCls(T.margeMois)}">${T.caMois ? pct(TpctMois) : '—'}</td><td></td></tr></tfoot></table></div>`;
+  // Vue 3 — synthèse historique : marge réalisée et reste à facturer
+  const tblSynthese = () => `<div class="table-wrap"><table><thead><tr><th>OTP</th><th>Libellé</th><th>Client</th><th class="num" title="Prix de vente HT — la référence (budget prévu)">PV HT</th><th class="num">CA imputé</th><th class="num">Dépenses</th><th class="num" title="Prix de vente HT − coûts imputés cumulés">Marge</th><th class="num" title="Marge rapportée au prix de vente HT">% marge</th><th class="num">Facturé cum.</th><th class="num">Reste à facturer</th><th></th></tr></thead>
+      <tbody>${fin.map(f => `<tr>${nom(f)}
+        <td class="num">${eur(f.marche)}</td><td class="num">${eur(f.ca)}</td><td class="num">${eur(f.dep)}</td>
+        <td class="num ${mCls(f.marge)}">${f.marche ? eur(f.marge) : '—'}</td><td class="num ${mCls(f.marge)}">${f.marche ? pct(f.margePct) : '—'}</td>
+        <td class="num">${eur(f.factCumul)}</td><td class="num ${f.raf > 0 ? 'margin-bad' : 'margin-good'}">${eur(f.raf)}</td>
+        ${act(f)}</tr>`).join('')}</tbody>
+      <tfoot><tr class="t-strong"><td colspan="3">TOTAL (${codes.length} OTP)</td><td class="num">${eur(T.marche)}</td><td class="num">${eur(T.ca)}</td><td class="num">${eur(T.dep)}</td><td class="num ${mCls(T.marge)}">${eur(T.marge)}</td><td class="num ${mCls(T.marge)}">${T.marche ? pct(Tpct) : '—'}</td><td class="num">${eur(T.fact)}</td><td class="num">${eur(T.raf)}</td><td></td></tr></tfoot></table></div>`;
   v.innerHTML = `
     <div class="section-head" style="margin-top:0">${icon('target')}<h2>RAF — suivi financier par OTP</h2><span class="spacer"></span><span class="chip">${rafPerLabel()}</span></div>
-    <p class="t-muted" style="margin-top:-8px;max-width:900px">Pour chaque <b>OTP</b> : le <b>CA imputé</b>, les <b>dépenses imputées</b> (achats réceptionnés + main d'œuvre pointée), la <b>marge</b> et son <b>pourcentage</b>, puis le <b>reste à facturer</b>. La marge est calculée <b>prix de vente HT − coûts imputés</b>, le pourcentage étant rapporté au prix de vente. Les flux (CA imputé, dépenses) suivent le <b>périmètre de période</b> choisi ci-dessous ; marge et reste à facturer restent cumulés à fin de période.</p>
+    <p class="t-muted" style="margin-top:-8px;max-width:960px">Deux lectures distinctes, à ne pas confondre :
+      <b>la boîte à affaires</b> — ce qui est <b>commandé</b> (travaux faits ou restant à faire) mais <b>pas encore mis en facturation</b> : c'est le coffre —
+      et <b>le mois</b> — ce que je <b>mets en facturation</b> sur le mois, <b>moins</b> ce qui est réellement <b>réceptionné</b> dessus (commandes fournisseurs reçues + pointage).
+      La troisième vue conserve la synthèse historique (marge réalisée et reste à facturer sur le marché signé).</p>
+    <div class="kpi-grid">
+      ${cardK('Boîte à affaires (mon coffre)', eur(T.coffre), 'Commandé ' + eur(T.commandeHT) + ' − mis en factu. ' + eur(T.caCumul), T.coffre >= 0 ? 'green' : 'amber')}
+      ${cardK('Mis en facturation — ' + PL, eur(T.caMois), 'Lignes CA du mois')}
+      ${cardK('Réceptionné — ' + PL, eur(T.depMois), 'Achats ' + eur(T.achatsMois) + ' · Pointage ' + eur(T.moMois), 'amber')}
+      ${cardK('Marge du mois', (T.caMois || T.depMois) ? eur(T.margeMois) : '—', T.caMois ? pct(TpctMois) + ' de la mise en facturation' : 'Aucune mise en facturation', T.margeMois >= 0 ? 'green' : 'amber')}
+    </div>
     <div class="card card-pad" style="margin-bottom:16px">
       <div class="form-grid">
         <div class="field full"><label>Élément d'OTP (ouvrir la fiche d'analyse)</label>
@@ -2053,14 +2137,10 @@ function renderRAF(v) {
       </div>
       <div style="display:flex;justify-content:flex-end;margin-top:14px"><button class="btn primary" id="raf-run">${icon('trend')} Exécuter</button></div>
     </div>
-    <div class="filters"><span class="search-wrap">${icon('search')}<input id="raf-q" placeholder="Rechercher (OTP, libellé, client…)" value="${esc(rafQ)}"></span><span class="chip">${codes.length} OTP</span><span class="spacer"></span><button class="btn small" id="raf-list-csv">${icon('download')} Excel</button></div>
-    ${codes.length ? `<div class="table-wrap"><table><thead><tr><th>OTP</th><th>Libellé</th><th>Client</th><th class="num" title="Prix de vente HT — la référence (budget prévu)">PV HT</th><th class="num">CA imputé</th><th class="num">Dépenses</th><th class="num" title="Prix de vente HT − coûts imputés cumulés">Marge</th><th class="num" title="Marge rapportée au prix de vente HT">% marge</th><th class="num">Facturé cum.</th><th class="num">Reste à facturer</th><th></th></tr></thead>
-      <tbody>${fin.map(f => `<tr><td class="t-strong">${esc(f.code)}</td><td><span class="link" data-run="${esc(f.code)}">${esc(otpLabel(f.code) || '—')}</span></td><td class="t-muted">${esc(clientNom(otpClientId(f.code)))}</td>
-        <td class="num">${eur(f.marche)}</td><td class="num">${eur(f.ca)}</td><td class="num">${eur(f.dep)}</td>
-        <td class="num ${mCls(f.marge)}">${f.marche ? eur(f.marge) : '—'}</td><td class="num ${mCls(f.marge)}">${f.marche ? pct(f.margePct) : '—'}</td>
-        <td class="num">${eur(f.factCumul)}</td><td class="num ${f.raf > 0 ? 'margin-bad' : 'margin-good'}">${eur(f.raf)}</td>
-        <td class="actions-cell"><button class="icon-btn" data-run="${esc(f.code)}" title="Analyser">${icon('target')}</button></td></tr>`).join('')}</tbody>
-      <tfoot><tr class="t-strong"><td colspan="3">TOTAL (${codes.length} OTP)</td><td class="num">${eur(T.marche)}</td><td class="num">${eur(T.ca)}</td><td class="num">${eur(T.dep)}</td><td class="num ${mCls(T.marge)}">${eur(T.marge)}</td><td class="num ${mCls(T.marge)}">${T.marche ? pct(Tpct) : '—'}</td><td class="num">${eur(T.fact)}</td><td class="num">${eur(T.raf)}</td><td></td></tr></tfoot></table></div>`
+    <div class="filters"><span class="search-wrap">${icon('search')}<input id="raf-q" placeholder="Rechercher (OTP, libellé, client…)" value="${esc(rafQ)}"></span><span class="chip">${codes.length} OTP</span>
+      ${Object.entries(RAF_VUES).map(([k, l]) => `<button class="btn small ${rafVue === k ? 'primary' : ''}" data-vue="${k}">${esc(l)}</button>`).join('')}
+      <span class="spacer"></span><button class="btn small" id="raf-list-csv">${icon('download')} Excel</button></div>
+    ${codes.length ? (rafVue === 'coffre' ? tblCoffre() : rafVue === 'mois' ? tblMois() : tblSynthese())
       : emptyState('target', 'Aucun OTP', 'Les OTP apparaissent dès qu\'ils sont utilisés sur un devis, un chantier, une facture ou un achat.')}`;
   rafBindPeriod(v);
   $('#raf-run').onclick = () => {
@@ -2068,6 +2148,7 @@ function renderRAF(v) {
     rafOtp = sel; renderRAF(v);
   };
   $('#raf-q').oninput = e => { rafQ = e.target.value; renderRAF(v); const i = $('#raf-q'); i.focus(); i.setSelectionRange(i.value.length, i.value.length); };
+  $$('[data-vue]', v).forEach(b => b.onclick = () => { rafVue = b.dataset.vue; renderRAF(v); });
   $('#raf-list-csv').onclick = () => exportRafListXlsx(fin);
   $$('[data-run]', v).forEach(b => b.onclick = () => { rafOtp = b.dataset.run; renderRAF(v); });
 }
@@ -2084,6 +2165,10 @@ function rafAnalyse(v) {
   // ligne à 1 ou 2 colonnes de valeurs selon le périmètre
   const L = (label, per, cum, cls, strong) => `<tr class="${strong ? 't-strong' : ''}"><td>${label}</td>${dual ? `<td class="num ${cls || ''}">${per}</td>` : ''}<td class="num ${cls || ''}">${cum}</td></tr>`;
   const HD = (first) => `<thead><tr><th>${first}</th>${dual ? `<th class="num">${MOIS[rafPer().m]} ${rafPer().y}</th>` : ''}<th class="num">${dual ? 'Cumulé' : 'Montant'}</th></tr></thead>`;
+  // ligne simple à 2 colonnes (tableaux « coffre » et « mois », indépendants du périmètre)
+  const R2 = (label, val, cls, strong) => `<tr class="${strong ? 't-strong' : ''}"><td>${label}</td><td class="num ${cls || ''}">${val}</td></tr>`;
+  const PL = MOIS[rafPer().m] + ' ' + rafPer().y;
+  const recMois = F.achatsMoisList.length + F.moMoisList.length;
   v.innerHTML = `
     <div class="page-actions"><button class="btn" id="raf-back">${icon('chevron')} Changer d'OTP</button><span class="spacer"></span><span class="chip">${rafPerLabel()}</span><button class="btn small" id="raf-csv">${icon('download')} Excel</button></div>
     <div class="card card-pad" style="margin-bottom:16px">
@@ -2106,6 +2191,39 @@ function rafAnalyse(v) {
       ${card('% marge réalisée', F.marche ? pct(F.margePct) : '—', F.marche ? eur(F.marge) + ' — PV − coûts imputés' : 'Pas de prix de vente', F.marche ? (F.marge >= 0 ? 'green' : 'amber') : '')}
       ${card('Coûts imputés', eur(F.depCumul), 'Achats ' + eur(F.achatsCumul) + ' · MO ' + eur(F.moCumul), 'amber')}
     </div>
+    <div class="kpi-grid">
+      ${card('Boîte à affaires (mon coffre)', eur(F.coffre), 'Commandé ' + eur(F.commandeHT) + ' − mis en factu. ' + eur(F.caCumul), F.coffre >= 0 ? 'green' : 'amber')}
+      ${card('Mis en facturation — ' + PL, eur(F.caMois), 'Lignes CA du mois')}
+      ${card('Réceptionné — ' + PL, eur(F.depMois), 'Achats ' + eur(F.achatsMois) + ' · Pointage ' + eur(F.moMois), 'amber')}
+      ${card('Marge du mois', (F.caMois || F.depMois) ? eur(F.margeMois) : '—', F.caMois ? pct(F.pctMargeMois) + ' de la mise en facturation' : 'Aucune mise en facturation', F.margeMois >= 0 ? 'green' : 'amber')}
+    </div>
+    <div class="card-title">Boîte à affaires — mon coffre</div>
+    <p class="t-muted" style="margin-top:-6px;margin-bottom:10px">Ce qui est <b>commandé</b> (travaux déjà réalisés ou restant à faire) et <b>pas encore mis en facturation</b>. Indépendant du périmètre de période.</p>
+    <div class="table-wrap" style="margin-bottom:18px"><table><thead><tr><th>Boîte à affaires</th><th class="num">Montant</th></tr></thead><tbody>
+      ${R2('Commandes signées (chantiers commandés, en cours, réceptionnés)', eur(F.commandeHT))}
+      ${R2('− Déjà mis en facturation (CA imputé cumulé)', eur(F.caCumul))}
+      ${R2('= Boîte à affaires (mon coffre)', eur(F.coffre), F.coffre >= 0 ? 'margin-good' : 'margin-bad', true)}
+      ${R2('&nbsp;&nbsp;— dont travaux réalisés à mettre en facturation', eur(F.coffreFait))}
+      ${R2('&nbsp;&nbsp;— dont commandes restant à réaliser', eur(F.coffreAFaire))}
+      ${R2('Pour mémoire — engagé non réceptionné (commandes fournisseurs)', eur(F.engage))}
+    </tbody></table></div>
+    <div class="card-title">Mise en facturation ${esc(PL)} — moins ce qui est réceptionné</div>
+    <p class="t-muted" style="margin-top:-6px;margin-bottom:10px">Le mois seul : ce que je <b>mets en facturation</b>, diminué des <b>commandes réceptionnées</b> sur le mois et du <b>pointage</b> du mois.</p>
+    <div class="table-wrap" style="margin-bottom:18px"><table><thead><tr><th>${esc(PL)}</th><th class="num">Montant</th></tr></thead><tbody>
+      ${R2('Mis en facturation (lignes CA du mois)', eur(F.caMois), '', true)}
+      ${R2('− Commandes réceptionnées dans le mois' + (F.achatsMoisList.length ? ' (' + F.achatsMoisList.length + ')' : ''), eur(F.achatsMois))}
+      ${R2("− Pointage du mois" + (F.moHeuresMois ? ' (' + F.moHeuresMois.toFixed(1) + ' h)' : ''), eur(F.moMois))}
+      ${R2('= Marge du mois', (F.caMois || F.depMois) ? eur(F.margeMois) : '—', mCls(F.margeMois), true)}
+      ${R2('% marge du mois', F.caMois ? pct(F.pctMargeMois) : '—', mCls(F.margeMois), true)}
+    </tbody></table></div>
+    <div class="card-title">Réceptions du mois ${esc(PL)} (${recMois})</div>
+    ${recMois ? `<div class="table-wrap" style="margin-bottom:18px"><table><thead><tr><th>Type</th><th>Désignation</th><th>Détail</th><th class="num">Montant HT</th></tr></thead>
+      <tbody>
+        ${F.achatsMoisList.map(c => `<tr><td>Commande réceptionnée</td><td class="t-strong">${esc(c.fournisseur || '—')}</td><td class="t-muted">${esc(c.objet || '—')}${c.num ? ' · ' + esc(c.num) : ''} · reçu le ${fmtDate(c.dateReception)}</td><td class="num">${eur(c.montantHT)}</td></tr>`).join('')}
+        ${F.moMoisList.map(w => `<tr><td>Pointage</td><td class="t-strong">${esc(w.nom)}</td><td class="t-muted">${w.heures.toFixed(1)} h</td><td class="num">${eur(w.cout)}</td></tr>`).join('')}
+      </tbody>
+      <tfoot><tr class="t-strong"><td colspan="3">Total réceptionné ${esc(PL)}</td><td class="num">${eur(F.depMois)}</td></tr></tfoot></table></div>`
+      : `<div class="t-muted" style="margin-bottom:18px">Rien de réceptionné ni de pointé sur ${esc(PL)}.</div>`}
     <div class="card-title">Facturation &amp; reste à facturer</div>
     <div class="table-wrap" style="margin-bottom:18px"><table>${HD('Facturation')}<tbody>
       ${L('Marché HT (marché signé)', '—', eur(F.marche))}
@@ -2177,12 +2295,28 @@ function exportRafXlsx(code) {
   const H = v => ({ v, s: 4 }), TX = v => ({ v, s: 2 }), BD = v => ({ v, s: 3 }), EU = v => ({ v, s: 8 }), ET = v => ({ v, s: 10 }), PC = v => ({ v, s: 11 }), PT = v => ({ v, s: 12 });
   const LN = (lab, per, cum, bold) => dual ? [(bold ? BD : TX)(lab), per, cum] : [(bold ? BD : TX)(lab), cum];
   const SH = t => dual ? [H(t), H(PL), H('Cumulé')] : [H(t), H('Montant')];
+  const SH2 = t => dual ? [H(t), H(''), H('Montant')] : [H(t), H('Montant')];   // bloc à une seule valeur
   const synth = [
     [BD("Élément d'OTP"), TX(code)],
     [BD('Libellé'), TX(otpLabel(code) || '')],
     [BD('Client'), TX(clientNom(otpClientId(code)))],
     [BD("Date d'analyse"), TX(fmtDate(todayISO()))],
     [BD('Périmètre'), TX(rafPerLabel())],
+    [],
+    SH2('Boîte à affaires (mon coffre)'),
+    LN('Commandes signées', TX(''), EU(F.commandeHT)),
+    LN('Déjà mis en facturation (CA imputé cumulé)', TX(''), EU(F.caCumul)),
+    LN('Boîte à affaires (coffre)', TX(''), ET(F.coffre), true),
+    LN('— dont travaux réalisés à mettre en facturation', TX(''), EU(F.coffreFait)),
+    LN('— dont commandes restant à réaliser', TX(''), EU(F.coffreAFaire)),
+    LN('Engagé non réceptionné (commandes fournisseurs)', TX(''), EU(F.engage)),
+    [],
+    SH2('Mise en facturation ' + PL),
+    LN('Mis en facturation (lignes CA du mois)', TX(''), EU(F.caMois), true),
+    LN('− Commandes réceptionnées dans le mois', TX(''), EU(F.achatsMois)),
+    LN('− Pointage du mois (' + F.moHeuresMois.toFixed(1) + ' h)', TX(''), EU(Math.round(F.moMois))),
+    LN('= Marge du mois', TX(''), ET(F.margeMois), true),
+    LN('% marge du mois', TX(''), PT(F.pctMargeMois), true),
     [],
     SH('Facturation'),
     LN('Marché HT', TX('—'), EU(F.marche)),
@@ -2226,6 +2360,10 @@ function exportRafXlsx(code) {
     { name: 'Synthèse', rows: synth, widths: dual ? [36, 16, 16] : [36, 18] },
     { name: 'Dépenses par nature', rows: nat, widths: dual ? [26, 15, 15, 15, 15, 12] : [26, 15, 15, 15, 12], opts: { freeze: true, filterRef: dual ? 'A1:F1' : 'A1:E1' } },
     { name: 'Détail dépenses', rows: det, widths: [16, 30, 42, 15], opts: { freeze: true, filterRef: 'A1:D1' } },
+    { name: 'Réceptions du mois', rows: [[H('Type'), H('Désignation'), H('Détail'), H('Montant HT')],
+      ...F.achatsMoisList.map(c => [TX('Commande réceptionnée'), TX(c.fournisseur || ''), TX((c.objet || '') + (c.num ? ' · ' + c.num : '') + ' · reçu le ' + fmtDate(c.dateReception)), EU(+c.montantHT || 0)]),
+      ...F.moMoisList.map(w => [TX('Pointage'), TX(w.nom), TX(w.heures.toFixed(1) + ' h'), EU(Math.round(w.cout))]),
+      [BD('Total réceptionné ' + PL), TX(''), TX(''), ET(F.depMois)]], widths: [22, 30, 42, 15], opts: { freeze: true, filterRef: 'A1:D1' } },
   ];
   if (F.chantiers.length) sheets.push({ name: 'Sites', rows: [[H('Nom du site'), H('Adresse'), H('Statut'), H('Montant HT')], ...F.chantiers.map(c => [TX(c.nom || ''), TX(c.adresse || ''), TX(STATUTS_CHANTIER[c.statut] || c.statut || ''), EU(+c.montantHT || 0)])], widths: [34, 26, 16, 15], opts: { freeze: true, filterRef: 'A1:D1' } });
   if (F.factures.length) sheets.push({ name: 'Factures', rows: [[H('N°'), H('Objet'), H('Statut'), H('Montant HT')], ...F.factures.map(f => [TX(f.num || ''), TX(f.objet || ''), TX(STATUTS_FACT[f.statut] || f.statut || ''), EU(+f.montantHT || 0)])], widths: [16, 34, 16, 15], opts: { freeze: true, filterRef: 'A1:D1' } });
@@ -2239,9 +2377,20 @@ function exportRafListXlsx(fin) {
   fin.forEach(f => rows.push([TX(f.code), TX(otpLabel(f.code) || ''), TX(clientNom(otpClientId(f.code))), EU(f.marche), EU(f.ca), EU(f.dep), EU(f.achats), EU(Math.round(f.mo)), EU(Math.round(f.marge)), PC(f.margePct), EU(f.factCumul), EU(f.raf)]));
   const T = fin.reduce((a, f) => ({ marche: a.marche + f.marche, ca: a.ca + f.ca, dep: a.dep + f.dep, ach: a.ach + f.achats, mo: a.mo + f.mo, marge: a.marge + f.marge, fact: a.fact + f.factCumul, raf: a.raf + f.raf }), { marche: 0, ca: 0, dep: 0, ach: 0, mo: 0, marge: 0, fact: 0, raf: 0 });
   rows.push([BD('TOTAL'), TX(''), TX(''), ET(T.marche), ET(T.ca), ET(T.dep), ET(T.ach), ET(Math.round(T.mo)), ET(Math.round(T.marge)), PT(T.marche ? T.marge / T.marche : 0), ET(T.fact), ET(T.raf)]);
+  const S = fin.reduce((a, f) => { ['commandeHT', 'caCumul', 'coffreFait', 'coffreAFaire', 'coffre', 'engage', 'caMois', 'achatsMois', 'moMois', 'moHeuresMois', 'depMois', 'margeMois'].forEach(k => { a[k] += (+f[k] || 0); }); return a; },
+    { commandeHT: 0, caCumul: 0, coffreFait: 0, coffreAFaire: 0, coffre: 0, engage: 0, caMois: 0, achatsMois: 0, moMois: 0, moHeuresMois: 0, depMois: 0, margeMois: 0 });
+  const PLX = MOIS[rafPer().m] + ' ' + rafPer().y;
+  const coffreRows = [[H('OTP'), H('Libellé'), H('Client'), H('Commandé HT'), H('Déjà mis en factu.'), H('Fait à mettre en factu.'), H('Restant à réaliser'), H('Boîte à affaires'), H('Engagé non reçu')],
+    ...fin.map(f => [TX(f.code), TX(otpLabel(f.code) || ''), TX(clientNom(otpClientId(f.code))), EU(f.commandeHT), EU(f.caCumul), EU(f.coffreFait), EU(f.coffreAFaire), EU(f.coffre), EU(f.engage)]),
+    [BD('TOTAL'), TX(''), TX(''), ET(S.commandeHT), ET(S.caCumul), ET(S.coffreFait), ET(S.coffreAFaire), ET(S.coffre), ET(S.engage)]];
+  const moisRows = [[H('OTP'), H('Libellé'), H('Client'), H('Mis en factu. ' + PLX), H('Achats réceptionnés'), H('Pointage'), H('Heures'), H('Total réceptionné'), H('Marge du mois'), H('% marge')],
+    ...fin.map(f => [TX(f.code), TX(otpLabel(f.code) || ''), TX(clientNom(otpClientId(f.code))), EU(f.caMois), EU(f.achatsMois), EU(Math.round(f.moMois)), { v: +f.moHeuresMois.toFixed(1), s: 9 }, EU(Math.round(f.depMois)), EU(Math.round(f.margeMois)), PC(f.pctMargeMois)]),
+    [BD('TOTAL'), TX(''), TX(''), ET(S.caMois), ET(S.achatsMois), ET(Math.round(S.moMois)), { v: +S.moHeuresMois.toFixed(1), s: 9 }, ET(Math.round(S.depMois)), ET(Math.round(S.margeMois)), PT(S.caMois ? S.margeMois / S.caMois : 0)]];
   writeXlsxBook('RAF_par_OTP_' + rafExercice + '.xlsx', [
+    { name: 'Boîte à affaires', rows: coffreRows, widths: [14, 32, 24, 15, 17, 19, 17, 16, 15], opts: { freeze: true, filterRef: 'A1:I1' } },
+    { name: 'Mois — mise en factu.', rows: moisRows, widths: [14, 32, 24, 18, 17, 14, 10, 16, 15, 11], opts: { freeze: true, filterRef: 'A1:J1' } },
     { name: 'RAF par OTP', rows, widths: [14, 32, 24, 15, 15, 15, 14, 13, 14, 11, 16, 17], opts: { freeze: true, filterRef: 'A1:L1' } },
-    { name: 'Périmètre', rows: [[BD('Périmètre'), TX(rafPerLabel())], [BD('Période'), TX(rafPeriode)], [BD('Exercice'), TX(rafExercice)], [BD('Édité le'), TX(fmtDate(todayISO()))], [BD('Nb OTP'), { v: fin.length, s: 9 }]], widths: [24, 30] },
+    { name: 'Périmètre', rows: [[BD('Périmètre'), TX(rafPerLabel())], [BD('Période'), TX(rafPeriode)], [BD('Exercice'), TX(rafExercice)], [BD('Édité le'), TX(fmtDate(todayISO()))], [BD('Nb OTP'), { v: fin.length, s: 9 }], [BD('Vue affichée'), TX(RAF_VUES[rafVue] || '')]], widths: [24, 30] },
   ]);
   toast('Export Excel généré');
 }
