@@ -770,200 +770,561 @@ function icon(name, cls = '') {
 const FOURNISSEURS_REF = [{n:"ACCES INDUSTRIE",c:'1006145'},{n:"ALGECO",c:'1008066'},{n:"ALLIAGE PAILLE",c:'1008863'},{n:"ALTEMA",c:'1064346'},{n:"ANTARGAZ",c:'1002637'},{n:"ARCELOR",c:'1012773'},{n:"ASTURIENNE",c:'1003284'},{n:"AXEL LOCATION",c:'1006253'},{n:"AXTER",c:'1001414'},{n:"AXTER-IKO",c:'1086791'},{n:"BAOBAG",c:'1008803'},{n:"BAUDELET",c:'1080448'},{n:"BCM PLIAGE",c:'1085178'},{n:"BLUETEK",c:'1063351'},{n:"BRAND",c:'1011530'},{n:"COEUGNET",c:'1011983'},{n:"COMAT",c:'1057742'},{n:"COMPAGNIE PETROLIERE",c:'1012345'},{n:"COMPTOIR DE L'ETANCHEITE",c:'1011467'},{n:"DERICHERBOURG / REVIVAL",c:'1010203'},{n:"DML",c:'1077945'},{n:"ECHAFAUDAGE BONVOISIN",c:'1000341'},{n:"EDF",c:'1001544'},{n:"EPDM FRANCE",c:'1072813'},{n:"ETANCO",c:'1006236'},{n:"EUDIER",c:'1110976'},{n:"FEP",c:'1059399'},{n:"FOSELEV",c:'1011599'},{n:"FRANCE CARS",c:'1012879'},{n:"HAVRE ECHAFAUDAGE",c:'1085540'},{n:"HETTIER",c:'1010161'},{n:"HILTI",c:'1012203'},{n:"HLS",c:'1063606'},{n:"IKO",c:'1003278'},{n:"IKOS DARNETAL",c:'1019851'},{n:"ISOVER",c:'1062035'},{n:"JORIS",c:'1007491'},{n:"KILOUTOU",c:'1002639'},{n:"KINGSPAN LIGHT AIR",c:'1065245'},{n:"KNAUF IDF/OUEST",c:'1007669'},{n:"KNAUF INSULATION",c:'1009895'},{n:"KNIPPING",c:'1011647'},{n:"LARIVIERE",c:'1097259'},{n:"LECOUFLE ROUEN",c:'1001282'},{n:"LECOUFLE ST LO/CHERB",c:'1012186'},{n:"LEGALLAIS",c:'1002640'},{n:"LMI",c:'1068913'},{n:"LOCCAMAT 14",c:'1012293'},{n:"LOXAM",c:'1002641'},{n:"M LOC",c:'1009772'},{n:"MABEO",c:'1012881'},{n:"MONOPANEL",c:'1012464'},{n:"NESTA",c:'1012477'},{n:"NORMAPLI",c:'1012039'},{n:"NPC",c:'1000453'},{n:"OUEST ISOL",c:'1012111'},{n:"PAPREC",c:'1010645'},{n:"POINT P CAEN",c:'1000336'},{n:"POINT P CHERBOURG",c:'1061928'},{n:"POINT P ROUEN",c:'1011555'},{n:"PPP",c:'1011888'},{n:"PROLIANS",c:'1001282'},{n:"PUM",c:'1011594'},{n:"RECTICEL",c:'1009725'},{n:"REGIS LOCATION",c:'1011527'},{n:"RIKKSEN",c:'1010561'},{n:"ROCKWOOL",c:'1010138'},{n:"ROOFMART",c:'1006550'},{n:"SARENS",c:'1006774'},{n:"SCAFF THERMOS",c:'1088289'},{n:"SETIN",c:'1011861'},{n:"SKYDOM",c:'1054015'},{n:"SOPREMA",c:'1012293'},{n:"SUEZ",c:'1008081'},{n:"UNIFER",c:'1056707'},{n:"VELUX",c:'1012671'},{n:"VEOLIA",c:'1008844'},{n:"VEQ ACIER",c:'1062035'},{n:"VM DISTRIBUTION",c:'1006468'},{n:"WURTH",c:'1012112'}];
 
 /* -------------------------------------------------------------------------
-   2. Référentiel Cadences multi-métiers (temps unitaires indicatifs)
-   Étanchéité (fichier « Cadences V10 »), Tuiles, Ardoise, Bac acier, Zinc.
-   Valeurs en h/m² (surfaciques) ou h/mL·h/u (linéaires) pour 1 compagnon.
+   2. Référentiel Cadences — source : classeur SMAC « cadence.xlsx »
+   Onglets repris : BASE CADENCES (temps unitaires), COEFFICIENTS CHANTIER
+   et Paramètres. Seules les données de cadence sont importées : les prix
+   fourniture / matériel et les onglets commerciaux du classeur ne le sont pas.
+   Temps unitaires en h/unité pour 1 compagnon ; cadence std = journée / temps.
    ------------------------------------------------------------------------- */
 const HEURES_JOUR = 8;
-// Coefficients partagés
-const CO_SURF = [['0 à 50 m²', 1.3], ['50 à 200 m²', 1.1], ['200 à 500 m²', 1.0], ['500 à 1000 m²', 0.95], ['supérieure à 1000 m²', 0.9]];
-const CO_EXI = [['Très faible', 1.0], ['Faible', 1.02], ['Modérée', 1.05], ['Élevée', 1.08]];
-const CO_ENV = [['Faible', 1.0], ['Modérée', 1.05], ['Élevé', 1.15]];
-const CO_CPLX = [['Simple (2 pans)', 1.0], ['Modérée (croupes, noues)', 1.1], ['Complexe (lucarnes, multi-pans)', 1.2]];
-const APPRO_TOIT = [['R+0 (échafaudage)', 0.08], ['R+1', 0.12], ['R+2 à R+6 (grue/monte-mat.)', 0.18], ['supérieure à R+6', 0.25]];
+const CAD_PARAMS = { heuresJour: 8, heuresJourFacade: 8, tauxMO: 44, tauxMOFacade: 42, coefEntreprise: 1.35, seuilEcart: 0.2 };
 
-const CAD_METIERS = {
-  etancheite: {
-    label: 'Étanchéité', ico: 'layers',
-    coeffs: {
-      surface: { label: 'Surface de terrasse', def: 2, opts: CO_SURF },
-      emergence: { label: "Densité d'émergences", opts: [['0 à 10 % (peu encombrée)', 1.0], ['10 à 20 %', 1.1], ['supérieure à 20 %', 1.15]] },
-      risque: { label: 'Facteur de risque', opts: [['Très faible', 1.0], ['Faible', 1.05], ['Modéré', 1.1], ['Élevé', 1.15]] },
-      exigence: { label: 'Exigence qualité client', opts: CO_EXI },
-      environnement: { label: 'Environnement / sécurité', opts: CO_ENV },
-    },
-    appro: { label: "Hauteur d'élévation (approvisionnement)", def: 2, opts: [['R+0 (chariot)', 0.10], ['R+1 (manuscopique)', 0.15], ['R+2 à R+6 (grue)', 0.22], ['supérieure à R+6 (grue)', 0.30]] },
-    inputs: [{ key: 'surface', label: 'Surface de terrasse (m²)', def: 300, unit: 'm²' }, { key: 'mlong', label: 'Métré linéaire relevés / costières (mL)', def: 80, unit: 'mL' }],
-    tasksSurf: {
-      depose_protection: { label: 'Dépose de la protection', def: 1, opts: [['Pas de protection', 0], ['Gravillon', 0.10], ['Dalles sur plots (réutilisation)', 0.20], ['Dalles sur plots (évacuation)', 1.0]] },
-      depose_complexe: { label: "Dépose du complexe d'étanchéité", def: 4, opts: [['Pas de dépose', 0], ['Monocouche synthétique (fixée méca.)', 0.06], ['Monocouche synthétique (collée)', 0.08], ['Monocouche bitume (autoprotégée)', 0.10], ['Multi-couches (léger)', 0.12], ['Multi-couches (moyen)', 0.15], ['Multi-couches (lourd)', 0.42], ['Multi-couches (très lourd)', 0.45]] },
-      vernis: { label: 'Vernis (EIF)', def: 1, opts: [['Pas de vernis', 0], ['Vernis (EIF - Aquadère)', 0.015]] },
-      parevapeur: { label: 'Pare-vapeur', def: 4, opts: [['Pas de pare-vapeur', 0], ['VAP ou acoustique (soudé)', 0.015], ['VAP adhésif (à froid)', 0.025], ['VAP adhésif (froid, complexe)', 0.07], ['Hyrène 25/25 (béton)', 0.035]] },
-      isolant: { label: "Isolant (hors d'eau)", def: 1, opts: [["Pas d'isolant", 0], ['Polyuréthane ou PSE', 0.03], ['Laine de roche nue', 0.04], ['Laine de roche nue (2 lits)', 0.07], ['Laine de roche soudée', 0.05], ['Laine de roche soudée (2 lits)', 0.08], ['Verre cellulaire (Foamglas)', 0.10]] },
-      couche1: { label: "1ère couche d'étanchéité", def: 1, opts: [['Pas de 1ère couche', 0], ['TOPFIX FMP (fixée)', 0.0375]] },
-      couche2: { label: "2nde couche / finition", def: 1, opts: [['Pas de 2nde couche', 0], ['TOPAZ soudé (ardoisé)', 0.0375]] },
-      monocouche: { label: 'Étanchéité monocouche (membrane synthétique)', def: 0, opts: [['Pas de monocouche', 0], ['Membrane PVC (fixée méca.)', 0.04], ['Membrane PVC (collée)', 0.055], ['Membrane TPO/FPO (soudée)', 0.05], ['Membrane EPDM (collée)', 0.06], ['Bitume monocouche autoprotégé (soudé)', 0.045]] },
-      bacacier: { label: 'Support bac acier', opts: [['Pas de bac acier', 0], ['Bac acier moyen', 0.025]] },
-    },
-    tasksLin: {
-      gc_depose: { label: 'Dépose de garde-corps (si existant)', input: 'mlong', def: 0, opts: [['Pas de dépose', 0], ['Autoportant / à contrepoids', 0.08], ['Sur platine (dévissé)', 0.10], ['Provisoire (chantier)', 0.06], ['Scellé (dépose + réfection support)', 0.22]] },
-      securite: { label: 'Pose de garde-corps (tout type)', input: 'mlong', def: 3, opts: [['Pas de garde-corps', 0], ['Autoportant / à contrepoids (lesté)', 0.20], ['Sur platine (vissé)', 0.30], ['Potelets + lisses / filins (à sceller)', 0.35], ['En applique sur acrotère', 0.40], ['Repliable / escamotable', 0.45], ['Provisoire (potelets + filet)', 0.25]] },
-      equerres_pv: { label: 'Équerres pare-vapeur', input: 'mlong', def: 1, opts: [["Pas d'équerre", 0], ['Hyrène PY 35', 0.06]] },
-      releves: { label: "Relevés d'étanchéité", input: 'mlong', def: 3, opts: [['Pas de relevé', 0], ['Isolation verticale (simple)', 0.05], ['Isolation verticale (double)', 0.07], ['Autoprotégée ALUVEL ht 0,15', 0.10], ['Autoprotégée ALUVEL ht 0,50', 0.12], ['ARMA ALU ht 0,15', 0.08], ['ARMA ALU ht 0,50', 0.09], ['Membrane PVC fixée', 0.06]] },
-      costieres: { label: 'Costières', input: 'mlong', opts: [['Pas de costière', 0], ['Costière 1 pli acier', 0.04], ['Costière renforcée', 0.06], ['Costière voûtes filantes', 0.30]] },
-      couvertines: { label: 'Couvertines / finitions', input: 'mlong', def: 1, opts: [['Pas de couvertine', 0], ['Couvertines', 0.20]] },
-    },
-  },
+/* Coefficients pondérateurs (onglet COEFFICIENTS CHANTIER) : [situation, coeff., note] */
+const CAD_COEFFS = [
+  { key: 'surface', label: "1. Surface à traiter", def: 2, opts: [
+    ["0 à 50 m²", 1.3, "Petite surface → peu de compagnons, difficile d'industrialiser"],
+    ["50 à 200 m²", 1.1, "Surface moyenne, organisation possible"],
+    ["200 à 500 m²", 1.0, "Référence – cadence standard"],
+    ["500 à 1 000 m²", 0.95, "Grande surface → meilleure productivité"],
+    ["Supérieure à 1 000 m²", 0.9, "Très grande surface, effet d'industrialisation"],
+  ] },
+  { key: 'emergences', label: "2. Densité d'émergences", def: 0, opts: [
+    ["0 à 10 % de la surface", 1.0, "Peu d'émergences – référence"],
+    ["10 à 20 %", 1.1, "Encombrée – calcul : nb émergences / surface × 100"],
+    ["Supérieure à 20 %", 1.15, "Très encombrée – terrasse technique"],
+  ] },
+  { key: 'coactivite', label: "3. Coactivité (autres corps)", def: 0, opts: [
+    ["Très faible / SMAC seul", 1.0, "Référence – 90 % des cas"],
+    ["Faible – perturbation épisodique", 1.05, "Présence d'autres corps mais tolérable"],
+    ["Modérée – frein régulier", 1.1, "Retouches et arrêts fréquents"],
+    ["Élevée – interruptions constantes", 1.15, "Planning à risque"],
+  ] },
+  { key: 'qualite', label: "4. Exigence qualité client", def: 0, opts: [
+    ["Très faible / confiance totale", 1.0, "Aucune retouche imposée"],
+    ["Faible – contrôles occasionnels", 1.02, "Retouches rares"],
+    ["Modérée (ex. LIDL)", 1.05, "Retouches régulières"],
+    ["Élevée (ex. Data Center)", 1.08, "Attention particulière sur toute la pose"],
+  ] },
+  { key: 'securite', label: "5. Environnement sécuritaire", def: 0, opts: [
+    ["Faible – accès direct", 1.0, "Aucune contrainte administrative"],
+    ["Modéré – badge / poste de garde", 1.03, "≈ 10-20 min perdues/jour"],
+    ["Élevé – nacelle + gardien bas", 1.1, "≈ 1 h perdue/jour – prévoir équipe ++"],
+  ] },
+  { key: 'hauteur', label: "6. Hauteur du bâtiment", def: 0, opts: [
+    ["0 à 12 m (R+0 à R+3)", 1.0, "Référence"],
+    ["12 à 16 m", 1.04, "Temps d'approvisionnement allongé"],
+    ["16 à 20 m", 1.1, "Grue recommandée"],
+    ["Supérieure à 20 m", 1.2, "Impact fort sur logistique verticale"],
+  ] },
+  { key: 'distance', label: "7. Distance stock → chantier", def: 0, opts: [
+    ["0 à 30 m sans obstacle", 1.0, "Référence asphalte – porteurs standards"],
+    ["0 à 10 m (façade)", 1.0, "Référence façades"],
+    ["10 à 50 m (façade)", 1.05, "≈ 1 h perdue/jour pour équipe de 3"],
+    ["Supérieure à 50 m (façade)", 1.1, "≈ 2 h perdues/jour"],
+  ] },
+  { key: 'meteo', label: "8. Météo / saison", def: 0, opts: [
+    ["Conditions normales", 1.0, "Référence"],
+    ["Période hivernale / vent", 1.1, "Séchage, soudure et manutention ralentis"],
+  ] },
+];
 
-  tuiles: {
-    label: 'Tuiles', ico: 'building',
-    coeffs: {
-      surface: { label: 'Surface de couverture (rampant)', def: 2, opts: CO_SURF },
-      pente: { label: 'Pente du toit', opts: [['Faible (< 30 %)', 1.0], ['Moyenne (30 à 60 %)', 1.05], ['Forte (60 à 100 %)', 1.12], ['Très forte (> 100 %)', 1.25]] },
-      complexite: { label: 'Complexité de la toiture', opts: CO_CPLX },
-      exigence: { label: 'Exigence qualité', opts: CO_EXI },
-      environnement: { label: 'Environnement / sécurité', opts: CO_ENV },
-    },
-    appro: { label: "Hauteur d'élévation", def: 1, opts: APPRO_TOIT },
-    inputs: [
-      { key: 'surface', label: 'Surface de couverture (m²)', def: 120, unit: 'm²' },
-      { key: 'faitage', label: 'Faîtage / arêtiers (mL)', def: 15, unit: 'mL' },
-      { key: 'rives', label: 'Rives (mL)', def: 20, unit: 'mL' },
-      { key: 'noues', label: 'Noues (mL)', def: 8, unit: 'mL' },
-      { key: 'egout', label: 'Égout / bande d\'égout (mL)', def: 20, unit: 'mL' },
-      { key: 'velux', label: 'Fenêtres de toit (nb)', def: 0, unit: 'u' },
-    ],
-    tasksSurf: {
-      depose: { label: 'Dépose de la couverture', def: 1, opts: [['Pas de dépose', 0], ['Dépose tuiles (récupération)', 0.15], ['Dépose tuiles (évacuation)', 0.20]] },
-      ecran: { label: 'Écran de sous-toiture', def: 1, opts: [["Pas d'écran", 0], ['Écran HPV', 0.06]] },
-      support: { label: 'Support / liteaunage', def: 1, opts: [['Support existant', 0], ['Liteaunage', 0.12], ['Voligeage + contre-lattage', 0.20]] },
-      pose: { label: 'Pose des tuiles', def: 1, opts: [['Pas de pose', 0], ['Mécaniques grand moule (~10/m²)', 0.30], ['Béton grand moule', 0.32], ['Mécaniques petit moule (~20/m²)', 0.45], ['Canal (à recouvrement)', 0.55], ['Plates (~60/m²)', 0.95]] },
-    },
-    tasksLin: {
-      faitage: { label: 'Faîtage / arêtiers', input: 'faitage', def: 2, opts: [['Aucun', 0], ['Faîtage ventilé à sec', 0.30], ['Faîtage scellé au mortier', 0.45]] },
-      rives: { label: 'Rives', input: 'rives', def: 1, opts: [['Aucune', 0], ['Rive à sec (rive universelle)', 0.22], ['Rive scellée', 0.30]] },
-      noues: { label: 'Noues', input: 'noues', def: 1, opts: [['Aucune', 0], ['Noue zinc', 0.55], ['Noue tuiles fermée', 0.70]] },
-      egout: { label: 'Égout', input: 'egout', def: 1, opts: [['Aucun', 0], ['Bande d\'égout + closoir', 0.15]] },
-      velux: { label: 'Fenêtres de toit', input: 'velux', opts: [['Aucune', 0], ['Pose fenêtre de toit', 5.0]] },
-    },
-  },
+/* Sections et familles du référentiel */
+const CAD_SECTIONS = [
+  "DÉPOSE & PRÉPARATION DU SUPPORT",
+  "ÉTANCHÉITÉ — Vernis & pare-vapeur",
+  "ÉTANCHÉITÉ — Isolation thermique de toiture",
+  "ÉTANCHÉITÉ — 1re couche",
+  "ÉTANCHÉITÉ — Coulage asphalte",
+  "ÉTANCHÉITÉ — 2e couche, relevés & finitions",
+  "ÉTANCHÉITÉ — Émergences & points singuliers",
+  "COMPLEXES D'ÉTANCHÉITÉ COMPLETS — Sans isolant / sans protection lourde (autoprotégé)",
+  "COMPLEXES D'ÉTANCHÉITÉ COMPLETS — Sans isolant / avec protection lourde",
+  "COMPLEXES D'ÉTANCHÉITÉ COMPLETS — Avec isolant / sans protection lourde (autoprotégé)",
+  "COMPLEXES D'ÉTANCHÉITÉ COMPLETS — Avec isolant / avec protection lourde",
+  "ÉVACUATION DES EAUX PLUVIALES (EEP)",
+  "ÉQUIPEMENTS DE TOITURE — Lanterneaux, fenêtres de toit & désenfumage",
+  "COUVERTURE — Bacs, panneaux & accessoires",
+  "POLYCARBONATE — Éclairement zénithal, voûtes, verrières & entretien",
+  "COUVERTURE TRADITIONNELLE — Tuile, ardoise & fibrociment",
+  "AMIANTE — Intervention en sous-section 4 (SS4)",
+  "DÉMOUSSAGE & ENTRETIEN — Toiture traditionnelle (tuile, ardoise, fibrociment)",
+  "SÉCURITÉ — Protections définitives & garde-corps",
+  "SÉCURITÉ — Protections provisoires & organisation de chantier",
+  "LEVAGE & MANUTENTION",
+  "MISE À DISPOSITION DE MOYENS & SÉCURISATION DU SITE",
+  "ÉCHAFAUDAGES — Fixe de pied, roulant, encorbellement & parapluie",
+  "NETTOYAGE & ENTRETIEN DE TOITURE",
+  "ENTRETIEN — Toiture-terrasse & contrats de maintenance",
+  "RECHERCHE DE FUITE & DIAGNOSTIC",
+  "FAÇADES & BARDAGE — Ossatures & isolation",
+  "FAÇADES & BARDAGE — Peau extérieure, encadrements & finitions",
+  "PRESTATIONS SAS — Études, gestion & frais de chantier",
+];
+const CAD_FAMILLES = [
+  "Dépose protection",
+  "Dépose complexe",
+  "Dépose MHE",
+  "Dépose ouvrages métal.",
+  "Vernis",
+  "Pare-vapeur",
+  "Équerres PV",
+  "Isolation",
+  "1re couche",
+  "Équerres renfort",
+  "Coulage asphalte",
+  "Tonnage / équipe",
+  "2e couche",
+  "Relevés",
+  "Solin",
+  "Couvertines",
+  "Costières",
+  "Protection",
+  "Reprise émergence",
+  "Émergences techniques",
+  "Complexe sans iso – AP",
+  "Complexe sans iso – PL",
+  "Complexe iso – AP",
+  "Complexe iso – PL",
+  "Sortie EP",
+  "Accessoires EP",
+  "Descentes EP",
+  "Chéneaux & gouttières",
+  "Lanterneaux",
+  "Désenfumage",
+  "Fenêtres de toit",
+  "Accès toiture",
+  "Dépose couverture",
+  "Couverture sèche",
+  "Couverture zinc",
+  "Accessoires couv.",
+  "Dépose polycarbonate",
+  "Toiture polycarbonate",
+  "Accessoires polycarb.",
+  "Entretien polycarb.",
+  "Dépose tradi",
+  "Support tradi",
+  "Tuile",
+  "Ardoise",
+  "Autres couv. tradi",
+  "Points singuliers tradi",
+  "Amiante – études",
+  "Amiante – installation",
+  "Amiante – retrait",
+  "Amiante – déchets",
+  "Amiante – contrôle",
+  "Démoussage",
+  "Hydrofuge",
+  "Entretien tradi",
+  "Garde-corps",
+  "Circulation",
+  "Ligne de vie",
+  "Protection collective",
+  "Balisage & orga.",
+  "Levage",
+  "Manutention",
+  "Gravillons",
+  "Nacelle – exploitation",
+  "Sécurisation du site",
+  "Échafaudage fixe",
+  "Échafaudage roulant",
+  "Échafaudages spéciaux",
+  "Échafaudage – études",
+  "Échafaudage – contrôle",
+  "Nettoyage",
+  "Visite d'entretien",
+  "Entretien terrasse",
+  "Recherche de fuite",
+  "Diagnostic",
+  "Peau intérieure",
+  "1re ossature",
+  "2e ossature",
+  "Isolation façade",
+  "Pare-air / pluie",
+  "Peau ext.",
+  "Encadrements",
+  "Finitions bardage",
+  "Prestations SAS",
+];
 
-  ardoise: {
-    label: 'Ardoise', ico: 'layers',
-    coeffs: {
-      surface: { label: 'Surface de couverture (rampant)', def: 2, opts: CO_SURF },
-      pente: { label: 'Pente du toit', opts: [['< 60 %', 1.0], ['60 à 100 %', 1.08], ['> 100 %', 1.2]] },
-      complexite: { label: 'Complexité de la toiture', opts: CO_CPLX },
-      exigence: { label: 'Exigence qualité', def: 2, opts: CO_EXI },
-      environnement: { label: 'Environnement / sécurité', opts: CO_ENV },
-    },
-    appro: { label: "Hauteur d'élévation", def: 1, opts: APPRO_TOIT },
-    inputs: [
-      { key: 'surface', label: 'Surface de couverture (m²)', def: 100, unit: 'm²' },
-      { key: 'faitage', label: 'Faîtage / arêtiers (mL)', def: 12, unit: 'mL' },
-      { key: 'rives', label: 'Rives (mL)', def: 16, unit: 'mL' },
-      { key: 'noues', label: 'Noues (mL)', def: 6, unit: 'mL' },
-      { key: 'egout', label: 'Égout (mL)', def: 16, unit: 'mL' },
-    ],
-    tasksSurf: {
-      depose: { label: 'Dépose de la couverture', def: 1, opts: [['Pas de dépose', 0], ['Dépose ardoise (récup.)', 0.20], ['Dépose ardoise (évac.)', 0.25]] },
-      ecran: { label: 'Écran de sous-toiture', def: 1, opts: [["Pas d'écran", 0], ['Écran HPV', 0.06]] },
-      support: { label: 'Support', def: 1, opts: [['Support existant', 0], ['Liteaunage', 0.12], ['Voligeage', 0.22]] },
-      pose: { label: 'Pose des ardoises', def: 1, opts: [['Pas de pose', 0], ['Fibre-ciment', 0.55], ['Naturelle au crochet (32×22)', 1.10], ['Naturelle au clou', 1.40], ['Naturelle petit format (22×16)', 1.70]] },
-    },
-    tasksLin: {
-      faitage: { label: 'Faîtage / arêtiers', input: 'faitage', def: 1, opts: [['Aucun', 0], ['Faîtage à sec / closoir', 0.50], ['Faîtage scellé', 0.60]] },
-      rives: { label: 'Rives', input: 'rives', def: 1, opts: [['Aucune', 0], ['Rives ardoise', 0.35]] },
-      noues: { label: 'Noues', input: 'noues', def: 1, opts: [['Aucune', 0], ['Noue zinc fermée', 0.60], ['Noue tissée (ardoise)', 1.00]] },
-      egout: { label: 'Égout', input: 'egout', def: 1, opts: [['Aucun', 0], ['Bande d\'égout', 0.15]] },
-    },
-  },
+/* Ouvrages : [réf, section, famille, désignation, descriptif, support, unité, temps h/u] */
+const CAD_I = { REF: 0, SEC: 1, FAM: 2, DES: 3, DESC: 4, SUP: 5, U: 6, H: 7 };
+const CAD_OUVRAGES = [
+  ["DEP-001", 0, 0, "Dépose protection gravillons", "Enlèvement manuel de la protection gravillons existante, tri éventuel, mise en big-bags pour évacuation. Comprend la sécurisation de la zone et le nettoyage du support après dépose.", "béton/acier", "m²", 0.1],
+  ["DEP-002", 0, 0, "Dépose dalles sur plots – évacuées", "Dépose complète des dalles existantes, manutention, tri et évacuation en décharge agréée. Plots retirés si nécessaire, zone laissée propre et prête à recevoir les nouveaux ouvrages.", "béton", "m²", 1.0],
+  ["DEP-003", 0, 0, "Dépose dalles sur plots – réutilisées", "Dépose soignée des dalles avec stockage sur zone pour réemploi. Manipulation avec précaution pour éviter les casses, nettoyage du support inclus.", "béton", "m²", 0.2],
+  ["DEP-004", 0, 1, "Dépose multicouche indépendant sans PV", "Dépose du complexe bitumineux posé librement, grattage des résidus, évacuation des déchets et préparation du support. Intervention selon les règles de sécurité.", "béton", "m²", 0.12],
+  ["DEP-005", 0, 1, "Dépose multicouche en adhérence sans PV", "Décollage du complexe soudé en plein, grattage complet du support, évacuation des déchets et nettoyage avant repose.", "béton", "m²", 0.15],
+  ["DEP-006", 0, 1, "Dépose multicouche en adhérence + PV", "Dépose d'un complexe bitumineux soudé en plein avec pare-vapeur intégré. Décollage thermique, grattage, évacuation des déchets et nettoyage du support.", "béton", "m²", 0.42],
+  ["DEP-007", 0, 1, "Dépose multicouche indépendant + PV", "Dépose d'un complexe indépendant comprenant un pare-vapeur. Retrait des couches successives, grattage, évacuation et préparation du support.", "béton", "m²", 0.45],
+  ["DEP-008", 0, 1, "Dépose complexe asphalte", "Découpe et dépose d'un complexe en asphalte coulé, évacuation des matériaux et nettoyage du support. Outillage spécifique et règles de sécurité renforcées.", "béton", "m²", 0.42],
+  ["DEP-009", 0, 1, "Dépose isolant thermique existant", "Retrait des panneaux isolants en place, tri par nature de matériau, mise en big-bags et évacuation en filière adaptée.", "béton/acier", "m²", 0.08],
+  ["DEP-010", 0, 2, "Dépose mise hors d'eau sur béton", "Retrait de la mise hors d'eau provisoire, enlèvement des lés, nettoyage du support et évacuation des déchets.", "béton", "m²", 0.3],
+  ["DEP-011", 0, 2, "Dépose mise hors d'eau sur acier", "Dépose de la mise hors d'eau existante sur support acier, retrait des fixations, nettoyage et évacuation.", "acier", "m²", 0.3],
+  ["DEP-012", 0, 3, "Dépose couvertine acier / zinc / alu", "Dépose mécanique des couvertines existantes, démontage des fixations, tri des matériaux et stockage ou évacuation selon besoin. Nettoyage de l'acrotère inclus.", "béton/acier", "ml", 0.057],
+  ["DEP-013", 0, 3, "Dépose costière métallique existante", "Découpe et démontage de la costière en place, retrait des fixations et reprise du support avant repose d'une costière neuve.", "béton/acier", "ml", 0.25],
+  ["PVA-001", 1, 4, "Vernis EIF ANTAC / ANTAC GC", "Application d'un vernis bitumineux à froid améliorant l'adhérence du pare-vapeur ou de la première couche d'étanchéité. Mise en œuvre au rouleau ou par pulvérisation.", "béton", "m²", 0.015],
+  ["PVA-002", 1, 5, "Hyrène 25/25 TS sur béton", "Fourniture et pose d'un pare-vapeur bitumineux soudé au chalumeau, assurant l'étanchéité à la vapeur d'eau et la protection du complexe isolant. Joints soudés et contrôlés.", "béton", "m²", 0.036],
+  ["PVA-003", 1, 5, "Hyrène 25/25 TS sur acier", "Pose d'un pare-vapeur bitumineux adapté aux supports métalliques, soudé ou collé selon configuration. Continuité assurée sur relevés et émergences.", "acier", "m²", 0.015],
+  ["PVA-004", 1, 5, "Antivap (alu bitumé)", "Pose d'un pare-vapeur armé aluminium, collé ou soudé selon support. Produit adapté aux locaux à forte hygrométrie.", "béton", "m²", 0.035],
+  ["PVA-005", 1, 6, "Équerre PV Hyrène 35 PY", "Réalisation des relevés en pare-vapeur en pied d'acrotère ou d'émergence. Découpe, soudure et continuité parfaite avec le pare-vapeur horizontal.", "béton/acier", "ml", 0.06],
+  ["PVA-006", 1, 6, "Équerre PV Force 4000 SA", "Pose d'équerres auto-adhésives assurant la continuité du pare-vapeur sur les relevés. Marouflage complet et contrôle de l'adhérence.", "béton/acier", "ml", 0.06],
+  ["ISO-001", 2, 7, "PUR / PSE – posé libre", "Pose de panneaux isolants posés librement sur le pare-vapeur. Alignement, calage et traitement des joints.", "béton", "m²", 0.019],
+  ["ISO-002", 2, 7, "PUR / PSE – collé", "Collage des panneaux isolants sur le support au bitume chaud ou à la colle adaptée. Pose soignée garantissant la planéité du complexe.", "béton", "m²", 0.039],
+  ["ISO-003", 2, 7, "PUR / PSE – fixé mécaniquement", "Fixation mécanique des panneaux isolants sur support béton ou acier. Pose conforme aux prescriptions de résistance au vent.", "béton/acier", "m²", 0.039],
+  ["ISO-004", 2, 7, "Laine de roche – posée libre", "Pose de panneaux en laine minérale, calage et ajustement. Isolation incombustible adaptée aux toitures techniques.", "béton", "m²", 0.03],
+  ["ISO-005", 2, 7, "Laine de roche – collée", "Collage des panneaux de laine de roche pour assurer la tenue au vent. Traitement des joints et ajustements.", "béton", "m²", 0.05],
+  ["ISO-006", 2, 7, "Laine de roche – fixée mécaniquement", "Fixation mécanique des panneaux de laine de roche sur bac acier, densité de fixations selon la zone de vent et calepinage à joints décalés.", "acier", "m²", 0.045],
+  ["ISO-007", 2, 7, "Verre cellulaire Foamglas EAC", "Pose de panneaux en verre cellulaire collés au bitume chaud. Isolation incompressible, incombustible et étanche à la vapeur.", "béton", "m²", 0.1],
+  ["ISO-008", 2, 7, "Verre cellulaire pente intégrée EAC", "Pose de panneaux Foamglas préformés en pente pour assurer l'écoulement des eaux. Collage bitume chaud et ajustement précis.", "béton", "m²", 0.15],
+  ["ISO-009", 2, 7, "Panneaux de pente PSE (forme de pente)", "Fourniture et pose de panneaux de pente rapportés suivant calepinage, pour créer ou rattraper une pente vers les EP.", "béton", "m²", 0.045],
+  ["ET1-001", 3, 8, "Baryprène 20I soudé aux joints", "Soudure au chalumeau d'une première couche bitumineuse, joints chevauchés et contrôlés. Constitue la base du complexe bicouche.", "béton", "m²", 0.034],
+  ["ET1-002", 3, 8, "Baryprène 25ST/SIA soudé aux joints", "Pose d'une membrane bitumineuse renforcée, soudée aux joints. Préparation optimale pour la seconde couche autoprotégée.", "béton", "m²", 0.036],
+  ["ET1-003", 3, 8, "Baryprène 3000 SA / Force 4000 aux joints", "Membrane auto-adhésive posée à froid, adaptée aux supports sensibles au feu. Marouflage complet pour garantir l'adhérence.", "béton", "m²", 0.036],
+  ["ET1-004", 3, 8, "Baryprène 3000 SA soudé en plein", "Soudure en plein d'une membrane auto-adhésive ou soudable selon système. Assure une parfaite continuité du complexe.", "béton", "m²", 0.036],
+  ["ET1-005", 3, 8, "1re couche fixée mécaniquement", "Fixation mécanique de la membrane sur support acier, joints soudés ou collés selon système. Pose conforme aux prescriptions de résistance au vent.", "acier", "m²", 0.038],
+  ["ET1-006", 3, 9, "Équerre de renfort Hyrène PY 35", "Pose d'équerres de renfort en pied de relevé ou en zone sensible. Soudure en plein et contrôle de la continuité.", "béton/acier", "ml", 0.06],
+  ["ASP-001", 4, 10, "Asphalte EG22 50 kg/m² ép. 20 mm", "Application manuelle d'un asphalte coulé à chaud, épaisseur 20 mm. Produit durable, résistant et parfaitement étanche.", "béton/acier", "m²", 0.053],
+  ["ASP-002", 4, 10, "Asphalte NG22 63 kg/m² ép. 25 mm", "Asphalte coulé épaisseur 25 mm, adapté aux toitures techniques et zones de circulation. Mise en œuvre par équipe spécialisée.", "béton/acier", "m²", 0.067],
+  ["ASP-003", 4, 10, "Asphalte NG20 50 kg/m² ép. 20 mm", "Asphalte coulé à chaud, finition talochée. Produit résistant aux chocs et aux variations thermiques.", "béton/acier", "m²", 0.053],
+  ["ASP-004", 4, 10, "Asphalte NG23 70 kg/m² ép. 25 mm", "Asphalte haute densité pour zones à forte sollicitation. Mise en œuvre en équipe spécialisée.", "béton/acier", "m²", 0.073],
+  ["ASP-005", 4, 10, "Asphalte NS10/NS20 38 kg/m² ép. 15 mm", "Asphalte léger pour couche de protection ou couche d'usure. Application manuelle ou mécanique.", "béton/acier", "m²", 0.04],
+  ["ASP-006", 4, 11, "Production équipe CA 8T – 1 applicateur", "Production journalière d'une équipe asphalte équipée d'un four 8 tonnes. Rendement indicatif selon conditions de chantier.", "", "t", 0.32],
+  ["ASP-007", 4, 11, "Production équipe CA 12T – 2 applicateurs", "Production journalière d'une équipe asphalte équipée d'un four 12 tonnes. Rendement optimisé pour grandes surfaces.", "", "t", 0.229],
+  ["ET2-001", 5, 12, "Autoprotégée soudée en plein", "Soudure en plein d'une membrane autoprotégée (ardoisée ou aluminium) assurant l'étanchéité finale. Lés marouflés et contrôlés pour une parfaite continuité.", "béton/acier", "m²", 0.035],
+  ["ET2-002", 5, 12, "Autoprotégée soudée aux joints", "Pose d'une membrane autoprotégée soudée uniquement aux recouvrements. Solution adaptée aux supports sensibles à la chaleur. Contrôle systématique des soudures.", "béton/acier", "m²", 0.036],
+  ["ET2-003", 5, 12, "2e couche non autoprotégée soudée en plein (sous protection)", "Soudure en plein d'une seconde couche bitumineuse sans autoprotection minérale, destinée à recevoir une protection lourde rapportée.", "béton/acier", "m²", 0.034],
+  ["ET2-004", 5, 13, "Relevés non isolés", "Réalisation d'un relevé d'étanchéité bitumineux sur acrotère ou émergence non isolée : équerre de renfort, relevé soudé et finition en tête.", "béton/acier", "ml", 0.119],
+  ["ET2-005", 5, 13, "Relevés isolés (iso + équerre + relevé)", "Relevé complet comprenant l'isolation du talon, l'équerre de renfort et la membrane de relevé soudée. Traitement des angles compris.", "béton/acier", "ml", 0.214],
+  ["ET2-006", 5, 13, "ALUVER 50 TS ht 0,15 m", "Pose d'une membrane de relevé autoprotégée aluminium hauteur 0,15 m, soudée en plein avec finition en tête.", "béton", "ml", 0.1],
+  ["ET2-007", 5, 13, "ALUVER 50 TS ht 0,50 m", "Pose d'une membrane de relevé autoprotégée aluminium hauteur 0,50 m, soudée en plein avec finition en tête.", "béton", "ml", 0.12],
+  ["ET2-008", 5, 13, "ARMA ALU ht 0,15 m", "Relevé bitumineux autoprotégé aluminium hauteur 0,15 m. Soudure au chalumeau et contrôle des recouvrements.", "béton", "ml", 0.08],
+  ["ET2-009", 5, 13, "ARMA ALU ht 0,50 m", "Relevé bitumineux autoprotégé aluminium hauteur 0,50 m. Soudure au chalumeau et contrôle des recouvrements.", "béton", "ml", 0.09],
+  ["ET2-010", 5, 14, "Solin à joint comprimé", "Pose d'un solin de finition en tête de relevé avec joint comprimé, fixation mécanique et calfeutrement au mastic.", "béton", "ml", 0.129],
+  ["ET2-011", 5, 14, "Solin ALU brut porte-dalle", "Pose d'un solin aluminium porte-dalle en tête de relevé, fixations et calfeutrement compris.", "béton", "ml", 0.14],
+  ["ET2-012", 5, 15, "Couvertine acier galvanisé dév. 500 mm", "Fourniture et pose d'une couvertine acier sur acrotère : éclisses, pattes de fixation, réglage de pente et traitement des angles.", "béton", "ml", 0.197],
+  ["ET2-013", 5, 15, "Couvertine zinc 33/45 cm", "Fourniture et pose d'une couvertine zinc façonnée, joints debout ou agrafés, pattes et bandes de pontage comprises.", "béton", "ml", 0.4],
+  ["ET2-014", 5, 15, "Couvertine zinc prépatiné 33/44 cm", "Couvertine zinc prépatiné façonnée sur mesure, pose sur pattes avec traitement des dilatations et des angles.", "béton", "ml", 0.4],
+  ["ET2-015", 5, 15, "Rive alu brut 50/100 + bande de pontage", "Pose d'une rive aluminium avec bande de pontage assurant la continuité de l'étanchéité en tête d'acrotère.", "béton", "ml", 0.22],
+  ["ET2-016", 5, 16, "Costière 1 pli acier ht ≤ 450 mm", "Fourniture et pose d'une costière métallique 1 pli isolée ou non, fixation sur support et mise à niveau.", "béton/acier", "ml", 0.04],
+  ["ET2-017", 5, 16, "Costière 1 pli acier ht 500–600 mm", "Costière métallique de grande hauteur pour lanterneau ou équipement technique. Fixation renforcée et calage.", "béton/acier", "ml", 0.06],
+  ["ET2-018", 5, 16, "Costière voûtes filantes ép. 20/10", "Costière continue pour voûte filante, assemblage par éclisses, réglage de l'alignement et de la planéité.", "béton/acier", "ml", 0.3],
+  ["ET2-019", 5, 16, "Isolation de costière laine minérale ép. 40 mm", "Habillage isolant de la costière en laine minérale, calage et maintien avant réalisation du relevé.", "béton/acier", "ml", 0.05],
+  ["ET2-020", 5, 17, "Protection gravillons roulés 15/25", "Fourniture et répartition d'une protection meuble en gravillons roulés lavés, épaisseur et granulométrie selon DTU.", "béton", "m²", 0.04],
+  ["ET2-021", 5, 17, "Dallettes béton sur plots", "Fourniture et pose de dallettes béton sur plots réglables, calepinage, réglage de niveau et coupes de rive.", "béton", "m²", 1.0],
+  ["ET2-022", 5, 17, "Écran de désolidarisation non-tissé polyester", "Déroulage d'un non-tissé de séparation entre le revêtement d'étanchéité et la protection lourde, recouvrements de 10 cm.", "béton", "m²", 0.01],
+  ["ET2-023", 5, 17, "Protection dure – chape béton armé ép. 4 cm", "Réalisation d'une chape de protection en béton armé de treillis, avec joints de fractionnement et désolidarisation en périphérie.", "béton", "m²", 0.25],
+  ["ET2-024", 5, 17, "Membrane anti-racines", "Pose d'une membrane bitumineuse anti-racines soudée en plein, en seconde couche ou en complément sous complexe végétalisé.", "béton", "m²", 0.04],
+  ["ET2-025", 5, 17, "Végétalisation extensive (drainage + substrat + sedum)", "Mise en place d'un complexe de végétalisation extensive : couche drainante, filtre, substrat allégé et tapis de sedum précultivé, bande stérile en périphérie.", "béton", "m²", 0.2],
+  ["EMG-001", 6, 18, "Reprise étanchéité sur socle béton – bicouche", "Reprise locale en pied de socle : grattage, nettoyage, primaire si nécessaire, équerre de renfort et relevé bitumineux soudé. Assure la continuité du complexe autour de l'émergence.", "béton", "u", 0.45],
+  ["EMG-002", 6, 18, "Reprise étanchéité sur costière acier existante", "Découpe et dépose partielle de l'ancien complexe, préparation du support acier, soudure d'une équerre bitumineuse et relevé complet. Traitement des angles et contrôle de l'adhérence.", "acier", "u", 0.55],
+  ["EMG-003", 6, 18, "Reprise étanchéité sur ventilation / sortie VMC", "Reprise complète autour d'une sortie de ventilation : nettoyage, renforts, relevé bitumineux soudé, traitement du col de cygne ou de la manchette existante.", "béton/acier", "u", 0.6],
+  ["EMG-004", 6, 19, "Étanchéité sur lanterneau – costière 1 pli", "Traitement complet de la costière : équerre de renfort, relevé bitumineux soudé, angles préformés et finition en tête selon configuration.", "béton/acier", "ml", 0.2],
+  ["EMG-005", 6, 19, "Étanchéité sur costière isolée (iso + équerre + relevé)", "Isolation de la costière, pose d'une équerre renforcée et relevé bitumineux complet. Adapté aux lanterneaux thermiques ou équipements sensibles.", "béton/acier", "ml", 0.32],
+  ["EMG-006", 6, 19, "Étanchéité sur pénétration circulaire Ø 50–200 mm", "Traitement d'une pénétration circulaire (gaine, tube, antenne) : découpe, manchette bitumineuse, soudure périphérique et renforts d'angles.", "béton/acier", "u", 0.5],
+  ["EMG-007", 6, 19, "Étanchéité sur plot / massif technique (CVC, PV)", "Traitement d'un plot support d'équipement : équerre, relevé soudé et protection en tête. Comprend la reprise de l'étanchéité horizontale en périphérie.", "béton", "u", 0.7],
+  ["EMG-008", 6, 19, "Joint de dilatation plat sur toiture", "Réalisation d'un joint de dilatation en toiture : costières, soufflet d'étanchéité, relevés de part et d'autre et couvre-joint métallique.", "béton", "ml", 0.55],
+  ["CXA-001", 7, 20, "Bicouche autoprotégé sur béton – sans isolant", "Complexe complet en partie courante : vernis d'imprégnation, 1re couche soudée en plein, 2e couche autoprotégée ardoisée soudée en plein. Toiture inaccessible sur local non chauffé ou isolation sous dalle.", "béton", "m²", 0.086],
+  ["CXA-002", 7, 20, "Bicouche autoprotégé en rénovation sur ancien complexe", "Réfection par recouvrement d'un complexe existant sain après préparation : 1re couche semi-indépendante soudée aux joints puis autoprotégée soudée en plein.", "béton", "m²", 0.069],
+  ["CXA-003", 7, 20, "Bicouche autoprotégé sur béton – support sensible (auto-adhésif)", "Complexe réalisé sans flamme sur la 1re couche : vernis, 1re couche auto-adhésive, autoprotégée soudée aux joints uniquement.", "béton", "m²", 0.087],
+  ["CXB-001", 8, 21, "Bicouche sous gravillons sur béton – sans isolant", "Vernis, 1re couche soudée aux joints, 2e couche non autoprotégée soudée en plein, écran de désolidarisation et protection gravillons roulés. Toiture inaccessible.", "béton", "m²", 0.133],
+  ["CXB-002", 8, 21, "Bicouche sous dalles sur plots – sans isolant", "Vernis, 1re couche soudée en plein, 2e couche non autoprotégée et dallettes béton sur plots réglables. Terrasse accessible aux piétons.", "béton", "m²", 1.085],
+  ["CXB-003", 8, 21, "Bicouche sous protection dure béton – sans isolant", "Vernis, bicouche soudée en plein, écran de désolidarisation et chape béton armé fractionnée. Terrasse technique ou circulable.", "béton", "m²", 0.345],
+  ["CXB-004", 8, 21, "Asphalte EG22 sur écran + gravillons – sans isolant", "Écran de désolidarisation, asphalte coulé EG22 épaisseur 20 mm et protection gravillons roulés.", "béton", "m²", 0.103],
+  ["CXC-001", 9, 22, "Béton + PV + PUR collé + bicouche autoprotégé", "Vernis, pare-vapeur soudé, isolant PUR collé, 1re couche auto-adhésive soudée aux joints et autoprotégée soudée en plein. Toiture inaccessible sur local chauffé.", "béton", "m²", 0.161],
+  ["CXC-002", 9, 22, "Béton + PV + laine de roche collée + bicouche autoprotégé", "Vernis, pare-vapeur, laine de roche collée (incombustible), 1re couche auto-adhésive aux joints et autoprotégée soudée en plein.", "béton", "m²", 0.172],
+  ["CXC-003", 9, 22, "Bac acier + PV + PUR fixé méca + bicouche autoprotégé", "Pare-vapeur sur bac acier, isolant PUR fixé mécaniquement, 1re couche fixée mécaniquement et autoprotégée soudée en plein. Densité de fixations selon zone de vent.", "acier", "m²", 0.127],
+  ["CXC-004", 9, 22, "Bac acier + PV + laine de roche fixée méca + bicouche AP", "Pare-vapeur sur bac acier, laine de roche fixée mécaniquement, 1re couche fixée mécaniquement et autoprotégée soudée en plein. Solution ERP / exigence feu.", "acier", "m²", 0.133],
+  ["CXC-005", 9, 22, "Béton + verre cellulaire + bicouche autoprotégé", "Vernis, verre cellulaire collé au bitume chaud (pare-vapeur intégré), 1re couche soudée en plein et autoprotégée soudée en plein. Locaux à très forte hygrométrie.", "béton", "m²", 0.186],
+  ["CXD-001", 10, 23, "Béton + PV + PSE libre + bicouche + gravillons", "Vernis, pare-vapeur, isolant posé librement sous lestage, bicouche (1re couche aux joints + 2e couche non autoprotégée), écran et gravillons. Toiture inaccessible.", "béton", "m²", 0.188],
+  ["CXD-002", 10, 23, "Béton + PV + PUR collé + bicouche + dalles sur plots", "Vernis, pare-vapeur, isolant collé, bicouche et dallettes sur plots réglables. Terrasse accessible aux piétons.", "béton", "m²", 1.16],
+  ["CXD-003", 10, 23, "Béton + verre cellulaire + bicouche + chape béton", "Vernis, verre cellulaire incompressible, bicouche soudée en plein, écran et chape béton armé. Terrasse technique ou circulable lourde.", "béton", "m²", 0.445],
+  ["CXD-004", 10, 23, "Béton + PV + PUR collé + bicouche anti-racines + végétalisation", "Vernis, pare-vapeur, isolant collé, 1re couche aux joints, membrane anti-racines en 2e couche et complexe de végétalisation extensive.", "béton", "m²", 0.366],
+  ["CXD-005", 10, 23, "Béton + PV + PSE libre + asphalte + gravillons", "Vernis, pare-vapeur, isolant posé librement, écran, asphalte coulé EG22 et gravillons. Solution asphalte isolée inaccessible.", "béton", "m²", 0.173],
+  ["EEP-001", 11, 24, "Création d'une sortie EP Ø 80–100 mm", "Carottage du support, mise en place d'une naissance EP adaptée, soudure périphérique, raccordement au complexe horizontal et test d'écoulement. Mise en sécurité et évacuation des déblais comprises.", "béton", "u", 2.0],
+  ["EEP-002", 11, 24, "Remplacement d'une sortie EP existante", "Dépose de l'ancienne naissance, nettoyage, pose d'une nouvelle sortie EP, soudure périphérique et contrôle d'étanchéité. Adapté aux rénovations partielles.", "béton", "u", 1.1],
+  ["EEP-003", 11, 24, "Boîte à eau + naissance – création/reprise", "Pose d'une boîte à eau en façade, fixation mécanique, raccordement bitumineux, soudure de la naissance et test d'écoulement. Traitement des angles et finitions comprises.", "béton/acier", "u", 1.4],
+  ["EEP-004", 11, 24, "Moignon tronconique Ø 80/100/125", "Fourniture et pose d'un moignon tronconique à platine, soudure de la platine sur le complexe et raccordement à la descente.", "béton/acier", "u", 0.8],
+  ["EEP-005", 11, 24, "Platine EP plomb / EPDM sur pénétration", "Mise en place d'une platine d'étanchéité autour d'une descente existante, marouflage et soudure périphérique.", "béton", "u", 0.6],
+  ["EEP-006", 11, 24, "Trop-plein standard Ø 80–100 mm", "Création ou remplacement d'un trop-plein circulaire : découpe locale du complexe, mise en place de la pièce métallique, soudure périphérique, renforts d'angles et raccordement. Contrôle du niveau et de l'écoulement.", "béton/acier", "u", 0.85],
+  ["EEP-007", 11, 24, "Trop-plein rectangulaire sur acrotère", "Découpe de l'acrotère, pose d'un trop-plein rectangulaire à platine, relevé d'étanchéité et habillage extérieur.", "béton", "u", 1.2],
+  ["EEP-008", 11, 25, "Crapaudine / garde-grève sur naissance", "Fourniture et pose d'une crapaudine sur naissance EP afin d'éviter l'obstruction par les feuilles et gravillons.", "", "u", 0.15],
+  ["EEP-009", 11, 25, "Curage et contrôle d'écoulement des EP", "Nettoyage des naissances, curage des descentes accessibles et test d'écoulement à l'eau avec constat écrit.", "", "u", 0.25],
+  ["EEP-010", 11, 26, "Descente EP PVC Ø 100 en façade", "Fourniture et pose d'une descente EP PVC : colliers de fixation, coudes, manchons et raccordement au réseau existant.", "", "ml", 0.35],
+  ["EEP-011", 11, 26, "Descente EP zinc / alu Ø 100", "Fourniture et pose d'une descente EP métallique façonnée, colliers à bague, coudes et raccordement en pied.", "", "ml", 0.5],
+  ["EEP-012", 11, 26, "Dauphin fonte en pied de descente", "Fourniture et pose d'un dauphin fonte en pied de chute, scellement et raccordement à la descente.", "", "u", 0.6],
+  ["EEP-013", 11, 27, "Chéneau zinc dév. 500 mm", "Façonnage et pose d'un chéneau zinc : agrafures, dilatations, soudures à l'étain et raccordement aux naissances.", "", "ml", 0.6],
+  ["EEP-014", 11, 27, "Gouttière pendante zinc dév. 33", "Fourniture et pose d'une gouttière pendante sur crochets, pente réglée, soudures et talons d'extrémité.", "", "ml", 0.45],
+  ["EEP-015", 11, 27, "Étanchéité de chéneau par membrane bitumineuse", "Reprise d'étanchéité d'un chéneau existant : préparation du fond, équerres, membrane bicouche et traitement des naissances.", "béton/acier", "ml", 0.65],
+  ["EQT-001", 12, 28, "Dépose lanterneau ponctuel existant", "Démontage du lanterneau en place, dépose du capot et de ses fixations, mise en sécurité de la trémie et évacuation des matériaux.", "béton/acier", "u", 1.0],
+  ["EQT-002", 12, 28, "Lanterneau ponctuel fixe 100×100 – F&P sur costière existante", "Fourniture et pose d'un lanterneau ponctuel fixe en polycarbonate ou PMMA sur costière existante : joint d'étanchéité, fixations périphériques et contrôle de la pluviométrie.", "béton/acier", "u", 1.5],
+  ["EQT-003", 12, 28, "Lanterneau ponctuel 100×100 + costière isolée – F&P complète", "Fourniture et pose de l'ensemble lanterneau et costière isolée : fixation sur support, calfeutrement, relevé d'étanchéité périphérique et finition en tête.", "béton/acier", "u", 3.0],
+  ["EQT-004", 12, 28, "Lanterneau DENFC 120×120 ouvrant – F&P", "Fourniture et pose d'un dispositif d'évacuation naturelle de fumée et de chaleur : vérin, ouvrant, costière, raccordement à l'étanchéité et essai de fonctionnement.", "béton/acier", "u", 3.5],
+  ["EQT-005", 12, 28, "Remplacement du capot / dôme d'un lanterneau", "Dépose du dôme existant, contrôle du cadre et de la costière, pose d'un dôme neuf avec joints et fixations adaptées.", "", "u", 0.8],
+  ["EQT-006", 12, 28, "Voûte filante polycarbonate – dépose et repose", "Dépose de la voûte existante et pose d'une voûte neuve sur costière : éléments de rive, joints d'about et calfeutrements.", "béton/acier", "ml", 0.9],
+  ["EQT-007", 12, 28, "Costière isolée 300–500 mm pour lanterneau ponctuel", "Fourniture et pose d'une costière isolée préfabriquée sur trémie existante, fixation mécanique, calage et mise à niveau avant relevé d'étanchéité.", "béton/acier", "u", 2.0],
+  ["EQT-008", 12, 29, "Raccordement pneumatique d'un DENFC", "Raccordement du dispositif au réseau de commande : flexibles, cartouche CO2, essai d'ouverture et de refermeture, procès-verbal d'essai.", "", "u", 1.2],
+  ["EQT-009", 12, 29, "Coffret de commande de désenfumage – pose", "Pose du coffret de commande en zone accessible, fixation, raccordement au réseau pneumatique et signalisation réglementaire.", "", "u", 2.0],
+  ["EQT-010", 12, 29, "Essai et vérification annuelle d'un DENFC", "Contrôle de fonctionnement du dispositif, vérification des vérins et cartouches, remise en état de veille et compte rendu écrit.", "", "u", 0.5],
+  ["EQT-011", 12, 30, "Fenêtre de toit 78×118 – dépose et repose", "Dépose de la fenêtre existante, contrôle du chevêtre, pose de la fenêtre neuve, raccordement d'étanchéité et finitions intérieures légères.", "", "u", 4.0],
+  ["EQT-012", 12, 30, "Fenêtre de toit – raccord d'étanchéité seul (EDL/EDW)", "Fourniture et pose du kit de raccordement d'étanchéité adapté au matériau de couverture, avec collerette et bavettes de raccordement.", "", "u", 1.5],
+  ["EQT-013", 12, 30, "Fenêtre de toit – création de trémie en couverture", "Ouverture de la trémie en couverture, renforts de chevêtre, découpe soignée et mise hors d'eau provisoire avant pose.", "", "u", 3.5],
+  ["EQT-014", 12, 30, "Verrière plate / fenêtre de toit terrasse sur costière", "Fourniture et pose d'une verrière plate fixe ou ouvrante sur costière isolée, calfeutrement, relevé d'étanchéité périphérique et essai d'étanchéité à l'eau.", "béton/acier", "u", 4.5],
+  ["EQT-015", 12, 31, "Trappe d'accès toiture 100×100 – F&P", "Fourniture et pose d'une trappe d'accès isolée avec costière, vérin d'assistance, serrure et relevé d'étanchéité périphérique.", "béton/acier", "u", 3.0],
+  ["EQT-016", 12, 31, "Grille / filet anti-chute sous lanterneau", "Fourniture et pose d'un dispositif anti-chute sous lanterneau ou exutoire, fixation sur costière conforme à la protection des trémies.", "", "u", 0.75],
+  ["COU-001", 13, 32, "Dépose de couverture bac acier existante", "Démontage des bacs et de leurs fixations, tri, descente au sol et évacuation en filière de recyclage.", "acier", "m²", 0.1],
+  ["COU-002", 13, 33, "Bac acier nervuré simple peau – F&P", "Fourniture et pose de bacs acier nervurés laqués : recouvrements, fixations sur pannes, closoirs et découpes de rive.", "acier", "m²", 0.13],
+  ["COU-003", 13, 33, "Panneau sandwich toiture ép. 80 mm – F&P", "Fourniture et pose de panneaux sandwich isolants : levage, calage, fixations cachées et traitement des joints longitudinaux.", "acier", "m²", 0.16],
+  ["COU-004", 13, 33, "Plaque fibrociment ondulée – F&P", "Fourniture et pose de plaques ondulées fibrociment, crochets et boulons d'assemblage, recouvrements conformes à la pente.", "", "m²", 0.18],
+  ["COU-005", 13, 33, "Plaque translucide PRV / polycarbonate – F&P", "Fourniture et pose de plaques d'éclairement en toiture, profil identique au bac support, joints et fixations étanches.", "", "m²", 0.25],
+  ["COU-006", 13, 33, "Remplacement ponctuel de plaque en couverture", "Dépose de la plaque défectueuse, contrôle de la panne support et pose d'une plaque neuve avec fixations et joints neufs.", "", "u", 0.6],
+  ["COU-007", 13, 34, "Couverture zinc à joint debout", "Façonnage et pose de bacs zinc à joint debout sur support continu : pattes fixes et coulissantes, agrafures et traitement des rives.", "", "m²", 0.55],
+  ["COU-008", 13, 35, "Faîtière métallique – F&P", "Fourniture et pose d'une faîtière laquée avec closoirs ventilés, éclisses et fixations sur les deux versants.", "acier", "ml", 0.12],
+  ["COU-009", 13, 35, "Rive métallique – F&P", "Fourniture et pose d'un profil de rive laqué, éclissage, fixations et raccordement au bardage ou à l'acrotère.", "acier", "ml", 0.14],
+  ["COU-010", 13, 35, "Closoir mousse / peigne de ventilation", "Mise en place des closoirs en about de bac afin d'assurer l'étanchéité à l'air et la ventilation de la couverture.", "acier", "ml", 0.1],
+  ["COU-011", 13, 35, "Bande de solin / engravure sur mur", "Réalisation d'un solin de raccordement en pied de mur : engravure ou bande porte-solin, façonnage et calfeutrement.", "", "ml", 0.22],
+  ["COU-012", 13, 35, "Chatière / sortie de ventilation en couverture", "Fourniture et pose d'une chatière ou d'une sortie de toit adaptée au profil de couverture, avec collerette d'étanchéité.", "", "u", 0.45],
+  ["POL-001", 14, 36, "Dépose de plaques polycarbonate ondulées existantes", "Démontage des plaques translucides et de leurs fixations, contrôle des pannes support, descente au sol et évacuation en filière de recyclage plastique.", "acier", "m²", 0.12],
+  ["POL-002", 14, 36, "Dépose de polycarbonate alvéolaire sur ossature", "Dépose des panneaux alvéolaires et des profils de jonction, repérage des éléments réutilisables et évacuation.", "acier", "m²", 0.15],
+  ["POL-003", 14, 36, "Dépose seule de voûte filante polycarbonate", "Démontage de la voûte existante, retrait des profils de rive et mise en sécurité provisoire de la trémie avant repose.", "béton/acier", "ml", 0.4],
+  ["POL-004", 14, 37, "Plaque polycarbonate ondulée grande onde – F&P", "Fourniture et pose de plaques ondulées translucides au profil identique au bac support : recouvrements, visserie étanche en sommet d'onde et closoirs.", "acier", "m²", 0.25],
+  ["POL-005", 14, 37, "Plaque polycarbonate nervurée compatible bac sec", "Pose de plaques nervurées translucides s'intégrant au calepinage du bac acier, avec bandes d'obturation et fixations à joint.", "acier", "m²", 0.25],
+  ["POL-006", 14, 37, "Polycarbonate alvéolaire 16 mm sur ossature", "Pose de panneaux alvéolaires 16 mm sur ossature porteuse : sens des alvéoles respecté, face traitée anti-UV vers l'extérieur, bandes micro-perforées en pied.", "acier", "m²", 0.35],
+  ["POL-007", 14, 37, "Polycarbonate alvéolaire 32 mm haute isolation", "Pose de panneaux alvéolaires épais pour les locaux chauffés, avec profils porteurs adaptés et gestion des dilatations.", "acier", "m²", 0.4],
+  ["POL-008", 14, 37, "Système à emboîtement 40 mm (type Danpalon / Arcoplus)", "Pose d'un système de panneaux emboîtables à connecteurs, réglage de la trame, profils de rive et joints d'étanchéité périphériques.", "acier", "m²", 0.45],
+  ["POL-009", 14, 37, "Voûte filante polycarbonate 3 parois – pose sur costière", "Pose d'une voûte filante translucide sur costière existante : éléments de voûte, pignons d'about, profils de rive et calfeutrements.", "béton/acier", "ml", 0.55],
+  ["POL-010", 14, 37, "Verrière polycarbonate autoportante sur charpente légère", "Fourniture et pose d'une verrière translucide autoportante : profils porteurs, panneaux, joints et raccordement à la couverture existante.", "", "m²", 0.6],
+  ["POL-011", 14, 37, "Auvent / marquise polycarbonate", "Fourniture et pose d'un auvent en polycarbonate sur structure métallique, avec profils de rive, évacuation des eaux et fixations en façade.", "", "m²", 0.7],
+  ["POL-012", 14, 38, "Profil de jonction H / connecteur aluminium", "Fourniture et pose du profil de jonction entre panneaux, avec joints et vis de serrage permettant la dilatation.", "", "ml", 0.2],
+  ["POL-013", 14, 38, "Profil de rive U aluminium + bouchon d'about", "Pose du profil de rive et obturation des alvéoles en about pour éviter l'encrassement et la condensation interne.", "", "ml", 0.18],
+  ["POL-014", 14, 38, "Bande d'obturation micro-perforée / aluminium", "Mise en place des bandes d'obturation en pied et en tête de panneau : étanche en tête, micro-perforée en pied pour le drainage.", "", "ml", 0.1],
+  ["POL-015", 14, 38, "Visserie inox et rondelles d'étanchéité", "Fixation des plaques par visserie inox à rondelle EPDM et trous surdimensionnés pour absorber la dilatation thermique.", "", "m²", 0.04],
+  ["POL-016", 14, 38, "Closoir mousse profilé pour plaque translucide", "Pose des closoirs profilés en about de plaque assurant l'étanchéité à l'air et l'arrêt des volatiles.", "", "ml", 0.1],
+  ["POL-017", 14, 38, "Solin / bavette de raccordement en tête de polycarbonate", "Façonnage et pose d'une bavette de raccordement entre le polycarbonate et la couverture ou le mur, avec calfeutrement.", "", "ml", 0.3],
+  ["POL-018", 14, 38, "Ossature intermédiaire / renfort de panne", "Ajout de pannes ou profils intermédiaires pour respecter la portée admissible des panneaux translucides.", "acier", "ml", 0.25],
+  ["POL-019", 14, 39, "Remplacement ponctuel d'une plaque polycarbonate", "Dépose de la plaque cassée ou opacifiée, contrôle du support et des fixations, pose d'une plaque neuve avec joints et visserie neufs.", "acier", "u", 0.75],
+  ["POL-020", 14, 39, "Nettoyage de polycarbonate (toiture ou façade)", "Nettoyage doux à l'eau et produit neutre, sans solvant ni brosse abrasive, afin de restaurer la transmission lumineuse sans rayer la couche anti-UV.", "", "m²", 0.08],
+  ["POL-021", 14, 39, "Reprise d'étanchéité des fixations (joints vieillis)", "Remplacement des rondelles et joints dégradés, resserrage contrôlé des fixations et reprise des points de fuite.", "acier", "m²", 0.1],
+  ["POL-022", 14, 39, "Diagnostic de fragilité des plaques translucides", "Contrôle de l'état et de l'âge des plaques translucides, repérage des zones fragiles présentant un risque de chute à travers la toiture, rapport photo et préconisations.", "acier", "u", 1.5],
+  ["POL-023", 14, 39, "Filet ou grille de protection sous plaque translucide", "Pose d'un dispositif anti-chute sous les bandes translucides fragiles, fixé sur pannes, permettant la circulation en sécurité sur la toiture.", "acier", "m²", 0.2],
+  ["TRA-001", 15, 40, "Dépose de couverture tuile terre cuite", "Dépose des tuiles et des accessoires de faîtage et de rive, tri pour réemploi éventuel, descente au sol et évacuation.", "", "m²", 0.12],
+  ["TRA-002", 15, 40, "Dépose de couverture ardoise naturelle", "Dépose des ardoises et de leurs crochets ou clous, tri des éléments réutilisables, descente et évacuation des gravats.", "", "m²", 0.14],
+  ["TRA-003", 15, 40, "Dépose de couverture fibrociment non amiantée", "Démontage des plaques fibrociment récentes et de leurs fixations, descente au sol et évacuation en filière inerte.", "", "m²", 0.13],
+  ["TRA-004", 15, 40, "Dépose de liteaunage / voligeage", "Retrait des liteaux ou voliges existants, extraction des pointes, nettoyage de la charpente et évacuation du bois.", "", "m²", 0.09],
+  ["TRA-005", 15, 40, "Dépose d'écran de sous-toiture existant", "Retrait de l'écran de sous-toiture vieilli, contrôle de l'état de la charpente et évacuation.", "", "m²", 0.05],
+  ["TRA-006", 15, 41, "Écran de sous-toiture HPV – F&P", "Déroulage et fixation d'un écran de sous-toiture hautement perméable à la vapeur, recouvrements conformes à la pente et traitement des pénétrations.", "", "m²", 0.06],
+  ["TRA-007", 15, 41, "Contre-lattage 27×40 sapin traité", "Pose du contre-lattage dans le sens des chevrons pour créer la lame d'air de ventilation sous couverture.", "", "m²", 0.06],
+  ["TRA-008", 15, 41, "Liteaunage sapin traité 27×40 au pureau", "Traçage et pose du liteaunage au pureau du modèle de couverture retenu, fixation mécanique et contrôle de l'alignement.", "", "m²", 0.12],
+  ["TRA-009", 15, 41, "Voligeage sapin ép. 18 mm", "Fourniture et pose d'un voligeage jointif ou espacé selon le mode de couverture, coupes et fixations comprises.", "", "m²", 0.25],
+  ["TRA-010", 15, 41, "Support panneaux OSB / CTBH", "Pose d'un support continu en panneaux dérivés du bois, calepinage à joints décalés et fixation sur charpente.", "", "m²", 0.2],
+  ["TRA-011", 15, 41, "Révision de charpente – remplacement ponctuel de chevron", "Dépose de l'élément dégradé, taille et pose d'un chevron neuf traité, assemblage et calage sur pannes.", "", "u", 1.2],
+  ["TRA-012", 15, 42, "Tuile mécanique grand moule (10–13 u/m²)", "Pose de tuiles mécaniques à emboîtement sur liteaunage : répartition, coupes de rive et fixation des tuiles en zones exposées selon DTU 40.21.", "", "m²", 0.28],
+  ["TRA-013", 15, 42, "Tuile mécanique petit moule (18–22 u/m²)", "Pose de tuiles petit moule à emboîtement, pureau régulier, fixation en rives, faîtage et zones de vent.", "", "m²", 0.35],
+  ["TRA-014", 15, 42, "Tuile plate 16×27 (60–70 u/m²)", "Pose de tuiles plates à pureau entier, tracé soigné, doublis d'égout et fixations selon exposition.", "", "m²", 0.75],
+  ["TRA-015", 15, 42, "Tuile canal (courant + couvert)", "Pose de tuiles canal en courant et couvert, calage et fixation des rangs de rive et d'égout selon DTU 40.22.", "", "m²", 0.55],
+  ["TRA-016", 15, 42, "Repose de tuiles de réemploi après tri", "Repose des tuiles déposées et triées, complément en tuiles neuves assorties, remplacement des éléments cassés.", "", "m²", 0.4],
+  ["TRA-017", 15, 42, "Tuile métallique type GERARD sur liteaunage", "Pose de panneaux de tuiles métalliques à profil tuile, fixation latérale invisible et traitement des rives et faîtages.", "", "m²", 0.3],
+  ["TRA-018", 15, 43, "Ardoise naturelle 32×22 – pose au crochet", "Pose d'ardoises naturelles au crochet inox sur liteaunage, pureau et recouvrement conformes à la pente et à la zone d'exposition.", "", "m²", 0.65],
+  ["TRA-019", 15, 43, "Ardoise naturelle – pose au clou sur voligeage", "Pose d'ardoises clouées sur voligeage avec recouvrement renforcé, tracé au cordeau et coupes de rive.", "", "m²", 0.85],
+  ["TRA-020", 15, 43, "Ardoise fibrociment 40×24 – pose au crochet", "Pose d'ardoises fibrociment sur liteaunage, crochets inox et respect des recouvrements selon pente.", "", "m²", 0.45],
+  ["TRA-021", 15, 43, "Remplacement ponctuel d'ardoises (au crochet)", "Retrait des ardoises cassées ou glissées, pose d'ardoises neuves assorties au crochet, contrôle du liteaunage.", "", "u", 0.3],
+  ["TRA-022", 15, 44, "Shingle bitumé sur support continu", "Pose de bardeaux bitumés sur support continu, clouage, recouvrements et traitement des rives et du faîtage.", "", "m²", 0.3],
+  ["TRA-023", 15, 45, "Faîtage ventilé à sec sur closoir", "Pose d'un closoir ventilé souple et fixation mécanique des faîtières sur couverture neuve, avec about de faîtage.", "", "ml", 0.35],
+  ["TRA-024", 15, 45, "Arêtier à sec", "Réalisation d'un arêtier à sec : closoir, arêtiers fixés mécaniquement, coupes biaises des éléments de couverture.", "", "ml", 0.45],
+  ["TRA-025", 15, 45, "Rive scellée / rive à rabat", "Traitement de rive par tuiles de rive ou scellement au mortier, avec coupes d'ajustement et finition régulière.", "", "ml", 0.3],
+  ["TRA-026", 15, 45, "Bande de rive métallique sur ardoise", "Façonnage et pose d'une bande de rive zinc ou alu en about de couverture ardoise, fixation et recouvrements.", "", "ml", 0.28],
+  ["TRA-027", 15, 45, "Noue ouverte zinc dév. 500 mm", "Façonnage et pose d'une noue zinc, agrafures, dilatations et coupes des éléments de couverture de part et d'autre.", "", "ml", 0.65],
+  ["TRA-028", 15, 45, "Noue fermée (tuile ou ardoise)", "Réalisation d'une noue fermée par coupes ajustées des éléments de couverture, avec bande d'étanchéité en fond de noue.", "", "ml", 0.8],
+  ["TRA-029", 15, 45, "Solin plomb / zinc en raccord contre mur", "Façonnage et pose d'un solin de raccordement sur mur ou souche, engravure ou bande porte-solin et calfeutrement.", "", "ml", 0.35],
+  ["TRA-030", 15, 45, "Bande d'égout / bavette zinc", "Pose d'une bande d'égout métallique assurant le rejet des eaux en gouttière et la protection de l'about de chevrons.", "", "ml", 0.25],
+  ["TRA-031", 15, 45, "Closoir de ventilation d'égout (peigne)", "Mise en place d'un peigne de rive ou closoir d'égout empêchant l'entrée des oiseaux tout en conservant la ventilation.", "", "ml", 0.1],
+  ["TRA-032", 15, 45, "Chatière de ventilation tuile ou ardoise", "Fourniture et pose de chatières de ventilation réparties selon la surface de couverture et la configuration des combles.", "", "u", 0.25],
+  ["TRA-033", 15, 45, "Habillage et étanchéité de souche de cheminée", "Traitement complet de la souche : solins, bavettes, besaces, larmier et calfeutrement, avec reprise des abords de couverture.", "", "u", 3.5],
+  ["TRA-034", 15, 45, "Sortie de toit / chapeau de ventilation tuile", "Pose d'une tuile à douille ou d'une sortie de toit avec manchon d'adaptation et raccordement au conduit.", "", "u", 0.55],
+  ["TRA-035", 15, 45, "Pénétration circulaire – manchon plomb", "Façonnage et pose d'un manchon plomb autour d'une pénétration en couverture traditionnelle, marouflage sur les éléments.", "", "u", 0.8],
+  ["TRA-036", 15, 45, "Châssis de toit tabatière – F&P", "Fourniture et pose d'un châssis tabatière d'accès aux combles ou à la toiture, avec raccordement à la couverture.", "", "u", 1.5],
+  ["TRA-037", 15, 45, "Planche de rive / habillage d'about de chevrons", "Fourniture et pose d'une planche de rive bois ou d'un habillage métallique en about de chevrons, coupes et fixations.", "", "ml", 0.35],
+  ["TRA-038", 15, 45, "Sous-face de débord de toit (lambris ou PVC)", "Habillage de la sous-face du débord par lambris bois ou lames PVC, avec profils de finition et grilles de ventilation.", "", "ml", 0.45],
+  ["AMI-002", 16, 46, "Mode opératoire SS4 spécifique au chantier", "Adaptation du mode opératoire de l'entreprise au chantier : évaluation des risques, phasage, moyens de protection et modalités d'évacuation.", "", "u", 3.0],
+  ["AMI-003", 16, 46, "Déclaration préalable et transmission réglementaire", "Transmission du mode opératoire à l'inspection du travail, à la CARSAT et au médecin du travail, un mois avant la première intervention.", "", "u", 1.5],
+  ["AMI-004", 16, 46, "Suivi médical et fiche d'exposition des opérateurs", "Établissement des fiches individuelles d'exposition, vérification des aptitudes et archivage des attestations.", "", "u", 1.0],
+  ["AMI-006", 16, 47, "Balisage et signalétique de la zone amiante", "Délimitation de la zone d'intervention, panneaux réglementaires, interdiction d'accès aux tiers et information des occupants.", "", "u", 1.5],
+  ["AMI-007", 16, 47, "Unité de décontamination (SAS 3 compartiments)", "Installation, raccordement et exploitation d'une unité mobile de décontamination du personnel, douche et vestiaires compris.", "", "u", 4.0],
+  ["AMI-008", 16, 47, "Confinement / protection des zones adjacentes", "Protection des surfaces et des ouvrages adjacents par polyane et adhésifs, afin d'éviter toute dispersion de fibres.", "", "m²", 0.15],
+  ["AMI-011", 16, 48, "Dépose de plaques fibrociment amiantées ≤ 1,50 m", "Dépose en sous-section 4 de plaques amiante-ciment de petite longueur : humidification, démontage des fixations sans percussion, descente sans casse et conditionnement immédiat.", "", "m²", 0.55],
+  ["AMI-012", 16, 48, "Dépose de plaques fibrociment amiantées grande longueur", "Dépose de plaques de grande longueur nécessitant une manutention à deux compagnons et un moyen de levage, sans casse ni découpe.", "", "m²", 0.7],
+  ["AMI-013", 16, 48, "Dépose d'ardoises fibrociment amiantées", "Dépose unitaire des ardoises amiante-ciment, retrait des crochets, conditionnement en sacs agréés et nettoyage du support.", "", "m²", 0.65],
+  ["AMI-014", 16, 48, "Dépose de conduits / descentes EP en amiante-ciment", "Démontage des conduits et descentes en amiante-ciment sans découpe, obturation des extrémités et conditionnement.", "", "ml", 0.45],
+  ["AMI-015", 16, 48, "Dépose de closoirs, faîtages et accessoires amiantés", "Dépose des pièces de faîtage, closoirs et accessoires en amiante-ciment accompagnant la couverture.", "", "ml", 0.5],
+  ["AMI-016", 16, 48, "Encapsulage / fixation par revêtement d'imprégnation", "Application d'un revêtement d'imprégnation sur matériau amianté maintenu en place, afin de bloquer la libération de fibres.", "", "m²", 0.1],
+  ["AMI-017", 16, 48, "Aspiration THE des surfaces et abaissement d'empoussièrement", "Aspiration des poussières et débris sur les surfaces et supports après retrait, jusqu'à l'atteinte du niveau d'empoussièrement attendu.", "", "m²", 0.06],
+  ["AMI-018", 16, 49, "Conditionnement en big-bag amiante double paroi", "Mise en big-bag agréé double paroi, fermeture, étiquetage réglementaire et stockage en zone sécurisée avant enlèvement.", "", "u", 0.35],
+  ["AMI-019", 16, 49, "Conditionnement palettisé et filmé des plaques", "Palettisation des plaques entières, filmage double, étiquetage amiante et calage pour le transport.", "", "u", 0.5],
+  ["AMI-020", 16, 49, "Transport en filière agréée + BSDA", "Enlèvement des déchets par transporteur agréé, émission et suivi du bordereau de suivi des déchets d'amiante jusqu'au certificat d'acceptation.", "", "u", 0.5],
+  ["AMI-022", 16, 50, "Prélèvement et analyse d'empoussièrement (META)", "Prélèvement sur opérateur ou en zone et analyse en microscopie électronique à transmission analytique par laboratoire accrédité.", "", "u", 0.5],
+  ["AMI-023", 16, 50, "Examen visuel de fin de travaux + rapport", "Contrôle visuel de la zone après retrait, vérification de l'absence de résidus, photographies et rapport de fin d'intervention.", "", "u", 2.0],
+  ["AMI-024", 16, 50, "Décontamination des équipements et repli de la zone", "Décontamination du matériel et des engins, retrait des confinements, repli de l'unité de décontamination et restitution de la zone.", "", "u", 3.0],
+  ["DMO-001", 17, 51, "Démoussage mécanique par brossage – tuile / ardoise", "Brossage manuel de la couverture pour retirer mousses, lichens et dépôts, sans altérer le matériau. Comprend la descente des déchets et le nettoyage des abords.", "", "m²", 0.1],
+  ["DMO-002", 17, 51, "Nettoyage basse/haute pression de couverture", "Nettoyage de la couverture au jet contrôlé, du faîtage vers l'égout, avec protection des rives et surveillance des recouvrements. Pression adaptée au matériau pour ne pas décaper l'engobe.", "", "m²", 0.06],
+  ["DMO-003", 17, 51, "Traitement anti-mousse curatif par pulvérisation", "Pulvérisation d'un produit anti-mousse curatif sans rinçage sur l'ensemble de la couverture, mousses éliminées progressivement par les intempéries.", "", "m²", 0.02],
+  ["DMO-004", 17, 51, "Traitement fongicide préventif après nettoyage", "Application d'un traitement préventif limitant la repousse des mousses et lichens après démoussage mécanique ou haute pression.", "", "m²", 0.02],
+  ["DMO-005", 17, 51, "Grattage et rinçage après traitement curatif", "Passage de finition : grattage des mousses résiduelles, rinçage de la couverture et dégagement des noues et gouttières.", "", "m²", 0.05],
+  ["DMO-006", 17, 52, "Hydrofuge incolore – 2 couches", "Application d'un hydrofuge de surface en deux couches croisées sur couverture propre et sèche, améliorant l'écoulement et limitant la porosité.", "", "m²", 0.035],
+  ["DMO-007", 17, 52, "Hydrofuge coloré / peinture de couverture", "Application d'un hydrofuge coloré en deux couches, redonnant une teinte homogène à la couverture et protégeant le matériau.", "", "m²", 0.045],
+  ["DMO-008", 17, 53, "Protection des abords et bâchage avant démoussage", "Bâchage des abords, protection des descentes EP, des végétaux et des ouvrages sensibles avant démarrage du démoussage.", "", "m²", 0.04],
+  ["DMO-009", 17, 53, "Ramassage et évacuation des déchets de démoussage", "Ramassage des mousses et déchets au sol et en gouttières, conditionnement et évacuation en filière adaptée.", "", "m²", 0.03],
+  ["DMO-010", 17, 53, "Nettoyage et curage des gouttières / chéneaux (tradi)", "Retrait des dépôts et mousses dans les gouttières et chéneaux, curage des descentes accessibles et test d'écoulement.", "", "ml", 0.1],
+  ["DMO-011", 17, 53, "Remplacement ponctuel de tuiles / ardoises cassées", "Dépose des éléments cassés ou glissés, contrôle du support et du liteaunage, pose d'éléments neufs assortis et fixation.", "", "u", 0.35],
+  ["DMO-012", 17, 53, "Réfection de faîtage scellé au mortier", "Dépose du faîtage existant, nettoyage, rescellement au mortier bâtard et reprise des rives de faîtage.", "", "ml", 0.55],
+  ["DMO-013", 17, 53, "Réfection de faîtage à sec (closoir ventilé)", "Dépose du faîtage, pose d'un closoir ventilé souple et fixation mécanique des faîtières, sans mortier.", "", "ml", 0.4],
+  ["DMO-014", 17, 53, "Contrôle de couverture + rapport photographique", "Visite de contrôle de la couverture et de ses accessoires, relevé des désordres, reportage photo et préconisations écrites.", "", "u", 2.0],
+  ["SEC-001", 18, 54, "Garde-corps autoportant lesté sur terrasse", "Fourniture et pose d'un garde-corps autoportant avec lests béton, main courante et lisse intermédiaire, sans percement de l'étanchéité.", "béton/acier", "ml", 0.22],
+  ["SEC-002", 18, 54, "Garde-corps fixé sur acrotère", "Fourniture et pose d'un garde-corps sur platines fixées mécaniquement en tête ou en face d'acrotère, avec reprise d'étanchéité des points de percement.", "béton", "ml", 0.3],
+  ["SEC-003", 18, 54, "Garde-corps repliable / escamotable", "Fourniture et pose d'un garde-corps repliable pour zones à contrainte esthétique, avec relevage et verrouillage en position haute.", "béton/acier", "ml", 0.35],
+  ["SEC-004", 18, 54, "Potelet + lisse de protection ponctuelle", "Mise en place d'une protection ponctuelle par potelets et lisses en périphérie de zone à risque de chute.", "", "u", 0.4],
+  ["SEC-005", 18, 55, "Passerelle / caillebotis de circulation en toiture", "Fourniture et pose d'un cheminement de circulation sur plots, protégeant l'étanchéité et sécurisant l'accès aux équipements.", "", "ml", 0.3],
+  ["SEC-006", 18, 55, "Crosse d'accès / échelle à crinoline", "Fourniture et pose d'un moyen d'accès fixe en toiture : scellements, crinoline et portillon de sécurité en tête.", "", "ml", 0.6],
+  ["SEC-007", 18, 56, "Ligne de vie définitive – fourniture & pose", "Fourniture et pose d'une ligne de vie horizontale définitive : ancrages, câble, absorbeur, tension et signalisation d'accès.", "béton/acier", "ml", 0.32],
+  ["SEC-008", 18, 56, "Ancrages définitifs – pose et scellement", "Pose des points d'ancrage définitifs : perçage, scellement chimique, reprise d'étanchéité et repérage.", "béton/acier", "u", 0.6],
+  ["SEC-009", 18, 56, "Certification initiale de la ligne de vie définitive", "Vérification de la conformité de l'installation par organisme ou technicien habilité, essais de traction et remise du rapport.", "", "u", 2.0],
+  ["SEC-010", 18, 56, "Contrôle annuel réglementaire de la ligne de vie", "Contrôle périodique obligatoire : état des ancrages, câble et absorbeur, remise en conformité si nécessaire et rapport annuel.", "", "u", 1.5],
+  ["SEC-011", 18, 56, "Signalisation permanente des accès à la ligne de vie", "Pose des plaques signalétiques et pictogrammes d'utilisation à chaque accès à la ligne de vie.", "", "u", 0.5],
+  ["SEP-001", 19, 57, "Garde-corps provisoires autoportants", "Mise en place de garde-corps provisoires lestés en périphérie de la zone de travail, repli en fin de chantier compris.", "", "ml", 0.12],
+  ["SEP-002", 19, 57, "Ligne de vie temporaire (horizontale)", "Déroulage et mise en tension d'une ligne de vie temporaire avec ancrages provisoires et contrôle avant utilisation.", "", "ml", 0.18],
+  ["SEP-003", 19, 57, "Ligne de vie temporaire – ancrages ponctuels", "Mise en place des ancrages provisoires servant de points fixes à la ligne de vie temporaire.", "", "u", 0.35],
+  ["SEP-004", 19, 57, "Ligne de vie temporaire – tension & réglage", "Réglage de la tension du câble, contrôle des flèches et validation avant mise à disposition des compagnons.", "", "ml", 0.06],
+  ["SEP-005", 19, 57, "Ligne de vie temporaire – contrôle journalier", "Vérification quotidienne de l'installation avant prise de poste et consignation dans le registre de chantier.", "", "u", 0.25],
+  ["SEP-006", 19, 57, "Ligne de vie temporaire – démontage", "Démontage de la ligne de vie temporaire, dépose des ancrages et remise en état des points de fixation.", "", "ml", 0.09],
+  ["SEP-007", 19, 57, "Accès sécurisé (échelle + stabilisation)", "Mise en place d'un accès provisoire stabilisé et amarré, conforme aux règles de sécurité pour l'accès en toiture.", "", "u", 0.4],
+  ["SEP-008", 19, 57, "Protection des zones sensibles (bâchage, panneaux)", "Protection des ouvrages existants et des zones sensibles par bâchage, panneaux et signalisation adaptée.", "", "m²", 0.03],
+  ["SEP-009", 19, 57, "Tour d'accès – montage et démontage", "Montage, stabilisation, contrôle et démontage d'une tour d'accès roulante pour desservir la toiture.", "", "u", 2.5],
+  ["SEP-010", 19, 58, "Zone de stockage sécurisée", "Délimitation et aménagement d'une zone de stockage matériaux : balisage, calage et protection du support.", "", "u", 0.75],
+  ["SEP-011", 19, 58, "Balisage complet de zone de travail", "Mise en place du balisage périphérique, signalisation des risques et information des autres corps d'état.", "", "u", 0.6],
+  ["LEV-001", 20, 59, "Chariot télescopique – manutention matériaux", "Mise à disposition et exploitation d'un chariot télescopique pour l'approvisionnement de la toiture.", "", "h", 1.0],
+  ["LEV-002", 20, 59, "Chariot élévateur à fourches", "Mise à disposition et exploitation d'un chariot élévateur pour la manutention au sol et le déchargement.", "", "h", 1.0],
+  ["LEV-003", 20, 59, "Nacelle élévatrice (ciseau ou bras articulé)", "Mise à disposition et exploitation d'une nacelle pour les travaux en hauteur en façade ou en rive de toiture.", "", "h", 1.0],
+  ["LEV-004", 20, 59, "Nacelle VL – mise à disposition à la journée", "Location et exploitation d'une nacelle sur véhicule léger à la journée, carburant et déplacement compris.", "", "j", 8.0],
+  ["LEV-005", 20, 59, "Grue mobile – levage ponctuel (≤ 2 h)", "Intervention ponctuelle d'une grue mobile pour le levage d'équipements lourds, calage et élingage compris.", "", "u", 2.0],
+  ["LEV-006", 20, 59, "Grue mobile – journée complète", "Mise à disposition d'une grue mobile à la journée avec grutier, plan de levage et balisage de la zone.", "", "j", 8.0],
+  ["LEV-007", 20, 59, "Monte-matériaux électrique", "Installation, exploitation et repli d'un monte-matériaux pour l'approvisionnement vertical du chantier.", "", "j", 8.0],
+  ["LEV-008", 20, 60, "Palonnier / potence de levage – mise en place", "Mise en place d'un palonnier ou d'une potence de levage, vérification des accessoires et essai à vide.", "", "u", 0.5],
+  ["LEV-009", 20, 60, "Élingage et manutention lourde (big-bags, palettes)", "Préparation des charges, élingage, guidage et réception des charges en toiture.", "", "u", 0.25],
+  ["LEV-010", 20, 60, "Main d'œuvre – installation de chantier", "Temps de main d'œuvre consacré à l'installation générale du chantier : base vie, stockage, cheminements.", "", "h", 1.0],
+  ["LEV-011", 20, 60, "Main d'œuvre – manipulation des déchets", "Tri, conditionnement et descente des déchets de chantier vers les bennes en pied de bâtiment.", "", "h", 1.0],
+  ["LEV-012", 20, 61, "Dépose des graviers par aspiration + évacuation", "Aspiration mécanique des gravillons, conditionnement et évacuation en centre de tri agréé.", "béton", "m²", 0.08],
+  ["LEV-013", 20, 61, "Fourniture et soufflage de gravillons 11/20 lavés", "Approvisionnement et soufflage mécanique des gravillons lavés, répartition et réglage de l'épaisseur.", "béton", "m²", 0.06],
+  ["MAD-008", 21, 62, "Opérateur nacelle (conduite CACES R486) – journée", "Mise à disposition d'un compagnon titulaire du CACES R486 pour la conduite de la nacelle et l'assistance aux équipes.", "", "j", 8.0],
+  ["MAD-009", 21, 62, "Homme de trafic / surveillant au sol – journée", "Présence d'un surveillant au sol assurant le balisage, la gestion des flux et la sécurité autour de la zone d'évolution.", "", "j", 8.0],
+  ["MAD-010", 21, 62, "Contrôle avant mise en service / VGP de l'engin", "Vérification de l'engin avant utilisation : contrôle visuel, essais de fonctionnement, validité de la VGP et consignation.", "", "u", 0.5],
+  ["MAD-011", 21, 62, "Balisage de la zone d'évolution de la nacelle", "Délimitation et balisage de la zone de travail et de la zone de chute d'objets autour de la nacelle.", "", "u", 1.2],
+  ["MAD-012", 21, 63, "Visite préalable et repérage des risques avant intervention", "Visite du site avec le client : repérage des accès, des réseaux, des zones à risque et définition des modes opératoires.", "", "u", 2.0],
+  ["MAD-013", 21, 63, "Plan de prévention / protocole de sécurité avec le client", "Rédaction et signature du plan de prévention ou du protocole de sécurité, diffusion aux intervenants et affichage sur site.", "", "u", 3.0],
+  ["MAD-014", 21, 63, "Barrières de chantier et signalisation temporaire", "Fourniture, pose et repli de barrières de chantier avec signalisation réglementaire délimitant l'emprise des travaux.", "", "ml", 0.1],
+  ["MAD-015", 21, 63, "Protection des circulations piétonnes (auvent / tunnel)", "Mise en place d'un cheminement protégé pour les piétons sous la zone d'intervention, avec éclairage et signalisation.", "", "ml", 0.35],
+  ["MAD-016", 21, 63, "Filet de protection contre les chutes d'objets", "Pose d'un filet ou d'une bâche de retenue en périphérie de la zone de travail pour protéger les tiers et les ouvrages.", "", "m²", 0.15],
+  ["MAD-017", 21, 63, "Neutralisation de places de stationnement", "Réservation et neutralisation des places nécessaires à l'engin : panneaux, arrêté et constat avant intervention.", "", "u", 0.5],
+  ["MAD-018", 21, 63, "Demande d'arrêté de voirie / occupation du domaine public", "Constitution et dépôt du dossier de demande d'autorisation en mairie, suivi et affichage de l'arrêté obtenu.", "", "u", 2.0],
+  ["MAD-019", 21, 63, "Consignation des installations (élec., désenfumage, VMC)", "Demande et suivi des consignations nécessaires avant travaux, vérification de l'effectivité et déconsignation en fin d'intervention.", "", "u", 1.0],
+  ["MAD-020", 21, 63, "Information et affichage sécurité aux occupants", "Information préalable des occupants ou exploitants, affichage des consignes et des horaires d'intervention.", "", "u", 1.0],
+  ["ECH-001", 22, 64, "Montage d'échafaudage fixe de pied (façade ≤ 10 m)", "Montage d'un échafaudage multidirectionnel de pied sur sol stabilisé : semelles, vérins, planchers, garde-corps, plinthes et accès, conforme au plan de montage.", "", "m²", 0.18],
+  ["ECH-002", 22, 64, "Montage d'échafaudage fixe de pied – grande hauteur (> 12 m)", "Montage en grande hauteur avec amarrages renforcés, contreventements complémentaires et étude de stabilité préalable.", "", "m²", 0.25],
+  ["ECH-003", 22, 64, "Démontage d'échafaudage fixe de pied", "Démontage par niveaux, descente des éléments sans chute, tri, chargement et nettoyage de l'emprise.", "", "m²", 0.09],
+  ["ECH-005", 22, 64, "Plancher de travail supplémentaire / niveau intermédiaire", "Ajout d'un niveau de plancher complet avec garde-corps et plinthes pour adapter l'échafaudage à la progression des travaux.", "", "m²", 0.12],
+  ["ECH-006", 22, 64, "Console de déport / élargissement de plancher", "Pose de consoles permettant d'élargir le plancher ou de franchir un obstacle en pied de façade.", "", "ml", 0.3],
+  ["ECH-007", 22, 64, "Garde-corps et plinthes complémentaires sur échafaudage", "Compléments de protection collective sur les niveaux ou les zones non standard de l'échafaudage.", "", "ml", 0.1],
+  ["ECH-008", 22, 64, "Escalier d'accès intégré – par niveau", "Mise en place d'une tour d'escalier d'accès avec garde-corps, permettant la circulation du personnel et le port de charges légères.", "", "u", 0.8],
+  ["ECH-009", 22, 64, "Ancrages et amarrages en façade", "Perçage, mise en place et contrôle des amarrages de l'échafaudage sur la façade, avec rebouchage en fin de chantier.", "", "u", 0.25],
+  ["ECH-010", 22, 64, "Filet ou bâche de protection sur échafaudage", "Habillage de l'échafaudage par filet ou bâche, fixation aux montants et contrôle de la prise au vent.", "", "m²", 0.06],
+  ["ECH-011", 22, 64, "Tunnel de protection piétons intégré à l'échafaudage", "Réalisation d'un passage couvert sous l'échafaudage : portique, platelage étanche, éclairage et signalisation.", "", "ml", 0.9],
+  ["ECH-012", 22, 64, "Recette à matériaux sur échafaudage", "Pose d'une recette de déchargement avec garde-corps mobile, permettant l'approvisionnement par grue ou chariot.", "", "u", 1.5],
+  ["ECH-013", 22, 65, "Échafaudage roulant ≤ 6 m – montage et démontage", "Assemblage d'un échafaudage roulant, réglage des vérins, pose des planchers, garde-corps et stabilisateurs, puis démontage en fin d'intervention.", "", "u", 1.2],
+  ["ECH-014", 22, 65, "Échafaudage roulant 8 à 12 m – montage et démontage", "Montage d'un roulant de grande hauteur avec stabilisateurs et lestage, contrôle de la verticalité et de la portance du sol.", "", "u", 2.5],
+  ["ECH-016", 22, 65, "Déplacement et recalage du roulant en cours de chantier", "Repli des stabilisateurs, déplacement de la tour, recalage et contrôle avant reprise du travail en hauteur.", "", "u", 0.25],
+  ["ECH-018", 22, 66, "Échafaudage en encorbellement sur acrotère", "Pose de consoles en encorbellement fixées sur acrotère ou charpente, avec plancher et protection périphérique, pour travailler en rive sans échafaudage de pied.", "béton/acier", "ml", 0.55],
+  ["ECH-019", 22, 66, "Échafaudage parapluie / toiture provisoire", "Mise en place d'une couverture provisoire sur échafaudage : fermes, bâche ou tôle, permettant de travailler hors d'eau pendant la réfection.", "", "m²", 0.45],
+  ["ECH-020", 22, 66, "Plateforme suspendue motorisée – mise en service", "Installation d'une plateforme suspendue en façade : poutres de suspension, contrepoids, câbles, essais de sécurité et mise en service.", "", "u", 6.0],
+  ["ECH-022", 22, 67, "Plan de montage et note de calcul d'échafaudage", "Établissement du plan de montage, d'utilisation et de démontage, avec note de calcul lorsque le montage s'écarte de la notice du fabricant.", "", "u", 4.0],
+  ["ECH-024", 22, 68, "Vérification avant mise en service + registre", "Examen d'adéquation, de montage et d'installation, renseignement du registre de sécurité et pose de la plaque d'autorisation d'accès.", "", "u", 1.0],
+  ["ECH-025", 22, 68, "Vérification journalière / après intempéries", "Contrôle de l'état de conservation de l'échafaudage, des amarrages et des planchers après un épisode de vent ou de gel.", "", "u", 0.75],
+  ["ECH-026", 22, 68, "Réception et PV de conformité par organisme", "Réception de l'échafaudage par un organisme ou une personne compétente, avec procès-verbal remis au client.", "", "u", 1.0],
+  ["NET-001", 23, 69, "Nettoyage terrasse gravillons – lourdement endommagée", "Nettoyage complet d'une terrasse gravillonnée fortement encrassée : ratissage, retrait des dépôts, remise en état de la protection.", "béton", "m²", 0.23],
+  ["NET-002", 23, 69, "Nettoyage étanchéité autoprotégée ardoisée – léger", "Nettoyage manuel ou mécanique léger d'une étanchéité autoprotégée nue, retrait des mousses et des dépôts superficiels.", "", "m²", 0.089],
+  ["NET-003", 23, 69, "Nettoyage étanchéité autoprotégée ardoisée – moyen", "Nettoyage d'un encrassement moyen avec brossage et rinçage, évacuation des déchets végétaux.", "", "m²", 0.114],
+  ["NET-004", 23, 69, "Nettoyage étanchéité autoprotégée ardoisée – fort", "Nettoyage d'une surface fortement encrassée, décapage, brossage soutenu et évacuation des résidus.", "", "m²", 0.16],
+  ["NET-005", 23, 69, "Nettoyage étanchéité sous dalles sur plots – léger", "Dépose partielle des dalles, nettoyage de l'étanchéité sous-jacente et repose des dalles après contrôle.", "", "m²", 0.1],
+  ["NET-006", 23, 69, "Nettoyage étanchéité sous dalles sur plots – moyen", "Dépose des dalles, nettoyage complet de l'étanchéité et des plots, contrôle des points singuliers et repose.", "", "m²", 0.133],
+  ["NET-007", 23, 69, "Nettoyage étanchéité sous dalles sur plots – fort", "Dépose des dalles, décapage soutenu, curage des naissances et repose après contrôle de l'étanchéité.", "", "m²", 0.2],
+  ["NET-008", 23, 69, "Nettoyage sous protection gravillons – faible", "Ratissage et retrait localisé des gravillons, nettoyage de l'étanchéité et remise en place de la protection.", "", "m²", 0.067],
+  ["NET-009", 23, 69, "Nettoyage sous protection gravillons – moyen", "Retrait des gravillons sur la zone, nettoyage de l'étanchéité, contrôle des soudures et remise en place.", "", "m²", 0.089],
+  ["NET-010", 23, 69, "Nettoyage sous protection gravillons – fort", "Retrait complet des gravillons, nettoyage approfondi, contrôle du complexe et remise en place de la protection.", "", "m²", 0.114],
+  ["ENT-001", 24, 70, "Visite d'entretien annuelle – terrasse < 500 m²", "Visite contractuelle d'entretien : contrôle du complexe, des relevés, des évacuations et des émergences, petit entretien courant et compte rendu.", "", "u", 4.0],
+  ["ENT-002", 24, 70, "Visite d'entretien annuelle – terrasse 500 à 2 000 m²", "Visite contractuelle sur toiture de surface moyenne : contrôle complet, curage des EP, nettoyage courant et rapport de visite.", "", "u", 7.0],
+  ["ENT-003", 24, 70, "Visite d'entretien annuelle – terrasse > 2 000 m²", "Visite contractuelle sur grande toiture technique, contrôle par zones, relevé des désordres et plan d'actions chiffré.", "", "u", 12.0],
+  ["ENT-004", 24, 71, "Désherbage et retrait de végétation sur terrasse", "Arrachage de la végétation spontanée, retrait des racines sans blesser le complexe et évacuation des déchets verts.", "béton/acier", "m²", 0.08],
+  ["ENT-005", 24, 71, "Curage des naissances et remplacement des crapaudines", "Nettoyage complet des naissances EP, remplacement des crapaudines défectueuses et essai d'écoulement à l'eau.", "", "u", 0.3],
+  ["ENT-006", 24, 71, "Nettoyage des chéneaux de toiture-terrasse", "Retrait des dépôts, mousses et gravillons dans les chéneaux, curage des naissances et contrôle des soudures.", "béton/acier", "ml", 0.12],
+  ["ENT-007", 24, 71, "Ratissage et redistribution des gravillons", "Réglage de l'épaisseur de la protection meuble, dégagement des naissances et des relevés, apport ponctuel si nécessaire.", "béton", "m²", 0.05],
+  ["ENT-008", 24, 71, "Reprise ponctuelle de soudure / rustine bitumineuse", "Traitement d'un point faible identifié : nettoyage, primaire, pièce de renfort soudée et contrôle de l'adhérence.", "béton/acier", "u", 0.6],
+  ["ENT-009", 24, 71, "Contrôle des relevés, solins et couvertines", "Vérification de la tenue des relevés, des solins et des couvertines, resserrage des fixations et reprise des calfeutrements.", "béton/acier", "ml", 0.06],
+  ["ENT-010", 24, 71, "Nettoyage des vitrages de lanterneaux et exutoires", "Nettoyage des dômes et vitrages, contrôle de l'état des joints et des costières, signalement des éléments à remplacer.", "", "u", 0.35],
+  ["ENT-011", 24, 71, "Rapport de visite avec reportage photo et préconisations", "Rédaction du rapport d'entretien : constats photographiques, désordres relevés, préconisations et devis associés.", "", "u", 2.0],
+  ["RDF-001", 25, 72, "Inspection visuelle + tests simples", "Visite du complexe d'étanchéité, contrôle des points singuliers, test d'écoulement et compte rendu photographique.", "", "u", 1.2],
+  ["RDF-002", 25, 72, "Test fumigène / générateur de fumée", "Mise en œuvre d'un générateur de fumée pour localiser les défauts d'étanchéité en sous-face, avec rapport de constat.", "", "u", 2.5],
+  ["RDF-003", 25, 72, "Caméra thermique / mesure d'hygrométrie", "Diagnostic par imagerie thermique et mesures d'humidité afin de cartographier les zones d'infiltration.", "", "u", 3.0],
+  ["RDF-004", 25, 72, "Fluorescéine (traceur colorimétrique)", "Recherche par traceur colorimétrique sur zones ciblées, mise en eau, observation en sous-face et rapport.", "", "u", 2.2],
+  ["RDF-005", 25, 72, "Fluorescéine – zones complexes / sous dalles", "Recherche en configuration complexe nécessitant dépose partielle des dalles ou de la protection et essais successifs.", "", "u", 3.0],
+  ["RDF-006", 25, 73, "Audit et vérification de conformité de l'étanchéité", "Audit complet du complexe existant, relevé des non-conformités au DTU, préconisations de travaux et rapport écrit.", "", "u", 3.0],
+  ["BAR-001", 26, 74, "Plateau horizontal sur charpente – pistolet", "Pose de la peau intérieure en plateaux sur charpente, fixation au pistolet à gaz, alignement et calfeutrement des abouts.", "acier", "m²", 0.09],
+  ["BAR-002", 26, 74, "Plateau horizontal sur charpente – vissage", "Pose de la peau intérieure en plateaux avec fixation par vissage, réglage de l'alignement et traitement des jonctions.", "acier", "m²", 0.17],
+  ["BAR-003", 26, 75, "Ossature verticale sur béton", "Fixation mécanique des profils verticaux sur support béton, réglage d'aplomb et calage des désaffleurs.", "béton", "m²", 0.07],
+  ["BAR-004", 26, 75, "Ossature horizontale sur béton", "Fixation mécanique des profils horizontaux sur support béton, réglage de niveau et calage.", "béton", "m²", 0.07],
+  ["BAR-005", 26, 75, "Ossature verticale sur béton – sur pattes", "Pose de pattes-équerres réglables puis des profils verticaux, réglage de l'aplomb et rupture de pont thermique.", "béton", "m²", 0.12],
+  ["BAR-006", 26, 75, "Ossature horizontale sur béton – sur pattes", "Pose de pattes-équerres puis des profils horizontaux, réglage de niveau et rupteurs thermiques.", "béton", "m²", 0.12],
+  ["BAR-007", 26, 75, "Ossature verticale sur acier", "Fixation des profils verticaux sur structure acier, vissage autoperceur et contrôle de l'aplomb.", "acier", "m²", 0.09],
+  ["BAR-008", 26, 75, "Ossature verticale sur plateau", "Pose des profils verticaux sur plateaux existants, fixation dans les ailes et réglage de la planéité.", "acier", "m²", 0.06],
+  ["BAR-009", 26, 75, "Ossature à 45° sur plateau", "Pose de l'ossature inclinée à 45° sur plateaux, permettant le passage de l'isolant et la reprise des charges.", "acier", "m²", 0.085],
+  ["BAR-010", 26, 75, "Ossature verticale sur parpaing – chimique", "Fixation des profils par scellement chimique sur maçonnerie, perçage, dépoussiérage et temps de polymérisation.", "parpaing", "m²", 0.11],
+  ["BAR-011", 26, 75, "Ossature sur parpaing – pattes + chimique", "Pose de pattes-équerres scellées chimiquement puis des profils, réglage d'aplomb sur support irrégulier.", "parpaing", "m²", 0.18],
+  ["BAR-012", 26, 76, "Lisses métalliques verticales / horizontales", "Pose de la seconde ossature croisée, réglage de la lame d'air et préparation du support de peau extérieure.", "béton/acier", "m²", 0.055],
+  ["BAR-013", 26, 76, "Rails horizontaux", "Pose des rails horizontaux support de peau extérieure, alignement et gestion des dilatations.", "béton/acier", "m²", 0.08],
+  ["BAR-014", 26, 77, "Isolant sur acier – Rockbardage", "Mise en place de l'isolant semi-rigide en fond de plateau, jointoiement soigné et contrôle de l'épaisseur.", "acier", "m²", 0.05],
+  ["BAR-015", 26, 77, "Isolant souple sur béton – perçage/vissage", "Pose de l'isolant souple sur support béton par fixations mécaniques traversantes, joints serrés.", "béton", "m²", 0.05],
+  ["BAR-016", 26, 77, "Isolant rigide sur béton – perçage/vissage", "Pose de panneaux isolants rigides fixés mécaniquement, calepinage à joints décalés et calage.", "béton", "m²", 0.11],
+  ["BAR-017", 26, 77, "Isolant souple sur béton – pistolet", "Pose de l'isolant souple avec fixation au pistolet à gaz, rendement accru sur grandes surfaces.", "béton", "m²", 0.04],
+  ["BAR-018", 26, 78, "Pare-air sur isolant – perçage/vissage", "Déroulage et fixation de la membrane pare-air/pare-pluie, recouvrements adhésivés et traitement des points singuliers.", "béton/acier", "m²", 0.1],
+  ["BPE-001", 27, 79, "Cassettes < 3 m² – pose verticale", "Fourniture et pose de cassettes métalliques de petit format sur ossature, agrafage, réglage des joints creux.", "", "m²", 0.45],
+  ["BPE-002", 27, 79, "Cassettes > 3 m² – pose verticale", "Fourniture et pose de cassettes de grand format, manutention adaptée, alignement et calepinage des joints.", "", "m²", 0.55],
+  ["BPE-003", 27, 79, "Clins < 4 ml – pose verticale", "Fourniture et pose de clins métalliques emboîtables de faible longueur, fixations cachées et coupes d'ajustement.", "", "m²", 0.25],
+  ["BPE-004", 27, 79, "Clins > 4 ml – pose verticale", "Pose de clins de grande longueur, manutention à deux compagnons, alignement et gestion des dilatations.", "", "m²", 0.32],
+  ["BPE-005", 27, 79, "Clins > 4 ml – pose horizontale", "Pose horizontale de clins de grande longueur, réglage de niveau et traitement des joints d'about.", "", "m²", 0.22],
+  ["BPE-006", 27, 79, "Tôle nervurée < 4 m² – pose verticale", "Fourniture et pose de bacs nervurés laqués de petit format, recouvrements et fixations apparentes.", "", "m²", 0.18],
+  ["BPE-007", 27, 79, "Tôle nervurée > 4 m² – pose verticale", "Pose de bacs nervurés de grande longueur, levage, alignement des nervures et fixations en fond d'onde.", "", "m²", 0.2],
+  ["BPE-008", 27, 79, "Tôle nervurée ~ 6 m² – pose horizontale", "Pose horizontale de bacs nervurés, réglage de niveau, recouvrements et traitement des abouts.", "", "m²", 0.22],
+  ["BPE-009", 27, 79, "Panneaux plans fix. visibles < 1 m²", "Pose de panneaux plans de petit format à fixations visibles, calepinage régulier et joints maîtrisés.", "", "m²", 0.45],
+  ["BPE-010", 27, 79, "Panneaux plans fix. visibles > 1 m²", "Pose de panneaux plans de grand format à fixations visibles, manutention et alignement des joints.", "", "m²", 0.35],
+  ["BPE-011", 27, 79, "Panneaux plans fix. invisibles < 2 m²", "Pose de panneaux à fixations invisibles sur rails, réglage fin des joints et contrôle de la planéité.", "", "m²", 0.7],
+  ["BPE-012", 27, 79, "Panneaux plans fix. invisibles > 2 m²", "Pose de panneaux grand format à fixations invisibles, manutention renforcée et calepinage précis.", "", "m²", 0.6],
+  ["BPE-013", 27, 79, "Panneaux résine acrylique – fix. visibles", "Pose de panneaux composites en résine sur ossature, fixations visibles et respect des jeux de dilatation.", "", "m²", 0.55],
+  ["BPE-014", 27, 79, "Panneaux résine acrylique – fix. invisibles", "Pose de panneaux composites à fixations invisibles, préparation des inserts et réglage des joints.", "", "m²", 0.75],
+  ["BPE-015", 27, 79, "Terre cuite – pose verticale", "Pose de bardeaux en terre cuite sur rails, clippage, coupes d'ajustement et traitement des angles.", "", "m²", 0.75],
+  ["BPE-016", 27, 79, "Terre cuite – pose horizontale", "Pose horizontale de bardeaux terre cuite, alignement, calage et gestion des tolérances de fabrication.", "", "m²", 0.55],
+  ["BPE-017", 27, 79, "Polycarbonate connectable / emboîtable", "Pose de panneaux polycarbonate alvéolaires emboîtables, profils de rive et joints d'étanchéité.", "", "m²", 0.295],
+  ["BPE-018", 27, 80, "Encadrement sur mesure – fixations standard", "Façonnage et pose d'encadrements de baie en tôle laquée, coupes d'onglet et calfeutrement périphérique.", "", "ml", 0.28],
+  ["BPE-019", 27, 80, "Encadrement sur mesure – fixations invisibles", "Pose d'encadrements à fixations invisibles, ajustage soigné et finition sans percement apparent.", "", "ml", 0.5],
+  ["BPE-020", 27, 81, "Couvertines / bavettes / retours – fix. visible", "Façonnage et pose des pièces de finition en tôle laquée : couvertines, bavettes et retours d'angle.", "", "ml", 0.15],
+  ["BPE-021", 27, 81, "Remplacement de bardage existant (dépose + repose)", "Dépose du bardage en place, contrôle et reprise éventuelle de l'ossature, puis pose du bardage neuf avec finitions.", "", "m²", 0.45],
+  ["SAS-001", 28, 82, "Réalisation du dossier DOE", "Constitution du dossier des ouvrages exécutés : plans de récolement, fiches techniques, PV et notices de maintenance.", "", "u", 4.0],
+  ["SAS-002", 28, 82, "Réalisation du dossier administratif SS4 (amiante)", "Rédaction du mode opératoire SS4, déclaration, plan de retrait simplifié et constitution du dossier réglementaire.", "", "u", 6.0],
+  ["SAS-003", 28, 82, "Déplacement sur le chantier (base 1 h maxi)", "Déplacement aller-retour d'une équipe sur le site, sur la base d'une heure maximum de trajet.", "", "Forf.", 1.0],
+  ["SAS-004", 28, 82, "Implantation de la zone de travail", "Installation de la zone de travail : implantation, balisage, mise en place du stockage et des cheminements.", "", "Forf.", 8.0],
+  ["SAS-005", 28, 82, "Repliement et restitution du chantier", "Repli complet du matériel, nettoyage final, restitution des lieux et levée des réserves éventuelles.", "", "Forf.", 8.0],
+  ["SAS-007", 28, 82, "Rédaction du PPSPS / plan de prévention", "Rédaction du PPSPS ou du plan de prévention, analyse des risques et diffusion aux intervenants.", "", "u", 4.0],
+  ["SAS-008", 28, 82, "Réunion de chantier / visite hebdomadaire", "Participation à la réunion de chantier, rédaction du compte rendu et diffusion aux parties prenantes.", "", "u", 2.0],
+];
 
-  bacacier: {
-    label: 'Bac acier', ico: 'briefcase',
-    coeffs: {
-      surface: { label: 'Surface de couverture', def: 2, opts: CO_SURF },
-      pente: { label: 'Pente du toit', def: 1, opts: [['Faible (< 7 %)', 1.05], ['Courante (7 à 30 %)', 1.0], ['Forte (> 30 %)', 1.05]] },
-      complexite: { label: 'Complexité de la toiture', opts: CO_CPLX },
-      exigence: { label: 'Exigence qualité', opts: CO_EXI },
-      environnement: { label: 'Environnement / sécurité', opts: CO_ENV },
-    },
-    appro: { label: "Hauteur d'élévation", def: 2, opts: [['R+0', 0.06], ['R+1', 0.10], ['R+2 à R+6 (grue)', 0.15], ['supérieure à R+6', 0.20]] },
-    inputs: [
-      { key: 'surface', label: 'Surface de couverture (m²)', def: 400, unit: 'm²' },
-      { key: 'faitage', label: 'Faîtières (mL)', def: 30, unit: 'mL' },
-      { key: 'rives', label: 'Rives (mL)', def: 40, unit: 'mL' },
-      { key: 'egout', label: 'Égout / larmier (mL)', def: 40, unit: 'mL' },
-      { key: 'costiere', label: 'Costières / relevés (mL)', def: 20, unit: 'mL' },
-    ],
-    tasksSurf: {
-      depose: { label: 'Dépose de la couverture', opts: [['Pas de dépose', 0], ['Dépose bac acier', 0.10], ['Dépose plaques fibro (amiante : sous-traité)', 0]] },
-      isolation: { label: 'Isolation / pare-vapeur', opts: [['Sans', 0], ['Pare-vapeur + isolant', 0.08]] },
-      pose: { label: 'Pose de la couverture', def: 1, opts: [['Pas de pose', 0], ['Bac acier simple peau', 0.10], ['Panneau sandwich', 0.13], ['Plaques nervurées (rénovation)', 0.14], ['Bac acier + isolant (sèche)', 0.15]] },
-    },
-    tasksLin: {
-      faitage: { label: 'Faîtières + closoirs', input: 'faitage', def: 1, opts: [['Aucune', 0], ['Faîtière + closoir', 0.15]] },
-      rives: { label: 'Rives + bavettes', input: 'rives', def: 1, opts: [['Aucune', 0], ['Rive + bavette', 0.15]] },
-      egout: { label: 'Égout / larmier', input: 'egout', def: 1, opts: [['Aucun', 0], ['Bande d\'égout / larmier', 0.12]] },
-      costiere: { label: 'Costières / relevés', input: 'costiere', def: 1, opts: [['Aucune', 0], ['Costière', 0.12]] },
-    },
-  },
-
-  zinc: {
-    label: 'Zinc', ico: 'layers',
-    coeffs: {
-      surface: { label: 'Surface de couverture', def: 2, opts: CO_SURF },
-      pente: { label: 'Pente du toit', def: 1, opts: [['< 20 %', 1.05], ['20 à 60 %', 1.0], ['> 60 %', 1.08]] },
-      complexite: { label: 'Complexité / façonnés', opts: [['Simple', 1.0], ['Modérée', 1.15], ['Complexe (nombreux façonnés)', 1.3]] },
-      exigence: { label: 'Exigence qualité', def: 2, opts: CO_EXI },
-      environnement: { label: 'Environnement / sécurité', opts: CO_ENV },
-    },
-    appro: { label: "Hauteur d'élévation", def: 1, opts: APPRO_TOIT },
-    inputs: [
-      { key: 'surface', label: 'Surface de couverture (m²)', def: 80, unit: 'm²' },
-      { key: 'faitage', label: 'Faîtage (mL)', def: 12, unit: 'mL' },
-      { key: 'rives', label: 'Rives (mL)', def: 16, unit: 'mL' },
-      { key: 'noues', label: 'Noues (mL)', def: 6, unit: 'mL' },
-      { key: 'cheneau', label: 'Chéneaux / gouttières (mL)', def: 15, unit: 'mL' },
-      { key: 'egout', label: 'Égout / larmier (mL)', def: 16, unit: 'mL' },
-    ],
-    tasksSurf: {
-      support: { label: 'Support', def: 1, opts: [['Support existant', 0], ['Voligeage', 0.20]] },
-      ecran: { label: 'Écran de sous-toiture', def: 1, opts: [['Sans', 0], ['Écran structuré (delta)', 0.08]] },
-      pose: { label: 'Pose du zinc', def: 1, opts: [['Pas de pose', 0], ['À recouvrement (plaques)', 0.55], ['Joint debout', 0.85], ['Joint debout pré-patiné', 0.90], ['À tasseaux', 0.95]] },
-    },
-    tasksLin: {
-      faitage: { label: 'Faîtage', input: 'faitage', def: 1, opts: [['Aucun', 0], ['Faîtage zinc', 0.55]] },
-      rives: { label: 'Rives', input: 'rives', def: 1, opts: [['Aucune', 0], ['Rives zinc', 0.45]] },
-      noues: { label: 'Noues', input: 'noues', def: 1, opts: [['Aucune', 0], ['Noue zinc', 0.70]] },
-      cheneau: { label: 'Chéneaux / gouttières', input: 'cheneau', def: 1, opts: [['Aucun', 0], ['Gouttière pendante', 0.45], ['Chéneau zinc', 0.65]] },
-      egout: { label: 'Égout / larmier', input: 'egout', def: 1, opts: [['Aucun', 0], ['Bande d\'égout zinc', 0.35]] },
-    },
-  },
-};
-
-/* Coefficients et saisies additionnels (précision) appliqués à tous les métiers */
-const CO_ACCES = [['Facile (de plain-pied)', 1.0], ['Moyen', 1.05], ['Difficile (portage, exigus)', 1.15]];
-const CO_REND = [['Équipe confirmée', 0.95], ['Standard', 1.0], ['En formation', 1.10]];
-const CO_METEO = [['Favorable', 1.0], ['Standard', 1.03], ['Défavorable (hiver/vent)', 1.10]];
-const CO_ROTATION = [['Continue (1 poste)', 1.0], ['Interruptions modérées', 1.05], ['Site occupé / phasage', 1.12]];
-Object.values(CAD_METIERS).forEach(m => {
-  m.coeffs.acces = { label: 'Accès chantier', def: 0, opts: CO_ACCES };
-  m.coeffs.rendement = { label: "Rendement de l'équipe", def: 1, opts: CO_REND };
-  m.coeffs.meteo = { label: 'Météo / saison', def: 0, opts: CO_METEO };
-  m.coeffs.rotation = { label: "Contraintes d'exploitation", def: 0, opts: CO_ROTATION };
-});
-// Émergences / pénétrations + garde-corps en couverture
-const GC_DEPOSE = [['Pas de dépose', 0], ['Autoportant / à contrepoids', 0.08], ['Sur platine (dévissé)', 0.10], ['Provisoire (chantier)', 0.06], ['Scellé (dépose + réfection)', 0.22]];
-const GC_POSE = [['Pas de garde-corps', 0], ['Autoportant / à contrepoids (lesté)', 0.20], ['Sur platine (vissé)', 0.30], ['Potelets + lisses / filins (à sceller)', 0.35], ['En applique sur acrotère', 0.40], ['Repliable / escamotable', 0.45], ['Provisoire (potelets + filet)', 0.25]];
-['tuiles', 'ardoise', 'zinc', 'bacacier'].forEach(k => {
-  const m = CAD_METIERS[k];
-  m.inputs.push({ key: 'penetrations', label: 'Pénétrations / sorties de toit (nb)', def: 0, unit: 'u' });
-  m.tasksLin.penetrations = { label: 'Pénétrations / sorties de toit', input: 'penetrations', def: 0, opts: [['Aucune', 0], ['Solin / sortie simple', 0.8], ['Ventilation / chatière', 1.2], ['Châssis / lanterneau', 2.5]] };
-  m.inputs.push({ key: 'gc', label: 'Périmètre garde-corps (mL)', def: 0, unit: 'mL' });
-  m.tasksLin.gc_depose = { label: 'Dépose de garde-corps (si existant)', input: 'gc', def: 0, opts: GC_DEPOSE };
-  m.tasksLin.gc_pose = { label: 'Pose de garde-corps (tout type)', input: 'gc', def: 0, opts: GC_POSE };
-});
+/* Unités déjà exprimées en temps : le coefficient chantier ne s'y applique pas. */
+const CAD_U_TEMPS = ['h', 'j', 'Forf.'];
+/* Domaines = préfixe de section, pour le filtre du catalogue. */
+const CAD_DOMAINES = [...new Set(CAD_SECTIONS.map(s => s.split('—')[0].trim()))];
 
 /* -------------------------------------------------------------------------
    3. Objectifs (fiche de fonction Chargé d'affaires SAS)
@@ -2741,92 +3102,170 @@ function bteEditor(id) {
   refresh();
 }
 
-/* ---------- Cadences étanchéité ---------- */
-let cadMetier = 'etancheite';
-const CAD_STATE = {}; // par métier : { equipe, appro, coeff:{}, surf:{}, lin:{}, inputs:{} }
-function cadInit(metier) {
-  const cfg = CAD_METIERS[metier];
-  if (CAD_STATE[metier]) return CAD_STATE[metier];
-  const st = { equipe: 2, appro: cfg.appro.def ?? 0, coeff: {}, surf: {}, lin: {}, inputs: {} };
-  for (const k in cfg.coeffs) st.coeff[k] = cfg.coeffs[k].def ?? cfg.coeffs[k].opts.findIndex(o => o[1] === 1) ?? 0;
-  for (const k in cfg.tasksSurf) st.surf[k] = cfg.tasksSurf[k].def ?? 0;
-  for (const k in cfg.tasksLin) st.lin[k] = cfg.tasksLin[k].def ?? 0;
-  cfg.inputs.forEach(i => st.inputs[i.key] = i.def ?? 0);
-  CAD_STATE[metier] = st; return st;
-}
-function cadCompute(metier) {
-  const cfg = CAD_METIERS[metier], st = cadInit(metier), steps = [];
-  let gc = 1; for (const k in cfg.coeffs) gc *= cfg.coeffs[k].opts[st.coeff[k]] ? cfg.coeffs[k].opts[st.coeff[k]][1] : 1;
-  const surf = +st.inputs['surface'] || 0;
-  for (const k in cfg.tasksSurf) { const o = cfg.tasksSurf[k].opts[st.surf[k]]; if (!o || !o[1]) continue; const hM2 = o[1] * gc; steps.push({ nom: cfg.tasksSurf[k].label, detail: o[0], base: o[1] + ' h/m²', h: hM2 * surf, cad: hM2 ? HEURES_JOUR / hM2 : 0, unite: 'm²/j' }); }
-  const apr = cfg.appro.opts[st.appro]; if (apr && apr[1]) { const hM2 = apr[1] * gc; steps.push({ nom: 'Approvisionnement', detail: apr[0], base: apr[1] + ' h/m²', h: hM2 * surf, cad: hM2 ? HEURES_JOUR / hM2 : 0, unite: 'm²/j' }); }
-  for (const k in cfg.tasksLin) { const t = cfg.tasksLin[k], o = t.opts[st.lin[k]]; if (!o || !o[1]) continue; const inp = cfg.inputs.find(i => i.key === t.input) || { unit: 'mL' }; const metr = +st.inputs[t.input] || 0; const hU = o[1] * gc; steps.push({ nom: t.label, detail: o[0], base: o[1] + ' h/' + inp.unit, h: hU * metr, cad: hU ? HEURES_JOUR / hU : 0, unite: inp.unit + '/j' }); }
+/* ---------- Cadences (référentiel SMAC « cadence.xlsx ») ---------- */
+const CAD = {
+  equipe: 2, hj: CAD_PARAMS.heuresJour, surface: 0,
+  coeff: Object.fromEntries(CAD_COEFFS.map(c => [c.key, c.def])),
+  lignes: [],                       // [{ ref, qte }]
+  f: { dom: '', fam: '', q: '' },   // filtres du catalogue
+};
+const CAD_MAX_LISTE = 60;
+const cadNum3 = n => (isFinite(n) ? n : 0).toLocaleString('fr-FR', { maximumFractionDigits: 3 });
+const cadOuvrage = ref => CAD_OUVRAGES.find(o => o[CAD_I.REF] === ref);
+const cadSection = o => CAD_SECTIONS[o[CAD_I.SEC]];
+const cadFamille = o => CAD_FAMILLES[o[CAD_I.FAM]];
+const cadDomaine = o => cadSection(o).split('—')[0].trim();
+/* Les unités déjà exprimées en temps (h, j, forfait) ne sont pas pondérées. */
+const cadPondere = o => !CAD_U_TEMPS.includes(o[CAD_I.U]);
+const cadCoefGlobal = () => CAD_COEFFS.reduce((a, c) => a * (c.opts[CAD.coeff[c.key]] || c.opts[c.def])[1], 1);
+
+function cadCompute() {
+  const gc = cadCoefGlobal(), hj = Math.max(1, +CAD.hj || CAD_PARAMS.heuresJour), eq = Math.max(1, +CAD.equipe || 1);
+  const steps = CAD.lignes.map(l => {
+    const o = cadOuvrage(l.ref); if (!o) return null;
+    const hStd = o[CAD_I.H], coef = cadPondere(o) ? gc : 1, hU = hStd * coef, qte = +l.qte || 0;
+    return { ref: o[CAD_I.REF], nom: o[CAD_I.DES], famille: cadFamille(o), section: cadSection(o), desc: o[CAD_I.DESC],
+      unite: o[CAD_I.U], qte, hStd, coef, hU, h: hU * qte, cadStd: hStd ? hj / hStd : 0, cad: hU ? hj / hU : 0 };
+  }).filter(Boolean);
   const totalH = steps.reduce((s, x) => s + x.h, 0);
-  const jours = totalH / (Math.max(1, st.equipe) * HEURES_JOUR);
-  const cadGlob = jours > 0 ? surf / jours : 0;
-  return { cfg, st, gc, steps, totalH, jours, cadGlob, surf };
+  const jours = totalH / (eq * hj);
+  const surf = +CAD.surface > 0 ? +CAD.surface : steps.filter(s => s.unite === 'm²').reduce((m, s) => Math.max(m, s.qte), 0);
+  return { gc, steps, totalH, jours, surf, cadGlob: jours > 0 ? surf / jours : 0, eq, hj };
 }
+function cadCatalogue() {
+  const q = CAD.f.q.trim().toLowerCase();
+  return CAD_OUVRAGES.filter(o => {
+    if (CAD.f.dom && cadDomaine(o) !== CAD.f.dom) return false;
+    if (CAD.f.fam && cadFamille(o) !== CAD.f.fam) return false;
+    if (q && !(o[CAD_I.REF] + ' ' + o[CAD_I.DES] + ' ' + cadFamille(o) + ' ' + o[CAD_I.DESC]).toLowerCase().includes(q)) return false;
+    return true;
+  });
+}
+function cadFamillesDispo() {
+  const set = new Set(CAD_OUVRAGES.filter(o => !CAD.f.dom || cadDomaine(o) === CAD.f.dom).map(cadFamille));
+  return [...set].sort((a, b) => a.localeCompare(b, 'fr'));
+}
+
 function renderCadences(v) {
-  const cfg = CAD_METIERS[cadMetier], st = cadInit(cadMetier);
-  const selCoeff = k => { const c = cfg.coeffs[k]; return `<div class="field"><label>${c.label}</label><select data-coeff="${k}">${c.opts.map((o, i) => `<option value="${i}" ${st.coeff[k] === i ? 'selected' : ''}>${o[0]} (×${o[1]})</option>`).join('')}</select></div>`; };
-  const selTask = (bag, k) => { const c = (bag === 'surf' ? cfg.tasksSurf : cfg.tasksLin)[k], unit = bag === 'surf' ? 'h/m²' : 'h/' + ((cfg.inputs.find(i => i.key === c.input) || {}).unit || 'mL'); return `<div class="field"><label>${c.label}</label><select data-task="${bag}:${k}">${c.opts.map((o, i) => `<option value="${i}" ${st[bag][k] === i ? 'selected' : ''}>${o[0]}${o[1] ? ' — ' + o[1] + ' ' + unit : ''}</option>`).join('')}</select></div>`; };
-  const inputField = i => `<div class="field"><label>${i.label}</label><input data-input="${i.key}" type="number" min="0" step="any" value="${st.inputs[i.key]}"></div>`;
+  const selCoeff = c => `<div class="field"><label>${esc(c.label)}</label><select data-coeff="${c.key}">${c.opts.map((o, i) =>
+    `<option value="${i}" ${CAD.coeff[c.key] === i ? 'selected' : ''} title="${esc(o[2] || '')}">${esc(o[0])} (×${o[1]})</option>`).join('')}</select></div>`;
   v.innerHTML = `
-    <div class="pill-tabs" style="flex-wrap:wrap">${Object.entries(CAD_METIERS).map(([k, m]) => `<button data-metier="${k}" class="${cadMetier === k ? 'active' : ''}">${icon(m.ico)} ${m.label}</button>`).join('')}</div>
-    <p class="t-muted" style="margin:-2px 0 16px;max-width:840px">Estimateur de cadences — <b>${cfg.label}</b>. Renseignez les caractéristiques du chantier, les coefficients de complexité et les ouvrages retenus : l'outil calcule le temps de pose, la durée équipe et la cadence globale. Les temps unitaires sont <b>indicatifs (standards métier)</b> et ajustables.</p>
-    <div class="grid-2">
-      <div class="card card-pad">
-        <div class="card-title">1 · Caractéristiques du chantier</div>
-        <div class="form-grid">
-          ${cfg.inputs.map(inputField).join('')}
-          <div class="field"><label>${cfg.appro.label}</label><select data-appro>${cfg.appro.opts.map((o, i) => `<option value="${i}" ${st.appro === i ? 'selected' : ''}>${o[0]} (${o[1]} h/m²)</option>`).join('')}</select></div>
-          <div class="field"><label>Taille de l'équipe (personnes)</label><input data-eq type="number" min="1" value="${st.equipe}"></div>
-        </div>
-        <div class="card-title" style="margin-top:16px">2 · Coefficients de complexité</div>
-        <div class="form-grid">${Object.keys(cfg.coeffs).map(selCoeff).join('')}</div>
+    <p class="t-muted" style="margin:0 0 16px;max-width:900px">Estimateur de cadences adossé au <b>référentiel SMAC</b> (classeur « cadence.xlsx ») :
+      <b>${CAD_OUVRAGES.length} ouvrages</b> répartis en ${CAD_SECTIONS.length} sections, temps unitaires en h/unité pour 1 compagnon.
+      Choisissez les ouvrages, saisissez les quantités et pondérez avec les coefficients chantier : l'outil calcule le temps de pose,
+      la durée équipe et la cadence corrigée. Les temps « EXP. » du référentiel restent à confirmer par les retours chantier.</p>
+    <div class="card card-pad">
+      <div class="card-title">1 · Chantier</div>
+      <div class="form-grid" style="grid-template-columns:repeat(3,1fr)">
+        <div class="field"><label>Surface de référence (m²)</label><input data-cad="surface" type="number" min="0" step="any" value="${CAD.surface}"><span class="hint">0 = la plus grande quantité saisie en m²</span></div>
+        <div class="field"><label>Taille de l'équipe (personnes)</label><input data-cad="equipe" type="number" min="1" step="1" value="${CAD.equipe}"><span class="hint">Référentiel : ${CAD_PARAMS.heuresJour} h/j par compagnon</span></div>
+        <div class="field"><label>Journée de travail (h/j)</label><input data-cad="hj" type="number" min="1" step="any" value="${CAD.hj}"><span class="hint">Sert au calcul des cadences (journée / temps unitaire)</span></div>
       </div>
-      <div class="card card-pad">
-        <div class="card-title">3 · Ouvrages surfaciques (h/m²)</div>
-        <div class="form-grid">${Object.keys(cfg.tasksSurf).map(k => selTask('surf', k)).join('')}</div>
-        <div class="card-title" style="margin-top:16px">4 · Ouvrages linéaires / unitaires</div>
-        <div class="form-grid">${Object.keys(cfg.tasksLin).map(k => selTask('lin', k)).join('')}</div>
+      <div class="card-title" style="margin-top:20px">2 · Coefficients chantier <span class="chip" id="cad-gc">×1,000</span></div>
+      <div class="form-grid" style="grid-template-columns:repeat(4,1fr)">${CAD_COEFFS.map(selCoeff).join('')}</div>
+      <p class="t-muted" style="margin:12px 0 0;font-size:12px">Coefficient global = produit des coefficients retenus (onglet COEFFICIENTS CHANTIER du référentiel).
+        Il n'est pas appliqué aux lignes déjà exprimées en temps (h, j, forfait).</p>
+    </div>
+    <div class="card card-pad" style="margin-top:16px">
+      <div class="card-title">3 · Catalogue d'ouvrages</div>
+      <div class="form-grid" style="grid-template-columns:repeat(3,1fr)">
+        <div class="field"><label>Domaine</label><select data-f="dom"><option value="">Tous les domaines</option>${CAD_DOMAINES.map(d => `<option value="${esc(d)}" ${CAD.f.dom === d ? 'selected' : ''}>${esc(d)}</option>`).join('')}</select></div>
+        <div class="field"><label>Famille</label><select data-f="fam"></select></div>
+        <div class="field"><label>Recherche (réf., désignation, descriptif)</label><input data-f="q" type="search" placeholder="ex. relevé, EEP, bac acier…" value="${esc(CAD.f.q)}"></div>
       </div>
+      <div id="cad-cat" style="margin-top:14px"></div>
+    </div>
+    <div class="card card-pad" style="margin-top:16px">
+      <div class="card-title">4 · Ouvrages retenus</div>
+      <div id="cad-panier"></div>
     </div>
     <div id="cad-out" class="cad-out" style="margin-top:16px"></div>`;
-  $$('[data-metier]', v).forEach(b => b.onclick = () => { cadMetier = b.dataset.metier; renderCadences(v); });
-  const readInputs = () => {
-    st.equipe = Math.max(1, +v.querySelector('[data-eq]').value || 1);
-    st.appro = +v.querySelector('[data-appro]').value;
-    $$('[data-input]', v).forEach(el => st.inputs[el.dataset.input] = +el.value || 0);
-    $$('[data-coeff]', v).forEach(sel => st.coeff[sel.dataset.coeff] = +sel.value);
-    $$('[data-task]', v).forEach(sel => { const [bag, key] = sel.dataset.task.split(':'); st[bag][key] = +sel.value; });
+
+  $$('[data-cad]', v).forEach(el => el.oninput = () => { CAD[el.dataset.cad] = +el.value || 0; cadRefreshOut(); });
+  $$('[data-coeff]', v).forEach(el => el.onchange = () => { CAD.coeff[el.dataset.coeff] = +el.value; cadRefreshOut(); });
+  v.querySelector('[data-f="dom"]').onchange = e => { CAD.f.dom = e.target.value; CAD.f.fam = ''; cadRefreshFamilles(v); cadRefreshCat(); };
+  v.querySelector('[data-f="q"]').oninput = e => { CAD.f.q = e.target.value; cadRefreshCat(); };
+  v.onclick = e => {
+    const add = e.target.closest('[data-add]'), del = e.target.closest('[data-del]');
+    if (add) cadAjouter(add.dataset.add);
+    if (del) { CAD.lignes = CAD.lignes.filter(l => l.ref !== del.dataset.del); cadRefreshPanier(); cadRefreshCat(); }
   };
-  const recompute = () => { readInputs(); $('#cad-out').innerHTML = cadencesResult(); const b = $('#cad-csv'); if (b) b.onclick = exportCadences; const ib = $('#cad-bte'); if (ib) ib.onclick = importCadenceToBte; };
-  v.querySelectorAll('.card input,.card select').forEach(el => el.oninput = recompute);
-  recompute();
+  cadRefreshFamilles(v); cadRefreshCat(); cadRefreshPanier();
+}
+function cadRefreshFamilles(v) {
+  const sel = v.querySelector('[data-f="fam"]');
+  sel.innerHTML = `<option value="">Toutes les familles</option>` + cadFamillesDispo().map(f => `<option value="${esc(f)}" ${CAD.f.fam === f ? 'selected' : ''}>${esc(f)}</option>`).join('');
+  sel.onchange = e => { CAD.f.fam = e.target.value; cadRefreshCat(); };
+}
+function cadAjouter(ref) {
+  if (CAD.lignes.some(l => l.ref === ref)) { toast('Ouvrage déjà retenu', 'err'); return; }
+  const o = cadOuvrage(ref); if (!o) return;
+  const qte = o[CAD_I.U] === 'm²' && +CAD.surface > 0 ? +CAD.surface : 1;
+  CAD.lignes.push({ ref, qte });
+  cadRefreshPanier(); cadRefreshCat();
+}
+function cadRefreshCat() {
+  const box = $('#cad-cat'); if (!box) return;
+  const list = cadCatalogue(), hj = Math.max(1, +CAD.hj || CAD_PARAMS.heuresJour), shown = list.slice(0, CAD_MAX_LISTE);
+  box.innerHTML = !list.length ? '<p class="t-muted">Aucun ouvrage ne correspond à ces filtres.</p>' :
+    `<div class="table-wrap" style="max-height:360px;overflow:auto"><table>
+      <thead><tr><th>Réf.</th><th>Ouvrage</th><th>U</th><th class="num">Temps std</th><th class="num">Cadence std</th><th></th></tr></thead>
+      <tbody>${shown.map(o => {
+        const retenu = CAD.lignes.some(l => l.ref === o[CAD_I.REF]);
+        return `<tr><td class="t-muted">${esc(o[CAD_I.REF])}</td>
+          <td><span class="t-strong" title="${esc(o[CAD_I.DESC])}">${esc(o[CAD_I.DES])}</span><br><span class="t-muted" style="font-size:11.5px">${esc(cadFamille(o))}${o[CAD_I.SUP] ? ' · ' + esc(o[CAD_I.SUP]) : ''}</span></td>
+          <td>${esc(o[CAD_I.U])}</td><td class="num">${cadNum3(o[CAD_I.H])} h</td><td class="num">${num(hj / o[CAD_I.H])} ${esc(o[CAD_I.U])}/j</td>
+          <td class="num">${retenu ? '<span class="chip">retenu</span>' : `<button class="btn small" data-add="${esc(o[CAD_I.REF])}">${icon('plus')}</button>`}</td></tr>`;
+      }).join('')}</tbody></table></div>
+    <p class="t-muted" style="margin:8px 0 0;font-size:12px">${list.length} ouvrage(s) trouvé(s)${list.length > CAD_MAX_LISTE ? ` — ${CAD_MAX_LISTE} affichés, affinez la recherche.` : ''}</p>`;
+}
+function cadRefreshPanier() {
+  const box = $('#cad-panier'); if (!box) return;
+  box.innerHTML = !CAD.lignes.length ? '<p class="t-muted" style="margin:0">Aucun ouvrage retenu — ajoutez des lignes depuis le catalogue.</p>' :
+    `<div class="table-wrap"><table>
+      <thead><tr><th>Réf.</th><th>Ouvrage</th><th>Famille</th><th class="num">Quantité</th><th>U</th><th></th></tr></thead>
+      <tbody>${CAD.lignes.map(l => { const o = cadOuvrage(l.ref); return `<tr>
+        <td class="t-muted">${esc(l.ref)}</td><td class="t-strong" title="${esc(o[CAD_I.DESC])}">${esc(o[CAD_I.DES])}</td>
+        <td class="t-muted">${esc(cadFamille(o))}</td>
+        <td class="num"><input data-q="${esc(l.ref)}" type="number" min="0" step="any" value="${l.qte}" style="max-width:110px;text-align:right"></td>
+        <td>${esc(o[CAD_I.U])}</td><td class="num"><button class="btn small" data-del="${esc(l.ref)}">${icon('trash')}</button></td></tr>`; }).join('')}</tbody></table></div>`;
+  $$('[data-q]', box).forEach(el => el.oninput = () => {
+    const l = CAD.lignes.find(x => x.ref === el.dataset.q); if (l) l.qte = +el.value || 0; cadRefreshOut();
+  });
+  cadRefreshOut();
+}
+function cadRefreshOut() {
+  const gc = $('#cad-gc'); if (gc) gc.textContent = '×' + cadCoefGlobal().toFixed(3).replace('.', ',');
+  const out = $('#cad-out'); if (!out) return;
+  out.innerHTML = cadencesResult();
+  const b = $('#cad-csv'); if (b) b.onclick = exportCadences;
+  const ib = $('#cad-bte'); if (ib) ib.onclick = importCadenceToBte;
 }
 function cadencesResult() {
-  const { cfg, st, gc, steps, totalH, jours, cadGlob, surf } = cadCompute(cadMetier);
+  const { gc, steps, totalH, jours, surf, cadGlob, eq, hj } = cadCompute();
+  if (!steps.length) return '<p class="t-muted">Sélectionnez au moins un ouvrage pour lancer l\'estimation.</p>';
   return `<div class="grid-3">
-    <div class="cad-metric"><div class="cm-label">Temps de pose total</div><div class="cm-value">${num(totalH)} h</div><div class="cm-sub">Coefficient global appliqué : ×${gc.toFixed(3)}</div></div>
-    <div class="cad-metric green"><div class="cm-label">Durée chantier</div><div class="cm-value">${num(jours)} j</div><div class="cm-sub">équipe de ${st.equipe} pers. · ${HEURES_JOUR} h/j</div></div>
-    <div class="cad-metric amber"><div class="cm-label">Cadence globale</div><div class="cm-value">${num(cadGlob)}</div><div class="cm-sub">m²/jour (${num(surf)} m²)</div></div></div>
-  ${steps.length ? `<div class="table-wrap" style="margin-top:16px"><table class="cad-steps"><thead><tr><th>Étape</th><th>Choix</th><th class="num">Cadence std</th><th class="num">Cadence corrigée</th><th class="num">Temps</th></tr></thead>
-    <tbody>${steps.map(s => `<tr><td class="t-strong">${esc(s.nom)}</td><td class="t-muted">${esc(s.detail)}</td><td class="num">${esc(s.base)}</td><td class="num">${num(s.cad)} ${s.unite}</td><td class="num">${num(s.h)} h</td></tr>`).join('')}</tbody>
-    <tfoot><tr><td colspan="4">TOTAL — ${num(jours)} jours équipe</td><td class="num">${num(totalH)} h</td></tr></tfoot></table></div>
-    <div class="page-actions" style="margin-top:14px"><button class="btn" id="cad-bte">${icon('calculator')} Importer dans un BTE (main d'œuvre)</button><span class="spacer"></span><button class="btn small" id="cad-csv">${icon('download')} Exporter l'estimation (CSV)</button></div>`
-    : '<p class="t-muted" style="margin-top:14px">Sélectionnez au moins un ouvrage pour lancer l\'estimation.</p>'}`;
+    <div class="cad-metric"><div class="cm-label">Temps de pose total</div><div class="cm-value">${num(totalH)} h</div><div class="cm-sub">Coefficient chantier appliqué : ×${gc.toFixed(3).replace('.', ',')}</div></div>
+    <div class="cad-metric green"><div class="cm-label">Durée chantier</div><div class="cm-value">${num(jours)} j</div><div class="cm-sub">équipe de ${eq} pers. · ${num(hj)} h/j</div></div>
+    <div class="cad-metric amber"><div class="cm-label">Cadence globale</div><div class="cm-value">${num(cadGlob)}</div><div class="cm-sub">m²/jour (${num(surf)} m² de référence)</div></div></div>
+  <div class="table-wrap" style="margin-top:16px"><table class="cad-steps">
+    <thead><tr><th>Réf.</th><th>Ouvrage</th><th class="num">Qté</th><th class="num">Temps std</th><th class="num">Cadence std</th><th class="num">Cadence corrigée</th><th class="num">Temps</th></tr></thead>
+    <tbody>${steps.map(s => `<tr><td class="t-muted">${esc(s.ref)}</td><td class="t-strong">${esc(s.nom)}</td>
+      <td class="num">${num(s.qte)} ${esc(s.unite)}</td><td class="num">${cadNum3(s.hStd)} h/${esc(s.unite)}</td>
+      <td class="num">${num(s.cadStd)} ${esc(s.unite)}/j</td><td class="num">${num(s.cad)} ${esc(s.unite)}/j${s.coef === 1 ? ' <span class="t-muted">(non pondéré)</span>' : ''}</td>
+      <td class="num">${num(s.h)} h</td></tr>`).join('')}</tbody>
+    <tfoot><tr><td colspan="6">TOTAL — ${num(jours)} jours équipe</td><td class="num">${num(totalH)} h</td></tr></tfoot></table></div>
+  <div class="page-actions" style="margin-top:14px"><button class="btn" id="cad-bte">${icon('calculator')} Importer dans un BTE (main d'œuvre)</button><span class="spacer"></span><button class="btn small" id="cad-csv">${icon('download')} Exporter l'estimation</button></div>`;
 }
 function importCadenceToBte() {
-  const { cfg, steps, surf } = cadCompute(cadMetier);
+  const { steps, totalH, surf } = cadCompute();
   if (!steps.length) { toast('Aucune tâche à importer', 'err'); return; }
-  const taux = +DB.data.objectifs.tauxHoraireMO || 0;
-  const lignes = steps.map(s => ({ cat: BTE_CATS[1], designation: s.nom, unite: 'h', qte: Math.round(s.h * 10) / 10, pu: taux }));
-  const totalH = steps.reduce((a, s) => a + s.h, 0);
+  const taux = +DB.data.objectifs.tauxHoraireMO || CAD_PARAMS.tauxMO;
+  const lignes = steps.map(s => ({ cat: BTE_CATS[1], designation: s.ref + ' — ' + s.nom, unite: 'h', qte: Math.round(s.h * 10) / 10, pu: taux }));
   const bteOpts = DB.data.bte.map(b => `<option value="${b.id}">${esc(b.otp || '')} ${esc(b.nom)}</option>`).join('');
   const m = modal({ title: "Importer la main d'œuvre dans un BTE",
     body: `<p class="t-muted" style="margin-top:0">${steps.length} tâche(s) · <b>${num(totalH)} h</b> au total, valorisées à ${eur(taux)}/h (taux MO). Ajoutées au poste « ${BTE_CATS[1]} ».</p>
-      <div class="field"><label>BTE cible</label><select id="i-bte"><option value="">➕ Nouveau BTE (${esc(cfg.label)}${surf ? ' — ' + num(surf) + ' m²' : ''})</option>${bteOpts}</select></div>
+      <div class="field"><label>BTE cible</label><select id="i-bte"><option value="">➕ Nouveau BTE (estimation cadence${surf ? ' — ' + num(surf) + ' m²' : ''})</option>${bteOpts}</select></div>
       <div class="table-wrap" style="margin-top:12px"><table><thead><tr><th>Tâche</th><th class="num">Heures</th><th class="num">PU</th><th class="num">Total</th></tr></thead>
         <tbody>${lignes.map(l => `<tr><td>${esc(l.designation)}</td><td class="num">${num(l.qte)} h</td><td class="num">${eur(l.pu)}</td><td class="num">${eur(l.qte * l.pu)}</td></tr>`).join('')}</tbody>
         <tfoot><tr><td>Total main d'œuvre</td><td class="num">${num(totalH)} h</td><td></td><td class="num">${eur(totalH * taux)}</td></tr></tfoot></table></div>`,
@@ -2835,11 +3274,16 @@ function importCadenceToBte() {
   $('#i-go').onclick = () => {
     const sel = $('#i-bte').value; let bte;
     if (sel) { bte = DB.data.bte.find(x => x.id === sel); bte.lignes.push(...lignes); }
-    else { bte = { id: uid(), nom: cfg.label + ' — estimation cadence', adresse: '', otp: '', dateEdition: todayISO(), margePct: 0.30, notes: 'Main d\'œuvre générée depuis le calculateur de cadences', lignes: [...lignes] }; DB.data.bte.unshift(bte); }
+    else { bte = { id: uid(), nom: 'Estimation cadence' + (surf ? ' — ' + num(surf) + ' m²' : ''), adresse: '', otp: '', dateEdition: todayISO(), margePct: 0.30, notes: "Main d'œuvre générée depuis le calculateur de cadences (référentiel SMAC)", lignes: [...lignes] }; DB.data.bte.unshift(bte); }
     DB.save(); m.close(); toast("Main d'œuvre importée dans le BTE"); go('bte'); bteEditor(bte.id);
   };
 }
-function exportCadences() { const { cfg, steps } = cadCompute(cadMetier); exportXlsx('estimation_' + cfg.label.toLowerCase(), ['etape', 'choix', 'cadence_std', 'cadence_corrigee', 'temps_h'], steps.map(s => [s.nom, s.detail, s.base, num(s.cad) + ' ' + s.unite, num(s.h)]), { sheet: 'Estimation', money: [], totals: false }); }
+function exportCadences() {
+  const { steps, gc } = cadCompute();
+  exportXlsx('estimation_cadences', ['ref', 'ouvrage', 'famille', 'unite', 'quantite', 'temps_std_h', 'coef_chantier', 'cadence_corrigee', 'temps_total_h'],
+    steps.map(s => [s.ref, s.nom, s.famille, s.unite, s.qte, s.hStd, s.coef, num(s.cad) + ' ' + s.unite + '/j', Math.round(s.h * 100) / 100]),
+    { sheet: 'Estimation', money: [], totals: false });
+}
 
 /* ---------- Clients ---------- */
 function renderClients(v) {
