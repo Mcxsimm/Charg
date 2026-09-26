@@ -1374,6 +1374,7 @@ const DB = {
     if (!Array.isArray(d.agenda)) d.agenda = [];
     if (!Array.isArray(d.todos)) d.todos = [];
     if (!Array.isArray(d.otps)) d.otps = [];
+    d.otps.forEach(o => { if (o.horsPerimetre === undefined) o.horsPerimetre = false; });
     d.pointages = migratePointages(d.pointages);
     d.bte = d.bte.map(migrateBte);
     return d;
@@ -1813,7 +1814,6 @@ function firstRun() {
 /* =========================================================================
    8. VUES
    ========================================================================= */
-function marge(r) { return (+r.prixVente || 0) - (+r.fournitures || 0) - (+r.engins || 0) - (+r.moSmac || 0); }
 const sameMonth = iso => { if (!iso) return false; const d = new Date(iso + 'T00:00:00'), n = new Date(); return d.getMonth() === n.getMonth() && d.getFullYear() === n.getFullYear(); };
 
 /* -- Finances / entretien : helpers partagés -- */
@@ -1853,7 +1853,7 @@ function renderDashboard(v) {
   const o = DB.data.objectifs, now = new Date(), mo = now.getMonth(), yr = now.getFullYear();
   const caY = DB.data.ca.filter(r => r.annee === yr);
   const caAnnuel = caY.reduce((s, r) => s + (+r.prixVente || 0), 0);
-  const caMarge = caY.reduce((s, r) => s + marge(r), 0);
+  const caMarge = caAnnuel - coutsReels(yr).tot;   // CA mis en facturation − coûts réels (achats reçus + pointages)
   const margePct = caAnnuel ? caMarge / caAnnuel : 0;
   const devisMois = DB.data.devis.filter(d => { const ref = d.dateEnvoi || d.dateDemande; if (!ref) return false; const dd = new Date(ref + 'T00:00:00'); return dd.getMonth() === mo && dd.getFullYear() === yr; }).length;
   const caProg = Math.round(caAnnuel / (o.caAnnuel || 1) * 100);
@@ -2065,7 +2065,8 @@ function beginEditTodo(item) {
 }
 function monthlyBarChart(yr) {
   const caM = Array(12).fill(0), maM = Array(12).fill(0);
-  DB.data.ca.filter(r => r.annee === yr).forEach(r => { const m = r.mois ?? 0; caM[m] += (+r.prixVente || 0); maM[m] += marge(r); });
+  DB.data.ca.filter(r => r.annee === yr).forEach(r => { const m = r.mois ?? 0; caM[m] += (+r.prixVente || 0); });
+  for (let m = 0; m < 12; m++) maM[m] = caM[m] - coutsReels(yr, m).tot;
   const max = Math.max(1, ...caM);
   const bars = caM.map((val, i) => `<div class="bar-col" title="${MOIS[i]} — CA ${eur(val)} / Marge ${eur(maM[i])}">
     <div class="bars"><div class="bar" style="height:${val / max * 100}%"></div><div class="bar margin" style="height:${Math.max(0, maM[i]) / max * 100}%"></div></div>
@@ -2208,9 +2209,9 @@ function otpRollup(code) {
   const caLines = DB.data.ca.filter(r => r.otp === code);
   const montantDevis = devis.reduce((s, d) => s + (+d.montantHT || 0), 0);
   const ca = caLines.reduce((s, r) => s + (+r.prixVente || 0), 0);
-  const margeCa = caLines.reduce((s, r) => s + marge(r), 0);
-  const achats = commandesParOtp(code);
-  const mo = moAllOtp(code);
+  const achatsOtp = commandesParOtp(code), moOtp = moAllOtp(code);
+  const margeCa = ca - achatsOtp - moOtp;   // CA mis en facturation − coûts imputés à l'OTP
+  const achats = achatsOtp, mo = moOtp;
   const factEmis = factures.filter(f => f.statut !== 'a_emettre').reduce((s, f) => s + (+f.montantHT || 0), 0);
   const encaisse = factures.filter(f => f.statut === 'payee').reduce((s, f) => s + (+f.montantHT || 0), 0);
   return { chantiers, devis, factures, caLines, montantDevis, ca, margeCa, achats, mo, factEmis, encaisse };
@@ -2223,12 +2224,12 @@ function renderOtps(v) {
     <div class="page-actions"><button class="btn primary" id="add">${icon('plus')} Libeller un OTP</button><span class="spacer"></span><button class="btn small" id="csv">${icon('download')} Excel</button></div>
     <div class="filters"><span class="search-wrap">${icon('search')}<input id="q" placeholder="Rechercher (code, libellé…)" value="${esc(otpFilterQ)}"></span><span class="chip">${codes.length} OTP</span></div>
     ${codes.length ? `<div class="table-wrap"><table><thead><tr><th>OTP</th><th>Libellé</th><th>Client</th><th class="num">Sites</th><th class="num">Devis</th><th class="num">Montant devis</th><th class="num">CA réalisé</th><th class="num">Marge CA</th><th></th></tr></thead>
-      <tbody>${codes.map(code => { const r = otpRollup(code); return `<tr><td class="t-strong">${esc(code)}</td><td><span class="link" data-open="${esc(code)}">${esc(otpLabel(code) || '—')}</span></td><td class="t-muted">${esc(clientNom(otpClientId(code)))}</td><td class="num">${r.chantiers.length}</td><td class="num">${r.devis.length}</td><td class="num">${eur(r.montantDevis)}</td><td class="num">${eur(r.ca)}</td><td class="num ${r.margeCa >= 0 ? 'margin-good' : 'margin-bad'}">${eur(r.margeCa)}</td>
+      <tbody>${codes.map(code => { const r = otpRollup(code); return `<tr><td class="t-strong">${esc(code)}</td><td><span class="link" data-open="${esc(code)}">${esc(otpLabel(code) || '—')}</span>${otpHorsPerimetre(code) ? ' <span class="chip" title="Suivi par un autre chargé d\'affaires — exclu du RAF">hors périmètre</span>' : ''}</td><td class="t-muted">${esc(clientNom(otpClientId(code)))}</td><td class="num">${r.chantiers.length}</td><td class="num">${r.devis.length}</td><td class="num">${eur(r.montantDevis)}</td><td class="num">${eur(r.ca)}</td><td class="num ${r.margeCa >= 0 ? 'margin-good' : 'margin-bad'}">${eur(r.margeCa)}</td>
         <td class="actions-cell"><button class="icon-btn" data-open="${esc(code)}" title="Détail">${icon('layers')}</button><button class="icon-btn" data-edit="${esc(code)}" title="Libellé">${icon('edit')}</button></td></tr>`; }).join('')}</tbody></table></div>`
       : emptyState('layers', 'Aucun OTP', 'Les OTP apparaissent dès qu\'ils sont utilisés sur un devis, un chantier, une facture ou un achat.')}`;
   $('#add').onclick = () => otpForm();
   $('#q').oninput = e => { otpFilterQ = e.target.value; renderOtps(v); const i = $('#q'); i.focus(); i.setSelectionRange(i.value.length, i.value.length); };
-  $('#csv').onclick = () => exportXlsx('comptes_otp', ['otp', 'libelle', 'client', 'sites', 'devis', 'montant_devis', 'ca', 'marge_ca', 'achats', 'mo'], codes.map(c => { const r = otpRollup(c); return [c, otpLabel(c), clientNom(otpClientId(c)), r.chantiers.length, r.devis.length, r.montantDevis, r.ca, r.margeCa, r.achats, r.mo]; }), { sheet: 'Comptes OTP' });
+  $('#csv').onclick = () => exportXlsx('comptes_otp', ['otp', 'libelle', 'client', 'perimetre', 'sites', 'devis', 'montant_devis', 'ca', 'marge_ca', 'achats', 'mo'], codes.map(c => { const r = otpRollup(c); return [c, otpLabel(c), clientNom(otpClientId(c)), otpHorsPerimetre(c) ? 'Hors périmètre (commandes seules)' : 'Mon périmètre', r.chantiers.length, r.devis.length, r.montantDevis, r.ca, r.margeCa, r.achats, r.mo]; }), { sheet: 'Comptes OTP' });
   $$('[data-open]', v).forEach(b => b.onclick = () => otpDetail(b.dataset.open));
   $$('[data-edit]', v).forEach(b => b.onclick = () => otpForm(b.dataset.edit));
 }
@@ -2261,11 +2262,13 @@ function otpForm(code) {
       <div class="field"><label>Client / donneur d'ordre</label><select id="o-client"><option value="">— Aucun —</option>${clOpts}</select></div>
       <div class="field full"><label>Libellé du compte OTP</label><input id="o-lib" value="${esc(o.libelle)}" placeholder="Ex. Département 76 — Collèges (lot étanchéité)"></div>
       <div class="field full"><label>Notes</label><textarea id="o-notes" rows="2">${esc(o.notes)}</textarea></div>
+      <div class="field full inline"><input type="checkbox" id="o-hors" ${o.horsPerimetre ? 'checked' : ''}><label for="o-hors" style="font-weight:600">OTP d'un autre chargé d'affaires — je n'y passe que des commandes</label></div>
+      <div class="field full"><span class="hint">Coché, cet OTP est exclu du RAF (boîte à affaires, mise en facturation du mois, marge &amp; reste à facturer). Les commandes fournisseurs restent possibles dessus.</span></div>
     </div>`, footer: `<button class="btn" data-c>Annuler</button><button class="btn primary" id="o-save">Enregistrer</button>` });
   m.root.querySelector('[data-c]').onclick = m.close;
   $('#o-save').onclick = () => {
     const cd = $('#o-code').value.trim(); if (!cd) { toast('Le code OTP est obligatoire', 'err'); return; }
-    const obj = { code: cd, libelle: $('#o-lib').value.trim(), clientId: $('#o-client').value, notes: $('#o-notes').value.trim() };
+    const obj = { code: cd, libelle: $('#o-lib').value.trim(), clientId: $('#o-client').value, notes: $('#o-notes').value.trim(), horsPerimetre: $('#o-hors').checked };
     const ex = otpMeta(cd);
     if (ex) Object.assign(ex, obj); else DB.data.otps.push(obj);
     DB.save(); m.close(); toast('OTP enregistré'); go('otps');
@@ -2275,7 +2278,7 @@ function otpForm(code) {
 /* ---------- RAF — Reste à facturer (analyse par OTP) ----------
    Écran 1 : sélection d'un OTP (période / exercice) → « Exécuter ».
    Écran 2 : fiche d'analyse — dépenses imputées + reste à facturer. */
-let rafOtp = '', rafPeriode = String(new Date().getMonth() + 1), rafExercice = String(new Date().getFullYear()), rafPerimetre = 'ytd', rafQ = '', rafVue = 'coffre';
+let rafOtp = '', rafPeriode = String(new Date().getMonth() + 1), rafExercice = String(new Date().getFullYear()), rafPerimetre = 'ytd', rafQ = '', rafVue = 'coffre', rafHors = false;
 const RAF_VUES = { coffre: 'Boîte à affaires (coffre)', mois: 'Mise en facturation du mois', synthese: 'Marge & reste à facturer' };
 const RAF_PERIMETRES = { ytd: 'Cumulé à fin de période', month: 'Période seule (mois M)', all: 'Cumul — toutes périodes' };
 function rafPer() {
@@ -2430,7 +2433,8 @@ function rafBindPeriod(v) {
 }
 function renderRAF(v) {
   if (rafOtp) { rafAnalyse(v); return; }
-  const all = otpDistinct();
+  const nbHors = otpDistinct().filter(otpHorsPerimetre).length;
+  const all = otpDistinct().filter(c => rafHors || !otpHorsPerimetre(c));
   const codes = all.filter(c => !rafQ || (c + ' ' + otpLabel(c) + ' ' + clientNom(otpClientId(c))).toLowerCase().includes(rafQ.toLowerCase()));
   const fin = codes.map(c => rafFinance(c));
   const TK = ['marche', 'ca', 'caCumul', 'dep', 'marge', 'raf', 'commandeHT', 'coffre', 'coffreFait', 'coffreAFaire', 'engage', 'caMois', 'achatsMois', 'moMois', 'moHeuresMois', 'depMois', 'margeMois'];
@@ -2483,7 +2487,8 @@ function renderRAF(v) {
     <p class="t-muted" style="margin-top:-8px;max-width:960px">Deux lectures distinctes, à ne pas confondre :
       <b>la boîte à affaires</b> — ce qui est <b>commandé</b> (travaux faits ou restant à faire) mais <b>pas encore mis en facturation</b> : c'est le coffre —
       et <b>le mois</b> — ce que je <b>mets en facturation</b> sur le mois, <b>moins</b> ce qui est réellement <b>réceptionné</b> dessus (commandes fournisseurs reçues + pointage).
-      La troisième vue conserve la synthèse historique (marge réalisée et reste à facturer sur le marché signé).</p>
+      La troisième vue conserve la synthèse historique (marge réalisée et reste à facturer sur le marché signé).
+      Les OTP marqués <b>hors périmètre</b> (suivis par un autre chargé d'affaires, sur lesquels vous passez seulement des commandes) sont exclus de cet écran.</p>
     <div class="kpi-grid">
       ${cardK('Boîte à affaires (mon coffre)', eur(T.coffre), 'Commandé ' + eur(T.commandeHT) + ' − mis en factu. ' + eur(T.caCumul), T.coffre >= 0 ? 'green' : 'amber')}
       ${cardK('Mis en facturation — ' + PL, eur(T.caMois), 'Lignes CA du mois')}
@@ -2500,8 +2505,10 @@ function renderRAF(v) {
     </div>
     <div class="filters"><span class="search-wrap">${icon('search')}<input id="raf-q" placeholder="Rechercher (OTP, libellé, client…)" value="${esc(rafQ)}"></span><span class="chip">${codes.length} OTP</span>
       ${Object.entries(RAF_VUES).map(([k, l]) => `<button class="btn small ${rafVue === k ? 'primary' : ''}" data-vue="${k}">${esc(l)}</button>`).join('')}
+      ${nbHors ? `<button class="btn small ${rafHors ? 'primary' : ''}" id="raf-hors" title="OTP suivis par un autre chargé d'affaires : vous n'y passez que des commandes">${rafHors ? 'Masquer' : 'Afficher'} ${nbHors > 1 ? 'les ' + nbHors + ' OTP' : "l'OTP"} hors périmètre</button>` : ''}
       <span class="spacer"></span><button class="btn small" id="raf-list-csv">${icon('download')} Excel</button></div>
     ${codes.length ? (rafVue === 'coffre' ? tblCoffre() : rafVue === 'mois' ? tblMois() : tblSynthese())
+      : nbHors ? emptyState('target', 'Aucun OTP à suivre', 'Les ' + nbHors + ' OTP existants sont marqués hors périmètre (commandes seules). Utilisez le bouton « Afficher » pour les consulter malgré tout.')
       : emptyState('target', 'Aucun OTP', 'Les OTP apparaissent dès qu\'ils sont utilisés sur un devis, un chantier, une facture ou un achat.')}`;
   rafBindPeriod(v);
   $('#raf-run').onclick = () => {
@@ -2510,6 +2517,7 @@ function renderRAF(v) {
   };
   $('#raf-q').oninput = e => { rafQ = e.target.value; renderRAF(v); const i = $('#raf-q'); i.focus(); i.setSelectionRange(i.value.length, i.value.length); };
   $$('[data-vue]', v).forEach(b => b.onclick = () => { rafVue = b.dataset.vue; renderRAF(v); });
+  const bh = $('#raf-hors'); if (bh) bh.onclick = () => { rafHors = !rafHors; renderRAF(v); };
   $('#raf-list-csv').onclick = () => exportRafListXlsx(fin);
   $$('[data-run]', v).forEach(b => b.onclick = () => { rafOtp = b.dataset.run; renderRAF(v); });
 }
@@ -2533,7 +2541,7 @@ function rafAnalyse(v) {
   v.innerHTML = `
     <div class="page-actions"><button class="btn" id="raf-back">${icon('chevron')} Changer d'OTP</button><span class="spacer"></span><span class="chip">${rafPerLabel()}</span><button class="btn small" id="raf-csv">${icon('download')} Excel</button></div>
     <div class="card card-pad" style="margin-bottom:16px">
-      <div class="section-head" style="margin-top:0">${icon('target')}<h2>Élément d'OTP ${esc(code)}</h2></div>
+      <div class="section-head" style="margin-top:0">${icon('target')}<h2>Élément d'OTP ${esc(code)}</h2>${otpHorsPerimetre(code) ? '<span class="chip" title="Suivi par un autre chargé d\'affaires — normalement exclu du RAF">hors périmètre</span>' : ''}</div>
       <div class="grid-3" style="gap:10px 24px">
         <div>${lbl('Libellé')}<div class="t-strong">${esc(otpLabel(code) || '—')}</div></div>
         <div>${lbl("Client / donneur d'ordre")}<div class="t-strong">${esc(clientNom(otpClientId(code)))}</div></div>
@@ -2760,8 +2768,6 @@ function exportRafListXlsx(fin) {
 const otpDistinct = () => [...new Set([...DB.data.devis.map(d => d.otp), ...DB.data.chantiers.map(c => c.otp), ...DB.data.factures.map(f => f.otp), ...DB.data.commandes.map(c => c.otp)].filter(Boolean))].sort();
 const commandesParOtp = otp => DB.data.commandes.filter(c => c.otp === otp).reduce((s, c) => s + (+c.montantHT || 0), 0);
 const inMonth = (iso, mois, annee) => { if (!iso) return false; const d = new Date(iso + 'T00:00:00'); return d.getMonth() === mois && d.getFullYear() === annee; };
-// Fournitures = commandes RÉCEPTIONNÉES sur l'OTP durant le mois donné
-const commandesRecuesOtp = (otp, mois, annee) => DB.data.commandes.filter(c => c.otp === otp && c.dateReception && inMonth(c.dateReception, mois, annee)).reduce((s, c) => s + (+c.montantHT || 0), 0);
 // Heures de main d'œuvre pointées sur l'OTP durant le mois (modèle en lignes)
 function heuresMoOtp(otp, mois, annee) {
   let s = 0;
@@ -2779,17 +2785,30 @@ function tauxWorker(workerKey) {
   const t = role === 'chef' ? e.tauxChef : e.tauxComp;
   return (t === undefined || t === null || t === '') ? g : (+t || 0);
 }
-// Coût MO SMAC imputé sur l'OTP (Σ heures × taux horaire de chaque compagnon)
-function moParOtp(otp, mois, annee) {
-  let s = 0;
-  DB.data.pointages.forEach(r => { if (r.otp !== otp || !r.h) return; const taux = tauxWorker(r.workerKey); r.h.forEach((h, i) => { if (h && inMonth(addDays(r.semaine, i), mois, annee)) s += (+h) * taux; }); });
-  return s;
-}
 // Cumuls tous mois (vue OTP)
 const heuresMoOtpAll = otp => DB.data.pointages.reduce((s, r) => r.otp === otp && r.h ? s + r.h.reduce((a, h) => a + (+h || 0), 0) : s, 0);
 const moAllOtp = otp => DB.data.pointages.reduce((s, r) => r.otp === otp && r.h ? s + r.h.reduce((a, h) => a + (+h || 0), 0) * tauxWorker(r.workerKey) : s, 0);
+/* Coûts réels d'une période, repris des sections dédiées : commandes fournisseurs
+   RÉCEPTIONNÉES (matériaux et matériel) et heures pointées (main d'œuvre). Une ligne de
+   mise en facturation ne porte, elle, que le montant du chantier sur son OTP.
+   Les OTP hors périmètre (commandes passées pour un autre chargé d'affaires) sont exclus.
+   mois omis = toute l'année. */
+function coutsReels(annee, mois) {
+  const dansPer = iso => { if (!iso) return false; const d = new Date(iso + 'T00:00:00'); if (isNaN(d)) return false;
+    return d.getFullYear() === annee && (mois === undefined || mois === null || d.getMonth() === mois); };
+  const achats = DB.data.commandes.reduce((s, c) => (!otpHorsPerimetre(c.otp) && dansPer(c.dateReception)) ? s + (+c.montantHT || 0) : s, 0);
+  let mo = 0, heures = 0;
+  DB.data.pointages.forEach(r => {
+    if (!r.h || otpHorsPerimetre(r.otp)) return;
+    const taux = tauxWorker(r.workerKey);
+    r.h.forEach((h, i) => { if (h && dansPer(addDays(r.semaine, i))) { heures += +h; mo += (+h) * taux; } });
+  });
+  return { achats, mo, heures, tot: achats + mo };
+}
 const otpMeta = code => DB.data.otps.find(o => o.code === code) || null;
 const otpLabel = code => { const o = otpMeta(code); return o && o.libelle ? o.libelle : ''; };
+/* OTP suivi par un autre chargé d'affaires : on y passe seulement des commandes, il est exclu du RAF. */
+const otpHorsPerimetre = code => { const o = otpMeta(code); return !!(o && o.horsPerimetre); };
 function otpClientId(code) { const o = otpMeta(code); if (o && o.clientId) return o.clientId; const c = DB.data.chantiers.find(x => x.otp === code && x.clientId) || DB.data.devis.find(x => x.otp === code && x.clientId); return c ? c.clientId : ''; }
 let devisFilter = { q: '', statut: '', otp: '' };
 function renderDevis(v) {
@@ -2889,12 +2908,12 @@ let caYear = new Date().getFullYear(), caMonth = new Date().getMonth();
 function renderCA(v) {
   const rows = DB.data.ca.filter(r => r.annee === caYear && r.mois === caMonth);
   const yearRows = DB.data.ca.filter(r => r.annee === caYear);
-  const tot = f => rows.reduce((s, r) => s + (+r[f] || 0), 0);
-  const totMarge = rows.reduce((s, r) => s + marge(r), 0), totVente = tot('prixVente');
-  const caAnnee = yearRows.reduce((s, r) => s + (+r.prixVente || 0), 0), margeAnnee = yearRows.reduce((s, r) => s + marge(r), 0);
+  const totVente = rows.reduce((s, r) => s + (+r.prixVente || 0), 0);
+  const cM = coutsReels(caYear, caMonth), cA = coutsReels(caYear);
+  const totMarge = totVente - cM.tot;
+  const caAnnee = yearRows.reduce((s, r) => s + (+r.prixVente || 0), 0), margeAnnee = caAnnee - cA.tot;
   const o = DB.data.objectifs;
   const cand = caCandidates();
-  const marginCls = p => p >= o.margeCible ? 'margin-good' : p >= o.margeCible * 0.66 ? 'margin-warn' : 'margin-bad';
   v.innerHTML = `
     <div class="page-actions"><button class="btn primary" id="add">${icon('plus')} Ajouter une ligne</button>
       <button class="btn" id="cloture">${icon('checkSquare')} Fin de mois — sélectionner les affaires${cand.length ? ` &nbsp;<span class="badge b-relance">${cand.length}</span>` : ''}</button>
@@ -2902,52 +2921,56 @@ function renderCA(v) {
     <div class="filters">
       <select id="fmonth">${MOIS.map((mm, i) => `<option value="${i}" ${i === caMonth ? 'selected' : ''}>${mm}</option>`).join('')}</select>
       <select id="fyear">${yearsRange().map(y => `<option value="${y}" ${y === caYear ? 'selected' : ''}>${y}</option>`).join('')}</select>
-      <span class="chip">CA mois ${eur(totVente)}</span><span class="chip">Marge ${eur(totMarge)} · ${pct(totVente ? totMarge / totVente : 0)}</span></div>
+      <span class="chip">Mis en facturation ${eur(totVente)}</span><span class="chip">Marge ${eur(totMarge)} · ${pct(totVente ? totMarge / totVente : 0)}</span></div>
     <div class="kpi-grid">
       <div class="kpi"><div class="kpi-top"><span class="kpi-label">CA cumulé ${caYear}</span><span class="kpi-ico">${icon('euro')}</span></div><div class="kpi-value">${eur(caAnnee)}</div><div class="kpi-sub">Objectif ${eur(o.caAnnuel)}</div><div class="progress ${caAnnee >= o.caAnnuel ? 'green' : ''}"><i style="width:${Math.min(100, caAnnee / (o.caAnnuel || 1) * 100)}%"></i></div></div>
-      <div class="kpi"><div class="kpi-top"><span class="kpi-label">Marge cumulée ${caYear}</span><span class="kpi-ico green">${icon('trend')}</span></div><div class="kpi-value">${eur(margeAnnee)}</div><div class="kpi-sub">${pct(caAnnee ? margeAnnee / caAnnee : 0)} du CA</div></div>
+      <div class="kpi"><div class="kpi-top"><span class="kpi-label">Marge cumulée ${caYear}</span><span class="kpi-ico green">${icon('trend')}</span></div><div class="kpi-value">${eur(margeAnnee)}</div><div class="kpi-sub">${pct(caAnnee ? margeAnnee / caAnnee : 0)} du CA · coûts réels ${eur(cA.tot)}</div></div>
       <div class="kpi"><div class="kpi-top"><span class="kpi-label">Lignes du mois</span><span class="kpi-ico">${icon('file')}</span></div><div class="kpi-value">${rows.length}</div><div class="kpi-sub">${MOIS[caMonth]} ${caYear}</div></div>
     </div>
-    ${rows.length ? `<div class="table-wrap"><table><thead><tr><th>OTP</th><th>Chantier</th><th class="num">Prix vente</th><th class="num">Fournitures</th><th class="num">Engins</th><th class="num">MO SMAC</th><th class="num">Marge €</th><th class="num">% Marge</th><th></th></tr></thead>
-      <tbody>${rows.map(r => { const mg = marge(r), p = r.prixVente ? mg / r.prixVente : 0; return `<tr><td class="t-strong">${esc(r.otp || '—')}</td><td>${esc(r.chantier)}</td><td class="num">${eur(r.prixVente)}</td><td class="num">${eur(r.fournitures)}</td><td class="num">${eur(r.engins)}</td><td class="num">${eur(r.moSmac)}</td><td class="num t-strong">${eur(mg)}</td><td class="num ${marginCls(p)}">${pct(p)}</td>
-        <td class="actions-cell"><button class="icon-btn" data-sync="${r.id}" title="Recalculer fournitures & MO depuis l'OTP">${icon('swap')}</button><button class="icon-btn" data-edit="${r.id}" title="Modifier">${icon('edit')}</button><button class="icon-btn danger" data-del="${r.id}" title="Supprimer">${icon('trash')}</button></td></tr>`; }).join('')}</tbody>
-      <tfoot><tr><td colspan="2">TOTAL ${MOIS[caMonth]}</td><td class="num">${eur(totVente)}</td><td class="num">${eur(tot('fournitures'))}</td><td class="num">${eur(tot('engins'))}</td><td class="num">${eur(tot('moSmac'))}</td><td class="num">${eur(totMarge)}</td><td class="num">${pct(totVente ? totMarge / totVente : 0)}</td><td></td></tr></tfoot></table></div>`
-      : emptyState('euro', 'Aucune ligne pour ' + MOIS[caMonth] + ' ' + caYear, 'Ajoutez le CA réalisé de vos chantiers.')}`;
+    ${rows.length ? `<div class="table-wrap"><table><thead><tr><th>OTP</th><th>Chantier mis en facturation</th><th class="num">Montant HT</th><th></th></tr></thead>
+      <tbody>${rows.map(r => `<tr><td class="t-strong">${esc(r.otp || '—')}${otpHorsPerimetre(r.otp) ? ' <span class="chip">hors périmètre</span>' : ''}</td><td>${esc(r.chantier)}</td><td class="num t-strong">${eur(r.prixVente)}</td>
+        <td class="actions-cell"><button class="icon-btn" data-edit="${r.id}" title="Modifier">${icon('edit')}</button><button class="icon-btn danger" data-del="${r.id}" title="Supprimer">${icon('trash')}</button></td></tr>`).join('')}</tbody>
+      <tfoot><tr><td colspan="2">TOTAL ${MOIS[caMonth]}</td><td class="num">${eur(totVente)}</td><td></td></tr></tfoot></table></div>`
+      : emptyState('euro', 'Aucune ligne pour ' + MOIS[caMonth] + ' ' + caYear, 'Mettez en facturation vos chantiers : seul leur montant est imputé à l\'OTP.')}
+    <div class="card card-pad" style="margin-top:16px">
+      <div class="card-title">Coûts de ${MOIS[caMonth]} ${caYear} — repris des autres sections</div>
+      <p class="t-muted" style="margin:-4px 0 14px;max-width:900px">La mise en facturation ne porte que le <b>montant du chantier</b> sur l'OTP choisi.
+        Les <b>matériaux et le matériel</b> viennent des commandes fournisseurs <b>réceptionnées</b> (section Achats fournisseurs) et la
+        <b>main d'œuvre</b> des <b>heures pointées</b> (section Planning &amp; pointages). Les OTP hors périmètre sont exclus.</p>
+      <div class="grid-3">
+        <div class="cad-metric"><div class="cm-label">Achats réceptionnés</div><div class="cm-value" style="font-size:22px">${eur(cM.achats)}</div><div class="cm-sub">Matériaux et matériel du mois</div></div>
+        <div class="cad-metric amber"><div class="cm-label">Main d'œuvre pointée</div><div class="cm-value" style="font-size:22px">${eur(cM.mo)}</div><div class="cm-sub">${num(cM.heures)} h pointées</div></div>
+        <div class="cad-metric ${totMarge >= 0 ? 'green' : ''}"><div class="cm-label">Marge du mois</div><div class="cm-value" style="font-size:22px">${eur(totMarge)}</div><div class="cm-sub">${eur(totVente)} − ${eur(cM.tot)} · ${totVente ? pct(totMarge / totVente) : '—'}</div></div>
+      </div>
+    </div>`;
   $('#add').onclick = () => caForm();
   $('#cloture').onclick = () => caPicker();
   $('#fmonth').onchange = e => { caMonth = +e.target.value; renderCA(v); };
   $('#fyear').onchange = e => { caYear = +e.target.value; renderCA(v); };
-  $('#csv').onclick = () => exportXlsx(`CA_${MOIS[caMonth]}_${caYear}`, ['otp', 'chantier', 'prixVente', 'fournitures', 'engins', 'moSmac', 'marge'], rows.map(r => [r.otp, r.chantier, r.prixVente, r.fournitures, r.engins, r.moSmac, marge(r)]), { sheet: `CA ${MOIS[caMonth]} ${caYear}`, money: ['prixVente', 'fournitures', 'engins', 'moSmac', 'marge'] });
+  $('#csv').onclick = () => exportXlsx(`CA_${MOIS[caMonth]}_${caYear}`, ['otp', 'chantier', 'montant_ht'], rows.map(r => [r.otp, r.chantier, r.prixVente]), { sheet: `CA ${MOIS[caMonth]} ${caYear}`, money: ['montant_ht'] });
   $$('[data-edit]', v).forEach(b => b.onclick = () => caForm(b.dataset.edit));
-  $$('[data-sync]', v).forEach(b => b.onclick = () => { const r = DB.data.ca.find(x => x.id === b.dataset.sync); if (!r.otp) { toast('Aucun OTP sur cette ligne', 'err'); return; } r.fournitures = commandesRecuesOtp(r.otp, r.mois, r.annee); r.moSmac = moParOtp(r.otp, r.mois, r.annee); DB.save(); toast('Fournitures & MO recalculées depuis l\'OTP'); renderCA(v); });
   $$('[data-del]', v).forEach(b => b.onclick = () => confirmDialog('Supprimer cette ligne ?', () => { DB.data.ca = DB.data.ca.filter(x => x.id !== b.dataset.del); DB.save(); toast('Ligne supprimée'); renderCA(v); }));
 }
 function yearsRange() { const cur = new Date().getFullYear(); return [...new Set([cur, cur - 1, cur + 1, ...DB.data.ca.map(r => r.annee)])].sort(); }
 function caForm(id) {
   const r = id ? DB.data.ca.find(x => x.id === id) : { otp: '', chantier: '', mois: caMonth, annee: caYear, prixVente: 0, fournitures: 0, engins: 0, moSmac: 0 };
+  const otpOpts = otpDistinct().map(c => `<option value="${esc(c)}">${esc(c)}${otpLabel(c) ? ' — ' + esc(otpLabel(c)) : ''}</option>`).join('');
   const chOpts = DB.data.chantiers.map(c => `<option value="${esc(c.nom)}">${esc(c.otp || '')} ${esc(c.nom)}</option>`).join('');
   const m = modal({ title: id ? 'Modifier la ligne CA' : 'Nouvelle ligne CA',
     body: `<div class="form-grid">
       <div class="field"><label>Mois</label><select id="f-mois">${MOIS.map((mm, i) => `<option value="${i}" ${r.mois === i ? 'selected' : ''}>${mm}</option>`).join('')}</select></div>
       <div class="field"><label>Année</label><input id="f-annee" type="number" value="${r.annee}"></div>
-      <div class="field"><label>N° OTP</label><input id="f-otp" value="${esc(r.otp)}"></div>
+      <div class="field"><label>N° OTP</label><input id="f-otp" value="${esc(r.otp)}" list="f-otplist"><datalist id="f-otplist">${otpOpts}</datalist></div>
       <div class="field"><label>Chantier</label><input id="f-ch" value="${esc(r.chantier)}" list="chlist"><datalist id="chlist">${chOpts}</datalist></div>
-      <div class="field"><label>Prix de vente (€)</label><input id="f-pv" type="number" value="${r.prixVente}"></div>
-      <div class="field"><label>Fournitures (€)</label><input id="f-fo" type="number" value="${r.fournitures}"></div>
-      <div class="field"><label>Engins (€)</label><input id="f-en" type="number" value="${r.engins}"></div>
-      <div class="field"><label>MO SMAC (€)</label><input id="f-mo" type="number" value="${r.moSmac}"></div>
+      <div class="field full"><label>Montant HT mis en facturation (€)</label><input id="f-pv" type="number" value="${r.prixVente}"></div>
     </div>
-    <div style="margin-top:8px"><button class="btn small" id="f-sync">${icon('swap')} Reprendre fournitures &amp; MO de l'OTP (mois)</button></div>
-    <div id="preview" class="card-title" style="margin-top:12px"></div>`,
+    <p class="t-muted" style="margin:10px 0 0">Seul le montant du chantier est imputé à l'OTP. Les matériaux, le matériel et la main d'œuvre sont suivis dans les sections <b>Achats fournisseurs</b> et <b>Planning &amp; pointages</b>.</p>`,
     footer: `<button class="btn" data-c>Annuler</button><button class="btn primary" id="save">Enregistrer</button>` });
-  const upd = () => { const pv = +$('#f-pv').value, mg = pv - (+$('#f-fo').value + +$('#f-en').value + +$('#f-mo').value); $('#preview').innerHTML = `Marge brute : <span class="${mg >= 0 ? 'margin-good' : 'margin-bad'}">${eur(mg)}</span> — ${pct(pv ? mg / pv : 0)}`; };
-  ['f-pv', 'f-fo', 'f-en', 'f-mo'].forEach(k => $('#' + k).oninput = upd); upd();
-  $('#f-sync').onclick = () => { const otp = $('#f-otp').value.trim(), mo = +$('#f-mois').value, yr = +$('#f-annee').value; if (!otp) { toast('Renseignez un OTP', 'err'); return; } $('#f-fo').value = Math.round(commandesRecuesOtp(otp, mo, yr)); $('#f-mo').value = Math.round(moParOtp(otp, mo, yr)); upd(); toast('Fournitures & MO repris de l\'OTP'); };
   m.root.querySelector('[data-c]').onclick = m.close;
   $('#save').onclick = () => {
-    const obj = { mois: +$('#f-mois').value, annee: +$('#f-annee').value, otp: $('#f-otp').value.trim(), chantier: $('#f-ch').value.trim(), prixVente: +$('#f-pv').value || 0, fournitures: +$('#f-fo').value || 0, engins: +$('#f-en').value || 0, moSmac: +$('#f-mo').value || 0 };
+    const obj = { mois: +$('#f-mois').value, annee: +$('#f-annee').value, otp: $('#f-otp').value.trim(), chantier: $('#f-ch').value.trim(), prixVente: +$('#f-pv').value || 0 };
     if (!obj.chantier) { toast('Le nom du chantier est obligatoire', 'err'); return; }
-    if (id) Object.assign(r, obj); else DB.data.ca.unshift({ id: uid(), ...obj });
+    if (id) Object.assign(r, obj); else DB.data.ca.unshift({ id: uid(), fournitures: 0, engins: 0, moSmac: 0, ...obj });
     caMonth = obj.mois; caYear = obj.annee; DB.save(); m.close(); toast('Ligne CA enregistrée'); go('ca');
   };
 }
@@ -2964,20 +2987,18 @@ function caCandidates() {
 function caPicker() {
   const cand = caCandidates();
   const m = modal({ title: 'Clôture de fin de mois — affaires à mettre en CA', wide: true,
-    body: `<p class="t-muted" style="margin-top:0">Sélectionnez les chantiers <b>facturés</b> et les devis <b>acceptés</b> à intégrer au CA du mois. Les <b>fournitures</b> (achats reçus) et la <b>MO SMAC</b> (heures pointées × taux horaire) sont reprises automatiquement de l'OTP.</p>
+    body: `<p class="t-muted" style="margin-top:0">Sélectionnez les chantiers <b>facturés</b> et les devis <b>acceptés</b> à mettre en facturation. Seul le <b>montant</b> de chaque affaire est imputé à son OTP : les matériaux, le matériel et la main d'œuvre restent suivis dans les sections <b>Achats fournisseurs</b> et <b>Planning &amp; pointages</b>.</p>
     <div class="form-grid" style="max-width:360px">
       <div class="field"><label>Mois</label><select id="p-mois">${MOIS.map((mm, i) => `<option value="${i}" ${i === caMonth ? 'selected' : ''}>${mm}</option>`).join('')}</select></div>
       <div class="field"><label>Année</label><input id="p-annee" type="number" value="${caYear}"></div>
     </div>
-    ${cand.length ? `<div class="table-wrap" style="margin-top:14px"><table><thead><tr><th><input type="checkbox" id="p-all"></th><th>Type</th><th>OTP</th><th>Désignation</th><th class="num">Prix vente HT</th><th class="num">Fournitures (achats reçus)</th><th class="num">MO SMAC (pointages)</th></tr></thead>
-      <tbody>${cand.map((c, i) => `<tr><td><input type="checkbox" class="p-chk" data-i="${i}" checked></td><td><span class="badge ${c.type === 'chantier' ? 'b-receptionne' : 'b-accepte'}">${c.type === 'chantier' ? 'Chantier facturé' : 'Devis accepté'}</span></td><td class="t-strong">${esc(c.otp || '—')}</td><td>${esc(c.designation)}</td><td class="num">${eur(c.montant)}</td><td class="num p-four" data-otp="${esc(c.otp || '')}">${eur(commandesRecuesOtp(c.otp, caMonth, caYear))}</td><td class="num p-mo" data-otp="${esc(c.otp || '')}">${eur(moParOtp(c.otp, caMonth, caYear))}</td></tr>`).join('')}</tbody></table></div>
+    ${cand.length ? `<div class="table-wrap" style="margin-top:14px"><table><thead><tr><th><input type="checkbox" id="p-all"></th><th>Type</th><th>OTP</th><th>Désignation</th><th class="num">Montant HT imputé</th></tr></thead>
+      <tbody>${cand.map((c, i) => `<tr><td><input type="checkbox" class="p-chk" data-i="${i}" checked></td><td><span class="badge ${c.type === 'chantier' ? 'b-receptionne' : 'b-accepte'}">${c.type === 'chantier' ? 'Chantier facturé' : 'Devis accepté'}</span></td><td class="t-strong">${esc(c.otp || '—')}</td><td>${esc(c.designation)}</td><td class="num">${eur(c.montant)}</td></tr>`).join('')}</tbody></table></div>
       <div class="field inline" style="margin-top:12px"><input type="checkbox" id="p-fact"><label for="p-fact" style="cursor:pointer">Créer aussi les factures correspondantes (statut « à émettre »)</label></div>`
       : `<div class="empty" style="padding:30px"><div class="em-ico">${icon('checkSquare')}</div><h3>Aucune affaire disponible</h3><div>Passez un chantier en statut « Facturé » ou acceptez un devis pour le voir apparaître ici.</div></div>`}`,
     footer: cand.length ? `<button class="btn" data-c>Annuler</button><button class="btn primary" id="p-go">Ajouter au CA du mois</button>` : `<button class="btn" data-c>Fermer</button>` });
   m.root.querySelector('[data-c]').onclick = m.close;
   if (!cand.length) return;
-  const recompFour = () => { const mo = +$('#p-mois').value, yr = +$('#p-annee').value; $$('.p-four', m.root).forEach(td => td.textContent = eur(commandesRecuesOtp(td.dataset.otp, mo, yr))); $$('.p-mo', m.root).forEach(td => td.textContent = eur(moParOtp(td.dataset.otp, mo, yr))); };
-  $('#p-mois').onchange = recompFour; $('#p-annee').oninput = recompFour;
   $('#p-all').onclick = e => $$('.p-chk', m.root).forEach(c => c.checked = e.target.checked);
   $('#p-go').onclick = () => {
     const mois = +$('#p-mois').value, annee = +$('#p-annee').value;
@@ -2985,7 +3006,7 @@ function caPicker() {
     if (!chosen.length) { toast('Sélectionnez au moins une affaire', 'err'); return; }
     const withFact = $('#p-fact').checked;
     chosen.forEach(c => {
-      DB.data.ca.unshift({ id: uid(), mois, annee, otp: c.otp || '', chantier: c.designation, prixVente: c.montant, fournitures: commandesRecuesOtp(c.otp, mois, annee), engins: 0, moSmac: moParOtp(c.otp, mois, annee), sourceType: c.type, sourceId: c.id });
+      DB.data.ca.unshift({ id: uid(), mois, annee, otp: c.otp || '', chantier: c.designation, prixVente: c.montant, fournitures: 0, engins: 0, moSmac: 0, sourceType: c.type, sourceId: c.id });
       if (withFact) DB.data.factures.unshift({ id: uid(), num: '', otp: c.otp || '', clientId: c.clientId || '', client: clientNom(c.clientId) === '—' ? '' : clientNom(c.clientId), chantierId: c.type === 'chantier' ? c.id : '', objet: c.designation, dateFG: todayISO(), dateEmission: '', montantHT: c.montant, echeanceJours: DB.data.objectifs.delaiPaiement, datePaiement: '', statut: 'a_emettre' });
     });
     caMonth = mois; caYear = annee; DB.save(); m.close(); toast(chosen.length + ' affaire(s) ajoutée(s) au CA' + (withFact ? ' + factures créées' : '')); go('ca');
