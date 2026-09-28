@@ -1369,7 +1369,7 @@ const DB = {
     d.factures.forEach(x => { if (x.otp === undefined) x.otp = ''; });
     d.ca.forEach(x => { if (x.sourceType === undefined) { x.sourceType = ''; x.sourceId = ''; } });
     d.commandes.forEach(x => { if (x.dateReception === undefined) x.dateReception = ''; if (x.num === undefined) x.num = ''; });
-    d.chantiers.forEach(x => { if (x.sourceDevisId === undefined) x.sourceDevisId = ''; });
+    d.chantiers.forEach(x => { if (x.sourceDevisId === undefined) x.sourceDevisId = ''; if (x.facturable === undefined) x.facturable = x.statut === 'facture'; });
     d.dossiers.forEach(x => { if (!x.rep || typeof x.rep !== 'object') x.rep = {}; });
     if (!Array.isArray(d.agenda)) d.agenda = [];
     if (!Array.isArray(d.todos)) d.todos = [];
@@ -2111,10 +2111,15 @@ const STATUTS_DEVIS = { attente: "En attente d'envoi", envoye: 'Envoyé', relanc
 function devisBadge(s) { const map = { attente: 'b-attente', envoye: 'b-envoye', relance: 'b-relance', accepte: 'b-accepte', refuse: 'b-refuse' }; return `<span class="badge ${map[s] || 'b-attente'}">${STATUTS_DEVIS[s] || s}</span>`; }
 
 /* ---------- Chantiers ---------- */
-let chantierFilter = { q: '', statut: '' };
+let chantierFilter = { q: '', statut: '', factu: '' };
+// « Autoriser la mise en facturation » : seul un chantier coché est proposé à la clôture du CA
+const chantierEnCa = c => caIsConsumed('chantier', c.id);
+const chantierFacturable = c => c.facturable ?? c.statut === 'facture'; // chantiers créés avant la case : comme avant
 function renderChantiers(v) {
   const list = DB.data.chantiers.filter(c => {
     if (chantierFilter.statut && c.statut !== chantierFilter.statut) return false;
+    if (chantierFilter.factu === 'oui' && !chantierFacturable(c)) return false;
+    if (chantierFilter.factu === 'non' && chantierFacturable(c)) return false;
     if (chantierFilter.q) { const s = (c.otp + ' ' + c.nom + ' ' + clientNom(c.clientId) + ' ' + c.adresse).toLowerCase(); if (!s.includes(chantierFilter.q.toLowerCase())) return false; }
     return true;
   });
@@ -2124,24 +2129,29 @@ function renderChantiers(v) {
     <div class="filters">
       <span class="search-wrap">${icon('search')}<input id="q" placeholder="Rechercher (OTP, nom, client…)" value="${esc(chantierFilter.q)}"></span>
       <select id="fs"><option value="">Tous les statuts</option>${Object.entries(STATUTS_CHANTIER).map(([k, l]) => `<option value="${k}" ${chantierFilter.statut === k ? 'selected' : ''}>${l}</option>`).join('')}</select>
+      <select id="ff"><option value="">Mise en facturation : tous</option><option value="oui" ${chantierFilter.factu === 'oui' ? 'selected' : ''}>Autorisés</option><option value="non" ${chantierFilter.factu === 'non' ? 'selected' : ''}>Bloqués</option></select>
       <span class="chip">${list.length} chantier(s)</span></div>
-    ${list.length ? `<div class="table-wrap"><table><thead><tr><th>OTP</th><th>Chantier</th><th>Client</th><th class="wrap">Adresse</th><th>Statut</th><th class="num">Montant HT</th><th></th></tr></thead>
+    ${list.length ? `<div class="table-wrap"><table><thead><tr><th>OTP</th><th>Chantier</th><th>Client</th><th class="wrap">Adresse</th><th>Statut</th><th title="Coché : le chantier peut être mis en facturation (proposé à la clôture de fin de mois du CA)">Mise en factu.</th><th class="num">Montant HT</th><th></th></tr></thead>
       <tbody>${list.map(c => `<tr><td class="t-strong">${esc(c.otp || '—')}</td>
         <td><span class="link" data-view="${c.id}">${esc(c.nom)}</span></td><td>${esc(clientNom(c.clientId))}</td>
-        <td class="t-muted wrap">${esc(c.adresse || '—')}</td><td>${statutBadge(c.statut)}</td><td class="num">${eur(c.montantHT)}</td>
+        <td class="t-muted wrap">${esc(c.adresse || '—')}</td><td>${statutBadge(c.statut)}</td>
+        <td>${chantierEnCa(c) ? '<span class="badge b-facture" title="Déjà repris dans le CA">Mis en factu.</span>' : `<label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer"><input type="checkbox" data-factu="${c.id}" ${chantierFacturable(c) ? 'checked' : ''}>${chantierFacturable(c) ? 'Autorisé' : '<span class="t-muted">Bloqué</span>'}</label>`}</td>
+        <td class="num">${eur(c.montantHT)}</td>
         <td class="actions-cell"><button class="icon-btn" data-edit="${c.id}" title="Modifier">${icon('edit')}</button><button class="icon-btn danger" data-del="${c.id}" title="Supprimer">${icon('trash')}</button></td></tr>`).join('')}</tbody>
-      <tfoot><tr><td colspan="5">Total</td><td class="num">${eur(list.reduce((s, c) => s + (+c.montantHT || 0), 0))}</td><td></td></tr></tfoot></table></div>`
+      <tfoot><tr><td colspan="6">Total</td><td class="num">${eur(list.reduce((s, c) => s + (+c.montantHT || 0), 0))}</td><td></td></tr></tfoot></table></div>`
       : emptyState('building', 'Aucun chantier', 'Créez votre premier chantier pour suivre vos affaires.')}`;
   $('#add').onclick = () => chantierForm();
   $('#q').oninput = e => { chantierFilter.q = e.target.value; renderChantiers(v); const i = $('#q'); i.focus(); i.setSelectionRange(i.value.length, i.value.length); };
   $('#fs').onchange = e => { chantierFilter.statut = e.target.value; renderChantiers(v); };
-  $('#csv').onclick = () => exportXlsx('chantiers', ['otp', 'nom', 'client', 'adresse', 'statut', 'montantHT'], list.map(c => [c.otp, c.nom, clientNom(c.clientId), c.adresse, STATUTS_CHANTIER[c.statut], c.montantHT]), { sheet: 'Chantiers' });
+  $('#ff').onchange = e => { chantierFilter.factu = e.target.value; renderChantiers(v); };
+  $$('[data-factu]', v).forEach(i => i.onchange = () => { const c = chantierById(i.dataset.factu); if (!c) return; c.facturable = i.checked; DB.save(); toast(i.checked ? 'Mise en facturation autorisée' : 'Mise en facturation bloquée'); renderChantiers(v); });
+  $('#csv').onclick = () => exportXlsx('chantiers', ['otp', 'nom', 'client', 'adresse', 'statut', 'mise_en_facturation', 'montantHT'], list.map(c => [c.otp, c.nom, clientNom(c.clientId), c.adresse, STATUTS_CHANTIER[c.statut], chantierEnCa(c) ? 'Mis en facturation' : chantierFacturable(c) ? 'Autorisée' : 'Bloquée', c.montantHT]), { sheet: 'Chantiers' });
   $$('[data-edit]', v).forEach(b => b.onclick = () => chantierForm(b.dataset.edit));
   $$('[data-view]', v).forEach(b => b.onclick = () => chantierDetail(b.dataset.view));
   $$('[data-del]', v).forEach(b => b.onclick = () => confirmDialog('Supprimer ce chantier ?', () => { DB.data.chantiers = DB.data.chantiers.filter(x => x.id !== b.dataset.del); DB.save(); toast('Chantier supprimé'); renderChantiers(v); }));
 }
 function chantierForm(id) {
-  const c = id ? chantierById(id) : { otp: '', nom: '', clientId: '', adresse: '', statut: 'prospect', dateDemande: todayISO(), montantHT: 0, notes: '' };
+  const c = id ? chantierById(id) : { otp: '', nom: '', clientId: '', adresse: '', statut: 'prospect', dateDemande: todayISO(), montantHT: 0, notes: '', facturable: false };
   const opts = DB.data.clients.map(cl => `<option value="${cl.id}" ${c.clientId === cl.id ? 'selected' : ''}>${esc(cl.nom)}</option>`).join('');
   const devisOpts = DB.data.devis.slice().sort((a, b) => (b.dateDemande || '').localeCompare(a.dateDemande || ''))
     .map(d => `<option value="${d.id}">${esc(d.ref)}${d.otp ? ' · ' + esc(d.otp) : ''} — ${esc(d.objet)}</option>`).join('');
@@ -2158,7 +2168,8 @@ function chantierForm(id) {
       <div class="field"><label>Date de la demande</label><input id="f-date" type="date" value="${c.dateDemande || todayISO()}"></div>
       <div class="field"><label>Montant HT (€)</label><input id="f-montant" type="number" value="${c.montantHT || 0}"></div>
       <div class="field full"><label>Notes</label><textarea id="f-notes" rows="2">${esc(c.notes)}</textarea></div>
-    </div>`, footer: `<button class="btn" data-c>Annuler</button><button class="btn primary" id="save">Enregistrer</button>` });
+    </div>
+    <div class="field inline" style="margin-top:8px"><input type="checkbox" id="f-factu" ${chantierFacturable(c) ? 'checked' : ''}><label for="f-factu" style="cursor:pointer"><b>Autoriser la mise en facturation</b> — le chantier sera proposé à la clôture de fin de mois (CA &amp; Marge)</label></div>`, footer: `<button class="btn" data-c>Annuler</button><button class="btn primary" id="save">Enregistrer</button>` });
   let srcDevisId = c.sourceDevisId || '';
   m.root.querySelector('[data-c]').onclick = m.close;
   $('#f-fromdevis').onchange = e => {
@@ -2174,8 +2185,10 @@ function chantierForm(id) {
     if ($('#f-statut').value === 'prospect') $('#f-statut').value = 'devis';
     toast('Infos du devis ' + d.ref + ' reprises');
   };
+  // passer le chantier en « Facturé » coche la case par commodité (on peut la décocher ensuite)
+  $('#f-statut').addEventListener('change', e => { if (e.target.value === 'facture') $('#f-factu').checked = true; });
   $('#save').onclick = () => {
-    const obj = { otp: $('#f-otp').value.trim(), nom: $('#f-nom').value.trim(), clientId: $('#f-client').value, adresse: $('#f-adr').value.trim(), statut: $('#f-statut').value, dateDemande: $('#f-date').value, montantHT: +$('#f-montant').value || 0, notes: $('#f-notes').value.trim(), sourceDevisId: srcDevisId };
+    const obj = { otp: $('#f-otp').value.trim(), nom: $('#f-nom').value.trim(), clientId: $('#f-client').value, adresse: $('#f-adr').value.trim(), statut: $('#f-statut').value, dateDemande: $('#f-date').value, montantHT: +$('#f-montant').value || 0, notes: $('#f-notes').value.trim(), sourceDevisId: srcDevisId, facturable: $('#f-factu').checked };
     if (!obj.nom) { toast('Le nom est obligatoire', 'err'); return; }
     if (id) Object.assign(c, obj); else DB.data.chantiers.unshift({ id: uid(), ...obj });
     DB.save(); m.close(); toast('Chantier enregistré'); go('chantiers');
@@ -2190,7 +2203,8 @@ function chantierDetail(id) {
     body: `<div class="grid-2">
       <div><div class="stat-line"><span>OTP</span><b>${esc(c.otp || '—')}</b></div><div class="stat-line"><span>Statut</span><b>${statutBadge(c.statut)}</b></div>
         <div class="stat-line"><span>Client</span><b>${esc(cl ? cl.nom : '—')}</b></div><div class="stat-line"><span>Adresse</span><b>${esc(c.adresse || '—')}</b></div>
-        <div class="stat-line"><span>Date de la demande</span><b>${fmtDate(c.dateDemande)}</b></div><div class="stat-line"><span>Montant HT</span><b>${eur(c.montantHT)}</b></div></div>
+        <div class="stat-line"><span>Date de la demande</span><b>${fmtDate(c.dateDemande)}</b></div><div class="stat-line"><span>Montant HT</span><b>${eur(c.montantHT)}</b></div>
+        <div class="stat-line"><span>Mise en facturation</span><b>${chantierEnCa(c) ? 'Déjà mis en facturation' : chantierFacturable(c) ? 'Autorisée' : 'Bloquée'}</b></div></div>
       <div><div class="card-title">Contact client</div>
         ${cl ? `<div class="stat-line"><span>Interlocuteur</span><b>${esc(cl.contact || '—')}</b></div><div class="stat-line"><span>Téléphone</span><b>${esc(cl.tel || '—')}</b></div><div class="stat-line"><span>Email</span><b>${esc(cl.email || '—')}</b></div>` : '<div class="t-muted">Aucun client associé.</div>'}
         ${c.notes ? `<div class="card-title" style="margin-top:14px">Notes</div><div class="t-muted">${esc(c.notes)}</div>` : ''}</div></div>
@@ -2983,28 +2997,28 @@ function caForm(id) {
     caMonth = obj.mois; caYear = obj.annee; DB.save(); m.close(); toast('Ligne CA enregistrée'); go('ca');
   };
 }
-/* Affaires facturables (chantiers passés en « facturé » + devis acceptés) non encore reprises en CA */
+/* Affaires facturables (chantiers dont la mise en facturation est autorisée + devis acceptés) non encore reprises en CA */
 const caIsConsumed = (type, sid) => DB.data.ca.some(r => r.sourceType === type && r.sourceId === sid);
 function caCandidates() {
   const out = [];
   // devis déjà transformés en chantier : ne pas les proposer en double
   const devisLies = new Set(DB.data.chantiers.map(c => c.sourceDevisId).filter(Boolean));
-  DB.data.chantiers.filter(c => c.statut === 'facture' && !caIsConsumed('chantier', c.id)).forEach(c => out.push({ type: 'chantier', id: c.id, otp: c.otp, clientId: c.clientId, designation: c.nom, montant: +c.montantHT || 0 }));
+  DB.data.chantiers.filter(c => chantierFacturable(c) && c.statut !== 'perdu' && !caIsConsumed('chantier', c.id)).forEach(c => out.push({ type: 'chantier', id: c.id, otp: c.otp, clientId: c.clientId, designation: c.nom, montant: +c.montantHT || 0 }));
   DB.data.devis.filter(d => d.statut === 'accepte' && !d.horsComptes && !caIsConsumed('devis', d.id) && !devisLies.has(d.id)).forEach(d => out.push({ type: 'devis', id: d.id, otp: d.otp, clientId: d.clientId, designation: d.objet, montant: +d.montantHT || 0 }));
   return out;
 }
 function caPicker() {
   const cand = caCandidates();
   const m = modal({ title: 'Clôture de fin de mois — affaires à mettre en CA', wide: true,
-    body: `<p class="t-muted" style="margin-top:0">Sélectionnez les chantiers <b>facturés</b> et les devis <b>acceptés</b> à mettre en facturation. Seul le <b>montant</b> de chaque affaire est imputé à son OTP : les matériaux, le matériel et la main d'œuvre restent suivis dans les sections <b>Achats fournisseurs</b> et <b>Planning &amp; pointages</b>.</p>
+    body: `<p class="t-muted" style="margin-top:0">Sélectionnez les chantiers dont la <b>mise en facturation est autorisée</b> (section Chantiers) et les devis <b>acceptés</b> à mettre en facturation. Seul le <b>montant</b> de chaque affaire est imputé à son OTP : les matériaux, le matériel et la main d'œuvre restent suivis dans les sections <b>Achats fournisseurs</b> et <b>Planning &amp; pointages</b>.</p>
     <div class="form-grid" style="max-width:360px">
       <div class="field"><label>Mois</label><select id="p-mois">${MOIS.map((mm, i) => `<option value="${i}" ${i === caMonth ? 'selected' : ''}>${mm}</option>`).join('')}</select></div>
       <div class="field"><label>Année</label><input id="p-annee" type="number" value="${caYear}"></div>
     </div>
     ${cand.length ? `<div class="table-wrap" style="margin-top:14px"><table><thead><tr><th><input type="checkbox" id="p-all"></th><th>Type</th><th>OTP</th><th>Désignation</th><th class="num">Montant HT imputé</th></tr></thead>
-      <tbody>${cand.map((c, i) => `<tr><td><input type="checkbox" class="p-chk" data-i="${i}" checked></td><td><span class="badge ${c.type === 'chantier' ? 'b-receptionne' : 'b-accepte'}">${c.type === 'chantier' ? 'Chantier facturé' : 'Devis accepté'}</span></td><td class="t-strong">${esc(c.otp || '—')}</td><td>${esc(c.designation)}</td><td class="num">${eur(c.montant)}</td></tr>`).join('')}</tbody></table></div>
+      <tbody>${cand.map((c, i) => `<tr><td><input type="checkbox" class="p-chk" data-i="${i}" checked></td><td><span class="badge ${c.type === 'chantier' ? 'b-receptionne' : 'b-accepte'}">${c.type === 'chantier' ? 'Chantier' : 'Devis accepté'}</span></td><td class="t-strong">${esc(c.otp || '—')}</td><td>${esc(c.designation)}</td><td class="num">${eur(c.montant)}</td></tr>`).join('')}</tbody></table></div>
       <div class="field inline" style="margin-top:12px"><input type="checkbox" id="p-fact"><label for="p-fact" style="cursor:pointer">Créer aussi les factures correspondantes (statut « à émettre »)</label></div>`
-      : `<div class="empty" style="padding:30px"><div class="em-ico">${icon('checkSquare')}</div><h3>Aucune affaire disponible</h3><div>Passez un chantier en statut « Facturé » ou acceptez un devis pour le voir apparaître ici.</div></div>`}`,
+      : `<div class="empty" style="padding:30px"><div class="em-ico">${icon('checkSquare')}</div><h3>Aucune affaire disponible</h3><div>Cochez « Autoriser la mise en facturation » sur un chantier (section Chantiers) ou acceptez un devis pour le voir apparaître ici.</div></div>`}`,
     footer: cand.length ? `<button class="btn" data-c>Annuler</button><button class="btn primary" id="p-go">Ajouter au CA du mois</button>` : `<button class="btn" data-c>Fermer</button>` });
   m.root.querySelector('[data-c]').onclick = m.close;
   if (!cand.length) return;
