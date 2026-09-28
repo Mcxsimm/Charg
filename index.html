@@ -2477,12 +2477,12 @@ function renderRAF(v) {
       <th class="num" title="Achats réceptionnés + pointage du mois">Total réceptionné</th>
       <th class="num" title="Mise en facturation − réceptionné (mois)">Marge du mois</th>
       <th class="num">% marge</th><th></th></tr></thead>
-    <tbody>${fin.map(f => `<tr>${nom(f)}<td class="num">${eur(f.caMois)}</td><td class="num">${eur(f.achatsMois)}</td>
-      <td class="num">${eur(f.moMois)}</td><td class="num t-muted">${f.moHeuresMois ? f.moHeuresMois.toFixed(1) : '—'}</td>
+    <tbody>${fin.map(f => `<tr>${nom(f)}<td class="num">${eur(f.caMois)}</td><td class="num" data-dbl="cmd" data-code="${esc(f.code)}">${eur(f.achatsMois)}</td>
+      <td class="num" data-dbl="mo" data-code="${esc(f.code)}">${eur(f.moMois)}</td><td class="num t-muted">${f.moHeuresMois ? f.moHeuresMois.toFixed(1) : '—'}</td>
       <td class="num">${eur(f.depMois)}</td>
       <td class="num t-strong ${mCls(f.margeMois)}">${(f.caMois || f.depMois) ? eur(f.margeMois) : '—'}</td>
       <td class="num ${mCls(f.margeMois)}">${f.caMois ? pct(f.pctMargeMois) : '—'}</td>${act(f)}</tr>`).join('')}</tbody>
-    <tfoot><tr class="t-strong"><td colspan="3">TOTAL (${codes.length} OTP)</td><td class="num">${eur(T.caMois)}</td><td class="num">${eur(T.achatsMois)}</td><td class="num">${eur(T.moMois)}</td><td class="num">${T.moHeuresMois.toFixed(1)}</td><td class="num">${eur(T.depMois)}</td><td class="num ${mCls(T.margeMois)}">${eur(T.margeMois)}</td><td class="num ${mCls(T.margeMois)}">${T.caMois ? pct(TpctMois) : '—'}</td><td></td></tr></tfoot></table></div>`;
+    <tfoot><tr class="t-strong"><td colspan="3">TOTAL (${codes.length} OTP)</td><td class="num">${eur(T.caMois)}</td><td class="num" data-dbl="cmd">${eur(T.achatsMois)}</td><td class="num" data-dbl="mo">${eur(T.moMois)}</td><td class="num">${T.moHeuresMois.toFixed(1)}</td><td class="num">${eur(T.depMois)}</td><td class="num ${mCls(T.margeMois)}">${eur(T.margeMois)}</td><td class="num ${mCls(T.margeMois)}">${T.caMois ? pct(TpctMois) : '—'}</td><td></td></tr></tfoot></table></div>`;
   // Vue 3 — synthèse historique : marge réalisée et reste à facturer
   const tblSynthese = () => `<div class="table-wrap"><table><thead><tr><th>OTP</th><th>Libellé</th><th>Client</th><th class="num" title="Prix de vente HT — la référence (budget prévu)">PV HT</th><th class="num">CA imputé</th><th class="num">Dépenses</th><th class="num" title="Prix de vente HT − coûts imputés cumulés">Marge</th><th class="num" title="Marge rapportée au prix de vente HT">% marge</th><th class="num" title="Lignes CA cumulées à fin de période">Mis en factu. cum.</th><th class="num" title="Marché HT − mis en facturation cumulé (lignes CA)">Reste à facturer</th><th></th></tr></thead>
       <tbody>${fin.map(f => `<tr>${nom(f)}
@@ -2520,6 +2520,7 @@ function renderRAF(v) {
       : nbHors ? emptyState('target', 'Aucun OTP à suivre', 'Les ' + nbHors + ' OTP existants sont marqués hors périmètre (commandes seules). Utilisez le bouton « Afficher » pour les consulter malgré tout.')
       : emptyState('target', 'Aucun OTP', 'Les OTP apparaissent dès qu\'ils sont utilisés sur un devis, un chantier, une facture ou un achat.')}`;
   rafBindPeriod(v);
+  rafBindDetail(v, el => el.dataset.code ? [el.dataset.code] : codes);
   $('#raf-run').onclick = () => {
     const sel = $('#raf-otp').value; if (!sel) { toast('Sélectionnez un OTP', 'err'); return; }
     rafOtp = sel; renderRAF(v);
@@ -2529,6 +2530,46 @@ function renderRAF(v) {
   const bh = $('#raf-hors'); if (bh) bh.onclick = () => { rafHors = !rafHors; renderRAF(v); };
   $('#raf-list-csv').onclick = () => exportRafListXlsx(fin);
   $$('[data-run]', v).forEach(b => b.onclick = () => { rafOtp = b.dataset.run; renderRAF(v); });
+}
+/* Double-clic sur « commandes réceptionnées » / « pointage » du mois : détail ligne à ligne.
+   codes = OTP concernés (un seul depuis la fiche, tous les OTP affichés depuis la vue du mois). */
+function rafDetailMois(codes, kind) {
+  const set = new Set(codes), PL = MOIS[rafPer().m] + ' ' + rafPer().y;
+  const multi = codes.length > 1;
+  if (kind === 'cmd') {
+    const list = DB.data.commandes.filter(c => set.has(c.otp) && rafInMois(c.dateReception))
+      .sort((a, b) => (a.dateReception || '').localeCompare(b.dateReception || ''));
+    const tot = list.reduce((a, c) => a + (+c.montantHT || 0), 0);
+    modal({ title: 'Commandes réceptionnées — ' + PL + (multi ? '' : ' · ' + codes[0]), wide: true,
+      body: list.length ? `<div class="table-wrap"><table><thead><tr><th>Réception</th>${multi ? '<th>OTP</th>' : ''}<th>N°</th><th>Fournisseur</th><th>Objet</th><th class="num">Montant HT</th></tr></thead>
+        <tbody>${list.map(c => `<tr><td>${fmtDate(c.dateReception)}</td>${multi ? `<td class="t-strong">${esc(c.otp)}</td>` : ''}<td class="t-muted">${esc(c.num || '—')}</td><td class="t-strong">${esc(c.fournisseur || '—')}</td><td class="wrap">${esc(c.objet || '—')}</td><td class="num">${eur(c.montantHT)}</td></tr>`).join('')}</tbody>
+        <tfoot><tr class="t-strong"><td colspan="${multi ? 5 : 4}">Total (${list.length} commande(s))</td><td class="num">${eur(tot)}</td></tr></tfoot></table></div>`
+        : `<div class="t-muted">Aucune commande réceptionnée sur ${esc(PL)}.</div>` });
+    return;
+  }
+  const rows = [];
+  DB.data.pointages.forEach(p => {
+    if (!set.has(p.otp) || !p.h) return;
+    const taux = tauxWorker(p.workerKey);
+    p.h.forEach((h, i) => { if (!h) return; const iso = addDays(p.semaine, i); if (rafInMois(iso)) rows.push({ iso, nom: p.workerNom || '—', otp: p.otp, chantier: p.chantierNom || '', h: +h, taux, cout: (+h) * taux }); });
+  });
+  rows.sort((a, b) => a.iso.localeCompare(b.iso) || a.nom.localeCompare(b.nom));
+  const parNom = {};
+  rows.forEach(x => { const o = (parNom[x.nom] = parNom[x.nom] || { nom: x.nom, h: 0, cout: 0 }); o.h += x.h; o.cout += x.cout; });
+  const totH = rows.reduce((a, x) => a + x.h, 0), totC = rows.reduce((a, x) => a + x.cout, 0);
+  modal({ title: 'Pointage — ' + PL + (multi ? '' : ' · ' + codes[0]), wide: true,
+    body: rows.length ? `<div class="card-title">Par compagnon</div>
+      <div class="table-wrap" style="margin-bottom:16px"><table><thead><tr><th>Compagnon</th><th class="num">Heures</th><th class="num">Coût</th></tr></thead>
+        <tbody>${Object.values(parNom).map(o => `<tr><td class="t-strong">${esc(o.nom)}</td><td class="num">${o.h.toFixed(1)}</td><td class="num">${eur(o.cout)}</td></tr>`).join('')}</tbody>
+        <tfoot><tr class="t-strong"><td>Total</td><td class="num">${totH.toFixed(1)}</td><td class="num">${eur(totC)}</td></tr></tfoot></table></div>
+      <div class="card-title">Détail par jour</div>
+      <div class="table-wrap"><table><thead><tr><th>Jour</th><th>Compagnon</th>${multi ? '<th>OTP</th>' : ''}<th>Chantier</th><th class="num">Heures</th><th class="num">Taux</th><th class="num">Coût</th></tr></thead>
+        <tbody>${rows.map(x => `<tr><td>${fmtDate(x.iso)}</td><td class="t-strong">${esc(x.nom)}</td>${multi ? `<td>${esc(x.otp)}</td>` : ''}<td class="t-muted">${esc(x.chantier || '—')}</td><td class="num">${x.h.toFixed(1)}</td><td class="num t-muted">${eur(x.taux)}</td><td class="num">${eur(x.cout)}</td></tr>`).join('')}</tbody></table></div>`
+      : `<div class="t-muted">Aucune heure pointée sur ${esc(PL)}.</div>` });
+}
+function rafBindDetail(v, codesFor) {
+  $$('[data-dbl]', v).forEach(el => { el.style.cursor = 'pointer'; el.title = 'Double-cliquez pour voir le détail';
+    el.ondblclick = () => rafDetailMois(codesFor(el), el.dataset.dbl); });
 }
 function rafAnalyse(v) {
   const code = rafOtp, F = rafFinance(code), bud = rafBudget(code);
@@ -2544,7 +2585,7 @@ function rafAnalyse(v) {
   const L = (label, per, cum, cls, strong) => `<tr class="${strong ? 't-strong' : ''}"><td>${label}</td>${dual ? `<td class="num ${cls || ''}">${per}</td>` : ''}<td class="num ${cls || ''}">${cum}</td></tr>`;
   const HD = (first) => `<thead><tr><th>${first}</th>${dual ? `<th class="num">${MOIS[rafPer().m]} ${rafPer().y}</th>` : ''}<th class="num">${dual ? 'Cumulé' : 'Montant'}</th></tr></thead>`;
   // ligne simple à 2 colonnes (tableaux « coffre » et « mois », indépendants du périmètre)
-  const R2 = (label, val, cls, strong) => `<tr class="${strong ? 't-strong' : ''}"><td>${label}</td><td class="num ${cls || ''}">${val}</td></tr>`;
+  const R2 = (label, val, cls, strong, attrs) => `<tr class="${strong ? 't-strong' : ''}" ${attrs || ''}><td>${label}</td><td class="num ${cls || ''}">${val}</td></tr>`;
   const PL = MOIS[rafPer().m] + ' ' + rafPer().y;
   const recMois = F.achatsMoisList.length + F.moMoisList.length;
   v.innerHTML = `
@@ -2589,16 +2630,16 @@ function rafAnalyse(v) {
     <p class="t-muted" style="margin-top:-6px;margin-bottom:10px">Le mois seul : ce que je <b>mets en facturation</b>, diminué des <b>commandes réceptionnées</b> sur le mois et du <b>pointage</b> du mois.</p>
     <div class="table-wrap" style="margin-bottom:18px"><table><thead><tr><th>${esc(PL)}</th><th class="num">Montant</th></tr></thead><tbody>
       ${R2('Mis en facturation (lignes CA du mois)', eur(F.caMois), '', true)}
-      ${R2('− Commandes réceptionnées dans le mois' + (F.achatsMoisList.length ? ' (' + F.achatsMoisList.length + ')' : ''), eur(F.achatsMois))}
-      ${R2("− Pointage du mois" + (F.moHeuresMois ? ' (' + F.moHeuresMois.toFixed(1) + ' h)' : ''), eur(F.moMois))}
+      ${R2('− Commandes réceptionnées dans le mois' + (F.achatsMoisList.length ? ' (' + F.achatsMoisList.length + ')' : '') + ' <span class="t-muted" style="font-weight:400">— double-clic pour le détail</span>', eur(F.achatsMois), '', false, 'data-dbl="cmd"')}
+      ${R2("− Pointage du mois" + (F.moHeuresMois ? ' (' + F.moHeuresMois.toFixed(1) + ' h)' : '') + ' <span class="t-muted" style="font-weight:400">— double-clic pour le détail</span>', eur(F.moMois), '', false, 'data-dbl="mo"')}
       ${R2('= Marge du mois', (F.caMois || F.depMois) ? eur(F.margeMois) : '—', mCls(F.margeMois), true)}
       ${R2('% marge du mois', F.caMois ? pct(F.pctMargeMois) : '—', mCls(F.margeMois), true)}
     </tbody></table></div>
     <div class="card-title">Réceptions du mois ${esc(PL)} (${recMois})</div>
     ${recMois ? `<div class="table-wrap" style="margin-bottom:18px"><table><thead><tr><th>Type</th><th>Désignation</th><th>Détail</th><th class="num">Montant HT</th></tr></thead>
       <tbody>
-        ${F.achatsMoisList.map(c => `<tr><td>Commande réceptionnée</td><td class="t-strong">${esc(c.fournisseur || '—')}</td><td class="t-muted">${esc(c.objet || '—')}${c.num ? ' · ' + esc(c.num) : ''} · reçu le ${fmtDate(c.dateReception)}</td><td class="num">${eur(c.montantHT)}</td></tr>`).join('')}
-        ${F.moMoisList.map(w => `<tr><td>Pointage</td><td class="t-strong">${esc(w.nom)}</td><td class="t-muted">${w.heures.toFixed(1)} h</td><td class="num">${eur(w.cout)}</td></tr>`).join('')}
+        ${F.achatsMoisList.map(c => `<tr data-dbl="cmd"><td>Commande réceptionnée</td><td class="t-strong">${esc(c.fournisseur || '—')}</td><td class="t-muted">${esc(c.objet || '—')}${c.num ? ' · ' + esc(c.num) : ''} · reçu le ${fmtDate(c.dateReception)}</td><td class="num">${eur(c.montantHT)}</td></tr>`).join('')}
+        ${F.moMoisList.map(w => `<tr data-dbl="mo"><td>Pointage</td><td class="t-strong">${esc(w.nom)}</td><td class="t-muted">${w.heures.toFixed(1)} h</td><td class="num">${eur(w.cout)}</td></tr>`).join('')}
       </tbody>
       <tfoot><tr class="t-strong"><td colspan="3">Total réceptionné ${esc(PL)}</td><td class="num">${eur(F.depMois)}</td></tr></tfoot></table></div>`
       : `<div class="t-muted" style="margin-bottom:18px">Rien de réceptionné ni de pointé sur ${esc(PL)}.</div>`}
@@ -2658,6 +2699,7 @@ function rafAnalyse(v) {
     ${F.chantiers.length ? `<div class="card-title">Sites / chantiers (${F.chantiers.length})</div><div class="table-wrap" style="margin-bottom:18px"><table><thead><tr><th>Nom du site</th><th>Adresse</th><th>Statut</th><th class="num">Montant HT</th></tr></thead><tbody>${F.chantiers.map(c => `<tr><td class="t-strong">${esc(c.nom)}</td><td class="t-muted">${esc(c.adresse || '—')}</td><td>${statutBadge(c.statut)}</td><td class="num">${eur(c.montantHT)}</td></tr>`).join('')}</tbody></table></div>` : ''}
     ${F.factures.length ? `<div class="card-title">Factures (${F.factures.length})</div><div class="table-wrap"><table><thead><tr><th>N°</th><th>Objet</th><th>Statut</th><th class="num">Montant HT</th></tr></thead><tbody>${F.factures.map(f => `<tr><td class="t-strong">${esc(f.num || '—')}</td><td>${esc(f.objet || '—')}</td><td>${factBadge(f)}</td><td class="num">${eur(f.montantHT)}</td></tr>`).join('')}</tbody></table></div>` : ''}`;
   rafBindPeriod(v);
+  rafBindDetail(v, () => [code]);
   $('#raf-back').onclick = () => { rafOtp = ''; renderRAF(v); };
   $('#raf-com').onchange = e => {
     let o = otpMeta(code);
