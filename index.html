@@ -1851,7 +1851,7 @@ function collectActions() {
 /* ---------- Tableau de bord ---------- */
 function renderDashboard(v) {
   const o = DB.data.objectifs, now = new Date(), mo = now.getMonth(), yr = now.getFullYear();
-  const caY = DB.data.ca.filter(r => r.annee === yr);
+  const caY = DB.data.ca.filter(r => r.annee === yr && otpCompte(r.otp));
   const caAnnuel = caY.reduce((s, r) => s + (+r.prixVente || 0), 0);
   const caMarge = caAnnuel - coutsReels(yr).tot;   // CA mis en facturation − coûts réels (achats reçus + pointages)
   const margePct = caAnnuel ? caMarge / caAnnuel : 0;
@@ -2065,7 +2065,7 @@ function beginEditTodo(item) {
 }
 function monthlyBarChart(yr) {
   const caM = Array(12).fill(0), maM = Array(12).fill(0);
-  DB.data.ca.filter(r => r.annee === yr).forEach(r => { const m = r.mois ?? 0; caM[m] += (+r.prixVente || 0); });
+  DB.data.ca.filter(r => r.annee === yr && otpCompte(r.otp)).forEach(r => { const m = r.mois ?? 0; caM[m] += (+r.prixVente || 0); });
   for (let m = 0; m < 12; m++) maM[m] = caM[m] - coutsReels(yr, m).tot;
   const max = Math.max(1, ...caM);
   const bars = caM.map((val, i) => `<div class="bar-col" title="${MOIS[i]} — CA ${eur(val)} / Marge ${eur(maM[i])}">
@@ -2359,8 +2359,17 @@ function rafMo(code, test) {
    les non réceptionnées sont comptées en « engagé ». */
 function rafFinance(code) {
   const chantiers = DB.data.chantiers.filter(c => c.otp === code);
-  const devis = DB.data.devis.filter(d => d.otp === code);
-  const marche = chantiers.reduce((a, c) => a + (+c.montantHT || 0), 0) || devis.reduce((a, d) => a + (+d.montantHT || 0), 0);
+  const devis = DB.data.devis.filter(d => d.otp === code && !d.horsComptes);
+  /* Commandé = chantiers signés (commande → facturé) ; à défaut, devis acceptés.
+     C'est la même base que la boîte à affaires, pour que RAF et coffre ne divergent pas. */
+  const signes = chantiers.filter(c => ['commande', 'en_cours', 'receptionne', 'facture'].includes(c.statut));
+  const commandeHT = signes.length
+    ? signes.reduce((a, c) => a + (+c.montantHT || 0), 0)
+    : devis.filter(d => d.statut === 'accepte').reduce((a, d) => a + (+d.montantHT || 0), 0);
+  // Marché (PV HT) = le commandé ; sans commande, le prévisionnel (chantiers non perdus, sinon devis non refusés)
+  const marche = commandeHT
+    || chantiers.filter(c => c.statut !== 'perdu').reduce((a, c) => a + (+c.montantHT || 0), 0)
+    || devis.filter(d => d.statut !== 'refuse').reduce((a, d) => a + (+d.montantHT || 0), 0);
   const caL = DB.data.ca.filter(x => x.otp === code);
   const ca = caL.filter(x => rafCaIn(x, false)).reduce((a, x) => a + (+x.prixVente || 0), 0);
   const caCumul = caL.filter(x => rafCaIn(x, true)).reduce((a, x) => a + (+x.prixVente || 0), 0);
@@ -2389,10 +2398,6 @@ function rafFinance(code) {
   /* --- BOÎTE À AFFAIRES (« le coffre ») ---
      Ce qui est commandé (affaires gagnées) et pas encore mis en facturation :
      travaux déjà réalisés en attente de mise en facturation + commandes restant à réaliser. */
-  const signes = chantiers.filter(c => ['commande', 'en_cours', 'receptionne', 'facture'].includes(c.statut));
-  const commandeHT = signes.length
-    ? signes.reduce((a, c) => a + (+c.montantHT || 0), 0)
-    : devis.filter(d => d.statut === 'accepte').reduce((a, d) => a + (+d.montantHT || 0), 0);
   const faitHT = chantiers.filter(c => ['receptionne', 'facture'].includes(c.statut)).reduce((a, c) => a + (+c.montantHT || 0), 0);
   const coffre = commandeHT - caCumul;                                  // reste à mettre en facturation
   const coffreFait = Math.max(0, Math.min(coffre, faitHT - caCumul));   // travaux faits, non mis en facturation
@@ -2443,14 +2448,14 @@ function rafPeriodControls() {
 function rafBindPeriod(v) {
   const re = () => renderRAF(v);
   const p = $('#raf-per'), x = $('#raf-ex'), sc = $('#raf-scope');
-  if (p) p.onchange = e => { rafPeriode = e.target.value; re(); };
-  if (x) x.onchange = e => { rafExercice = e.target.value; re(); };
+  if (p) p.onchange = e => { rafPeriode = e.target.value; syncPeriode('raf'); re(); };
+  if (x) x.onchange = e => { rafExercice = e.target.value; syncPeriode('raf'); re(); };
   if (sc) sc.onchange = e => { rafPerimetre = e.target.value; re(); };
 }
 function renderRAF(v) {
   if (rafOtp) { rafAnalyse(v); return; }
   const nbHors = otpDistinct().filter(otpHorsPerimetre).length;
-  const all = otpDistinct().filter(c => rafHors || !otpHorsPerimetre(c));
+  const all = otpDistinct().filter(c => c.trim() && (rafHors || !otpHorsPerimetre(c)));
   const codes = all.filter(c => !rafQ || (c + ' ' + otpLabel(c) + ' ' + clientNom(otpClientId(c))).toLowerCase().includes(rafQ.toLowerCase()));
   const fin = codes.map(c => rafFinance(c));
   const TK = ['marche', 'ca', 'caCumul', 'dep', 'marge', 'raf', 'commandeHT', 'coffre', 'coffreFait', 'coffreAFaire', 'engage', 'caMois', 'achatsMois', 'moMois', 'moHeuresMois', 'depMois', 'margeMois'];
@@ -2783,7 +2788,8 @@ function exportRafListXlsx(fin) {
 }
 
 /* ---------- Devis ---------- */
-const otpDistinct = () => [...new Set([...DB.data.devis.map(d => d.otp), ...DB.data.chantiers.map(c => c.otp), ...DB.data.factures.map(f => f.otp), ...DB.data.commandes.map(c => c.otp)].filter(Boolean))].sort();
+const otpDistinct = () => [...new Set([...DB.data.devis.map(d => d.otp), ...DB.data.chantiers.map(c => c.otp), ...DB.data.factures.map(f => f.otp), ...DB.data.commandes.map(c => c.otp),
+  ...DB.data.ca.map(x => x.otp), ...DB.data.pointages.map(p => p.otp), ...(DB.data.otps || []).map(o => o.code)].filter(Boolean))].sort();
 const commandesParOtp = otp => DB.data.commandes.filter(c => c.otp === otp).reduce((s, c) => s + (+c.montantHT || 0), 0);
 const inMonth = (iso, mois, annee) => { if (!iso) return false; const d = new Date(iso + 'T00:00:00'); return d.getMonth() === mois && d.getFullYear() === annee; };
 // Heures de main d'œuvre pointées sur l'OTP durant le mois (modèle en lignes)
@@ -2809,15 +2815,15 @@ const moAllOtp = otp => DB.data.pointages.reduce((s, r) => r.otp === otp && r.h 
 /* Coûts réels d'une période, repris des sections dédiées : commandes fournisseurs
    RÉCEPTIONNÉES (matériaux et matériel) et heures pointées (main d'œuvre). Une ligne de
    mise en facturation ne porte, elle, que le montant du chantier sur son OTP.
-   Les OTP hors périmètre (commandes passées pour un autre chargé d'affaires) sont exclus.
+   Sans OTP ou OTP hors périmètre (commandes passées pour un autre chargé d'affaires) : exclus.
    mois omis = toute l'année. */
 function coutsReels(annee, mois) {
   const dansPer = iso => { if (!iso) return false; const d = new Date(iso + 'T00:00:00'); if (isNaN(d)) return false;
     return d.getFullYear() === annee && (mois === undefined || mois === null || d.getMonth() === mois); };
-  const achats = DB.data.commandes.reduce((s, c) => (!otpHorsPerimetre(c.otp) && dansPer(c.dateReception)) ? s + (+c.montantHT || 0) : s, 0);
+  const achats = DB.data.commandes.reduce((s, c) => (otpCompte(c.otp) && dansPer(c.dateReception)) ? s + (+c.montantHT || 0) : s, 0);
   let mo = 0, heures = 0;
   DB.data.pointages.forEach(r => {
-    if (!r.h || otpHorsPerimetre(r.otp)) return;
+    if (!r.h || !otpCompte(r.otp)) return;
     const taux = tauxWorker(r.workerKey);
     r.h.forEach((h, i) => { if (h && dansPer(addDays(r.semaine, i))) { heures += +h; mo += (+h) * taux; } });
   });
@@ -2827,6 +2833,8 @@ const otpMeta = code => DB.data.otps.find(o => o.code === code) || null;
 const otpLabel = code => { const o = otpMeta(code); return o && o.libelle ? o.libelle : ''; };
 /* OTP suivi par un autre chargé d'affaires : on y passe seulement des commandes, il est exclu du RAF. */
 const otpHorsPerimetre = code => { const o = otpMeta(code); return !!(o && o.horsPerimetre); };
+/* Règle commune CA & Marge / RAF / tableau de bord : sans code OTP, ou OTP hors périmètre → non compté. */
+const otpCompte = code => !!(code && String(code).trim()) && !otpHorsPerimetre(code);
 function otpClientId(code) { const o = otpMeta(code); if (o && o.clientId) return o.clientId; const c = DB.data.chantiers.find(x => x.otp === code && x.clientId) || DB.data.devis.find(x => x.otp === code && x.clientId); return c ? c.clientId : ''; }
 let devisFilter = { q: '', statut: '', otp: '' };
 function renderDevis(v) {
@@ -2923,10 +2931,16 @@ function relanceDevis(id) {
 
 /* ---------- Suivi CA & Marge ---------- */
 let caYear = new Date().getFullYear(), caMonth = new Date().getMonth();
+// CA & Marge et RAF regardent toujours le même mois
+function syncPeriode(from) {
+  if (from === 'ca') { rafPeriode = String(caMonth + 1); rafExercice = String(caYear); }
+  else { const { m, y } = rafPer(); caMonth = m; caYear = y; }
+}
 function renderCA(v) {
   const rows = DB.data.ca.filter(r => r.annee === caYear && r.mois === caMonth);
-  const yearRows = DB.data.ca.filter(r => r.annee === caYear);
-  const totVente = rows.reduce((s, r) => s + (+r.prixVente || 0), 0);
+  const yearRows = DB.data.ca.filter(r => r.annee === caYear && otpCompte(r.otp));
+  const nonComptees = rows.filter(r => !otpCompte(r.otp));
+  const totVente = rows.filter(r => otpCompte(r.otp)).reduce((s, r) => s + (+r.prixVente || 0), 0);
   const cM = coutsReels(caYear, caMonth), cA = coutsReels(caYear);
   const totMarge = totVente - cM.tot;
   const caAnnee = yearRows.reduce((s, r) => s + (+r.prixVente || 0), 0), margeAnnee = caAnnee - cA.tot;
@@ -2946,15 +2960,15 @@ function renderCA(v) {
       <div class="kpi"><div class="kpi-top"><span class="kpi-label">Lignes du mois</span><span class="kpi-ico">${icon('file')}</span></div><div class="kpi-value">${rows.length}</div><div class="kpi-sub">${MOIS[caMonth]} ${caYear}</div></div>
     </div>
     ${rows.length ? `<div class="table-wrap"><table><thead><tr><th>OTP</th><th>Chantier mis en facturation</th><th class="num">Montant HT</th><th></th></tr></thead>
-      <tbody>${rows.map(r => `<tr><td class="t-strong">${esc(r.otp || '—')}${otpHorsPerimetre(r.otp) ? ' <span class="chip">hors périmètre</span>' : ''}</td><td>${esc(r.chantier)}</td><td class="num t-strong">${eur(r.prixVente)}</td>
+      <tbody>${rows.map(r => `<tr><td class="t-strong">${esc(r.otp || '—')}${!r.otp ? ' <span class="badge b-perdu" title="Sans code OTP : non compté (CA, marge, RAF)">sans OTP — non compté</span>' : otpHorsPerimetre(r.otp) ? ' <span class="chip" title="Non compté (CA, marge, RAF)">hors périmètre — non compté</span>' : ''}</td><td>${esc(r.chantier)}</td><td class="num ${otpCompte(r.otp) ? 't-strong' : 't-muted'}">${eur(r.prixVente)}</td>
         <td class="actions-cell"><button class="icon-btn" data-edit="${r.id}" title="Modifier">${icon('edit')}</button><button class="icon-btn danger" data-del="${r.id}" title="Supprimer">${icon('trash')}</button></td></tr>`).join('')}</tbody>
-      <tfoot><tr><td colspan="2">TOTAL ${MOIS[caMonth]}</td><td class="num">${eur(totVente)}</td><td></td></tr></tfoot></table></div>`
+      <tfoot><tr><td colspan="2">TOTAL ${MOIS[caMonth]}${nonComptees.length ? ` <span class="t-muted">(hors ${nonComptees.length} ligne(s) non comptée(s))</span>` : ''}</td><td class="num">${eur(totVente)}</td><td></td></tr></tfoot></table></div>`
       : emptyState('euro', 'Aucune ligne pour ' + MOIS[caMonth] + ' ' + caYear, 'Mettez en facturation vos chantiers : seul leur montant est imputé à l\'OTP.')}
     <div class="card card-pad" style="margin-top:16px">
       <div class="card-title">Coûts de ${MOIS[caMonth]} ${caYear} — repris des autres sections</div>
       <p class="t-muted" style="margin:-4px 0 14px;max-width:900px">La mise en facturation ne porte que le <b>montant du chantier</b> sur l'OTP choisi.
         Les <b>matériaux et le matériel</b> viennent des commandes fournisseurs <b>réceptionnées</b> (section Achats fournisseurs) et la
-        <b>main d'œuvre</b> des <b>heures pointées</b> (section Planning &amp; pointages). Les OTP hors périmètre sont exclus.</p>
+        <b>main d'œuvre</b> des <b>heures pointées</b> (section Planning &amp; pointages). Sans code OTP ou OTP hors périmètre : non compté — mêmes chiffres que la section RAF.</p>
       <div class="grid-3">
         <div class="cad-metric"><div class="cm-label">Achats réceptionnés</div><div class="cm-value" style="font-size:22px">${eur(cM.achats)}</div><div class="cm-sub">Matériaux et matériel du mois</div></div>
         <div class="cad-metric amber"><div class="cm-label">Main d'œuvre pointée</div><div class="cm-value" style="font-size:22px">${eur(cM.mo)}</div><div class="cm-sub">${num(cM.heures)} h pointées</div></div>
@@ -2963,8 +2977,8 @@ function renderCA(v) {
     </div>`;
   $('#add').onclick = () => caForm();
   $('#cloture').onclick = () => caPicker();
-  $('#fmonth').onchange = e => { caMonth = +e.target.value; renderCA(v); };
-  $('#fyear').onchange = e => { caYear = +e.target.value; renderCA(v); };
+  $('#fmonth').onchange = e => { caMonth = +e.target.value; syncPeriode('ca'); renderCA(v); };
+  $('#fyear').onchange = e => { caYear = +e.target.value; syncPeriode('ca'); renderCA(v); };
   $('#csv').onclick = () => exportXlsx(`CA_${MOIS[caMonth]}_${caYear}`, ['otp', 'chantier', 'montant_ht'], rows.map(r => [r.otp, r.chantier, r.prixVente]), { sheet: `CA ${MOIS[caMonth]} ${caYear}`, money: ['montant_ht'] });
   $$('[data-edit]', v).forEach(b => b.onclick = () => caForm(b.dataset.edit));
   $$('[data-del]', v).forEach(b => b.onclick = () => confirmDialog('Supprimer cette ligne ?', () => {
@@ -2993,8 +3007,9 @@ function caForm(id) {
   $('#save').onclick = () => {
     const obj = { mois: +$('#f-mois').value, annee: +$('#f-annee').value, otp: $('#f-otp').value.trim(), chantier: $('#f-ch').value.trim(), prixVente: +$('#f-pv').value || 0 };
     if (!obj.chantier) { toast('Le nom du chantier est obligatoire', 'err'); return; }
+    if (!obj.otp) { toast('Le code OTP est obligatoire : sans OTP, la ligne n\'est pas comptée', 'err'); return; }
     if (id) Object.assign(r, obj); else DB.data.ca.unshift({ id: uid(), fournitures: 0, engins: 0, moSmac: 0, ...obj });
-    caMonth = obj.mois; caYear = obj.annee; DB.save(); m.close(); toast('Ligne CA enregistrée'); go('ca');
+    caMonth = obj.mois; caYear = obj.annee; syncPeriode('ca'); DB.save(); m.close(); toast('Ligne CA enregistrée'); go('ca');
   };
 }
 /* Affaires facturables (chantiers dont la mise en facturation est autorisée + devis acceptés) non encore reprises en CA */
@@ -3003,18 +3018,21 @@ function caCandidates() {
   const out = [];
   // devis déjà transformés en chantier : ne pas les proposer en double
   const devisLies = new Set(DB.data.chantiers.map(c => c.sourceDevisId).filter(Boolean));
-  DB.data.chantiers.filter(c => chantierFacturable(c) && c.statut !== 'perdu' && !caIsConsumed('chantier', c.id)).forEach(c => out.push({ type: 'chantier', id: c.id, otp: c.otp, clientId: c.clientId, designation: c.nom, montant: +c.montantHT || 0 }));
-  DB.data.devis.filter(d => d.statut === 'accepte' && !d.horsComptes && !caIsConsumed('devis', d.id) && !devisLies.has(d.id)).forEach(d => out.push({ type: 'devis', id: d.id, otp: d.otp, clientId: d.clientId, designation: d.objet, montant: +d.montantHT || 0 }));
+  DB.data.chantiers.filter(c => chantierFacturable(c) && c.statut !== 'perdu' && otpCompte(c.otp) && !caIsConsumed('chantier', c.id)).forEach(c => out.push({ type: 'chantier', id: c.id, otp: c.otp, clientId: c.clientId, designation: c.nom, montant: +c.montantHT || 0 }));
+  DB.data.devis.filter(d => d.statut === 'accepte' && !d.horsComptes && otpCompte(d.otp) && !caIsConsumed('devis', d.id) && !devisLies.has(d.id)).forEach(d => out.push({ type: 'devis', id: d.id, otp: d.otp, clientId: d.clientId, designation: d.objet, montant: +d.montantHT || 0 }));
   return out;
 }
 function caPicker() {
   const cand = caCandidates();
+  const sansOtp = DB.data.chantiers.filter(c => chantierFacturable(c) && c.statut !== 'perdu' && !c.otp && !caIsConsumed('chantier', c.id)).length
+    + DB.data.devis.filter(d => d.statut === 'accepte' && !d.horsComptes && !d.otp && !caIsConsumed('devis', d.id)).length;
   const m = modal({ title: 'Clôture de fin de mois — affaires à mettre en CA', wide: true,
     body: `<p class="t-muted" style="margin-top:0">Sélectionnez les chantiers dont la <b>mise en facturation est autorisée</b> (section Chantiers) et les devis <b>acceptés</b> à mettre en facturation. Seul le <b>montant</b> de chaque affaire est imputé à son OTP : les matériaux, le matériel et la main d'œuvre restent suivis dans les sections <b>Achats fournisseurs</b> et <b>Planning &amp; pointages</b>.</p>
     <div class="form-grid" style="max-width:360px">
       <div class="field"><label>Mois</label><select id="p-mois">${MOIS.map((mm, i) => `<option value="${i}" ${i === caMonth ? 'selected' : ''}>${mm}</option>`).join('')}</select></div>
       <div class="field"><label>Année</label><input id="p-annee" type="number" value="${caYear}"></div>
     </div>
+    ${sansOtp ? `<p class="t-muted" style="margin:10px 0 0">${sansOtp} affaire(s) sans code OTP ignorée(s) : renseignez l'OTP (Chantiers / Devis) pour pouvoir la mettre en facturation.</p>` : ''}
     ${cand.length ? `<div class="table-wrap" style="margin-top:14px"><table><thead><tr><th><input type="checkbox" id="p-all"></th><th>Type</th><th>OTP</th><th>Désignation</th><th class="num">Montant HT imputé</th></tr></thead>
       <tbody>${cand.map((c, i) => `<tr><td><input type="checkbox" class="p-chk" data-i="${i}" checked></td><td><span class="badge ${c.type === 'chantier' ? 'b-receptionne' : 'b-accepte'}">${c.type === 'chantier' ? 'Chantier' : 'Devis accepté'}</span></td><td class="t-strong">${esc(c.otp || '—')}</td><td>${esc(c.designation)}</td><td class="num">${eur(c.montant)}</td></tr>`).join('')}</tbody></table></div>
       <div class="field inline" style="margin-top:12px"><input type="checkbox" id="p-fact"><label for="p-fact" style="cursor:pointer">Créer aussi les factures correspondantes (statut « à émettre »)</label></div>`
@@ -3033,7 +3051,7 @@ function caPicker() {
       DB.data.ca.unshift({ id: caId, mois, annee, otp: c.otp || '', chantier: c.designation, prixVente: c.montant, fournitures: 0, engins: 0, moSmac: 0, sourceType: c.type, sourceId: c.id });
       if (withFact) DB.data.factures.unshift({ id: uid(), sourceCaId: caId, num: '', otp: c.otp || '', clientId: c.clientId || '', client: clientNom(c.clientId) === '—' ? '' : clientNom(c.clientId), chantierId: c.type === 'chantier' ? c.id : '', objet: c.designation, dateFG: todayISO(), dateEmission: '', montantHT: c.montant, echeanceJours: DB.data.objectifs.delaiPaiement, datePaiement: '', statut: 'a_emettre' });
     });
-    caMonth = mois; caYear = annee; DB.save(); m.close(); toast(chosen.length + ' affaire(s) ajoutée(s) au CA' + (withFact ? ' + factures créées' : '')); go('ca');
+    caMonth = mois; caYear = annee; syncPeriode('ca'); DB.save(); m.close(); toast(chosen.length + ' affaire(s) ajoutée(s) au CA' + (withFact ? ' + factures créées' : '')); go('ca');
   };
 }
 
