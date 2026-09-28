@@ -2395,7 +2395,9 @@ function rafFinance(code) {
     caMois, achatsMois, achatsMoisList, moMois: moM.cout, moHeuresMois: moM.heures, moMoisList: moM.list,
     depMois, margeMois, pctMargeMois,
     commandeHT, faitHT, coffre, coffreFait, coffreAFaire,
-    fact, factCumul, encaisse, raf: marche - factCumul, pctFact: marche ? factCumul / marche : 0 };
+    // Reste à facturer = marché − mis en facturation cumulé (lignes CA) : suit directement
+    // les affaires ajoutées / retirées dans « CA & Marge ». Facturé émis / encaissé restent informatifs.
+    fact, factCumul, encaisse, raf: marche - caCumul, pctFact: marche ? caCumul / marche : 0 };
 }
 // Budget prévu par nature : d'abord le(s) BTE de l'OTP, à défaut les lignes CA.
 // Renvoie hasBudget=false pour les comptes sans budget (ex. PIP, Habitat 76…).
@@ -2475,13 +2477,13 @@ function renderRAF(v) {
       <td class="num ${mCls(f.margeMois)}">${f.caMois ? pct(f.pctMargeMois) : '—'}</td>${act(f)}</tr>`).join('')}</tbody>
     <tfoot><tr class="t-strong"><td colspan="3">TOTAL (${codes.length} OTP)</td><td class="num">${eur(T.caMois)}</td><td class="num">${eur(T.achatsMois)}</td><td class="num">${eur(T.moMois)}</td><td class="num">${T.moHeuresMois.toFixed(1)}</td><td class="num">${eur(T.depMois)}</td><td class="num ${mCls(T.margeMois)}">${eur(T.margeMois)}</td><td class="num ${mCls(T.margeMois)}">${T.caMois ? pct(TpctMois) : '—'}</td><td></td></tr></tfoot></table></div>`;
   // Vue 3 — synthèse historique : marge réalisée et reste à facturer
-  const tblSynthese = () => `<div class="table-wrap"><table><thead><tr><th>OTP</th><th>Libellé</th><th>Client</th><th class="num" title="Prix de vente HT — la référence (budget prévu)">PV HT</th><th class="num">CA imputé</th><th class="num">Dépenses</th><th class="num" title="Prix de vente HT − coûts imputés cumulés">Marge</th><th class="num" title="Marge rapportée au prix de vente HT">% marge</th><th class="num">Facturé cum.</th><th class="num">Reste à facturer</th><th></th></tr></thead>
+  const tblSynthese = () => `<div class="table-wrap"><table><thead><tr><th>OTP</th><th>Libellé</th><th>Client</th><th class="num" title="Prix de vente HT — la référence (budget prévu)">PV HT</th><th class="num">CA imputé</th><th class="num">Dépenses</th><th class="num" title="Prix de vente HT − coûts imputés cumulés">Marge</th><th class="num" title="Marge rapportée au prix de vente HT">% marge</th><th class="num" title="Lignes CA cumulées à fin de période">Mis en factu. cum.</th><th class="num" title="Marché HT − mis en facturation cumulé (lignes CA)">Reste à facturer</th><th></th></tr></thead>
       <tbody>${fin.map(f => `<tr>${nom(f)}
         <td class="num">${eur(f.marche)}</td><td class="num">${eur(f.ca)}</td><td class="num">${eur(f.dep)}</td>
         <td class="num ${mCls(f.marge)}">${f.marche ? eur(f.marge) : '—'}</td><td class="num ${mCls(f.marge)}">${f.marche ? pct(f.margePct) : '—'}</td>
-        <td class="num">${eur(f.factCumul)}</td><td class="num ${f.raf > 0 ? 'margin-bad' : 'margin-good'}">${eur(f.raf)}</td>
+        <td class="num">${eur(f.caCumul)}</td><td class="num ${f.raf > 0 ? 'margin-bad' : 'margin-good'}">${eur(f.raf)}</td>
         ${act(f)}</tr>`).join('')}</tbody>
-      <tfoot><tr class="t-strong"><td colspan="3">TOTAL (${codes.length} OTP)</td><td class="num">${eur(T.marche)}</td><td class="num">${eur(T.ca)}</td><td class="num">${eur(T.dep)}</td><td class="num ${mCls(T.marge)}">${eur(T.marge)}</td><td class="num ${mCls(T.marge)}">${T.marche ? pct(Tpct) : '—'}</td><td class="num">${eur(T.fact)}</td><td class="num">${eur(T.raf)}</td><td></td></tr></tfoot></table></div>`;
+      <tfoot><tr class="t-strong"><td colspan="3">TOTAL (${codes.length} OTP)</td><td class="num">${eur(T.marche)}</td><td class="num">${eur(T.ca)}</td><td class="num">${eur(T.dep)}</td><td class="num ${mCls(T.marge)}">${eur(T.marge)}</td><td class="num ${mCls(T.marge)}">${T.marche ? pct(Tpct) : '—'}</td><td class="num">${eur(T.caCumul)}</td><td class="num">${eur(T.raf)}</td><td></td></tr></tfoot></table></div>`;
   v.innerHTML = `
     <div class="section-head" style="margin-top:0">${icon('target')}<h2>RAF — suivi financier par OTP</h2><span class="spacer"></span><span class="chip">${rafPerLabel()}</span></div>
     <p class="t-muted" style="margin-top:-8px;max-width:960px">Deux lectures distinctes, à ne pas confondre :
@@ -2553,7 +2555,7 @@ function rafAnalyse(v) {
     <div class="grid-3" style="margin-bottom:14px">
       ${card('Marché HT', eur(F.marche), F.chantiers.length + ' site(s)')}
       ${card('Facturé cumulé', eur(F.factCumul), 'Encaissé ' + eur(F.encaisse))}
-      ${card('Reste à facturer', eur(F.raf), pct(F.pctFact) + ' facturé', F.raf > 0 ? 'amber' : 'green')}
+      ${card('Reste à facturer', eur(F.raf), 'Mis en factu. ' + eur(F.caCumul) + ' · ' + pct(F.pctFact), F.raf > 0 ? 'amber' : 'green')}
     </div>
     <div class="grid-3" style="margin-bottom:18px">
       ${card('% marge prévisionnelle', bud.hasBudget ? pct(pctPrev) : '—', bud.hasBudget ? eur(margePrev) + ' — PV − coûts prévus' : 'Pas de coûts prévus (BTE)', bud.hasBudget ? (margePrev >= 0 ? 'green' : 'amber') : '')}
@@ -2596,10 +2598,11 @@ function rafAnalyse(v) {
     <div class="card-title">Facturation &amp; reste à facturer</div>
     <div class="table-wrap" style="margin-bottom:18px"><table>${HD('Facturation')}<tbody>
       ${L('Marché HT (marché signé)', '—', eur(F.marche))}
-      ${L('Facturé émis', eur(F.fact), eur(F.factCumul))}
-      ${L('Encaissé', '—', eur(F.encaisse))}
-      ${L('Reste à facturer', '—', eur(F.raf), F.raf > 0 ? 'margin-bad' : 'margin-good', true)}
-      ${L('% facturé', '—', pct(F.pctFact))}
+      ${L('Mis en facturation (lignes CA)', eur(F.ca), eur(F.caCumul))}
+      ${L('Reste à facturer (marché − mis en factu.)', '—', eur(F.raf), F.raf > 0 ? 'margin-bad' : 'margin-good', true)}
+      ${L('% mis en facturation', '—', pct(F.pctFact))}
+      ${L('Pour mémoire — facturé émis', eur(F.fact), eur(F.factCumul))}
+      ${L('Pour mémoire — encaissé', '—', eur(F.encaisse))}
     </tbody></table></div>
     <div class="card-title">Suivi financier${dual ? ' — période vs cumulé' : ''}</div>
     <div class="table-wrap" style="margin-bottom:18px"><table>${HD('Indicateur')}<tbody>
@@ -2689,10 +2692,11 @@ function exportRafXlsx(code) {
     [],
     SH('Facturation'),
     LN('Marché HT', TX('—'), EU(F.marche)),
-    LN('Facturé émis', EU(F.fact), EU(F.factCumul)),
-    LN('Encaissé', TX('—'), EU(F.encaisse)),
-    LN('Reste à facturer', TX('—'), ET(F.raf), true),
-    LN('% facturé', TX('—'), PC(F.pctFact)),
+    LN('Mis en facturation (lignes CA)', EU(F.ca), EU(F.caCumul)),
+    LN('Reste à facturer (marché − mis en factu.)', TX('—'), ET(F.raf), true),
+    LN('% mis en facturation', TX('—'), PC(F.pctFact)),
+    LN('Pour mémoire — facturé émis', EU(F.fact), EU(F.factCumul)),
+    LN('Pour mémoire — encaissé', TX('—'), EU(F.encaisse)),
     [],
     SH('Suivi financier'),
     LN('Prix de vente HT (budget prévu)', TX('—'), EU(F.marche), true),
@@ -2742,9 +2746,9 @@ function exportRafXlsx(code) {
 // Export RAF — vue portefeuille (tous les OTP filtrés), avec marges et % de marge
 function exportRafListXlsx(fin) {
   const H = v => ({ v, s: 4 }), TX = v => ({ v, s: 2 }), BD = v => ({ v, s: 3 }), EU = v => ({ v, s: 8 }), ET = v => ({ v, s: 10 }), PC = v => ({ v, s: 11 }), PT = v => ({ v, s: 12 });
-  const rows = [[H('OTP'), H('Libellé'), H('Client'), H('PV HT'), H('CA imputé'), H('Coûts imputés'), H('dont achats'), H("dont MO"), H('Marge (PV − coûts)'), H('% marge'), H('Facturé cumulé'), H('Reste à facturer')]];
-  fin.forEach(f => rows.push([TX(f.code), TX(otpLabel(f.code) || ''), TX(clientNom(otpClientId(f.code))), EU(f.marche), EU(f.ca), EU(f.dep), EU(f.achats), EU(Math.round(f.mo)), EU(Math.round(f.marge)), PC(f.margePct), EU(f.factCumul), EU(f.raf)]));
-  const T = fin.reduce((a, f) => ({ marche: a.marche + f.marche, ca: a.ca + f.ca, dep: a.dep + f.dep, ach: a.ach + f.achats, mo: a.mo + f.mo, marge: a.marge + f.marge, fact: a.fact + f.factCumul, raf: a.raf + f.raf }), { marche: 0, ca: 0, dep: 0, ach: 0, mo: 0, marge: 0, fact: 0, raf: 0 });
+  const rows = [[H('OTP'), H('Libellé'), H('Client'), H('PV HT'), H('CA imputé'), H('Coûts imputés'), H('dont achats'), H("dont MO"), H('Marge (PV − coûts)'), H('% marge'), H('Mis en factu. cumulé'), H('Reste à facturer')]];
+  fin.forEach(f => rows.push([TX(f.code), TX(otpLabel(f.code) || ''), TX(clientNom(otpClientId(f.code))), EU(f.marche), EU(f.ca), EU(f.dep), EU(f.achats), EU(Math.round(f.mo)), EU(Math.round(f.marge)), PC(f.margePct), EU(f.caCumul), EU(f.raf)]));
+  const T = fin.reduce((a, f) => ({ marche: a.marche + f.marche, ca: a.ca + f.ca, dep: a.dep + f.dep, ach: a.ach + f.achats, mo: a.mo + f.mo, marge: a.marge + f.marge, fact: a.fact + f.caCumul, raf: a.raf + f.raf }), { marche: 0, ca: 0, dep: 0, ach: 0, mo: 0, marge: 0, fact: 0, raf: 0 });
   rows.push([BD('TOTAL'), TX(''), TX(''), ET(T.marche), ET(T.ca), ET(T.dep), ET(T.ach), ET(Math.round(T.mo)), ET(Math.round(T.marge)), PT(T.marche ? T.marge / T.marche : 0), ET(T.fact), ET(T.raf)]);
   const S = fin.reduce((a, f) => { ['commandeHT', 'caCumul', 'coffreFait', 'coffreAFaire', 'coffre', 'engage', 'caMois', 'achatsMois', 'moMois', 'moHeuresMois', 'depMois', 'margeMois'].forEach(k => { a[k] += (+f[k] || 0); }); return a; },
     { commandeHT: 0, caCumul: 0, coffreFait: 0, coffreAFaire: 0, coffre: 0, engage: 0, caMois: 0, achatsMois: 0, moMois: 0, moHeuresMois: 0, depMois: 0, margeMois: 0 });
@@ -2949,7 +2953,12 @@ function renderCA(v) {
   $('#fyear').onchange = e => { caYear = +e.target.value; renderCA(v); };
   $('#csv').onclick = () => exportXlsx(`CA_${MOIS[caMonth]}_${caYear}`, ['otp', 'chantier', 'montant_ht'], rows.map(r => [r.otp, r.chantier, r.prixVente]), { sheet: `CA ${MOIS[caMonth]} ${caYear}`, money: ['montant_ht'] });
   $$('[data-edit]', v).forEach(b => b.onclick = () => caForm(b.dataset.edit));
-  $$('[data-del]', v).forEach(b => b.onclick = () => confirmDialog('Supprimer cette ligne ?', () => { DB.data.ca = DB.data.ca.filter(x => x.id !== b.dataset.del); DB.save(); toast('Ligne supprimée'); renderCA(v); }));
+  $$('[data-del]', v).forEach(b => b.onclick = () => confirmDialog('Supprimer cette ligne ?', () => {
+    const id = b.dataset.del;
+    DB.data.ca = DB.data.ca.filter(x => x.id !== id);
+    // la facture « à émettre » créée avec cette ligne n'a plus lieu d'être
+    DB.data.factures = DB.data.factures.filter(f => !(f.sourceCaId === id && f.statut === 'a_emettre'));
+    DB.save(); toast('Ligne supprimée'); renderCA(v); }));
 }
 function yearsRange() { const cur = new Date().getFullYear(); return [...new Set([cur, cur - 1, cur + 1, ...DB.data.ca.map(r => r.annee)])].sort(); }
 function caForm(id) {
@@ -3006,8 +3015,9 @@ function caPicker() {
     if (!chosen.length) { toast('Sélectionnez au moins une affaire', 'err'); return; }
     const withFact = $('#p-fact').checked;
     chosen.forEach(c => {
-      DB.data.ca.unshift({ id: uid(), mois, annee, otp: c.otp || '', chantier: c.designation, prixVente: c.montant, fournitures: 0, engins: 0, moSmac: 0, sourceType: c.type, sourceId: c.id });
-      if (withFact) DB.data.factures.unshift({ id: uid(), num: '', otp: c.otp || '', clientId: c.clientId || '', client: clientNom(c.clientId) === '—' ? '' : clientNom(c.clientId), chantierId: c.type === 'chantier' ? c.id : '', objet: c.designation, dateFG: todayISO(), dateEmission: '', montantHT: c.montant, echeanceJours: DB.data.objectifs.delaiPaiement, datePaiement: '', statut: 'a_emettre' });
+      const caId = uid();
+      DB.data.ca.unshift({ id: caId, mois, annee, otp: c.otp || '', chantier: c.designation, prixVente: c.montant, fournitures: 0, engins: 0, moSmac: 0, sourceType: c.type, sourceId: c.id });
+      if (withFact) DB.data.factures.unshift({ id: uid(), sourceCaId: caId, num: '', otp: c.otp || '', clientId: c.clientId || '', client: clientNom(c.clientId) === '—' ? '' : clientNom(c.clientId), chantierId: c.type === 'chantier' ? c.id : '', objet: c.designation, dateFG: todayISO(), dateEmission: '', montantHT: c.montant, echeanceJours: DB.data.objectifs.delaiPaiement, datePaiement: '', statut: 'a_emettre' });
     });
     caMonth = mois; caYear = annee; DB.save(); m.close(); toast(chosen.length + ' affaire(s) ajoutée(s) au CA' + (withFact ? ' + factures créées' : '')); go('ca');
   };
