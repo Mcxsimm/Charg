@@ -3150,7 +3150,7 @@ function bteEditor(id) {
         <tr class="xls-head"><td colspan="2"><input id="b-adr" value="${esc(b.adresse)}" placeholder="Adresse du chantier"></td><td class="xls-lbl" colspan="2">Date d'édition :</td><td colspan="2"><input id="b-date" type="date" value="${b.dateEdition || todayISO()}"></td></tr>
         <tr class="xls-head"><td colspan="4"><input id="b-nom" value="${esc(b.nom)}" placeholder="Nom du chantier"></td><td class="xls-bte" colspan="2">BTE</td></tr>
         <tr><td colspan="2"></td><td class="xls-lbl" colspan="2">TOTAL DÉPENSES :</td><td class="num xls-val" id="b-total">${eur(0)}</td><td></td></tr>
-        <tr><td colspan="2"></td><td class="xls-lbl" colspan="2">MARGE BRUTE % :</td><td class="num"><input id="b-marge" type="number" step="0.1" value="${(b.margePct * 100).toFixed(1)}"></td><td></td></tr>
+        <tr><td colspan="2"></td><td class="xls-lbl" colspan="2" title="Marge brute sur le prix de vente : PV = dépenses ÷ (1 − marge). Ex. 40 % → coef. × 1,67">MARGE BRUTE % :</td><td class="num"><input id="b-marge" type="number" step="0.1" value="${(b.margePct * 100).toFixed(1)}"></td><td class="t-muted" id="b-coef" style="font-size:11px;white-space:nowrap"></td></tr>
         <tr><td colspan="2"></td><td class="xls-lbl" colspan="2">PRIX DE VENTE :</td><td class="num xls-val" id="b-pv">${eur(0)}</td><td></td></tr>
         <tr class="xls-colhead"><td>DÉSIGNATIONS</td><td class="num">Quantités</td><td>Uni.</td><td class="num">PU</td><td class="num">TOTAL BTE</td><td></td></tr>
       </tbody>
@@ -3177,6 +3177,7 @@ function bteEditor(id) {
     BTE_CATS.forEach((cat, idx) => { const el = m.root.querySelector(`.sub[data-sub="${idx}"]`); if (el) el.textContent = eur(t.parCat[cat] || 0); });
     $$('.bte-line', m.root).forEach(tr => { const g = f => tr.querySelector(`[data-f="${f}"]`).value; tr.querySelector('.tot').textContent = eur((+g('qte') || 0) * (+g('pu') || 0)); });
     $('#b-total').textContent = eur(t.dep); $('#b-pv').textContent = eur(t.pv);
+    $('#b-coef').textContent = t.margePct < 1 ? 'coef. × ' + (1 / (1 - t.margePct)).toFixed(2).replace('.', ',') : '';
   };
   const bindRow = tr => {
     tr.querySelectorAll('input').forEach(inp => inp.oninput = refresh);
