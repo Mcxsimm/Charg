@@ -2198,7 +2198,6 @@ function chantierDetail(id) {
   const c = chantierById(id); if (!c) return;
   const cl = DB.data.clients.find(x => x.id === c.clientId);
   const devis = DB.data.devis.filter(d => d.chantierId === id);
-  const bte = DB.data.bte.find(b => b.otp && b.otp === c.otp);
   const m = modal({ title: c.nom, wide: true,
     body: `<div class="grid-2">
       <div><div class="stat-line"><span>OTP</span><b>${esc(c.otp || '—')}</b></div><div class="stat-line"><span>Statut</span><b>${statutBadge(c.statut)}</b></div>
@@ -2210,7 +2209,7 @@ function chantierDetail(id) {
         ${c.notes ? `<div class="card-title" style="margin-top:14px">Notes</div><div class="t-muted">${esc(c.notes)}</div>` : ''}</div></div>
       <div class="card-title" style="margin-top:18px">Devis liés (${devis.length})</div>
       ${devis.length ? `<div class="table-wrap"><table><thead><tr><th>Réf.</th><th>Objet</th><th>Statut</th><th class="num">Montant</th></tr></thead><tbody>${devis.map(d => `<tr><td class="t-strong">${esc(d.ref)}</td><td>${esc(d.objet)}</td><td>${devisBadge(d.statut)}</td><td class="num">${eur(d.montantHT)}</td></tr>`).join('')}</tbody></table></div>` : '<div class="t-muted">Aucun devis lié.</div>'}
-      ${bte ? `<div class="card-title" style="margin-top:18px">Budget (BTE)</div>${bteSummaryLine(bte)}` : ''}`,
+`,
     footer: `<button class="btn" data-c>Fermer</button>` });
   m.root.querySelector('[data-c]').onclick = m.close;
 }
@@ -2418,26 +2417,15 @@ function rafFinance(code) {
     // les affaires ajoutées / retirées dans « CA & Marge ». Facturé émis / encaissé restent informatifs.
     fact, factCumul, encaisse, raf: marche - caCumul, pctFact: marche ? caCumul / marche : 0 };
 }
-// Budget prévu par nature : d'abord le(s) BTE de l'OTP, à défaut les lignes CA.
-// Renvoie hasBudget=false pour les comptes sans budget (ex. PIP, Habitat 76…).
+// Budget prévu par nature, repris des anciennes lignes CA détaillées (le BTE n'est qu'un repère,
+// il n'est rattaché à rien). Renvoie hasBudget=false pour les comptes sans budget.
 function rafBudget(code) {
-  const lignes = DB.data.bte.filter(b => b.otp === code).flatMap(b => b.lignes || []);
-  let mo = 0, four = 0, mat = 0;
-  lignes.forEach(l => {
-    const v = (+l.qte || 0) * (+l.pu || 0), c = (l.cat || '').toLowerCase();
-    if (c.includes('main') || c.includes('œuvre') || c.includes('oeuvre')) mo += v;
-    else if (c.includes('matériel') || c.includes('materiel') || c.includes('location') || c.includes('engin')) mat += v;
-    else four += v; // fournitures, sous-traitance, études, autres
-  });
-  let tot = mo + four + mat, src = 'BTE';
-  if (tot <= 0) {
-    const cl = DB.data.ca.filter(x => x.otp === code);
-    mo = cl.reduce((a, x) => a + (+x.moSmac || 0), 0);
-    four = cl.reduce((a, x) => a + (+x.fournitures || 0), 0);
-    mat = cl.reduce((a, x) => a + (+x.engins || 0), 0);
-    tot = mo + four + mat; src = 'CA';
-  }
-  return { hasBudget: tot > 0, src, mo, four, mat, tot };
+  const cl = DB.data.ca.filter(x => x.otp === code);
+  const mo = cl.reduce((a, x) => a + (+x.moSmac || 0), 0);
+  const four = cl.reduce((a, x) => a + (+x.fournitures || 0), 0);
+  const mat = cl.reduce((a, x) => a + (+x.engins || 0), 0);
+  const tot = mo + four + mat;
+  return { hasBudget: tot > 0, src: 'CA', mo, four, mat, tot };
 }
 // Bandeau de sélection de période (partagé par les 2 écrans)
 function rafPeriodControls() {
@@ -2577,7 +2565,7 @@ function rafAnalyse(v) {
       ${card('Reste à facturer', eur(F.raf), 'Mis en factu. ' + eur(F.caCumul) + ' · ' + pct(F.pctFact), F.raf > 0 ? 'amber' : 'green')}
     </div>
     <div class="grid-3" style="margin-bottom:18px">
-      ${card('% marge prévisionnelle', bud.hasBudget ? pct(pctPrev) : '—', bud.hasBudget ? eur(margePrev) + ' — PV − coûts prévus' : 'Pas de coûts prévus (BTE)', bud.hasBudget ? (margePrev >= 0 ? 'green' : 'amber') : '')}
+      ${card('% marge prévisionnelle', bud.hasBudget ? pct(pctPrev) : '—', bud.hasBudget ? eur(margePrev) + ' — PV − coûts prévus' : 'Pas de coûts prévus', bud.hasBudget ? (margePrev >= 0 ? 'green' : 'amber') : '')}
       ${card('% marge réalisée', F.marche ? pct(F.margePct) : '—', F.marche ? eur(F.marge) + ' — PV − coûts imputés' : 'Pas de prix de vente', F.marche ? (F.marge >= 0 ? 'green' : 'amber') : '')}
       ${card('Coûts imputés', eur(F.depCumul), 'Achats ' + eur(F.achatsCumul) + ' · MO ' + eur(F.moCumul), 'amber')}
     </div>
@@ -2626,7 +2614,7 @@ function rafAnalyse(v) {
     <div class="card-title">Suivi financier${dual ? ' — période vs cumulé' : ''}</div>
     <div class="table-wrap" style="margin-bottom:18px"><table>${HD('Indicateur')}<tbody>
       ${L('<b>Prix de vente HT</b> (budget prévu)', '—', eur(F.marche), '', true)}
-      ${bud.hasBudget ? L('Coûts prévus (BTE)', '—', eur(bud.tot))
+      ${bud.hasBudget ? L('Coûts prévus', '—', eur(bud.tot))
         + L('Marge prévisionnelle (PV − coûts prévus)', '—', eur(margePrev), mCls(margePrev), true)
         + L('% marge prévisionnelle', '—', pct(pctPrev), mCls(margePrev), true) : ''}
       ${L('CA imputé', eur(F.ca), eur(F.caCumul))}
@@ -2720,7 +2708,7 @@ function exportRafXlsx(code) {
     SH('Suivi financier'),
     LN('Prix de vente HT (budget prévu)', TX('—'), EU(F.marche), true),
     ...(bud.hasBudget ? [
-      LN('Coûts prévus (BTE)', TX('—'), EU(bud.tot)),
+      LN('Coûts prévus', TX('—'), EU(bud.tot)),
       LN('Marge prévisionnelle (PV − coûts prévus)', TX('—'), ET(margePrev), true),
       LN('% marge prévisionnelle', TX('—'), PT(pctPrev), true),
     ] : []),
@@ -3076,27 +3064,31 @@ function bteTotals(b) {
   const pv = marge < 1 ? dep / (1 - marge) : 0;
   return { dep, parCat, margePct: marge, pv, margeEuro: pv - dep };
 }
-function bteSummaryLine(b) {
-  const t = bteTotals(b);
-  return `<div class="grid-3"><div class="stat-line"><span>Total dépenses</span><b>${eur(t.dep)}</b></div><div class="stat-line"><span>Marge brute</span><b>${pct(t.margePct)}</b></div><div class="stat-line"><span>Prix de vente</span><b>${eur(t.pv)}</b></div></div>`;
-}
 function renderBTE(v) {
   const list = DB.data.bte;
   v.innerHTML = `
     <div class="page-actions"><button class="btn primary" id="add">${icon('plus')} Nouveau BTE</button><span class="spacer"></span><span class="chip">${list.length} budget(s)</span></div>
-    ${list.length ? `<div class="table-wrap"><table><thead><tr><th>OTP</th><th>Chantier</th><th class="num">Total dépenses</th><th class="num">Marge %</th><th class="num">Prix de vente</th><th class="num">Marge brute €</th><th></th></tr></thead>
-      <tbody>${list.map(b => { const t = bteTotals(b); return `<tr><td class="t-strong">${esc(b.otp || '—')}</td><td><span class="link" data-open="${b.id}">${esc(b.nom)}</span></td><td class="num">${eur(t.dep)}</td><td class="num">${pct(t.margePct)}</td><td class="num t-strong">${eur(t.pv)}</td><td class="num ${t.margeEuro >= 0 ? 'margin-good' : 'margin-bad'}">${eur(t.margeEuro)}</td>
-        <td class="actions-cell"><button class="icon-btn" data-open="${b.id}" title="Ouvrir">${icon('edit')}</button><button class="icon-btn danger" data-del="${b.id}" title="Supprimer">${icon('trash')}</button></td></tr>`; }).join('')}</tbody></table></div>`
-      : emptyState('calculator', 'Aucun budget BTE', 'Créez un BTE pour chiffrer les dépenses et fixer votre marge.')}`;
+    ${list.length ? `<div class="table-wrap"><table><thead><tr><th>Date</th><th>Chantier</th><th class="num">Total dépenses</th><th class="num">Marge %</th><th class="num">Prix de vente</th><th class="num">Marge brute €</th><th></th></tr></thead>
+      <tbody>${list.map(b => { const t = bteTotals(b); return `<tr><td class="t-muted">${fmtDate(b.dateEdition)}</td><td><span class="link" data-open="${b.id}">${esc(b.nom)}</span></td><td class="num">${eur(t.dep)}</td><td class="num">${pct(t.margePct)}</td><td class="num t-strong">${eur(t.pv)}</td><td class="num ${t.margeEuro >= 0 ? 'margin-good' : 'margin-bad'}">${eur(t.margeEuro)}</td>
+        <td class="actions-cell"><button class="icon-btn" data-todevis="${b.id}" title="Passer en devis">${icon('file')}</button><button class="icon-btn" data-open="${b.id}" title="Ouvrir">${icon('edit')}</button><button class="icon-btn danger" data-del="${b.id}" title="Supprimer">${icon('trash')}</button></td></tr>`; }).join('')}</tbody></table></div>`
+      : emptyState('calculator', 'Aucun budget BTE', 'Créez un BTE pour chiffrer les dépenses et fixer votre marge.')}
+    <p class="t-muted" style="margin-top:12px">Le BTE est un <b>repère de chiffrage</b> : il n'alimente ni les chantiers, ni le CA, ni le RAF. « Passer en devis » crée un devis au prix de vente du BTE.</p>`;
   $('#add').onclick = () => bteEditor();
+  $$('[data-todevis]', v).forEach(btn => btn.onclick = () => { const b = DB.data.bte.find(x => x.id === btn.dataset.todevis); if (b) bteVersDevis(b); });
   $$('[data-open]', v).forEach(b => b.onclick = () => bteEditor(b.dataset.open));
   $$('[data-del]', v).forEach(b => b.onclick = () => confirmDialog('Supprimer ce BTE ?', () => { DB.data.bte = DB.data.bte.filter(x => x.id !== b.dataset.del); DB.save(); toast('BTE supprimé'); renderBTE(v); }));
+}
+/* Passer un BTE en devis : copie son objet et son prix de vente dans un nouveau devis, sans
+   garder de lien (le BTE reste un simple repère). La fiche devis s'ouvre pour saisir OTP / client. */
+function bteVersDevis(b) {
+  const t = bteTotals(b);
+  const dv = { id: uid(), ref: 'DEV-' + isoDate(new Date()).slice(2, 7).replace('-', '') + '-' + String(DB.data.devis.length + 1).padStart(2, '0'), otp: '', clientId: '', chantierId: '', objet: b.nom, dateDemande: todayISO(), dateEnvoi: '', montantHT: Math.round(t.pv), statut: 'attente', relance: '', derniereRelance: '', nbRelances: 0, horsComptes: false };
+  DB.data.devis.unshift(dv); DB.save(); toast('Devis créé depuis le BTE (' + eur(t.pv) + ') — complétez l\'OTP et le client'); go('devis'); devisForm(dv.id);
 }
 const bteCatShort = cat => cat.replace(/^\d+\s*\.\s*/, '');
 function bteEditor(id) {
   const b = id ? DB.data.bte.find(x => x.id === id) : { id: uid(), nom: '', adresse: '', otp: '', dateEdition: todayISO(), margePct: 0.30, notes: '', lignes: [] };
   const isNew = !id;
-  const otpList = [...new Set([...DB.data.chantiers.map(c => c.otp), ...DB.data.devis.map(d => d.otp)].filter(Boolean))];
   const lineRow = l => `<tr class="bte-line">
     <td><input data-f="designation" value="${esc(l.designation)}" placeholder="Désignation"></td>
     <td class="num"><input data-f="qte" type="number" step="any" value="${l.qte || ''}"></td>
@@ -3116,7 +3108,7 @@ function bteEditor(id) {
         <tr class="xls-head"><td colspan="2"><input id="b-adr" value="${esc(b.adresse)}" placeholder="Adresse du chantier"></td><td class="xls-lbl" colspan="2">Date d'édition :</td><td colspan="2"><input id="b-date" type="date" value="${b.dateEdition || todayISO()}"></td></tr>
         <tr class="xls-head"><td colspan="4"><input id="b-nom" value="${esc(b.nom)}" placeholder="Nom du chantier"></td><td class="xls-bte" colspan="2">BTE</td></tr>
         <tr><td colspan="2"></td><td class="xls-lbl" colspan="2">TOTAL DÉPENSES :</td><td class="num xls-val" id="b-total">${eur(0)}</td><td></td></tr>
-        <tr><td colspan="2">OTP : <input id="b-otp" class="xls-inline" value="${esc(b.otp)}" list="b-otplist" placeholder="…"><datalist id="b-otplist">${otpList.map(o => `<option value="${esc(o)}">`).join('')}</datalist></td><td class="xls-lbl" colspan="2">MARGE BRUTE % :</td><td class="num"><input id="b-marge" type="number" step="0.1" value="${(b.margePct * 100).toFixed(1)}"></td><td></td></tr>
+        <tr><td colspan="2"></td><td class="xls-lbl" colspan="2">MARGE BRUTE % :</td><td class="num"><input id="b-marge" type="number" step="0.1" value="${(b.margePct * 100).toFixed(1)}"></td><td></td></tr>
         <tr><td colspan="2"></td><td class="xls-lbl" colspan="2">PRIX DE VENTE :</td><td class="num xls-val" id="b-pv">${eur(0)}</td><td></td></tr>
         <tr class="xls-colhead"><td>DÉSIGNATIONS</td><td class="num">Quantités</td><td>Uni.</td><td class="num">PU</td><td class="num">TOTAL BTE</td><td></td></tr>
       </tbody>
@@ -3126,11 +3118,11 @@ function bteEditor(id) {
     footer: `<button class="btn" data-c>Annuler</button><span class="spacer"></span>
       <button class="btn small" id="b-xlsx">${icon('download')} Excel</button>
       <button class="btn small" id="b-csv">${icon('download')} CSV</button>
-      <button class="btn" id="b-devis">${icon('file')} Créer un devis</button>
+      <button class="btn" id="b-devis">${icon('file')} Passer en devis</button>
       <button class="btn primary" id="b-save">Enregistrer</button>` });
   m.root.querySelector('.modal-foot').style.flexWrap = 'wrap';
   const collect = () => {
-    b.nom = $('#b-nom').value.trim(); b.otp = $('#b-otp').value.trim(); b.adresse = $('#b-adr').value.trim();
+    b.nom = $('#b-nom').value.trim(); b.adresse = $('#b-adr').value.trim();
     b.dateEdition = $('#b-date').value; b.margePct = (+$('#b-marge').value || 0) / 100; b.notes = $('#b-notes').value.trim();
     b.lignes = [];
     BTE_CATS.forEach((cat, idx) => $$(`[data-sec="${idx}"] .bte-line`, m.root).forEach(tr => {
@@ -3152,14 +3144,12 @@ function bteEditor(id) {
   $('#b-marge').oninput = refresh;
   $$('[data-add]', m.root).forEach(btn => btn.onclick = () => { const tb = m.root.querySelector(`[data-sec="${btn.dataset.add}"]`); const sub = tb.querySelector('.bte-sub'); const tmp = document.createElement('tbody'); tmp.innerHTML = lineRow({ designation: '', unite: '', qte: 0, pu: 0 }); const tr = tmp.firstElementChild; tb.insertBefore(tr, sub); bindRow(tr); tr.querySelector('input').focus(); refresh(); });
   m.root.querySelector('[data-c]').onclick = m.close;
-  $('#b-csv').onclick = () => { collect(); exportXlsx('BTE_' + (b.otp || b.nom || 'chantier'), ['poste', 'designation', 'unite', 'qte', 'pu', 'total'], b.lignes.map(l => [l.cat, l.designation, l.unite, l.qte, l.pu, l.qte * l.pu]), { sheet: 'BTE', money: ['pu', 'total'] }); };
+  $('#b-csv').onclick = () => { collect(); exportXlsx('BTE_' + (b.nom || 'chantier'), ['poste', 'designation', 'unite', 'qte', 'pu', 'total'], b.lignes.map(l => [l.cat, l.designation, l.unite, l.qte, l.pu, l.qte * l.pu]), { sheet: 'BTE', money: ['pu', 'total'] }); };
   $('#b-xlsx').onclick = () => { collect(); if (!b.nom) { toast('Renseignez le nom du chantier', 'err'); return; } exportBteXlsx(b); };
   $('#b-devis').onclick = () => {
     collect(); if (!b.nom) { toast('Renseignez le nom du chantier', 'err'); return; }
     if (isNew && !DB.data.bte.some(x => x.id === b.id)) DB.data.bte.unshift(b);
-    const t = bteTotals(b);
-    const dv = { id: uid(), ref: 'DEV-' + isoDate(new Date()).slice(2, 7).replace('-', '') + '-' + String(DB.data.devis.length + 1).padStart(2, '0'), otp: b.otp || '', clientId: '', chantierId: '', objet: b.nom, dateDemande: todayISO(), dateEnvoi: '', montantHT: Math.round(t.pv), statut: 'attente', relance: '' };
-    DB.data.devis.unshift(dv); DB.save(); m.close(); toast('Devis créé depuis le BTE (' + eur(t.pv) + ')'); go('devis');
+    m.close(); bteVersDevis(b);
   };
   $('#b-save').onclick = () => { collect(); if (!b.nom) { toast('Le nom du chantier est obligatoire', 'err'); return; } if (isNew) DB.data.bte.unshift(b); DB.save(); m.close(); toast('BTE enregistré'); go('bte'); };
   refresh();
@@ -3325,7 +3315,7 @@ function importCadenceToBte() {
   if (!steps.length) { toast('Aucune tâche à importer', 'err'); return; }
   const taux = +DB.data.objectifs.tauxHoraireMO || CAD_PARAMS.tauxMO;
   const lignes = steps.map(s => ({ cat: BTE_CATS[1], designation: s.ref + ' — ' + s.nom, unite: 'h', qte: Math.round(s.h * 10) / 10, pu: taux }));
-  const bteOpts = DB.data.bte.map(b => `<option value="${b.id}">${esc(b.otp || '')} ${esc(b.nom)}</option>`).join('');
+  const bteOpts = DB.data.bte.map(b => `<option value="${b.id}">${esc(b.nom)}</option>`).join('');
   const m = modal({ title: "Importer la main d'œuvre dans un BTE",
     body: `<p class="t-muted" style="margin-top:0">${steps.length} tâche(s) · <b>${num(totalH)} h</b> au total, valorisées à ${eur(taux)}/h (taux MO). Ajoutées au poste « ${BTE_CATS[1]} ».</p>
       <div class="field"><label>BTE cible</label><select id="i-bte"><option value="">➕ Nouveau BTE (estimation cadence${surf ? ' — ' + num(surf) + ' m²' : ''})</option>${bteOpts}</select></div>
@@ -4088,7 +4078,7 @@ function exportBteXlsx(b) {
   rows[0] = [{ v: b.adresse || '', s: 1 }, null, { v: "Date d'édition :", s: 1 }, { v: b.dateEdition ? fmtDate(b.dateEdition) : '' }];
   rows[2] = [{ v: b.nom || '', s: 1 }, null, null, null, { v: 'BTE', s: 1 }];
   rows[3] = [null, null, null, { v: 'TOTAL DÉPENSES :', s: 1 }, { v: t.dep, s: 7 }];
-  rows[4] = [{ v: 'OTP : ' + (b.otp || ''), s: 1 }, null, null, { v: 'MARGE BRUTE % :', s: 1 }, { v: (t.margePct * 100).toFixed(1) + ' %', s: 1 }];
+  rows[4] = [null, null, null, { v: 'MARGE BRUTE % :', s: 1 }, { v: (t.margePct * 100).toFixed(1) + ' %', s: 1 }];
   rows[5] = [null, null, null, { v: 'PRIX DE VENTE :', s: 1 }, { v: t.pv, s: 7 }];
   rows[6] = [{ v: 'DÉSIGNATIONS', s: 3 }, { v: 'Quantités', s: 3 }, { v: 'Uni.', s: 3 }, { v: 'PU', s: 3 }, { v: 'TOTAL', s: 3 }];
   let ri = 7;
@@ -4097,7 +4087,7 @@ function exportBteXlsx(b) {
     b.lignes.filter(l => l.cat === cat).forEach(l => { rows[ri++] = [{ v: l.designation || '', s: 2 }, { v: +l.qte || 0, s: 2 }, { v: l.unite || '', s: 2 }, { v: +l.pu || 0, s: 5 }, { v: (+l.qte || 0) * (+l.pu || 0), s: 5 }]; });
     rows[ri++] = [null, null, null, { v: 'Total ' + cat.replace(/^\d+\s*\.\s*/, '') + ' :', s: 4 }, { v: t.parCat[cat] || 0, s: 6 }];
   });
-  writeXlsx('BTE_' + (b.otp || b.nom || 'chantier') + '.xlsx', 'BTE', rows, [52, 11, 10, 13, 14]);
+  writeXlsx('BTE_' + (b.nom || 'chantier') + '.xlsx', 'BTE', rows, [52, 11, 10, 13, 14]);
   toast('Export Excel généré');
 }
 function exportAll() {
