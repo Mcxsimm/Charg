@@ -210,6 +210,10 @@ tfoot td{padding:var(--th-py) var(--row-px);font-weight:700;background:var(--pan
 .b-commande{background:var(--violet-bg);color:var(--violet)}
 .b-receptionne,.b-facture,.b-accepte{background:var(--green-bg);color:var(--green)}
 .b-perdu,.b-refuse{background:var(--red-bg);color:var(--red)}
+.bte-sugg{position:fixed;z-index:2000;background:var(--panel);border:1px solid var(--line);border-radius:8px;box-shadow:var(--shadow-md);overflow:hidden}
+.bte-sugg-item{padding:7px 11px;cursor:pointer;border-bottom:1px solid var(--line);line-height:1.35}
+.bte-sugg-item:last-child{border-bottom:0}
+.bte-sugg-item.on,.bte-sugg-item:hover{background:var(--brand-soft)}
 .chip{display:inline-flex;align-items:center;gap:6px;background:var(--panel-3);border-radius:7px;padding:5px 10px;font-size:12px;font-weight:600;color:var(--ink-soft)}
 .chip .ic{width:14px;height:14px;color:var(--muted)}
 .deadline-ok{color:var(--green);font-weight:700}
@@ -3597,6 +3601,56 @@ function bteVersDevis(b) {
   DB.data.devis.unshift(dv); DB.save(); toast('Devis créé depuis le BTE (' + eur(t.pv) + ') — complétez l\'OTP et le client'); go('devis'); devisForm(dv.id);
 }
 const bteCatShort = cat => cat.replace(/^\d+\s*\.\s*/, '');
+/* Suggestions de désignation dans le BTE (3 max) : ouvrages Cadences pour la main d'œuvre,
+   matériaux de la base + grille IKO pour les fournitures, et lignes déjà saisies dans vos BTE. */
+function bteSuggestions(catIdx, saisie) {
+  const q = saisie.trim().toLowerCase(); if (q.length < 2) return [];
+  const toks = q.split(/\s+/), match = s => { s = s.toLowerCase(); return toks.every(x => s.includes(x)); };
+  const score = s => { s = s.toLowerCase(); return s.startsWith(q) ? 0 : s.includes(q) ? 1 : 2; };
+  const out = [], vus = new Set(), push = s => { const k = s.designation.toLowerCase(); if (!vus.has(k)) { vus.add(k); out.push(s); } };
+  if (catIdx === 1) {
+    const taux = cadTaux();
+    cadTous().forEach(o => { const lib = o[CAD_I.REF] + ' — ' + o[CAD_I.DES];
+      if (match(lib + ' ' + cadFamille(o))) push({ designation: lib, unite: 'h', pu: taux, src: 'Ouvrage', info: cadNum3(o[CAD_I.H]) + ' h/' + o[CAD_I.U], s: score(o[CAD_I.DES]), o: 1 }); });
+  }
+  if (catIdx === 2) {
+    const dansBase = new Set(Object.values(IKO_LIEN_GRILLE).filter(x => !x[1]).map(x => x[0]));
+    matTous().forEach(p => { const f = cadMatDirect({ src: 'mat', ref: p[IKO_I.REF], qte: 1 }); if (!f || !match(f.des + ' ' + (f.code || ''))) return;
+      push({ designation: (f.code ? f.code + ' ' : '') + f.des, unite: f.unite, pu: f.pu, src: 'Matériau', info: f.delai ? 'délai 2 sem.' : '', s: score(f.des), o: 1 }); });
+    IKO_GRILLE_ROWS.forEach(g => { const c = g[IKO_G.CODE] || g[IKO_G.PHX]; if (dansBase.has(g[IKO_G.CODE]) || !match(g[IKO_G.DES] + ' ' + c)) return;
+      const f = cadMatDirect({ src: 'grille', ref: c, qte: 1 });
+      push({ designation: c + ' ' + f.des, unite: f.unite, pu: f.pu, src: 'Grille IKO', info: f.delai ? 'délai 2 sem.' : '', s: score(f.des), o: 2 }); });
+  }
+  DB.data.bte.forEach(b => (b.lignes || []).forEach(l => { if (l.cat === BTE_CATS[catIdx] && l.designation && match(l.designation))
+    push({ designation: l.designation, unite: l.unite, pu: +l.pu || 0, src: 'Déjà utilisé', info: b.nom || '', s: score(l.designation), o: 3 }); }));
+  return out.sort((a, b) => a.s - b.s || a.o - b.o).slice(0, 3);
+}
+function bteAutocomplete(inp, catIdx, onPick) {
+  let box = null, items = [], idx = 0;
+  const close = () => { if (box) { box.remove(); box = null; } };
+  const pick = i => { const s = items[i]; if (s) { close(); onPick(s); } };
+  const render = () => {
+    items = bteSuggestions(catIdx, inp.value);
+    if (!items.length || document.activeElement !== inp) { close(); return; }
+    if (!box) { box = document.createElement('div'); box.className = 'bte-sugg'; document.body.appendChild(box); }
+    const r = inp.getBoundingClientRect();
+    Object.assign(box.style, { left: r.left + 'px', top: (r.bottom + 2) + 'px', width: Math.max(r.width, 380) + 'px' });
+    box.innerHTML = items.map((s, i) => `<div class="bte-sugg-item${i === idx ? ' on' : ''}" data-i="${i}">
+      <div class="t-strong">${esc(s.designation)}</div>
+      <div class="t-muted" style="font-size:11.5px">${esc(s.src)} · ${esc(s.unite || '—')} · ${s.pu ? eur2(s.pu) : 'prix à saisir'}${s.info ? ' · ' + esc(s.info) : ''}</div></div>`).join('');
+    box.querySelectorAll('[data-i]').forEach(el => el.onmousedown = e => { e.preventDefault(); pick(+el.dataset.i); });
+  };
+  inp.addEventListener('input', () => { idx = 0; render(); });
+  inp.addEventListener('keydown', e => {
+    if (!box) return;
+    if (e.key === 'ArrowDown') { idx = (idx + 1) % items.length; render(); e.preventDefault(); }
+    else if (e.key === 'ArrowUp') { idx = (idx + items.length - 1) % items.length; render(); e.preventDefault(); }
+    else if (e.key === 'Enter') { e.preventDefault(); pick(idx); }
+    else if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); close(); }
+  });
+  inp.addEventListener('blur', () => setTimeout(close, 100));
+  const scroller = inp.closest('.modal-body'); if (scroller) scroller.addEventListener('scroll', close);
+}
 function bteEditor(id) {
   const b = id ? DB.data.bte.find(x => x.id === id) : { id: uid(), nom: '', adresse: '', otp: '', dateEdition: todayISO(), margePct: 0.30, notes: '', lignes: [] };
   const isNew = !id;
@@ -3650,6 +3704,11 @@ function bteEditor(id) {
   };
   const bindRow = tr => {
     tr.querySelectorAll('input').forEach(inp => inp.oninput = refresh);
+    const catIdx = +tr.closest('[data-sec]').dataset.sec, g = f => tr.querySelector(`[data-f="${f}"]`);
+    bteAutocomplete(g('designation'), catIdx, s => {
+      g('designation').value = s.designation; g('unite').value = s.unite || ''; if (s.pu) g('pu').value = Math.round(s.pu * 100) / 100;
+      refresh(); g('qte').focus(); g('qte').select();
+    });
     tr.querySelector('[data-rm]').onclick = () => { tr.remove(); refresh(); };
   };
   $$('.bte-line', m.root).forEach(bindRow);
