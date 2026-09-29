@@ -1793,6 +1793,77 @@ IKO_COMPLEXES.forEach(c => {
   CAD_COMPO[c.ref] = c.couches;
 });
 
+/* ---- Ouvrages types (étude de cadence simplifiée) ----
+   Lignes génériques, sans marque : le temps vient du référentiel SMAC ; le choix du matériau
+   (variante) ne sert qu'aux fournitures du BTE / déboursé sec. Réf. T-… */
+CAD_FAMILLES.push('Monocouche', 'Étanchéité liquide');
+const FAM_MONO = CAD_FAMILLES.indexOf('Monocouche'), FAM_LIQ = CAD_FAMILLES.indexOf('Étanchéité liquide');
+const cadV = (lib, ...compo) => ({ lib, compo });
+const cadVM = (mat, conso, role, e) => ({ lib: (IKO_PRODUITS.find(p => p[IKO_I.REF] === mat) || [])[IKO_I.DES], compo: [[mat, conso, role, e].filter(x => x !== undefined)] });
+const cadVC = ref => ({ lib: IKO_COMPLEXES.find(c => c.ref === ref).nom, compo: ikoCouches(ref) });
+const CAD_VARIANTES = {};
+const CAD_TYPES = [
+  ['T-ETA-01', 1, 4, "Pose de primaire / vernis d'imprégnation (EIF)", "Application à froid au rouleau ou pulvérisation avant pare-vapeur ou 1re couche.", 'béton', 'm²', 0.015,
+    [cadVM('PRI-01', 0.25, 'Primaire'), cadVM('PRI-02', 0.25, 'Primaire'), cadVM('PRI-03', 0.25, 'Vernis EIF')]],
+  ['T-ETA-02', 1, 5, 'Pare-vapeur bitumineux soudé', 'Pare-vapeur soudé au chalumeau, joints soudés.', 'béton', 'm²', 0.036,
+    [cadVM('PV-01', 1.1, 'Pare-vapeur'), cadVM('PV-02', 1.1, 'Pare-vapeur 3 en 1'), cadVM('PV-03', 1.1, 'Pare-vapeur alu 3 en 1'), cadVM('PV-07', 1.1, 'Pare-vapeur')]],
+  ['T-ETA-03', 1, 5, 'Pare-vapeur sur bac acier (auto-adhésif / alu)', 'Pare-vapeur déroulé sur TAN, recouvrements collés ou soudés.', 'acier', 'm²', 0.015,
+    [cadVM('PV-06', 1.1, 'Pare-vapeur alu'), cadVM('PV-04', 1.1, 'Pare-vapeur auto-adhésif'), cadVM('PV-05', 1.1, 'Pare-vapeur auto-adhésif')]],
+  ['T-ETA-04', 1, 6, 'Équerre de pare-vapeur', 'Continuité du pare-vapeur en pied de relevé.', 'béton/acier', 'ml', 0.06,
+    [cadVM('REL-01', 1.05, 'Équerre')]],
+  ['T-ETA-05', 2, 7, 'Isolant posé libre', 'Panneaux isolants posés librement (sous protection lourde).', 'béton/acier', 'm²', 0.019,
+    [cadVM('ISO-03', 1.03, 'Isolant PIR'), cadVM('HI-02', 1.03, 'Isolant PSE'), cadVM('HI-01', 1.03, 'Laine de roche')]],
+  ['T-ETA-06', 2, 7, 'Isolant collé', 'Panneaux isolants collés (colle PU ou bandes auto-adhésives du pare-vapeur).', 'béton', 'm²', 0.039,
+    [cadV('PIR alu + colle PU', ['ISO-02', 1.03, 'Isolant PIR'], ['COL-01', 0.25, 'Colle']), cadV('PSE + colle PU', ['HI-02', 1.03, 'Isolant PSE'], ['COL-01', 0.25, 'Colle']),
+     cadV('Laine de roche + colle PU', ['HI-01', 1.03, 'Laine de roche'], ['COL-01', 0.25, 'Colle']), cadVM('ISO-02', 1.03, 'Isolant PIR (collé sur VAP 3 en 1)')]],
+  ['T-ETA-07', 2, 7, 'Isolant fixé mécaniquement', 'Panneaux isolants fixés mécaniquement sur support acier ou béton.', 'acier', 'm²', 0.039,
+    [cadV('PIR alu + fixations', ['ISO-01', 1.03, 'Isolant PIR'], ['FIX-01', 2, 'Fixations']), cadV('Laine de roche + fixations', ['HI-01', 1.03, 'Laine de roche'], ['FIX-01', 2, 'Fixations']),
+     cadV('PSE + fixations', ['HI-02', 1.03, 'Isolant PSE'], ['FIX-01', 2, 'Fixations'])]],
+  ['T-ETA-08', 2, 7, 'Verre cellulaire collé au bitume chaud', 'Isolant incompressible, pare-vapeur intégré.', 'béton', 'm²', 0.1, []],
+  ['T-ETA-09', 2, 7, 'Forme de pente isolante', 'Panneaux de pente suivant calepinage.', 'béton', 'm²', 0.045,
+    [cadVM('ISO-04', 1.03, 'Isolant à pente')]],
+  ['T-ETA-10', 3, 8, '1re couche soudée aux joints (semi-indépendance)', '1re couche bitumineuse soudée aux recouvrements.', 'béton', 'm²', 0.034,
+    [cadVM('SC-04', 1.12, '1re couche'), cadVM('SC-05', 1.12, '1re couche'), cadVM('SC-11', 1.12, '1re couche'), cadVM('SC-13', 1.12, '1re couche')]],
+  ['T-ETA-11', 3, 8, '1re couche soudée en plein', '1re couche bitumineuse soudée en plein sur le support.', 'béton', 'm²', 0.036,
+    [cadVM('SC-04', 1.12, '1re couche'), cadVM('SC-06', 1.12, '1re couche renforcée'), cadVM('SC-12', 1.12, '1re couche')]],
+  ['T-ETA-12', 3, 8, '1re couche auto-adhésive', 'Pose à froid, sans flamme (isolants sensibles).', 'béton', 'm²', 0.036,
+    [cadVM('SC-01', 1.12, '1re couche auto-adhésive'), cadVM('SC-02', 1.12, '1re couche auto-adhésive T3'), cadVM('SC-03', 1.12, '1re couche auto-adhésive PV'), cadVM('SC-12', 1.12, '1re couche auto-adhésive')]],
+  ['T-ETA-13', 3, 8, '1re couche fixée mécaniquement', 'Fixation en lisière sous recouvrement soudé.', 'acier', 'm²', 0.038,
+    [cadV('IKO DUO TOPACIER FMP/G + fixations', ['SC-07', 1.12, '1re couche'], ['FIX-01', 3, 'Fixations']), cadV('IKO DUO ACIER F/G + fixations', ['SC-08', 1.12, '1re couche'], ['FIX-01', 3, 'Fixations']),
+     cadV('IKO DUO ACIER JA F/G + fixations', ['SC-09', 1.12, '1re couche'], ['FIX-01', 3, 'Fixations']), cadV('IKO DUO ACIER SOLAR + fixations', ['SC-10', 1.12, '1re couche'], ['FIX-01', 3, 'Fixations'])]],
+  ['T-ETA-14', 3, 9, 'Équerre de renfort', 'Équerre soudée en pied de relevé / zone sensible.', 'béton/acier', 'ml', 0.06,
+    [cadVM('REL-01', 1.05, 'Équerre 25'), cadVM('REL-06', 1.05, 'Équerre 33')]],
+  ['T-ETA-15', 5, 12, '2e couche autoprotégée soudée en plein', 'Finition ardoisée ou alu soudée sur la 1re couche.', 'béton/acier', 'm²', 0.035,
+    [cadVM('AP-01', 1.12, '2e couche autoprotégée'), cadVM('AP-02', 1.12, '2e couche FEU'), cadVM('AP-03', 1.12, '2e couche autoprotégée'), cadVM('AP-05', 1.12, '2e couche FEU renforcée')]],
+  ['T-ETA-16', 5, 12, '2e couche sous protection (non autoprotégée)', '2e couche soudée en plein sous protection lourde.', 'béton', 'm²', 0.034,
+    [cadVM('SC-04', 1.12, '2e couche'), cadVM('SC-06', 1.12, '2e couche renforcée')]],
+  ['T-ETA-17', 5, 12, '2e couche anti-racines (toiture végétalisée)', 'Membrane traitée anti-racines soudée en plein.', 'béton', 'm²', 0.04,
+    [cadVM('VEG-01', 1.12, '2e couche anti-racines')]],
+  ['T-ETA-18', 3, FAM_MONO, 'Monocouche soudé en plein', 'Monocouche bitumineux soudé (neuf ou réfection). Temps EXP. à confirmer.', 'béton', 'm²', 0.04,
+    [cadVM('MO-06', 1.12, 'Monocouche'), cadVM('MO-07', 1.12, 'Monocouche'), cadVM('MO-03', 1.12, 'Monocouche sous protection'), cadVM('MO-04', 1.12, 'Monocouche parking'), cadVM('MO-01', 1.12, 'Monocouche réfection')]],
+  ['T-ETA-19', 3, FAM_MONO, 'Monocouche fixé mécaniquement', 'Fixation en lisière, recouvrements soudés. Temps EXP. à confirmer.', 'acier', 'm²', 0.045,
+    [cadV('IKO MONO ACIER AR/F + fixations', ['MO-02', 1.12, 'Monocouche'], ['FIX-01', 3, 'Fixations'])]],
+  ['T-ETA-20', 3, FAM_MONO, 'Membrane synthétique PVC fixée mécaniquement', 'Membrane PVC-P, soudure air chaud. Temps EXP. à confirmer.', 'acier', 'm²', 0.045,
+    [cadV('IKO ARMOURPLAN SM 150 + fixations', ['PVC-02', 1.08, 'Membrane PVC'], ['FIX-01', 4, 'Fixations']), cadV('IKO ARMOURPLAN SM 120 + fixations', ['PVC-01', 1.08, 'Membrane PVC'], ['FIX-01', 4, 'Fixations'])]],
+  ['T-ETA-21', 5, 13, 'Relevé non isolé (équerre + relevé autoprotégé)', 'Relevé bitumineux sur acrotère / émergence. Matériaux recalculés selon la hauteur.', 'béton/acier', 'ml', 0.119,
+    [cadVC('IKO-R01'), cadVC('IKO-R02')]],
+  ['T-ETA-22', 5, 13, 'Relevé isolé (isolant + équerre + relevé)', 'Relevé isolé, angles traités. Matériaux recalculés selon la hauteur.', 'béton/acier', 'ml', 0.214,
+    [cadVC('IKO-R03')]],
+  ['T-ETA-23', 5, 13, 'Relevé en étanchéité liquide (résine armée)', 'Résine + armature, relevés de faible hauteur. Temps EXP. à confirmer.', 'tous supports', 'ml', 0.15,
+    [cadVC('IKO-R06')]],
+  ['T-ETA-24', 6, FAM_LIQ, 'Étanchéité liquide de points singuliers', 'Résine armée sur émergences, chéneaux, détails. Temps EXP. à confirmer.', 'tous supports', 'm²', 0.5,
+    [cadVC('IKO-R04'), cadVC('IKO-R05')]],
+];
+CAD_TYPES.forEach(t => { CAD_OUVRAGES.push(t.slice(0, 8)); CAD_VARIANTES[t[0]] = t[8]; });
+/* Mode simplifié : on masque les lignes « produit » (sections 1 à 3, 2e couches/relevés de marque, complexes IKO). */
+const cadEstType = ref => !!CAD_VARIANTES[ref];
+const cadVisibleSimple = o => {
+  const r = o[CAD_I.REF];
+  if (cadEstType(r) || /^PERSO-/.test(r)) return true;
+  if (/^IKO-/.test(r) || [1, 2, 3].includes(o[CAD_I.SEC])) return false;
+  return !/^ET2-00[1-9]$/.test(r);
+};
+
 /* -------------------------------------------------------------------------
    3. Objectifs (fiche de fonction Chargé d'affaires SAS)
    ------------------------------------------------------------------------- */
@@ -3732,6 +3803,7 @@ const CAD = {
   equipe: 2, hj: CAD_PARAMS.heuresJour, surface: 0,
   coeff: Object.fromEntries(CAD_COEFFS.map(c => [c.key, c.def])),
   lignes: [],                       // [{ ref, qte, h? }]
+  mode: 'simple',                   // simple (ouvrages types) | detail (base complète avec références)
   mats: [],                         // matériaux ajoutés directement : [{ src: 'mat' | 'grille', ref, qte }]
   mq: '',                           // recherche de matériaux dans le chiffrage
   f: { dom: '', fam: '', q: '' },   // filtres des ouvrages
@@ -3758,6 +3830,7 @@ const cadModifie = ref => !!DB.data.cadBase.ouv[ref];
 const cadDefaut = ref => CAD_OUVRAGES.find(o => o[CAD_I.REF] === ref);
 function cadCompo(ref) {
   const p = cadPerso(ref); if (p) return p.compo || [];
+  if (cadEstType(ref)) return (CAD_VARIANTES[ref][0] || { compo: [] }).compo;
   const m = DB.data.cadBase.ouv[ref];
   return m && m.compo ? m.compo : (CAD_COMPO[ref] || []);
 }
@@ -3768,7 +3841,9 @@ const cadDomaine = o => cadSection(o).split('—')[0].trim();
 const cadPondere = o => !CAD_U_TEMPS.includes(o[CAD_I.U]);
 const cadCoefGlobal = () => CAD_COEFFS.reduce((a, c) => a * (c.opts[CAD.coeff[c.key]] || c.opts[c.def])[1], 1);
 const cadTaux = () => +DB.data.objectifs.tauxHoraireMO || CAD_PARAMS.tauxMO;
-const cadAHauteur = ref => cadCompo(ref).some(k => k[3]);
+const cadAHauteur = ref => cadEstType(ref) ? CAD_VARIANTES[ref].some(v => v.compo.some(k => k[3])) : cadCompo(ref).some(k => k[3]);
+/* Composition d'une ligne : variante choisie pour un ouvrage type (-1 = main d'œuvre seule), sinon composition de l'ouvrage. */
+const cadCompoLigne = (ref, v) => cadEstType(ref) && v !== undefined ? (v < 0 ? [] : (CAD_VARIANTES[ref][v] || CAD_VARIANTES[ref][0] || { compo: [] }).compo) : cadCompo(ref);
 
 /* --- Matériaux : catalogue IKO + matériaux ajoutés ; prix = saisi > grille IKO SMAC (EC incl.) --- */
 const matPerso = () => DB.data.materiaux.map(m => [m.ref, +m.fam || IKO_FAMILLES.length - 1, m.des, m.desc || '', m.u, m.cond || '', m.fournisseur || '']);
@@ -3788,10 +3863,10 @@ const ikoStockChip = g => g[IKO_G.STOCK] ? '<span class="chip" style="color:#1f7
 const ikoGrilleUtilisee = code => Object.entries(IKO_LIEN_GRILLE).filter(([, l]) => l[0] === code).map(([r]) => r);
 
 /* Fournitures d'un ouvrage pour une quantité (et une hauteur pour les relevés). */
-function cadFourn(ref, qte, hRel) {
+function cadFourn(ref, qte, hRel, v) {
   const h = hRel > 0 ? hRel : IKO_REL_H;
   const echelle = e => e === 'dev' ? (h + IKO_REL_RETOUR) / (IKO_REL_H + IKO_REL_RETOUR) : e === 'h' ? h / IKO_REL_H : 1;
-  return cadCompo(ref).map(([mref, conso0, role, e]) => {
+  return cadCompoLigne(ref, v).map(([mref, conso0, role, e]) => {
     const p = matProduit(mref); if (!p) return null;
     const conso = conso0 * echelle(e), q = qte * conso, pu = matPrix(mref), k = ikoGrille(mref);
     return { ref: mref, role, conso, des: p[IKO_I.DES], unite: p[IKO_I.U], qte: q, pu, total: q * pu, sansPrix: !pu,
@@ -3833,9 +3908,9 @@ function cadCompute() {
   const steps = CAD.lignes.map(l => {
     const o = cadOuvrage(l.ref); if (!o) return null;
     const hStd = o[CAD_I.H], coef = cadPondere(o) ? gc : 1, hU = hStd * coef, qte = +l.qte || 0;
-    const fourn = cadFourn(l.ref, qte, l.h);
+    const fourn = cadFourn(l.ref, qte, l.h, l.v);
     return { ref: o[CAD_I.REF], nom: o[CAD_I.DES], famille: cadFamille(o), section: cadSection(o), desc: o[CAD_I.DESC],
-      unite: o[CAD_I.U], qte, hRel: l.h, hStd, coef, hU, h: hU * qte, cadStd: hStd ? hj / hStd : 0, cad: hU ? hj / hU : 0,
+      unite: o[CAD_I.U], qte, hRel: l.h, variante: cadEstType(o[CAD_I.REF]) ? (l.v < 0 ? 'main d\'œuvre seule' : (CAD_VARIANTES[o[CAD_I.REF]][l.v || 0] || {}).lib || '') : '', hStd, coef, hU, h: hU * qte, cadStd: hStd ? hj / hStd : 0, cad: hU ? hj / hU : 0,
       fourn, fournTot: fourn.reduce((s, x) => s + x.total, 0) };
   }).filter(Boolean);
   const totalH = steps.reduce((s, x) => s + x.h, 0);
@@ -3855,9 +3930,12 @@ function cadCompute() {
   const fournTot = materiaux.reduce((s, m) => s + m.total, 0), mo = totalH * taux;
   return { gc, steps, totalH, jours, surf, cadGlob: jours > 0 ? surf / jours : 0, eq, hj, taux, materiaux, fournTot, mo };
 }
+const cadListeMode = () => CAD.vue === 'chiffrage' && CAD.mode === 'simple'
+  ? cadTous().filter(cadVisibleSimple).sort((a, b) => a[CAD_I.SEC] - b[CAD_I.SEC] || (cadEstType(b[CAD_I.REF]) - cadEstType(a[CAD_I.REF])))
+  : cadTous();
 function cadCatalogue() {
   const q = CAD.f.q.trim().toLowerCase();
-  return cadTous().filter(o => {
+  return cadListeMode().filter(o => {
     if (CAD.f.dom && cadDomaine(o) !== CAD.f.dom) return false;
     if (CAD.f.fam && cadFamille(o) !== CAD.f.fam) return false;
     if (q && !(o[CAD_I.REF] + ' ' + o[CAD_I.DES] + ' ' + cadFamille(o) + ' ' + o[CAD_I.DESC] + ' ' + cadCompo(o[CAD_I.REF]).map(k => (matProduit(k[0]) || [])[IKO_I.DES]).join(' ')).toLowerCase().includes(q)) return false;
@@ -3865,7 +3943,7 @@ function cadCatalogue() {
   });
 }
 function cadFamillesDispo() {
-  const set = new Set(cadTous().filter(o => !CAD.f.dom || cadDomaine(o) === CAD.f.dom).map(cadFamille));
+  const set = new Set(cadListeMode().filter(o => !CAD.f.dom || cadDomaine(o) === CAD.f.dom).map(cadFamille));
   return [...set].sort((a, b) => a.localeCompare(b, 'fr'));
 }
 
@@ -3915,7 +3993,11 @@ function cadVueChiffrage(v) {
         Il s'applique au temps de pose, pas aux matériaux, ni aux lignes déjà exprimées en temps (h, j, forfait).</p>
     </div>
     <div class="card card-pad" style="margin-top:16px">
-      <div class="card-title">3 · Ouvrages de la base</div>
+      <div class="card-title" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">3 · Ouvrages
+        <span style="display:inline-flex;gap:6px;margin-left:auto">
+          <button class="btn small ${CAD.mode === 'simple' ? 'primary' : ''}" data-mode="simple" title="Lignes génériques sans marque : le matériau se choisit dans l'ouvrage retenu, pour le BTE">Ouvrages types</button>
+          <button class="btn small ${CAD.mode === 'detail' ? 'primary' : ''}" data-mode="detail" title="Toutes les lignes, avec références produits et complexes IKO">Base détaillée (références)</button></span></div>
+      <p class="t-muted" style="margin:0 0 10px;font-size:12px">${CAD.mode === 'simple' ? 'Ouvrages génériques pour l\'étude de cadence (sans marque). Le matériau éventuel se choisit dans « Ouvrages retenus » et ne sert qu\'aux fournitures du BTE.' : 'Base complète : ouvrages du référentiel avec produits, complexes IKO et vos ouvrages.'}</p>
       ${cadFiltresHtml()}
       <div id="cad-cat" style="margin-top:14px"></div>
     </div>
@@ -3932,6 +4014,7 @@ function cadVueChiffrage(v) {
     <div id="cad-out" class="cad-out" style="margin-top:16px"></div>`;
   $$('[data-cad]', v).forEach(el => el.oninput = () => { CAD[el.dataset.cad] = +el.value || 0; cadRefreshOut(); });
   $$('[data-coeff]', v).forEach(el => el.onchange = () => { CAD.coeff[el.dataset.coeff] = +el.value; cadRefreshOut(); });
+  $$('[data-mode]', v).forEach(b => b.onclick = () => { CAD.mode = b.dataset.mode; CAD.f.fam = ''; renderCadences($('#view')); });
   cadBindFiltres(v, cadRefreshCat);
   v.onclick = e => {
     const add = e.target.closest('[data-add]'), del = e.target.closest('[data-del]'), ed = e.target.closest('[data-edit]');
@@ -3990,7 +4073,8 @@ function cadAjouter(ref, qteForcee) {
   if (CAD.lignes.some(l => l.ref === ref)) { toast('Ouvrage déjà retenu', 'err'); return; }
   const o = cadOuvrage(ref); if (!o) return;
   const qte = qteForcee !== undefined ? +qteForcee : o[CAD_I.U] === 'm²' && +CAD.surface > 0 ? +CAD.surface : 1;
-  CAD.lignes.push(cadAHauteur(ref) ? { ref, qte, h: IKO_REL_H } : { ref, qte });
+  const l = { ref, qte }; if (cadAHauteur(ref)) l.h = IKO_REL_H; if (cadEstType(ref)) l.v = CAD_VARIANTES[ref].length ? 0 : -1;
+  CAD.lignes.push(l);
   cadRefreshPanier(); cadRefreshCat();
 }
 function cadRefreshCat() {
@@ -4013,10 +4097,11 @@ function cadRefreshPanier() {
   const box = $('#cad-panier'); if (!box) return;
   box.innerHTML = !CAD.lignes.length ? '<p class="t-muted" style="margin:0">Aucun ouvrage retenu — ajoutez des lignes depuis la base.</p>' :
     `<div class="table-wrap"><table>
-      <thead><tr><th>Réf.</th><th>Ouvrage</th><th>Famille</th><th class="num">Quantité</th><th>U</th><th class="num">Hauteur relevé</th><th></th></tr></thead>
-      <tbody>${CAD.lignes.map(l => { const o = cadOuvrage(l.ref); if (!o) return ''; return `<tr>
-        <td class="t-muted">${esc(l.ref)}</td><td class="t-strong" style="white-space:normal" title="${esc(o[CAD_I.DESC])}">${esc(o[CAD_I.DES])}</td>
-        <td class="t-muted">${esc(cadFamille(o))}</td>
+      <thead><tr><th>Réf.</th><th>Ouvrage</th><th>Fournitures (pour le BTE)</th><th class="num">Quantité</th><th>U</th><th class="num">Hauteur relevé</th><th></th></tr></thead>
+      <tbody>${CAD.lignes.map(l => { const o = cadOuvrage(l.ref); if (!o) return ''; const vs = CAD_VARIANTES[l.ref]; return `<tr>
+        <td class="t-muted">${esc(l.ref)}</td><td class="t-strong" style="white-space:normal" title="${esc(o[CAD_I.DESC])}">${esc(o[CAD_I.DES])}<br><span class="t-muted" style="font-size:11.5px;font-weight:400">${esc(cadFamille(o))}</span></td>
+        <td>${vs ? (vs.length ? `<select data-v="${esc(l.ref)}" style="max-width:260px;font-size:12px">${vs.map((x, i) => `<option value="${i}" ${l.v === i ? 'selected' : ''}>${esc(x.lib)}</option>`).join('')}<option value="-1" ${l.v === -1 ? 'selected' : ''}>— main d'œuvre seule —</option></select>` : '<span class="t-muted" style="font-size:12px">main d\'œuvre seule</span>')
+          : `<span class="t-muted" style="font-size:12px">${cadCompo(l.ref).length ? 'composition de l\'ouvrage' : '—'}</span>`}</td>
         <td class="num"><input data-q="${esc(l.ref)}" type="number" min="0" step="any" value="${l.qte}" style="max-width:110px;text-align:right"></td>
         <td>${esc(o[CAD_I.U])}</td>
         <td class="num">${l.h !== undefined ? `<input data-h="${esc(l.ref)}" type="number" min="0.05" step="0.05" value="${l.h}" style="max-width:80px;text-align:right" title="Développé = hauteur + ${num(IKO_REL_RETOUR * 100)} cm en partie courante"> m` : '<span class="t-muted">—</span>'}</td>
@@ -4024,6 +4109,7 @@ function cadRefreshPanier() {
     <div id="cad-alerte-rel"></div>`;
   $$('[data-q]', box).forEach(el => el.oninput = () => { const l = CAD.lignes.find(x => x.ref === el.dataset.q); if (l) l.qte = +el.value || 0; cadRefreshOut(); });
   $$('[data-h]', box).forEach(el => el.oninput = () => { const l = CAD.lignes.find(x => x.ref === el.dataset.h); if (l) l.h = +el.value || IKO_REL_H; cadRefreshOut(); });
+  $$('[data-v]', box).forEach(el => el.onchange = () => { const l = CAD.lignes.find(x => x.ref === el.dataset.v); if (l) l.v = +el.value; cadRefreshOut(); });
   cadRefreshOut();
 }
 /* Alerte « relevés oubliés » : une partie courante étanchée sans aucun relevé. */
@@ -4032,8 +4118,9 @@ function cadAlerteReleves() {
   const os = CAD.lignes.map(l => cadOuvrage(l.ref)).filter(Boolean);
   const pc = CAD.lignes.filter(l => { const o = cadOuvrage(l.ref); return o && cadEstPartieCourante(o); });
   if (!pc.length || os.some(cadEstRelevé)) { box.innerHTML = ''; return; }
-  const surf = Math.max(...pc.map(l => +l.qte || 0)), iso = pc.some(l => cadCompo(l.ref).some(k => /^(ISO-|HI-01|HI-02)/.test(k[0])));
-  const propose = iso ? 'IKO-R03' : 'IKO-R01', o = cadOuvrage(propose), ml = cadPerimEstime(surf);
+  const surf = Math.max(...pc.map(l => +l.qte || 0));
+  const iso = os.some(o => o[CAD_I.SEC] === 2) || pc.some(l => cadCompoLigne(l.ref, l.v).some(k => /^(ISO-|HI-01|HI-02)/.test(k[0])));
+  const propose = iso ? 'T-ETA-22' : 'T-ETA-21', o = cadOuvrage(propose), ml = cadPerimEstime(surf);
   box.innerHTML = `<p style="margin:10px 0 0;font-size:13px;color:#b3261e">⚠ Aucun relevé retenu pour la partie courante.
     <button class="btn small" data-add="${propose}" data-qte="${ml}" style="margin-left:8px">${icon('plus')} ${esc(o[CAD_I.DES])} — ${ml} ml</button>
     <span class="t-muted" style="font-size:12px">(linéaire estimé = périmètre d'une toiture carrée, à ajuster)</span></p>`;
@@ -4057,7 +4144,7 @@ function cadencesResult() {
     <div class="cad-metric"><div class="cm-label">Déboursé sec (MO + fournitures)</div><div class="cm-value">${eur(mo + fournTot)}</div><div class="cm-sub">MO ${eur(mo)} (${eur(taux)}/h)${surf ? ' · ' + eur2((mo + fournTot) / surf) + '/m²' : ''}</div></div></div>
   ${steps.length ? `<div class="table-wrap" style="margin-top:16px"><table class="cad-steps">
     <thead><tr><th>Réf.</th><th>Ouvrage</th><th class="num">Qté</th><th class="num">Temps std</th><th class="num">Cadence corrigée</th><th class="num">Temps</th><th class="num">MO</th><th class="num">Fournitures</th></tr></thead>
-    <tbody>${steps.map(s => `<tr><td class="t-muted">${esc(s.ref)}</td><td class="t-strong" style="white-space:normal">${esc(s.nom)}${s.hRel !== undefined ? ` <span class="t-muted">(h = ${num(s.hRel * 100)} cm)</span>` : ''}</td>
+    <tbody>${steps.map(s => `<tr><td class="t-muted">${esc(s.ref)}</td><td class="t-strong" style="white-space:normal">${esc(s.nom)}${s.hRel !== undefined ? ` <span class="t-muted">(h = ${num(s.hRel * 100)} cm)</span>` : ''}${s.variante ? `<br><span class="t-muted" style="font-size:11.5px;font-weight:400">Fournitures : ${esc(s.variante)}</span>` : ''}</td>
       <td class="num">${num(s.qte)} ${esc(s.unite)}</td><td class="num">${cadNum3(s.hStd)} h/${esc(s.unite)}</td>
       <td class="num">${num(s.cad)} ${esc(s.unite)}/j${s.coef === 1 ? ' <span class="t-muted">(non pondéré)</span>' : ''}</td>
       <td class="num">${num(s.h)} h</td><td class="num">${eur(s.h * taux)}</td><td class="num">${s.fourn.length ? eur(s.fournTot) : '<span class="t-muted">—</span>'}</td></tr>`).join('')}</tbody>
@@ -4142,9 +4229,9 @@ function cadExportBase() {
 }
 /* Édition d'un ouvrage : temps + composition (ouvrage du référentiel = surcharge ; ouvrage ajouté = complet). */
 function cadOuvrageForm(ref, onSave) {
-  const o = ref ? cadOuvrage(ref) : null, perso = ref ? cadPerso(ref) : null, isNew = !ref, base = !!ref && !perso;
+  const o = ref ? cadOuvrage(ref) : null, perso = ref ? cadPerso(ref) : null, isNew = !ref, base = !!ref && !perso, estType = !!ref && cadEstType(ref);
   const d = o ? { des: o[CAD_I.DES], desc: o[CAD_I.DESC], sup: o[CAD_I.SUP], u: o[CAD_I.U], h: o[CAD_I.H], sec: o[CAD_I.SEC], fam: o[CAD_I.FAM] } : { des: '', desc: '', sup: '', u: 'm²', h: 0, sec: 7, fam: 20 };
-  let compo = (ref ? cadCompo(ref) : []).map(k => [...k]);
+  let compo = (ref && !cadEstType(ref) ? cadCompo(ref) : []).map(k => [...k]);
   const mats = matTous().slice().sort((a, b) => a[IKO_I.DES].localeCompare(b[IKO_I.DES], 'fr'));
   const matOpts = sel => mats.map(p => `<option value="${esc(p[IKO_I.REF])}" ${p[IKO_I.REF] === sel ? 'selected' : ''}>${esc(p[IKO_I.DES])} (${esc(p[IKO_I.U])})</option>`).join('');
   const m = modal({ title: isNew ? 'Nouvel ouvrage' : ref + ' — ' + d.des, xwide: true,
@@ -4159,10 +4246,14 @@ function cadOuvrageForm(ref, onSave) {
         <div class="field"><label>Support</label><input id="o-sup" value="${esc(d.sup)}" placeholder="béton, acier…"></div>
       </div>
       <div class="field full" style="margin-top:10px"><label>Descriptif</label><textarea id="o-desc" rows="2">${esc(d.desc)}</textarea></div>`}
-      <div class="card-title" style="margin-top:16px">Composition matériaux (par unité d'ouvrage)</div>
+      ${estType ? `<div class="card-title" style="margin-top:16px">Fournitures proposées (choix dans « Ouvrages retenus »)</div>
+      <div class="table-wrap"><table><thead><tr><th>Variante</th><th>Composition / unité</th><th class="num">Fournitures €/u</th></tr></thead><tbody>
+      ${CAD_VARIANTES[ref].map((x, i) => `<tr><td class="t-strong">${esc(x.lib)}</td><td class="t-muted" style="white-space:normal;font-size:12px">${x.compo.map(k => esc((matProduit(k[0]) || [])[IKO_I.DES] || k[0]) + ' × ' + cadNum3(k[1])).join(' + ')}</td><td class="num">${eur2(cadFourn(ref, 1, 0, i).reduce((s, l) => s + l.total, 0))}</td></tr>`).join('') || '<tr><td colspan="3" class="t-muted">Main d\'œuvre seule</td></tr>'}
+      </tbody></table></div>` : ''}
+      <div ${estType ? 'hidden' : ''}><div class="card-title" style="margin-top:16px">Composition matériaux (par unité d'ouvrage)</div>
       <div id="o-compo"></div>
       <div class="page-actions" style="margin-top:8px"><button class="btn small" id="o-add">${icon('plus')} Ajouter un matériau</button><span class="spacer"></span><span class="t-muted" id="o-tot"></span></div>
-      <p class="t-muted" style="font-size:12px;margin:8px 0 0">Consommation recouvrements et chutes inclus. « Relevé » : quantité donnée pour h = 0,30 m, recalculée selon la hauteur saisie au chiffrage (développé = h + 15 cm ; isolant ∝ h).</p>`,
+      <p class="t-muted" style="font-size:12px;margin:8px 0 0">Consommation recouvrements et chutes inclus. « Relevé » : quantité donnée pour h = 0,30 m, recalculée selon la hauteur saisie au chiffrage (développé = h + 15 cm ; isolant ∝ h).</p></div>`,
     footer: `<button class="btn" data-c>Annuler</button>
       ${base && cadModifie(ref) ? `<button class="btn" id="o-reset">Revenir au référentiel</button>` : ''}
       ${perso ? `<button class="btn danger" id="o-del">${icon('trash')} Supprimer</button>` : ''}
@@ -4196,7 +4287,7 @@ function cadOuvrageForm(ref, onSave) {
     const h = +$('#o-h').value || 0, c = lire();
     if (base) {
       const same = JSON.stringify(c) === JSON.stringify((CAD_COMPO[ref] || []).map(k => k.filter(x => x !== undefined)));
-      const ov = {}; if (h !== cadDefaut(ref)[CAD_I.H]) ov.h = h; if (!same) ov.compo = c;
+      const ov = {}; if (h !== cadDefaut(ref)[CAD_I.H]) ov.h = h; if (!same && !estType) ov.compo = c;
       if (Object.keys(ov).length) DB.data.cadBase.ouv[ref] = ov; else delete DB.data.cadBase.ouv[ref];
       fini('Ouvrage enregistré dans votre base');
     } else {
