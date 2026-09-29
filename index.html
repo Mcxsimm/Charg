@@ -1330,9 +1330,9 @@ const CAD_DOMAINES = [...new Set(CAD_SECTIONS.map(s => s.split('—')[0].trim())
    2 ter. Catalogue IKO (ex-Axter) — produits & complexes d'étanchéité
    Désignations et compositions reprises des fiches procédés / fiches produits
    IKO (iko.fr). Les consommations sont des repères de chiffrage (recouvrements
-   et chutes inclus) à ajuster selon le DTA du procédé retenu. Les prix sont le
-   tarif négocié saisi dans l'onglet Produits (stocké dans le profil) : l'outil
-   ne contient aucun tarif public IKO.
+   et chutes inclus) à ajuster selon le DTA du procédé retenu. Les prix viennent
+   de la grille tarifaire SMAC (IKO_GRILLE_ROWS) ; un prix saisi dans l'onglet
+   Produits (stocké dans le profil) reste prioritaire.
    ------------------------------------------------------------------------- */
 const IKO_FAMILLES = [
   'Primaires & vernis',
@@ -1376,7 +1376,7 @@ const IKO_PRODUITS = [
   ['COL-02', 3, 'IKOpro Colle Mastic (Mastic Hyrène)', "Mastic-colle bitumineux à froid pour collages et raccords.", 'kg', 'Bidon 25 kg'],
   ['FIX-01', 3, 'Fixation mécanique isolant / étanchéité (vis + plaquette)', "Élément de fixation pour isolant ou 1re couche fixée en lisière. Densité selon zone de vent et étude de fixation (fournisseur fixation).", 'u', 'Selon étude au vent'],
   // 1res couches
-  ['SC-01', 4, 'IKO DUO STICK L3 ADH', "1re couche auto-adhésive semi-indépendante SBS, armature polyester stabilisé. Bicouche sans flamme sur isolant PSE / PUR / PIR, maçonnerie ou bois.", 'm²', 'Rouleau'],
+  ['SC-01', 4, 'IKO DUO STICK L3 T4 SI', "1re couche auto-adhésive semi-indépendante SBS, armature polyester stabilisé. Bicouche sans flamme sur isolant PSE / PUR / PIR, maçonnerie ou bois.", 'm²', 'Rouleau 7 m'],
   ['SC-02', 4, 'IKO DUO STICK L3 T3 SI', "1re couche auto-adhésive SBS, associée à IKO DUO FUSION FEU AR/F pour un classement BROOF(t3) sur PSE ou PIR (pente ≤ 17 %).", 'm²', 'Rouleau'],
   ['SC-03', 4, 'IKO DUO STICK SOLAR L4 T3 SI', "1re couche auto-adhésive renforcée (L4) pour procédés photovoltaïques sur étanchéité bicouche auto-adhésive.", 'm²', 'Rouleau'],
   ['SC-04', 4, 'IKO DUO FUSION F/F', "1re couche soudable SBS d'un bicouche autoprotégé, ou 1re / 2e couche sous protection lourde.", 'm²', 'Rouleau'],
@@ -1399,13 +1399,18 @@ const IKO_PRODUITS = [
   ['MO-02', 6, 'IKO MONO ACIER AR/F', "Monocouche SBS 4 mm polyester stabilisé, autoprotégé ardoise, fixé mécaniquement en lisière, joints soudés 10 cm (long.) / 15 cm (transv.).", 'm²', 'Rouleau'],
   ['MO-03', 6, 'IKO MONO FORUM', "Monocouche SBS 4 mm polyester stabilisé, sous protection lourde, dure ou dalles sur plots : inaccessible, technique, accessible piétons.", 'm²', 'Rouleau'],
   ['MO-04', 6, 'IKO MONO PARKING AR/F', "Monocouche SBS pour toitures accessibles aux véhicules sous béton bitumineux / asphalte (procédé IKO PARKING), soudé en plein ou semi-indépendant.", 'm²', 'Rouleau'],
+  ['MO-06', 6, 'IKO MONO FUSION AR/F', "Monocouche SBS autoprotégé ardoise, soudé en plein : toitures inaccessibles neuves ou en réfection.", 'm²', 'Rouleau 8 m'],
+  ['MO-07', 6, 'IKO MONO ALPA 3000 AR/F', "Monocouche liant ALPA 3 mm autoprotégé ardoise.", 'm²', 'Rouleau 8 m'],
   ['MO-05', 6, 'IKO MONO STICK SARKING 4000', "Monocouche auto-adhésif ≥ 3,5 mm pour étanchéité complémentaire sous couverture (double toiture ventilée, sarking).", 'm²', 'Rouleau'],
   // Anti-racines & végétalisation
   ['VEG-01', 7, 'IKO DUO GREEN 3000 AR/F', "2e couche SBS polyester ép. ≥ 3 mm traitée anti-racines, procédé IKO DUO GREEN (toitures-terrasses jardins / végétalisées).", 'm²', 'Rouleau'],
   ['VEG-02', 7, 'IKO WATERFIX', "Système de rétention temporaire des eaux pluviales en toiture (sous gravillons, pavés drainants ou végétalisation).", 'm²', 'Selon calepinage'],
+  ['VEG-04', 7, 'IKO FILTRE 170', "Géotextile filtrant pour complexes végétalisés et drainants.", 'm²', 'Rouleau 2 × 100 m'],
+  ['VEG-05', 7, 'IKO DRAIN', "Plaque de drainage 1200 × 800 mm pour végétalisation / protection lourde.", 'm²', 'Plaque 0,96 m²'],
   ['VEG-03', 7, 'Plaque végétalisée Manuplac®', "Plaque de végétalisation précultivée mise en œuvre sur bicouche IKO (procédés « sous Manuplac »).", 'm²', 'Plaque'],
   // Relevés & équerres
   ['REL-01', 8, 'IKO ÉQUERRE 25', "Équerre de renfort SBS ép. ≥ 3,5 mm, bande de 25 cm soudée en plein avec retombée ≥ 10 cm sur la 1re couche.", 'ml', 'Rouleau prédécoupé'],
+  ['REL-06', 8, 'IKO BANDE ÉQUERRE 33', "Équerre de renfort SBS, bande de 33 cm (relevés > 0,15 m ou forte sollicitation).", 'ml', 'Bande 10 × 0,33 m'],
   ['REL-02', 8, 'IKO RLV AR/F', "Feuille de relevé SBS armature polyester stabilisé + aluminium, autoprotection minérale (ardoise).", 'm²', 'Rouleau'],
   ['REL-03', 8, 'IKO RLV ALU/F', "Feuille de relevé à autoprotection aluminium.", 'm²', 'Rouleau'],
   ['REL-04', 8, 'IKO RLV ALU AR/F', "Feuille de relevé aluminium avec finition paillettes d'ardoise.", 'm²', 'Rouleau'],
@@ -1417,8 +1422,13 @@ const IKO_PRODUITS = [
   ['LIQ-01', 10, 'IKO hybritech MS Detail', "Résine mono-composante polymères hybrides (sans solvant ni isocyanate) pour points singuliers : relevés, chéneaux, émergences. Gris 7037, beige 1015, noir 9004…", 'kg', 'Seaux 3,5 / 7 / 20 kg'],
   ['LIQ-02', 10, 'IKO hybritech Roof', "Étanchéité liquide hybride de partie courante pour toitures-terrasses.", 'kg', 'Seau'],
   ['LIQ-03', 10, 'IKO metatech Detail (PMMA)', "Résine PMMA bi-composante à séchage rapide pour détails complexes : relevés, coupoles, lanterneaux, busettes, chéneaux.", 'kg', 'Kit'],
+  ['LIQ-05', 10, 'STARCOAT R', "Résine d'étanchéité liquide pour relevés et points singuliers (gamme Axter), armée MATCOAT R.", 'kg', 'Bidon 20 kg / carton 4 × 4 kg'],
+  ['LIQ-06', 10, 'MATCOAT R (bande 0,15 m)', "Armature de renfort en bande de 0,15 m pour STARCOAT R.", 'ml', 'Rouleau 10 ou 50 m'],
   ['LIQ-04', 10, 'Voile d\'armature polyester (liquide)', "Voile de renfort noyé dans la résine IKO hybritech / metatech.", 'm²', 'Rouleau'],
   // Accessoires IKOpro
+  ['ACC-05', 11, 'VOILECRAN 100 / MAT 100', "Voile écran de désolidarisation / séparation sous protection lourde.", 'm²', 'Rouleau 1 × 100 m'],
+  ['ACC-06', 11, 'IKO ÉCRAN PERFO G/F', "Écran perforé pour pose en semi-indépendance de la 1re couche.", 'm²', 'Rouleau 20 m'],
+  ['ACC-07', 11, 'IKO CORDON BUTYL', "Cordon butyl d'étanchéité (calfeutrements, solins).", 'ml', 'Carton 10 ml'],
   ['ACC-01', 11, 'IKOpro Stickall', "Mastic-colle hybride multi-usages (collages, calfeutrements).", 'u', 'Cartouche'],
   ['ACC-02', 11, 'IKOpro Mastic Toiture', "Mastic bitumineux de réparation / calfeutrement.", 'u', 'Cartouche'],
   ['ACC-03', 11, 'IKOpro Régénérant Bitume', "Enduit de rénovation élastique à base de bitume pour anciennes étanchéités.", 'l', 'Bidon 5 l'],
@@ -1431,8 +1441,171 @@ const IKO_PRODUITS = [
   ['HI-05', 12, 'Écran de désolidarisation non-tissé (hors IKO)', "Non-tissé polyester de séparation sous protection lourde.", 'm²', 'Rouleau'],
   ['HI-06', 12, 'Complexe végétalisation extensive (hors IKO)', "Couche drainante + filtre + substrat + sedum précultivé.", 'm²', 'Fournisseur végétalisation'],
 ];
-/* Prix repères (€ HT / unité) repris des BTE existants ; à remplacer par le tarif négocié. */
-const IKO_PRIX_DEFAUT = { 'PV-01': 3.29, 'COL-01': 7.46, 'SC-01': 5.57, 'AP-02': 5.96, 'REL-01': 1.52, 'REL-05': 8.58 };
+/* Grille tarifaire IKO-AXTER négociée par la Direction Achats SMAC (fichier « Grille_Tarifaire_IKO-Axter_01.07.26.xlsx »).
+   Lignes : [code IKO-AXTER, code PHOENIX, désignation, stock garanti (1 = vert, 0 = rouge : délai ≈ 2 semaines),
+             conditionnement, poids kg, longueur ml, unité de prix, prix € HT, éco-contribution € HT]. */
+const IKO_GRILLE = { titre: 'Grille tarifaire IKO-AXTER SMAC', du: '2026-07-01', au: '2026-12-31', maj: '2026-06-24' };
+const IKO_G = { CODE: 0, PHX: 1, DES: 2, STOCK: 3, COND: 4, POIDS: 5, LONG: 6, U: 7, PU: 8, EC: 9 };
+const IKO_GRILLE_ROWS = [
+  ["ET02195", "7660", "IKO ACCESS BRUN - RL 8M", 1, "RL", 40.3, 8.0, "M2", 8.5942, 0.2128],
+  ["ET02045", "7830", "BANDE EQUERRE 25 - 10M X 0.25M", 1, "BA", 12.5, 10.0, "ML", 1.4643, 0.0566],
+  ["ET02046", "7831", "BANDE EQUERRE 33 - 10M X 0.33M", 1, "BA", 15.0, 10.0, "ML", 1.957, 0.0704],
+  ["ET02048", "7685", "IKO BANDE EQUERRE 100 - RL 5M", 1, "RL", 24.1, 5.0, "M2", 6.1035, 0.2045],
+  ["ET02142", "7735", "IKO DUO ACIER 3000 FEU L4 AR/F BLANC -5M", 1, "RL", 23.0, 5.0, "M2", 5.5873, 0.216],
+  ["ET02043", "7736", "IKO DUO ACIER 3000 FEU L4 AR/F GRIS -5M", 1, "RL", 23.0, 5.0, "M2", 4.9821, 0.216],
+  ["ET02041", "7734", "IKO DUO ACIER 3000 FEU L4 AR/F NOIR -5M", 1, "RL", 23.0, 5.0, "M2", 5.1629, 0.216],
+  ["ET02298", "8514", "IKO DUO ACIER 3000 FEU L4 AR/F ROUGE -5M", 0, "RL", 23.0, 5.0, "M2", 5.4812, 0.216],
+  ["ET02034", "7488", "IKO DUO ACIER F/G - RL 7M", 1, "RL", 25.3, 7.0, "M2", 3.6862, 0.1697],
+  ["ET02194", "7821", "IKO DUO ACIER SOLAR L4 FMP/G - RL 7M", 0, "RL", 22.4, 7.0, "M2", 4.5417, 0.1352],
+  ["ET02271", "8536", "IKO DUO ALPA 25 SOLAR FEU F/G (2) - RL 8M", 0, "RL", 27.2, 8.0, "M2", 8.4163, 0.1436],
+  ["ET02148", "7650", "IKO DUO FUSION ALU REFLECT - RL 5M", 1, "RL", 20.4, 5.0, "M2", 9.6616, 0.1916],
+  ["ET02259", "7730", "IKO DUO FUSION ALU/F - RL 5M", 1, "RL", 20.4, 5.0, "M2", 7.8141, 0.1916],
+  ["ET02207", "7687", "IKO DUO FUSION AR/F BLANC - RL 6M", 1, "RL", 25.1, 6.0, "M2", 4.5024, 0.1991],
+  ["ET02206", "7690", "IKO DUO FUSION AR/F GRIS - RL 6M", 1, "RL", 25.1, 6.0, "M2", 3.6676, 0.1991],
+  ["ET02210", "7693", "IKO DUO FUSION AR/F VERT - RL 6M", 1, "RL", 25.45, 6.0, "M2", 4.1876, 0.1991],
+  ["ET02208", "7691", "IKO DUO FUSION AR/F NOIR - RL 6M", 1, "RL", 25.9, 6.0, "M2", 3.7634, 0.2027],
+  ["ET02209", "7692", "IKO DUO FUSION AR/F ROUGE - RL 6M", 1, "RL", 25.45, 6.0, "M2", 4.0644, 0.1991],
+  ["ET02190", "7686", "IKO DUO FUSION AR/F OXYGEN - RL 6 M", 0, "RL", 24.0, 6.0, "M2", 6.0351, 0.169],
+  ["ET02000", "7699", "IKO DUO FUSION F/F - RL 7M", 1, "RL", 23.7, 7.0, "M2", 4.8445, 0.1497],
+  ["ET02001", "7731", "IKO DUO FUSION F/G - RL 7M", 1, "RL", 25.5, 7.0, "M2", 3.1339, 0.1539],
+  ["ET02157", "7727", "IKO DUO FUSION FEU AR/F GRIS - RL 6", 1, "RL", 24.0, 6.0, "M2", 5.734, 0.169],
+  ["ET02158", "7728", "IKO DUO FUSION FEU AR/F NOIR - RL 6", 1, "RL", 24.0, 6.0, "M2", 5.7888, 0.169],
+  ["ET02262", "8474", "IKO DUO FUSION FEU AR/F BLANC - RL 6", 1, "RL", 24.0, 6.0, "M2", 6.3215, 0.169],
+  ["ET02253", "8465", "IKO DUO FUSION FEU AR/F OXYGENE - RL 6", 0, "RL", 24.0, 6.0, "M2", 6.8729, 0.169],
+  ["ET02211", "7688", "IKO DUO FUSION FEU1 AR/F GRIS - RL 6M", 0, "RL", 25.45, 6.0, "M2", 5.7888, 0.1991],
+  ["ET02212", "7689", "IKO DUO FUSION FEU1 AR/F NOIR - RL 6M", 0, "RL", 25.9, 6.0, "M2", 5.734, 0.2027],
+  ["ET02002", "7682", "IKO DUO FUSION G/F - RL 7M", 1, "RL", 25.5, 7.0, "M2", 3.1339, 0.1539],
+  ["ET02004", "7700", "IKO DUO FUSION L3 F/F - RL 7M", 1, "RL", 25.6, 7.0, "M2", 4.5024, 0.1545],
+  ["ET02005", "7701", "IKO DUO FUSION L3 F/G - RL 7M", 1, "RL", 24.4, 7.0, "M2", 3.6539, 0.1473],
+  ["ET02192", "7694", "IKO DUO FUSION L4 3000 AR/F GRIS - RL 5M", 1, "RL", 22.6, 5.0, "M2", 6.4593, 0.191],
+  ["ET02193", "7695", "IKO DUO FUSION L4 3000 AR/F NOIR - RL 5M", 1, "RL", 22.6, 5.0, "M2", 6.6099, 0.191],
+  ["ET02006", "7702", "IKO DUO FUSION L4 F/F - RL 7M", 1, "RL", 22.9, 7.0, "M2", 4.6255, 0.1382],
+  ["ET02007", "7703", "IKO DUO FUSION L4 F/G - RL 7M", 1, "RL", 22.0, 7.0, "M2", 4.1876, 0.1328],
+  ["ET02009", "7705", "IKO DUO FUSION L4 JA F/F - RL 7M", 1, "RL", 22.9, 7.0, "M2", 5.6793, 0.1536],
+  ["ET02239", "7704", "IKO DUO FUSION L4 SOLAR FMP/G - RL 7M", 0, "RL", 22.4, 7.0, "M2", 4.6417, 0.1352],
+  ["ET02237", "7683", "IKO DUO FUSION SOLAR G/F - RL 7M", 0, "RL", 25.5, 7.0, "M2", 3.5992, 0.1539],
+  ["ET02172", "7662", "IKO DUO GREEN 3000 AR/F GRIS - RL 5M", 1, "RL", 22.6, 5.0, "M2", 5.5424, 0.191],
+  ["ET02214", "7729", "IKO DUO SOLAR ALU/F - RL 6.5M", 0, "RL", 28.3, 6.5, "M2", 6.7071, 0.2044],
+  ["ET02182", "7698", "IKO DUO STICK L3 T3 SI - RL 7M", 1, "RL", 25.8, 7.0, "M2", 5.4193, 0.1557],
+  ["ET02011", "7732", "IKO DUO STICK L3 T4 SI - RL 7M", 1, "RL", 25.6, 7.0, "M2", 5.6108, 0.1717],
+  ["ET02181", "7697", "IKO DUO STICK L4 T3 SI - RL 7M", 1, "RL", 25.8, 7.0, "M2", 7.1162, 0.1557],
+  ["ET02183", "7696", "IKO DUO STICK SOLAR L4 T3 SI - RL 7M", 1, "RL", 25.8, 7.0, "M2", 7.3352, 0.1557],
+  ["ET02198", "7715", "IKO DUO ACIER AR/F GRIS - RL 6M", 1, "RL", 24.0, 6.0, "M2", 3.0069, 0.169],
+  ["ET02199", "7716", "IKO DUO ACIER AR/F NOIR - RL 6M", 1, "RL", 24.0, 6.0, "M2", 3.1327, 0.169],
+  ["ET02153", "7717", "IKO DUO ACIER AR/F ROUGE - RL 6M", 0, "RL", 24.0, 6.0, "M2", 3.2836, 0.169],
+  ["ET02154", "7718", "IKO DUO ACIER AR/F VERT - RL 6M", 0, "RL", 24.0, 6.0, "M2", 3.3088, 0.169],
+  ["ET02187", "7712", "IKO DUO ACIER AR/F BLANC - RL 6M", 1, "RL", 24.0, 6.0, "M2", 3.724, 0.169],
+  ["ET02188", "8532", "IKO DUO ACIER AR/F OXYGEN - RL 6 M", 0, "RL", 24.0, 6.0, "M2", 5.3847, 0.169],
+  ["ET02196", "7719", "IKO DUO TOPACIER FMP/G - RL 7M", 1, "RL", 24.5, 7.0, "M2", 2.7049, 0.1479],
+  ["ET02241", "7713", "IKO DUO ACIER FEU AR/F GRIS - RL 6M", 0, "RL", 24.0, 6.0, "M2", 4.9569, 0.169],
+  ["ET02242", "7714", "IKO DUO ACIER FEU AR/F NOIR - RL 6M", 0, "RL", 24.0, 6.0, "M2", 5.3595, 0.169],
+  ["ET02184", "7720", "IKO DUO TOPACIER SPF FMP/F - RL 7M", 0, "RL", 23.7, 7.0, "M2", 4.2901, 0.143],
+  ["ET02243", "7721", "IKO DUO TOPACIER PLUS FMP/G - RL 7M", 1, "RL", 24.4, 7.0, "M2", 4.1517, 0.1352],
+  ["ET02108", "7478", "IKO ECRAN PERFO G/F - RL 20ML", 1, "RL", 26.0, 20.0, "M2", 3.0928, 0.061],
+  ["ET02159", "7670", "IKO MONO ACIER AR/F GRIS - RL 8M", 0, "RL", 43.3, 8.0, "M2", 5.9257, 0.2287],
+  ["ET02160", "7671", "IKO MONO ACIER AR/F NOIR - RL 8M", 0, "RL", 43.3, 8.0, "M2", 6.1647, 0.2287],
+  ["ET02235", "7668", "IKO MONO ACIER FEU AR/ F GRIS - RL 8M", 0, "RL", 43.3, 8.0, "M2", 8.1776, 0.2287],
+  ["ET02236", "7669", "IKO MONO ACIER FEU AR/ F NOIR - RL 8M", 0, "RL", 43.3, 8.0, "M2", 8.3286, 0.2287],
+  ["ET02163", "7639", "IKO MONO ALPA 3000 AR/F GRIS - RL 8M", 1, "RL", 33.7, 8.0, "M2", 7.3352, 0.178],
+  ["ET02164", "7640", "IKO MONO ALPA 3000 AR/F NOIR - RL 8M", 1, "RL", 33.7, 8.0, "M2", 7.5131, 0.178],
+  ["ET02228", "7638", "IKO MONO ALPA 3000 AR/F OXYGEN - RL 8M", 0, "RL", 33.7, 8.0, "M2", 9.7437, 0.178],
+  ["ET02191", "7643", "IKO MONO ALPA AR/F BLANC - RL 8M", 1, "RL", 41.0, 8.0, "M2", 9.4837, 0.2165],
+  ["ET02168", "7646", "IKO MONO ALPA AR/F GRIS - RL 8M", 1, "RL", 41.0, 8.0, "M2", 8.2247, 0.2165],
+  ["ET02169", "7647", "IKO MONO ALPA AR/F NOIR - RL 8M", 1, "RL", 41.0, 8.0, "M2", 8.4436, 0.2165],
+  ["ET02170", "7648", "IKO MONO ALPA AR/F ROUGE - RL 8M", 0, "RL", 41.0, 8.0, "M2", 9.1963, 0.2165],
+  ["ET02171", "7649", "IKO MONO ALPA AR/F VERT - RL 8M", 0, "RL", 41.0, 8.0, "M2", 9.1416, 0.2165],
+  ["ET02166", "7644", "IKO MONO ALPA FEU AR/F GRIS - RL 8M", 0, "RL", 41.3, 8.0, "M2", 9.1142, 0.2181],
+  ["ET02167", "7645", "IKO MONO ALPA FEU AR/F NOIR - RL 8M", 0, "RL", 41.3, 8.0, "M2", 9.5248, 0.2181],
+  ["ET02261", "8534", "IKO MONO ALPA FEU AR/F BLANC - RL 8 M", 0, "RL", 41.3, 8.0, "M2", 10.5238, 0.2181],
+  ["ET02150", "7664", "IKO MONO FORUM F/F - RL 8M", 1, "RL", 40.2, 8.0, "M2", 7.0888, 0.2359],
+  ["ET02220", "7733", "IKO MONO FORUM F/G - RL 8M", 1, "RL", 40.6, 8.0, "M2", 6.473, 0.2383],
+  ["ET02175", "7665", "IKO MONO FORUM GL F/F - RL 10M X 2M", 0, "RL", 100.7, 20.0, "M2", 8.8131, 0.2127],
+  ["ET02221", "7666", "IKO MONO FORUM JA F/F - RL 8M", 1, "RL", 40.0, 8.0, "M2", 7.5541, 0.2348],
+  ["ET02151", "7667", "IKO MONO FORUM JA GL F/F - RL 10M X 2M", 1, "RL", 100.3, 20.0, "M2", 9.4016, 0.2119],
+  ["ET02059", "7659", "IKO MONO FORUM JOINT - 10M X 0.166M", 1, "BA", 5.7, 10.0, "ML", 1.218, 0.0268],
+  ["ET02189", "7672", "IKO MONO FUSION AR/F BLANC - RL 8M", 0, "RL", 43.3, 8.0, "M2", 7.1334, 0.2287],
+  ["ET02161", "7673", "IKO MONO FUSION AR/F GRIS - RL 8M", 1, "RL", 43.3, 8.0, "M2", 6.4792, 0.2287],
+  ["ET02162", "7674", "IKO MONO FUSION AR/F NOIR - RL 8M", 1, "RL", 43.3, 8.0, "M2", 6.7812, 0.2287],
+  ["ET02222", "8535", "IKO MONO FUSION FEU1 AR/F GRIS - RL 8M", 0, "RL", 43.3, 8.0, "M2", 7.7751, 0.2287],
+  ["ET02223", "8528", "IKO MONO FUSION FEU1 AR/F NOIR - RL 8M", 0, "RL", 43.3, 8.0, "M2", 7.9512, 0.2287],
+  ["ET02071", "8529", "IKO MONO FUSION PLUS FEU GRIS - RL 8M", 0, "RL", 44.1, 8.0, "M2", 8.3664, 0.2588],
+  ["ET02068", "8530", "IKO MONO FUSION PLUS FEU NOIR - RL 8M", 1, "RL", 44.1, 8.0, "M2", 8.769, 0.2588],
+  ["ET02072", "8531", "IKO MONO FUSION PLUS FEU ROUGE - RL 8M", 0, "RL", 44.1, 8.0, "M2", 8.8067, 0.2588],
+  ["", "8738", "FORCE 4000 S FE PLUS GRIS - RL 8M", 0, "RL", null, null, "M2", 8.7817, 0],
+  ["ET02165", "7641", "IKO MONO GREEN ALPA 3000 AR/F NOIR -RL6M", 0, "RL", 24.9, 6.0, "M2", 8.1289, 0.1753],
+  ["ET02135", "7677", "IKO MONO PARKING AR/F GRIS - RL 5M", 1, "RL", 25.6, 5.0, "M2", 8.3752, 0.2163],
+  ["ET02176", "7637", "IKO MONO PAROIS ALPA 3000 F/F - RL 6M", 1, "RL", 23.9, 6.0, "M2", 8.7173, 0.1683],
+  ["ET02225", "8524", "IKO MONO PAROIS - RL 6.5M", 1, "RL", 25.6, 6.5, "M2", 7.212, 0.1849],
+  ["ET02258", "8525", "IKO MONO PHALT F/F - RL 8 M", 0, "RL", 39.6, 8.0, "M2", 8.7721, 0.2091],
+  ["ET02287", "7652", "IKO RLV ALU PLUS AR/F BLANC - RL 5M", 1, "RL", 30.7, 5.0, "M2", 8.8268, 0.2594],
+  ["ET02286", "7653", "IKO RLV ALU PLUS AR/F GRIS - RL 5M", 1, "RL", 30.7, 5.0, "M2", 8.1563, 0.2594],
+  ["ET02285", "7654", "IKO RLV ALU PLUS AR/F NOIR - RL 5M", 1, "RL", 30.7, 5.0, "M2", 8.3205, 0.2594],
+  ["ET02288", "7655", "IKO RLV ALU PLUS AR/F ROUGE - RL 5M", 1, "RL", 30.7, 5.0, "M2", 8.5942, 0.2594],
+  ["ET02289", "7656", "IKO RLV ALU PLUS AR/F VERT - RL 5M", 1, "RL", 30.7, 5.0, "M2", 8.5668, 0.2594],
+  ["ET02146", "7651", "IKO RLV ALU REFLECT - RL 5M", 1, "RL", 23.1, 5.0, "M2", 11.0164, 0.2169],
+  ["ET02227", "7490", "IKO RLV ALU/F - RL 5ML", 1, "RL", 23.1, 5.0, "M2", 6.8972, 0.2282],
+  ["ET02155", "7657", "IKO RLV AR/F GRIS - RL 5M", 1, "RL", 26.8, 5.0, "M2", 6.5277, 0.2265],
+  ["ET02156", "7658", "IKO RLV AR/F NOIR - RL 5M", 1, "RL", 26.8, 5.0, "M2", 6.6099, 0.2265],
+  ["ET02088", "7757", "IKO VAP - 7ML", 1, "RL", 25.5, 7.0, "M2", 3.1339, 0.1539],
+  ["ET02179", "7707", "IKO VAP ALPA 2 en 1 - RL 8M", 1, "RL", 26.3, 8.0, "M2", 5.0771, 0.1389],
+  ["ET02178", "7709", "IKO VAP ALPA 3 en 1 - RL 7M", 1, "RL", 21.7, 7.0, "M2", 5.9119, 0.131],
+  ["ET02240", "7708", "IKO VAP ALPA ALU 2 en 1 - RL 8M", 0, "RL", 26.1, 8.0, "M2", 6.7467, 0.1378],
+  ["ET02177", "7710", "IKO VAP ALPA ALU 3 en 1 - RL 7M", 0, "RL", 22.1, 7.0, "M2", 7.4994, 0.1334],
+  ["ET02252", "8526", "IKO VAP STICK ALU - 1.08M x20ML", 0, "RL", 27.1, 21.6, "M2", 5.5985, 0.0589],
+  ["ET02173", "7726", "IKO VAP STICK ALU GR - RL 8M", 1, "RL", 23.2, 8.0, "M2", 5.435, 0.1225],
+  ["ET02174", "7725", "IKO VAP STICK GR - RL 10M", 1, "RL", 27.2, 10.0, "M2", 5.0576, 0.1149],
+  ["1770033", "2753", "EXCELJOINT 33 - RL 0.33M X 10M", 1, "RL", 16.86, 10.0, "ML", 9.3742, 0.0712],
+  ["1770050", "2754", "EXCELJOINT 50 - RL 0.50M X 10M", 1, "RL", 25.55, 10.0, "ML", 11.947, 0.1079],
+  ["ET02246", "2710", "EXCELGORGE - EN 0.25M-BANDE 15M", 0, "BA", 13.02, 15.0, "ML", 2.9833, 0.0408],
+  ["ET02247", "2711", "EXCELGORGE - EN 0.33M-BANDE 15M", 0, "BA", 17.19, 15.0, "ML", 3.5034, 0.0538],
+  ["1778510", "2625", "BARYPRENE 20 I - RL 15M", 0, "RL", 43.2, 15.0, "M2", 5.7888, 0.1217],
+  ["1788501", "2627", "BARYPRENE 25 ST - RL 10M", 0, "RL", 36.8, 10.0, "M2", 6.6099, 0.1555],
+  ["17805TI", "2629", "BARYPRENE 30 A - RL 10M", 0, "RL", 41.5, 10.0, "M2", 7.8826, 0],
+  ["1780501", "2631", "BARYPRENE 3000 SA - RL 10M", 0, "RL", 41.5, 10.0, "M2", 6.1172, 0],
+  ["1155003", "7832", "FORCE LINE METAL - RL 12 M", 1, "RL", 23.8, 12.0, "M2", 4.0637, 0.088],
+  ["1528401", "8527", "FORCE 4000 PONT AR/F - RL 8M", 0, "RL", 47.4, 8.0, "M2", 8.3205, 0],
+  ["1937610", "6627", "PLASTRON Carré 12*12 FM GRIS 75x75", 0, "U", 3.0, 1.0, "U", 8.3076, 0.1409],
+  ["1937620", "6637", "PLASTRON Carré 12*12 FM NOIR 75x75", 0, "U", 3.0, 1.0, "U", 8.6537, 0.1409],
+  ["1937515", "2801", "PLASTRON Losange 12*12 FM GRIS 75x75", 0, "U", 3.0, 1.0, "U", 8.4807, 0.1409],
+  ["1937525", "2802", "PLASTRON Losange 12*12 FM NOIR 75x75", 0, "U", 3.0, 1.0, "U", 8.6537, 0.1409],
+  ["ISR0012", "7739", "IKOPRO COLLE PU W / HYRA-STIK - 6.5KG", 1, "BI", 6.5, null, "KG", 7.3899, 0.0656],
+  ["ETR0031", "7742", "IKOPRO PRIMAIRE BITUME ADEROSOL - 25L", 1, "BI", 25.0, null, "LI", 2.5865, 0.2155],
+  ["ETR0029", "7743", "IKOPRO PRIMAIRE BITUME ADEROSOL - 5L", 0, "BI", 5.0, null, "LI", 4.694, 0.0431],
+  ["ETR0027", "7744", "IKOPRO PRIMAIRE BITUME ADERO. SPRAY 0,5L", 1, "CA", 0.5, null, "U", 16.2304, 0.0461],
+  ["ETR0163", "2607", "EMULSION PROOFCOAT - 25 KG", 1, "BI", 25.0, null, "KG", 2.3264, 0.0086],
+  ["1583001", "2606", "VERNIS ANTAC GC - BIDON DE 30L", 1, "BI", 32.0, null, "BI", 107.5641, 0],
+  ["ETR0078", "7833", "IKO VAP ACIER /VAP (EVALACIER) 1MX150M", 1, "RL", 30.0, 150.0, "M2", 1.8997, 0.02],
+  ["ETR0010", "7498", "VOILECRAN 100 / MAT100 - 1mx100m", 1, "RL", 10.0, 100.0, "M2", 0.8074, 0.01],
+  ["ETR0011", "2785", "VOILECRAN 100 / MAT 100 - LARGEUR 2M", 1, "RL", 20.0, 100.0, "M2", 0.8485, 0.01],
+  ["ET00561", "2742", "IKO CORDON BUTYL 10ML", 1, "CA", 13.5, 10.0, "ML", 5.4889, 0.0634],
+  ["ETR0014", "7746", "IKO FILTRE 170 / FILTRE AXTER - 2mx100m", 0, "RL", 41.0, 100.0, "M2", 0.7664, 0.0205],
+  ["ETR0020", "2978", "STARCOAT R - Bidon 20KG", 1, "BI", 20.0, null, "KG", 13.3018, 0.107],
+  ["ETR0019", "2979", "STARCOAT R 4 KG - CARTON DE 4 BIDONS", 1, "CA", 16.0, null, "KG", 10.7975, 0.107],
+  ["ETR0068", "7741", "MATCOAT R - 10 m x 0.15 m", 1, "RL", 0.135, 10.0, "ML", 3.0928, 0.0013],
+  ["ETR0067", "7819", "MATCOAT R - 50 m x 0.15 m", 1, "RL", 0.673, 50.0, "ML", 2.1349, 0.0013],
+  ["SVR0018", "7745", "IKO DRAIN - 1200MMx800MM (PLAQUES=24m²)", 1, "PQ", 10.0, null, "PL", 9.0595, 0.0384],
+  ["ETR0050", "7747", "IKO BAND BUTYLE ALU 0.1 (bande de 10m)", 0, "BA", 6.6, 10.0, "BA", 15.6967, 0.1097],
+  ["ETR0051", "7748", "IKO BAND BUTYLE ALU 0.15 (bande de 10m)", 1, "BA", 6.4, 10.0, "BA", 23.8119, 0.1596],
+  ["ETR0052", "7749", "IKO BAND BUTYLE ALU 0.2 (bande de 10m)", 0, "BA", 8.6, 10.0, "BA", 25.0162, 0.2145],
+  ["ETR0040", "7750", "IKO BAND BITUME ALU 0.1 (10m)", 0, "BA", 7.62, 10.0, "BA", 13.1923, 0.0596],
+  ["ETR0041", "7751", "IKO BAND BITUME ALU 0.15 (10m)", 0, "BA", 7.6, 10.0, "BA", 22.9361, 0.0892],
+  ["ETR0042", "7752", "IKO BAND BITUME ALU 0.2 (10m)", 0, "BA", 5.16, 10.0, "BA", 31.9134, 0.1211],
+];
+/* Produit du catalogue → ligne de la grille : [code IKO (ou PHOENIX), nb d'unités de chiffrage par unité de prix].
+   Coloris par défaut : GRIS. Produits absents de la grille : prix à saisir dans l'onglet Produits. */
+const IKO_LIEN_GRILLE = {
+  'PRI-01': ['ETR0031'], 'PRI-03': ['1583001', 30],
+  'PV-01': ['ET02088'], 'PV-02': ['ET02178'], 'PV-03': ['ET02177'], 'PV-04': ['ET02252'], 'PV-05': ['ET02173'], 'PV-06': ['ETR0078'],
+  'COL-01': ['ISR0012'],
+  'SC-01': ['ET02011'], 'SC-02': ['ET02182'], 'SC-03': ['ET02183'], 'SC-04': ['ET02000'], 'SC-05': ['ET02001'], 'SC-06': ['ET02007'],
+  'SC-07': ['ET02196'], 'SC-08': ['ET02034'], 'SC-10': ['ET02194'], 'SC-11': ['1778510'], 'SC-12': ['1780501'],
+  'AP-01': ['ET02206'], 'AP-02': ['ET02157'], 'AP-03': ['ET02198'], 'AP-05': ['ET02043'],
+  'MO-02': ['ET02159'], 'MO-03': ['ET02150'], 'MO-04': ['ET02135'], 'MO-06': ['ET02161'], 'MO-07': ['ET02163'],
+  'VEG-01': ['ET02172'], 'VEG-04': ['ETR0014'], 'VEG-05': ['SVR0018', 0.96],
+  'REL-01': ['ET02045'], 'REL-02': ['ET02155'], 'REL-03': ['ET02227'], 'REL-05': ['ET02286'], 'REL-06': ['ET02046'],
+  'LIQ-05': ['ETR0020'], 'LIQ-06': ['ETR0067'],
+  'ACC-05': ['ETR0010'], 'ACC-06': ['ET02108'], 'ACC-07': ['ET00561'],
+};
 
 /* Catégories de complexes (alignées sur les sections COMPLEXES du référentiel cadences). */
 const IKO_CATS = [
@@ -1457,16 +1630,16 @@ const IKO_COMPLEXES = [
     couches: [['PRI-01', 0.25, 'Imprégnation'], ['SC-04', 1.12, '1re couche soudée en plein'], ['AP-01', 1.12, '2e couche autoprotégée soudée']] },
   { ref: 'IKO-A03', cat: 0, u: 'm²', proc: 'IKO MONO', sup: 'béton', usage: 'Inaccessible', cad: 'CXA-001',
     nom: 'Monocouche thermosoudable apparent autoprotégé — sans isolant',
-    couches: [['PRI-01', 0.25, 'Imprégnation'], ['MO-01', 1.12, 'Monocouche autoprotégé soudé']] },
+    couches: [['PRI-01', 0.25, 'Imprégnation'], ['MO-06', 1.12, 'Monocouche autoprotégé soudé']] },
   { ref: 'IKO-B01', cat: 1, u: 'm²', proc: 'IKO DUO FUSION sous lestage', sup: 'béton', usage: 'Inaccessible', cad: 'CXB-001',
     nom: 'Bicouche thermosoudable sous gravillons — sans isolant',
-    couches: [['PRI-01', 0.25, 'Imprégnation'], ['SC-04', 1.12, '1re couche soudée aux joints'], ['SC-04', 1.12, '2e couche soudée en plein'], ['HI-05', 1.1, 'Écran de désolidarisation'], ['HI-03', 0.08, 'Protection gravillons']] },
+    couches: [['PRI-01', 0.25, 'Imprégnation'], ['SC-04', 1.12, '1re couche soudée aux joints'], ['SC-04', 1.12, '2e couche soudée en plein'], ['ACC-05', 1.1, 'Écran de désolidarisation'], ['HI-03', 0.08, 'Protection gravillons']] },
   { ref: 'IKO-B02', cat: 1, u: 'm²', proc: 'IKO DUO FUSION', sup: 'béton', usage: 'Accessible piétons', cad: 'CXB-002',
     nom: 'Bicouche thermosoudable sous dalles sur plots — sans isolant',
     couches: [['PRI-01', 0.25, 'Imprégnation'], ['SC-04', 1.12, '1re couche soudée en plein'], ['SC-04', 1.12, '2e couche soudée en plein'], ['HI-04', 1.0, 'Dalles sur plots']] },
   { ref: 'IKO-B03', cat: 1, u: 'm²', proc: 'IKO MONO FORUM', sup: 'béton', usage: 'Inaccessible / technique / piétons', cad: 'CXB-001',
     nom: 'Monocouche IKO MONO FORUM sous protection lourde — sans isolant',
-    couches: [['PRI-01', 0.25, 'Imprégnation'], ['MO-03', 1.12, 'Monocouche 4 mm'], ['HI-05', 1.1, 'Écran de désolidarisation'], ['HI-03', 0.08, 'Protection gravillons']] },
+    couches: [['PRI-01', 0.25, 'Imprégnation'], ['MO-03', 1.12, 'Monocouche 4 mm'], ['ACC-05', 1.1, 'Écran de désolidarisation'], ['HI-03', 0.08, 'Protection gravillons']] },
   { ref: 'IKO-C01', cat: 2, u: 'm²', proc: 'IKO DUO STICK', sup: 'béton', usage: 'Inaccessible (local chauffé)', cad: 'CXC-001',
     nom: 'Béton + IKO VAP ALPA 3 en 1 + PIR + bicouche auto-adhésif autoprotégé',
     couches: [['PV-02', 1.1, 'Pare-vapeur 3 en 1 (collage isolant)'], ['ISO-02', 1.03, 'Isolant PIR'], ['SC-01', 1.12, '1re couche auto-adhésive'], ['AP-01', 1.12, '2e couche autoprotégée soudée']] },
@@ -1481,13 +1654,13 @@ const IKO_COMPLEXES = [
     couches: [['PV-02', 1.1, 'Pare-vapeur 3 en 1 (collage isolant)'], ['HI-02', 1.03, 'Isolant PSE'], ['SC-01', 1.12, '1re couche auto-adhésive'], ['AP-01', 1.12, '2e couche autoprotégée soudée']] },
   { ref: 'IKO-D01', cat: 3, u: 'm²', proc: 'IKO DUO FUSION sous lestage', sup: 'béton', usage: 'Inaccessible', cad: 'CXD-001',
     nom: 'Béton + IKO VAP + enertherm KR ALU + bicouche sous gravillons',
-    couches: [['PRI-01', 0.25, 'Imprégnation'], ['PV-01', 1.1, 'Pare-vapeur soudé'], ['ISO-03', 1.03, 'Isolant PIR sous protection lourde'], ['SC-04', 1.12, '1re couche (indépendance)'], ['SC-04', 1.12, '2e couche soudée en plein'], ['HI-05', 1.1, 'Écran de désolidarisation'], ['HI-03', 0.08, 'Protection gravillons']] },
+    couches: [['PRI-01', 0.25, 'Imprégnation'], ['PV-01', 1.1, 'Pare-vapeur soudé'], ['ISO-03', 1.03, 'Isolant PIR sous protection lourde'], ['SC-04', 1.12, '1re couche (indépendance)'], ['SC-04', 1.12, '2e couche soudée en plein'], ['ACC-05', 1.1, 'Écran de désolidarisation'], ['HI-03', 0.08, 'Protection gravillons']] },
   { ref: 'IKO-D02', cat: 3, u: 'm²', proc: 'IKO DUO FUSION', sup: 'béton', usage: 'Accessible piétons', cad: 'CXD-002',
     nom: 'Béton + IKO VAP + PIR collé + bicouche sous dalles sur plots',
     couches: [['PRI-01', 0.25, 'Imprégnation'], ['PV-01', 1.1, 'Pare-vapeur soudé'], ['COL-01', 0.25, 'Collage isolant'], ['ISO-03', 1.03, 'Isolant PIR sous protection lourde'], ['SC-04', 1.12, '1re couche'], ['SC-04', 1.12, '2e couche soudée en plein'], ['HI-04', 1.0, 'Dalles sur plots']] },
   { ref: 'IKO-D03', cat: 3, u: 'm²', proc: 'IKO MONO FORUM', sup: 'béton', usage: 'Inaccessible / technique', cad: 'CXD-001',
     nom: 'Béton + IKO VAP + enertherm KR ALU + monocouche sous gravillons',
-    couches: [['PRI-01', 0.25, 'Imprégnation'], ['PV-01', 1.1, 'Pare-vapeur soudé'], ['ISO-03', 1.03, 'Isolant PIR sous protection lourde'], ['MO-03', 1.12, 'Monocouche 4 mm'], ['HI-05', 1.1, 'Écran de désolidarisation'], ['HI-03', 0.08, 'Protection gravillons']] },
+    couches: [['PRI-01', 0.25, 'Imprégnation'], ['PV-01', 1.1, 'Pare-vapeur soudé'], ['ISO-03', 1.03, 'Isolant PIR sous protection lourde'], ['MO-03', 1.12, 'Monocouche 4 mm'], ['ACC-05', 1.1, 'Écran de désolidarisation'], ['HI-03', 0.08, 'Protection gravillons']] },
   { ref: 'IKO-E01', cat: 4, u: 'm²', proc: 'IKO DUO TOPACIER', sup: 'TAN / bois', usage: 'Inaccessible', cad: 'CXC-003',
     nom: 'Bac acier + IKO VAP ACIER + enertherm ALU + bicouche fixé mécaniquement autoprotégé',
     couches: [['PV-06', 1.1, 'Pare-vapeur alu'], ['ISO-01', 1.03, 'Isolant PIR'], ['FIX-01', 6, 'Fixations isolant + 1re couche'], ['SC-07', 1.12, '1re couche fixée en lisière'], ['AP-03', 1.12, '2e couche autoprotégée soudée']] },
@@ -1521,9 +1694,9 @@ const IKO_COMPLEXES = [
   { ref: 'IKO-H01', cat: 7, u: 'm²', proc: 'IKO DUO STICK', sup: 'ancienne étanchéité', usage: 'Inaccessible', cad: 'CXA-002',
     nom: 'Réfection : bicouche auto-adhésif autoprotégé sur ancienne étanchéité',
     couches: [['PRI-01', 0.25, 'Imprégnation'], ['SC-01', 1.12, '1re couche auto-adhésive'], ['AP-01', 1.12, '2e couche autoprotégée soudée']] },
-  { ref: 'IKO-H02', cat: 7, u: 'm²', proc: 'IKO MONO RENO', sup: 'ancienne étanchéité', usage: 'Inaccessible', cad: 'CXA-002',
-    nom: 'Réfection : monocouche IKO MONO RENO 3000 sur ancienne étanchéité',
-    couches: [['PRI-01', 0.25, 'Imprégnation'], ['MO-01', 1.12, 'Monocouche 3 mm autoprotégé']] },
+  { ref: 'IKO-H02', cat: 7, u: 'm²', proc: 'IKO MONO FUSION', sup: 'ancienne étanchéité', usage: 'Inaccessible', cad: 'CXA-002',
+    nom: 'Réfection : monocouche IKO MONO FUSION AR/F sur ancienne étanchéité',
+    couches: [['PRI-01', 0.25, 'Imprégnation'], ['MO-06', 1.12, 'Monocouche autoprotégé soudé']] },
   { ref: 'IKO-H03', cat: 7, u: 'm²', proc: 'IKO MONO ACIER', sup: 'ancienne étanchéité / TAN', usage: 'Inaccessible', cad: null,
     nom: 'Réfection : monocouche fixé mécaniquement autoprotégé',
     couches: [['FIX-01', 3, 'Fixations en lisière'], ['MO-02', 1.12, 'Monocouche 4 mm']] },
@@ -1539,6 +1712,9 @@ const IKO_COMPLEXES = [
   { ref: 'IKO-R04', cat: 8, u: 'm²', proc: 'IKO hybritech MS Detail', sup: 'tous supports', usage: 'Points singuliers', cad: null,
     nom: 'Étanchéité liquide de points singuliers — IKO hybritech MS Detail armé',
     couches: [['LIQ-01', 2.0, 'Résine (2 passes)'], ['LIQ-04', 1.1, 'Voile d\'armature']] },
+  { ref: 'IKO-R06', cat: 8, u: 'ml', proc: 'STARCOAT R', sup: 'tous supports', usage: 'Relevé liquide h ≤ 0,15 m', cad: null,
+    nom: 'Relevé liquide STARCOAT R armé MATCOAT R (bande 0,15 m)',
+    couches: [['LIQ-05', 0.45, 'Résine (2 passes)'], ['LIQ-06', 1.05, 'Armature MATCOAT R']] },
   { ref: 'IKO-R05', cat: 8, u: 'm²', proc: 'IKO metatech Detail', sup: 'tous supports', usage: 'Détails complexes, séchage rapide', cad: null,
     nom: 'Étanchéité liquide PMMA — IKO metatech Detail armé',
     couches: [['LIQ-03', 3.0, 'Résine PMMA'], ['LIQ-04', 1.1, 'Voile d\'armature']] },
@@ -3602,18 +3778,30 @@ function exportCadences() {
 }
 
 /* ---------- Catalogue IKO (produits & complexes) ---------- */
-const IKO = { vue: 'complexes', f: { cat: '', fam: '', q: '' } };
+const IKO = { vue: 'complexes', f: { cat: '', fam: '', q: '', stock: '' } };
 const ikoProduit = ref => IKO_PRODUITS.find(p => p[IKO_I.REF] === ref);
-/* Prix unitaire retenu : tarif saisi dans le profil, sinon prix repère, sinon 0. */
-const ikoPrix = ref => { const v = DB.data.ikoPrix[ref]; return v !== undefined && v !== '' ? +v || 0 : (IKO_PRIX_DEFAUT[ref] || 0); };
+const ikoLigneGrille = code => IKO_GRILLE_ROWS.find(g => g[IKO_G.CODE] === code || g[IKO_G.PHX] === code);
+const ikoPuGrille = g => g[IKO_G.PU] + g[IKO_G.EC]; // prix € HT éco-contribution incluse
+/* Tarif grille d'un produit du catalogue, ramené à son unité de chiffrage : { g, pu } ou null. */
+function ikoGrille(ref) {
+  const lien = IKO_LIEN_GRILLE[ref]; if (!lien) return null;
+  const g = ikoLigneGrille(lien[0]); if (!g) return null;
+  return { g, pu: ikoPuGrille(g) / (lien[1] || 1) };
+}
 const ikoPrixSaisi = ref => DB.data.ikoPrix[ref] !== undefined && DB.data.ikoPrix[ref] !== '';
+/* Prix unitaire retenu : prix saisi dans le profil, sinon grille SMAC (EC incluse), sinon 0. */
+const ikoPrix = ref => { if (ikoPrixSaisi(ref)) return +DB.data.ikoPrix[ref] || 0; const k = ikoGrille(ref); return k ? k.pu : 0; };
+const ikoStockChip = g => g[IKO_G.STOCK] ? '<span class="chip" style="color:#1f7a4d" title="Tenu en stock par IKO">stock</span>'
+  : '<span class="chip" style="color:#b3261e" title="Non garanti en stock : prévoir ≈ 2 semaines d\'approvisionnement">délai 2 sem.</span>';
 const ikoTexte = c => c.ref + ' ' + c.nom + ' ' + c.proc + ' ' + c.sup + ' ' + c.usage + ' ' + c.couches.map(k => (ikoProduit(k[0]) || [])[IKO_I.DES]).join(' ');
+const ikoGrilleUtilisee = code => Object.entries(IKO_LIEN_GRILLE).filter(([, l]) => l[0] === code).map(([r]) => r);
 
 /* Chiffrage d'un complexe pour une quantité donnée : fournitures + temps de pose (référentiel cadences). */
 function ikoChiffrer(c, qte) {
   const lignes = c.couches.map(([ref, conso, role]) => {
-    const p = ikoProduit(ref), q = qte * conso, pu = ikoPrix(ref);
-    return { ref, role, conso, des: p[IKO_I.DES], unite: p[IKO_I.U], qte: q, pu, total: q * pu, sansPrix: !pu };
+    const p = ikoProduit(ref), q = qte * conso, pu = ikoPrix(ref), k = ikoGrille(ref);
+    return { ref, role, conso, des: p[IKO_I.DES], unite: p[IKO_I.U], qte: q, pu, total: q * pu, sansPrix: !pu,
+      code: k ? k.g[IKO_G.CODE] || k.g[IKO_G.PHX] : '', delai: !!(k && !k.g[IKO_G.STOCK]), saisi: ikoPrixSaisi(ref) };
   });
   const fourn = lignes.reduce((s, l) => s + l.total, 0);
   const o = c.cad ? cadOuvrage(c.cad) : null;
@@ -3623,33 +3811,35 @@ function ikoChiffrer(c, qte) {
 }
 
 function renderIko(v) {
-  const complexes = IKO.vue === 'complexes';
+  const vue = IKO.vue;
+  const filtre = vue === 'complexes'
+    ? `<div class="field"><label>Type de complexe</label><select data-f="cat"><option value="">Tous les types</option>${IKO_CATS.map((c, i) => `<option value="${i}" ${IKO.f.cat === String(i) ? 'selected' : ''}>${esc(c)}</option>`).join('')}</select></div>`
+    : vue === 'produits'
+      ? `<div class="field"><label>Famille</label><select data-f="fam"><option value="">Toutes les familles</option>${IKO_FAMILLES.map((f, i) => `<option value="${i}" ${IKO.f.fam === String(i) ? 'selected' : ''}>${esc(f)}</option>`).join('')}</select></div>`
+      : `<div class="field"><label>Disponibilité</label><select data-f="stock"><option value="">Toutes les références</option><option value="1" ${IKO.f.stock === '1' ? 'selected' : ''}>Tenues en stock (vert)</option><option value="0" ${IKO.f.stock === '0' ? 'selected' : ''}>Délai ≈ 2 semaines (rouge)</option></select></div>`;
   v.innerHTML = `
-    <p class="t-muted" style="margin:0 0 16px;max-width:900px">Catalogue <b>IKO</b> (ex-Axter) : <b>${IKO_PRODUITS.length} produits</b> et <b>${IKO_COMPLEXES.length} complexes d'étanchéité</b>
-      (bicouches soudés, auto-adhésifs, fixés mécaniquement, monocouches, végétalisés, parking, PVC, liquides, relevés).
-      Saisissez votre tarif négocié dans l'onglet Produits : chaque complexe est alors chiffré au m² (ou ml) et s'importe dans un BTE
-      avec le temps de pose du référentiel cadences. Les consommations sont des repères (recouvrements et chutes inclus) à valider sur le DTA du procédé.</p>
+    <p class="t-muted" style="margin:0 0 16px;max-width:900px">Catalogue <b>IKO</b> (ex-Axter) : <b>${IKO_PRODUITS.length} produits</b>, <b>${IKO_COMPLEXES.length} complexes d'étanchéité</b>
+      et la <b>${esc(IKO_GRILLE.titre)}</b> (${IKO_GRILLE_ROWS.length} références, du ${fmtDate(IKO_GRILLE.du)} au ${fmtDate(IKO_GRILLE.au)}).
+      Les complexes sont chiffrés au prix de la grille, <b>éco-contribution incluse</b> (coloris gris par défaut) ; un prix saisi dans l'onglet Produits reste prioritaire.
+      Les consommations sont des repères (recouvrements et chutes inclus) à valider sur le DTA du procédé.
+      ${todayISO() > IKO_GRILLE.au ? `<br><b style="color:#b3261e">⚠ La grille a expiré le ${fmtDate(IKO_GRILLE.au)} : vérifiez les prix auprès de la Direction Achats.</b>` : ''}</p>
     <div class="page-actions">
-      <button class="btn small ${complexes ? 'primary' : ''}" data-vue="complexes">${icon('layers')} Complexes (${IKO_COMPLEXES.length})</button>
-      <button class="btn small ${!complexes ? 'primary' : ''}" data-vue="produits">${icon('book')} Produits & tarifs (${IKO_PRODUITS.length})</button>
+      <button class="btn small ${vue === 'complexes' ? 'primary' : ''}" data-vue="complexes">${icon('layers')} Complexes (${IKO_COMPLEXES.length})</button>
+      <button class="btn small ${vue === 'produits' ? 'primary' : ''}" data-vue="produits">${icon('book')} Produits & prix (${IKO_PRODUITS.length})</button>
+      <button class="btn small ${vue === 'grille' ? 'primary' : ''}" data-vue="grille">${icon('receipt')} Grille tarifaire 2026 (${IKO_GRILLE_ROWS.length})</button>
       <span class="spacer"></span>
       <button class="btn small" id="iko-xlsx">${icon('download')} Exporter</button>
     </div>
     <div class="card card-pad">
-      <div class="form-grid" style="grid-template-columns:repeat(2,1fr)">
-        ${complexes
-          ? `<div class="field"><label>Type de complexe</label><select data-f="cat"><option value="">Tous les types</option>${IKO_CATS.map((c, i) => `<option value="${i}" ${IKO.f.cat === String(i) ? 'selected' : ''}>${esc(c)}</option>`).join('')}</select></div>`
-          : `<div class="field"><label>Famille</label><select data-f="fam"><option value="">Toutes les familles</option>${IKO_FAMILLES.map((f, i) => `<option value="${i}" ${IKO.f.fam === String(i) ? 'selected' : ''}>${esc(f)}</option>`).join('')}</select></div>`}
-        <div class="field"><label>Recherche</label><input data-f="q" type="search" placeholder="${complexes ? 'ex. DUO STICK, bac acier, végétalisé…' : 'ex. VAP, enertherm, RLV…'}" value="${esc(IKO.f.q)}"></div>
+      <div class="form-grid" style="grid-template-columns:repeat(2,1fr)">${filtre}
+        <div class="field"><label>Recherche</label><input data-f="q" type="search" placeholder="${vue === 'complexes' ? 'ex. DUO STICK, bac acier, végétalisé…' : vue === 'produits' ? 'ex. VAP, enertherm, RLV…' : 'ex. ET02206, FUSION, BLANC…'}" value="${esc(IKO.f.q)}"></div>
       </div>
       <div id="iko-list" style="margin-top:14px"></div>
     </div>`;
   $$('[data-vue]', v).forEach(b => b.onclick = () => { IKO.vue = b.dataset.vue; renderIko(v); });
-  const cat = v.querySelector('[data-f="cat"]'), fam = v.querySelector('[data-f="fam"]');
-  if (cat) cat.onchange = e => { IKO.f.cat = e.target.value; ikoRefreshList(); };
-  if (fam) fam.onchange = e => { IKO.f.fam = e.target.value; ikoRefreshList(); };
+  ['cat', 'fam', 'stock'].forEach(k => { const el = v.querySelector(`[data-f="${k}"]`); if (el) el.onchange = e => { IKO.f[k] = e.target.value; ikoRefreshList(); }; });
   v.querySelector('[data-f="q"]').oninput = e => { IKO.f.q = e.target.value; ikoRefreshList(); };
-  $('#iko-xlsx').onclick = complexes ? ikoExportComplexes : ikoExportProduits;
+  $('#iko-xlsx').onclick = { complexes: ikoExportComplexes, produits: ikoExportProduits, grille: ikoExportGrille }[vue];
   ikoRefreshList();
 }
 function ikoRefreshList() {
@@ -3660,31 +3850,45 @@ function ikoRefreshList() {
     box.innerHTML = !list.length ? '<p class="t-muted">Aucun complexe ne correspond à ces filtres.</p>' :
       `<div class="table-wrap"><table>
         <thead><tr><th>Réf.</th><th>Complexe</th><th>Support</th><th>Usage</th><th class="num">Fournitures / u</th><th class="num">Pose</th><th></th></tr></thead>
-        <tbody>${list.map(c => { const k = ikoChiffrer(c, 1), manque = k.lignes.some(l => l.sansPrix); return `<tr>
+        <tbody>${list.map(c => { const k = ikoChiffrer(c, 1), manque = k.lignes.some(l => l.sansPrix), delai = k.lignes.some(l => l.delai); return `<tr>
           <td class="t-muted">${esc(c.ref)}</td>
-          <td style="white-space:normal;min-width:260px"><span class="link t-strong" data-open="${c.ref}">${esc(c.nom)}</span><br><span class="t-muted" style="font-size:11.5px">${esc(IKO_CATS[c.cat])} · ${esc(c.proc)} · ${c.couches.length} couche(s)</span></td>
+          <td style="white-space:normal;min-width:260px"><span class="link t-strong" data-open="${c.ref}">${esc(c.nom)}</span><br><span class="t-muted" style="font-size:11.5px">${esc(IKO_CATS[c.cat])} · ${esc(c.proc)} · ${c.couches.length} couche(s)</span>${delai ? ' <span class="chip" style="color:#b3261e" title="Au moins un produit non garanti en stock">délai 2 sem.</span>' : ''}</td>
           <td style="white-space:normal">${esc(c.sup)}</td><td class="t-muted" style="white-space:normal">${esc(c.usage)}</td>
-          <td class="num">${eur2(k.fourn)}/${esc(c.u)}${manque ? ' <span class="chip" title="Certains produits n\'ont pas de prix : complétez l\'onglet Produits">prix à compléter</span>' : ''}</td>
+          <td class="num">${eur2(k.fourn)}/${esc(c.u)}${manque ? '<br><span class="chip" title="Certains produits ne sont pas dans la grille : saisissez leur prix dans l\'onglet Produits">prix à compléter</span>' : ''}</td>
           <td class="num">${k.hU ? cadNum3(k.hU) + ' h/' + esc(c.u) : '<span class="t-muted">—</span>'}</td>
           <td class="num"><button class="btn small" data-open="${c.ref}">${icon('calculator')} Chiffrer</button></td></tr>`; }).join('')}</tbody></table></div>
-      <p class="t-muted" style="margin:8px 0 0;font-size:12px">${list.length} complexe(s). Protections lourdes, isolants laine de roche / PSE et végétalisation sont signalés « hors IKO ».</p>`;
+      <p class="t-muted" style="margin:8px 0 0;font-size:12px">${list.length} complexe(s). Isolants enertherm, laine de roche / PSE, gravillons, dalles et végétalisation ne sont pas dans la grille : prix à saisir.</p>`;
     $$('[data-open]', box).forEach(b => b.onclick = () => ikoComplexeModal(b.dataset.open));
-  } else {
-    const list = IKO_PRODUITS.filter(p => (IKO.f.fam === '' || p[IKO_I.FAM] === +IKO.f.fam) && (!q || (p.join(' ') + ' ' + IKO_FAMILLES[p[IKO_I.FAM]]).toLowerCase().includes(q)));
+  } else if (IKO.vue === 'produits') {
+    const list = IKO_PRODUITS.filter(p => (IKO.f.fam === '' || p[IKO_I.FAM] === +IKO.f.fam) && (!q || (p.join(' ') + ' ' + IKO_FAMILLES[p[IKO_I.FAM]] + ' ' + ((IKO_LIEN_GRILLE[p[IKO_I.REF]] || [])[0] || '')).toLowerCase().includes(q)));
     box.innerHTML = !list.length ? '<p class="t-muted">Aucun produit ne correspond à ces filtres.</p>' :
       `<div class="table-wrap"><table>
-        <thead><tr><th>Réf.</th><th>Produit</th><th>Famille</th><th>Conditionnement / conso.</th><th>U</th><th class="num">Mon tarif € HT</th></tr></thead>
-        <tbody>${list.map(p => { const r = p[IKO_I.REF]; return `<tr>
+        <thead><tr><th>Réf.</th><th>Produit</th><th>Famille</th><th>Grille SMAC 2026</th><th>U</th><th class="num">Prix retenu € HT</th></tr></thead>
+        <tbody>${list.map(p => { const r = p[IKO_I.REF], k = ikoGrille(r); return `<tr>
           <td class="t-muted">${esc(r)}</td>
-          <td style="white-space:normal;min-width:280px"><span class="t-strong">${esc(p[IKO_I.DES])}</span><br><span class="t-muted" style="font-size:11.5px">${esc(p[IKO_I.DESC])}</span></td>
-          <td class="t-muted" style="white-space:normal">${esc(IKO_FAMILLES[p[IKO_I.FAM]])}</td><td class="t-muted" style="white-space:normal">${esc(p[IKO_I.COND])}</td><td>${esc(p[IKO_I.U])}</td>
-          <td class="num"><input data-prix="${esc(r)}" type="number" min="0" step="0.01" value="${ikoPrixSaisi(r) ? DB.data.ikoPrix[r] : ''}" placeholder="${IKO_PRIX_DEFAUT[r] ? String(IKO_PRIX_DEFAUT[r]).replace('.', ',') : '—'}" style="max-width:100px;text-align:right" title="Vide = prix repère (grisé)"></td></tr>`; }).join('')}</tbody></table></div>
-      <p class="t-muted" style="margin:8px 0 0;font-size:12px">${list.length} produit(s). Tarifs enregistrés dans le profil courant ; laissez vide pour utiliser le prix repère affiché en grisé.</p>`;
+          <td style="white-space:normal;min-width:280px"><span class="t-strong">${esc(p[IKO_I.DES])}</span><br><span class="t-muted" style="font-size:11.5px">${esc(p[IKO_I.DESC])} — ${esc(p[IKO_I.COND])}</span></td>
+          <td class="t-muted" style="white-space:normal">${esc(IKO_FAMILLES[p[IKO_I.FAM]])}</td>
+          <td style="white-space:normal;min-width:170px">${k ? `<span class="t-strong">${esc(k.g[IKO_G.CODE] || 'PHX ' + k.g[IKO_G.PHX])}</span> ${ikoStockChip(k.g)}<br><span class="t-muted" style="font-size:11.5px">${esc(k.g[IKO_G.DES])}</span><br><span style="font-size:12px">${eur2(k.pu)} / ${esc(p[IKO_I.U])} EC incl.</span>` : '<span class="t-muted">Hors grille</span>'}</td>
+          <td>${esc(p[IKO_I.U])}</td>
+          <td class="num"><input data-prix="${esc(r)}" type="number" min="0" step="0.01" value="${ikoPrixSaisi(r) ? DB.data.ikoPrix[r] : ''}" placeholder="${k ? k.pu.toFixed(2).replace('.', ',') : 'à saisir'}" style="max-width:100px;text-align:right" title="Vide = prix de la grille (grisé)"></td></tr>`; }).join('')}</tbody></table></div>
+      <p class="t-muted" style="margin:8px 0 0;font-size:12px">${list.length} produit(s). Laissez vide pour appliquer la grille ; un prix saisi (profil courant) la remplace, par ex. pour un autre coloris ou une remise chantier.</p>`;
     $$('[data-prix]', box).forEach(el => el.onchange = () => {
       const r = el.dataset.prix;
       if (el.value === '') delete DB.data.ikoPrix[r]; else DB.data.ikoPrix[r] = +el.value || 0;
-      DB.save(); toast('Tarif enregistré');
+      DB.save(); toast('Prix enregistré');
     });
+  } else {
+    const list = IKO_GRILLE_ROWS.filter(g => (IKO.f.stock === '' || g[IKO_G.STOCK] === +IKO.f.stock) && (!q || g.slice(0, 5).join(' ').toLowerCase().includes(q)));
+    box.innerHTML = !list.length ? '<p class="t-muted">Aucune référence ne correspond à ces filtres.</p>' :
+      `<div class="table-wrap"><table>
+        <thead><tr><th>Code IKO</th><th>Phoenix</th><th>Désignation</th><th>Stock</th><th>Cond.</th><th class="num">Poids</th><th class="num">Long.</th><th>U prix</th><th class="num">Prix HT</th><th class="num">Éco-contr.</th><th class="num">Prix EC incl.</th></tr></thead>
+        <tbody>${list.map(g => { const used = ikoGrilleUtilisee(g[IKO_G.CODE] || g[IKO_G.PHX]); return `<tr>
+          <td class="t-strong">${esc(g[IKO_G.CODE] || '—')}</td><td class="t-muted">${esc(g[IKO_G.PHX])}</td>
+          <td style="white-space:normal;min-width:240px">${esc(g[IKO_G.DES])}${used.length ? `<br><span class="t-muted" style="font-size:11.5px">Utilisé dans les complexes (${used.join(', ')})</span>` : ''}</td>
+          <td>${ikoStockChip(g)}</td><td>${esc(g[IKO_G.COND])}</td>
+          <td class="num">${g[IKO_G.POIDS] != null ? num(g[IKO_G.POIDS]) + ' kg' : '—'}</td><td class="num">${g[IKO_G.LONG] != null ? num(g[IKO_G.LONG]) + ' ml' : '—'}</td>
+          <td>${esc(g[IKO_G.U])}</td><td class="num">${eur2(g[IKO_G.PU])}</td><td class="num t-muted">${eur2(g[IKO_G.EC])}</td><td class="num t-strong">${eur2(ikoPuGrille(g))}</td></tr>`; }).join('')}</tbody></table></div>
+      <p class="t-muted" style="margin:8px 0 0;font-size:12px">${list.length} référence(s) — mise à jour du ${fmtDate(IKO_GRILLE.maj)}. VERT : tenu en stock par IKO ; ROUGE : non garanti, prévoir ≈ 2 semaines d'approvisionnement.</p>`;
   }
 }
 const eur2 = n => (isFinite(n) ? n : 0).toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -3708,15 +3912,16 @@ function ikoComplexeModal(ref) {
     $('#k-cad').innerHTML = k.o ? `${esc(k.o[CAD_I.REF])} — ${esc(k.o[CAD_I.DES])} : <b>${cadNum3(k.hU)} h/${esc(c.u)}</b>` : 'Pas d\'ouvrage associé — main d\'œuvre à chiffrer à part';
     $('#k-out').innerHTML = `<div class="table-wrap"><table>
       <thead><tr><th>Couche</th><th>Produit</th><th class="num">Conso / ${esc(c.u)}</th><th class="num">Quantité</th><th class="num">PU</th><th class="num">Total</th></tr></thead>
-      <tbody>${k.lignes.map(l => `<tr><td class="t-muted">${esc(l.role)}</td><td class="t-strong">${esc(l.des)}</td>
+      <tbody>${k.lignes.map(l => `<tr><td class="t-muted">${esc(l.role)}</td><td><span class="t-strong">${esc(l.des)}</span>${l.code ? ` <span class="t-muted" style="font-size:11.5px">${esc(l.code)}</span>` : ''}${l.delai ? ' <span class="chip" style="color:#b3261e" title="Non garanti en stock chez IKO">délai 2 sem.</span>' : ''}</td>
         <td class="num">${cadNum3(l.conso)} ${esc(l.unite)}</td><td class="num">${num(l.qte)} ${esc(l.unite)}</td>
-        <td class="num">${l.sansPrix ? '<span class="chip">à saisir</span>' : eur2(l.pu)}</td><td class="num">${eur(l.total)}</td></tr>`).join('')}</tbody>
+        <td class="num">${l.sansPrix ? '<span class="chip">à saisir</span>' : eur2(l.pu) + (l.saisi ? '<br><span class="t-muted" style="font-size:11px">prix saisi</span>' : l.code ? '<br><span class="t-muted" style="font-size:11px">grille EC incl.</span>' : '')}</td><td class="num">${eur(l.total)}</td></tr>`).join('')}</tbody>
       <tfoot>
         <tr><td colspan="5">Fournitures — ${eur2(qte ? k.fourn / qte : 0)} / ${esc(c.u)}</td><td class="num">${eur(k.fourn)}</td></tr>
         ${k.hU ? `<tr><td colspan="5">Main d'œuvre — ${num(k.h)} h × ${eur(k.taux)}/h</td><td class="num">${eur(k.mo)}</td></tr>
         <tr><td colspan="5">Déboursé sec (fournitures + MO) — ${eur2(qte ? (k.fourn + k.mo) / qte : 0)} / ${esc(c.u)}</td><td class="num">${eur(k.fourn + k.mo)}</td></tr>` : ''}
       </tfoot></table></div>
-      ${k.lignes.some(l => l.sansPrix) ? '<p class="t-muted" style="font-size:12px;margin:8px 0 0">Des produits n\'ont pas de tarif : renseignez-les dans l\'onglet « Produits & tarifs ».</p>' : ''}`;
+      ${k.lignes.some(l => l.sansPrix) ? '<p class="t-muted" style="font-size:12px;margin:8px 0 0">Des produits n\'ont pas de tarif : renseignez-les dans l\'onglet « Produits & prix ».</p>' : ''}
+      ${k.lignes.some(l => l.delai) ? '<p class="t-muted" style="font-size:12px;margin:6px 0 0">Produits repérés « délai 2 sem. » : non garantis en stock par IKO, anticipez la commande.</p>' : ''}`;
   };
   $('#k-qte').oninput = e => { qte = +e.target.value || 0; refresh(); };
   $('#k-mo').onchange = e => { withMo = e.target.checked; };
@@ -3732,7 +3937,7 @@ function ikoComplexeModal(ref) {
 }
 function ikoVersBte(c, qte, withMo) {
   const k = ikoChiffrer(c, qte), r2 = n => Math.ceil(Math.round(n * 1e4) / 100) / 100;
-  const lignes = k.lignes.map(l => ({ cat: BTE_CATS[2], designation: l.des + ' — ' + l.role, unite: l.unite, qte: r2(l.qte), pu: l.pu }));
+  const lignes = k.lignes.map(l => ({ cat: BTE_CATS[2], designation: (l.code ? l.code + ' ' : '') + l.des + ' — ' + l.role, unite: l.unite, qte: r2(l.qte), pu: Math.round(l.pu * 1e4) / 1e4 }));
   if (withMo && k.hU) lignes.push({ cat: BTE_CATS[1], designation: k.o[CAD_I.REF] + ' — ' + c.nom, unite: 'h', qte: Math.round(k.h * 10) / 10, pu: k.taux });
   const total = lignes.reduce((s, l) => s + l.qte * l.pu, 0);
   const m = modal({ title: 'Importer le complexe dans un BTE',
@@ -3747,15 +3952,20 @@ function ikoVersBte(c, qte, withMo) {
     DB.save(); m.close(); toast('Complexe IKO importé dans le BTE'); go('bte'); bteEditor(bte.id);
   };
 }
+function ikoExportGrille() {
+  exportXlsx('grille_IKO_2026', ['code_iko', 'code_phoenix', 'designation', 'stock', 'conditionnement', 'poids_kg', 'longueur_ml', 'unite_prix', 'prix_ht', 'eco_contribution', 'prix_ec_inclus'],
+    IKO_GRILLE_ROWS.map(g => [g[IKO_G.CODE], g[IKO_G.PHX], g[IKO_G.DES], g[IKO_G.STOCK] ? 'VERT' : 'ROUGE', g[IKO_G.COND], g[IKO_G.POIDS], g[IKO_G.LONG], g[IKO_G.U], g[IKO_G.PU], g[IKO_G.EC], ikoPuGrille(g)]),
+    { sheet: 'Grille IKO 2026', money: ['prix_ht', 'eco_contribution', 'prix_ec_inclus'], totals: false });
+}
 function ikoExportProduits() {
-  exportXlsx('catalogue_IKO_produits', ['ref', 'famille', 'produit', 'descriptif', 'unite', 'conditionnement', 'pu'],
-    IKO_PRODUITS.map(p => [p[IKO_I.REF], IKO_FAMILLES[p[IKO_I.FAM]], p[IKO_I.DES], p[IKO_I.DESC], p[IKO_I.U], p[IKO_I.COND], ikoPrix(p[IKO_I.REF])]),
+  exportXlsx('catalogue_IKO_produits', ['ref', 'famille', 'produit', 'descriptif', 'unite', 'conditionnement', 'code_grille', 'pu'],
+    IKO_PRODUITS.map(p => { const k = ikoGrille(p[IKO_I.REF]); return [p[IKO_I.REF], IKO_FAMILLES[p[IKO_I.FAM]], p[IKO_I.DES], p[IKO_I.DESC], p[IKO_I.U], p[IKO_I.COND], k ? k.g[IKO_G.CODE] || k.g[IKO_G.PHX] : '', ikoPrix(p[IKO_I.REF])]; }),
     { sheet: 'Produits IKO', money: ['pu'], totals: false });
 }
 function ikoExportComplexes() {
   const rows = [];
-  IKO_COMPLEXES.forEach(c => ikoChiffrer(c, 1).lignes.forEach(l => rows.push([c.ref, IKO_CATS[c.cat], c.nom, c.proc, c.sup, c.u, l.role, l.des, l.conso, l.unite, l.pu, l.total])));
-  exportXlsx('catalogue_IKO_complexes', ['ref', 'type', 'complexe', 'procede', 'support', 'unite_complexe', 'couche', 'produit', 'conso', 'unite', 'pu', 'cout_unitaire'],
+  IKO_COMPLEXES.forEach(c => ikoChiffrer(c, 1).lignes.forEach(l => rows.push([c.ref, IKO_CATS[c.cat], c.nom, c.proc, c.sup, c.u, l.role, l.des, l.code, l.conso, l.unite, l.pu, l.total])));
+  exportXlsx('catalogue_IKO_complexes', ['ref', 'type', 'complexe', 'procede', 'support', 'unite_complexe', 'couche', 'produit', 'code_grille', 'conso', 'unite', 'pu', 'cout_unitaire'],
     rows, { sheet: 'Complexes IKO', money: ['pu', 'cout_unitaire'], totals: false });
 }
 
