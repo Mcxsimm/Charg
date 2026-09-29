@@ -1917,6 +1917,8 @@ const DB = {
     if (!d.cadBase.ouv || typeof d.cadBase.ouv !== 'object' || Array.isArray(d.cadBase.ouv)) d.cadBase.ouv = {};
     if (!Array.isArray(d.cadBase.perso)) d.cadBase.perso = [];
     if (!Array.isArray(d.materiaux)) d.materiaux = [];
+    if (!Array.isArray(d.cadEtudes)) d.cadEtudes = [];
+    if (d.cadCourant && typeof d.cadCourant !== 'object') d.cadCourant = null;
     d.otps.forEach(o => { if (o.horsPerimetre === undefined) o.horsPerimetre = false; });
     d.pointages = migratePointages(d.pointages);
     d.bte = d.bte.map(migrateBte);
@@ -3804,6 +3806,7 @@ const CAD = {
   coeff: Object.fromEntries(CAD_COEFFS.map(c => [c.key, c.def])),
   lignes: [],                       // [{ ref, qte, h? }]
   mode: 'simple',                   // simple (ouvrages types) | detail (base complète avec références)
+  nom: '', asst: null, asstPourquoi: {}, // étude en cours (sauvegardée dans le profil) + assistant
   mats: [],                         // matériaux ajoutés directement : [{ src: 'mat' | 'grille', ref, qte }]
   mq: '',                           // recherche de matériaux dans le chiffrage
   f: { dom: '', fam: '', q: '' },   // filtres des ouvrages
@@ -3948,6 +3951,7 @@ function cadFamillesDispo() {
 }
 
 function renderCadences(v) {
+  cadRestaurer();
   const vues = { chiffrage: ['calculator', 'Chiffrage'], base: ['layers', `Base ouvrages (${cadTous().length})`], materiaux: ['book', `Matériaux & prix (${matTous().length})`], grille: ['receipt', `Grille IKO 2026 (${IKO_GRILLE_ROWS.length})`] };
   v.innerHTML = `
     <p class="t-muted" style="margin:0 0 12px;max-width:980px">Base de chiffrage SMAC : <b>${cadTous().length} ouvrages</b> (référentiel « cadence.xlsx » + complexes IKO${DB.data.cadBase.perso.length ? ' + ' + DB.data.cadBase.perso.length + ' ouvrage(s) ajouté(s)' : ''})
@@ -3975,12 +3979,151 @@ function cadBindFiltres(v, onChange) {
   v.querySelector('[data-f="q"]').oninput = e => { CAD.f.q = e.target.value; onChange(); };
 }
 
+/* ===== Assistant « Composer une toiture » : 10 réponses → liste d'ouvrages cohérente ===== */
+const CAD_ASST_DEF = { surface: 0, support: 'beton', depose: 'aucune', iso: 'aucune', protection: 'ap', revet: 'bicouche', rel: 0, relH: 0.30, couv: 0, emerg: 0, ep: 0 };
+const CAD_ASST_OPTS = {
+  support: { beton: 'Béton / maçonnerie', acier: 'Bac acier (TAN)', bois: 'Bois / panneaux' },
+  depose: { aucune: 'Aucune (neuf ou recouvrement)', adh: 'Multicouche en adhérence', indep: 'Multicouche indépendant', grav: 'Gravillons + multicouche indépendant' },
+  iso: { aucune: 'Sans isolant', pir: 'PIR (polyisocyanurate)', ldr: 'Laine de roche', pse: 'PSE (polystyrène)' },
+  protection: { ap: 'Autoprotégée (inaccessible)', grav: 'Gravillons (inaccessible)', dalles: 'Dalles sur plots (accessible piétons)', veg: 'Végétalisée' },
+  revet: { bicouche: 'Bicouche soudé', adhesif: 'Bicouche auto-adhésif (sans flamme)', mono: 'Monocouche' },
+};
+/* Règles de composition (simplifiées, esprit DTU 43.1 / 43.3 et procédés IKO). Renvoie [{ ref, qte, v?, h? , pourquoi }]. */
+function cadComposer(a) {
+  const S = +a.surface || 0, lignes = [], add = (ref, qte, v, why, h) => { if (qte > 0 && cadOuvrage(ref)) lignes.push({ ref, qte, v, h, why }); };
+  const acier = a.support === 'acier', iso = a.iso !== 'aucune', lourd = a.protection !== 'ap';
+  const alveo = a.iso === 'pir' || a.iso === 'pse';             // isolants sensibles à la flamme
+  const isoIdx = { pir: 0, pse: 1, ldr: 2 };                    // T-ETA-05 / 06
+  const rel = +a.rel || 0;
+  // 1. Dépose
+  if (a.depose === 'adh') add('DEP-005', S, undefined, 'Dépose de l\'existant');
+  if (a.depose === 'indep') add('DEP-004', S, undefined, 'Dépose de l\'existant');
+  if (a.depose === 'grav') { add('DEP-001', S, undefined, 'Dépose de la protection'); add('DEP-004', S, undefined, 'Dépose de l\'existant'); }
+  // 2. Primaire (supports béton / bois hors bac acier)
+  if (!acier) add('T-ETA-01', S, 0, 'Imprégnation du support avant soudure');
+  // 3. Pare-vapeur + isolant
+  if (iso) {
+    add(acier ? 'T-ETA-03' : 'T-ETA-02', S, 0, 'Pare-vapeur obligatoire sous isolant');
+    add('T-ETA-04', rel, 0, 'Continuité du pare-vapeur en relevé');
+    if (acier) add('T-ETA-07', S, { pir: 0, ldr: 1, pse: 2 }[a.iso], 'Isolant fixé mécaniquement sur TAN');
+    else if (lourd) add('T-ETA-05', S, isoIdx[a.iso], 'Isolant posé libre, maintenu par la protection lourde');
+    else add('T-ETA-06', S, isoIdx[a.iso], 'Isolant collé (tenue au vent en autoprotégé)');
+  }
+  // 4. Revêtement
+  if (a.revet === 'mono') {
+    if (acier && !lourd) add('T-ETA-19', S, 0, 'Monocouche fixé mécaniquement sur TAN');
+    else add('T-ETA-18', S, lourd ? 2 : 0, lourd ? 'Monocouche sous protection lourde' : 'Monocouche autoprotégé soudé');
+  } else {
+    if (acier && !lourd) add('T-ETA-13', S, a.iso === 'pse' ? 2 : 0, a.iso === 'pse' ? '1re couche fixée, joints auto-adhésifs (PSE)' : '1re couche fixée en lisière sur TAN');
+    else if (a.revet === 'adhesif' || alveo) add('T-ETA-12', S, 0, alveo ? '1re couche auto-adhésive : pas de flamme sur isolant PIR/PSE' : 'Bicouche auto-adhésif');
+    else if (lourd || iso) add('T-ETA-10', S, 0, '1re couche en semi-indépendance');
+    else add('T-ETA-11', S, 0, '1re couche soudée en plein sur support');
+    if (a.protection === 'veg') add('T-ETA-17', S, 0, '2e couche anti-racines sous végétalisation');
+    else if (lourd) add('T-ETA-16', S, 0, '2e couche sous protection lourde');
+    else add('T-ETA-15', S, acier ? 2 : 0, '2e couche autoprotégée');
+  }
+  // 5. Protection
+  if (a.protection === 'grav') { add('ET2-022', S, undefined, 'Écran de désolidarisation'); add('ET2-020', S, undefined, 'Protection gravillons'); }
+  if (a.protection === 'dalles') add('ET2-021', S, undefined, 'Dalles sur plots');
+  if (a.protection === 'veg') add('ET2-025', S, undefined, 'Complexe de végétalisation');
+  // 6. Relevés, couvertines, émergences, EP
+  if (iso) add('T-ETA-22', rel, 0, 'Relevé isolé (toiture isolée)', +a.relH || IKO_REL_H);
+  else add('T-ETA-21', rel, lourd ? 1 : 0, lourd ? 'Relevé alu (sous protection)' : 'Relevé autoprotégé ardoisé', +a.relH || IKO_REL_H);
+  add('ET2-012', +a.couv || 0, undefined, 'Couvertine d\'acrotère');
+  add('EMG-006', +a.emerg || 0, undefined, 'Traitement des pénétrations / émergences');
+  add(a.depose === 'aucune' ? 'EEP-001' : 'EEP-002', +a.ep || 0, undefined, a.depose === 'aucune' ? 'Création de sortie EP' : 'Remplacement de sortie EP');
+  return lignes;
+}
+function cadAssistantHtml() {
+  const a = CAD.asst, sel = (k, lbl) => `<div class="field"><label>${lbl}</label><select data-a="${k}">${Object.entries(CAD_ASST_OPTS[k]).map(([v, l]) => `<option value="${v}" ${a[k] === v ? 'selected' : ''}>${esc(l)}</option>`).join('')}</select></div>`;
+  const nb = (k, lbl, hint, step) => `<div class="field"><label>${lbl}</label><input data-a="${k}" type="number" min="0" step="${step || 'any'}" value="${a[k] || ''}" placeholder="0">${hint ? `<span class="hint">${hint}</span>` : ''}</div>`;
+  return `<details class="card card-pad" id="cad-asst" ${CAD.lignes.length ? '' : 'open'}>
+    <summary class="card-title" style="cursor:pointer;list-style:revert">⚡ Assistant — composer une toiture en 10 réponses</summary>
+    <p class="t-muted" style="margin:6px 0 12px;font-size:12px">Décrivez la toiture : l'outil propose la suite d'ouvrages types cohérente (primaire, pare-vapeur, isolant, couches, protection, relevés…) avec les matériaux adaptés. Vous ajustez ensuite dans « Ouvrages retenus ».</p>
+    <div class="form-grid" style="grid-template-columns:repeat(4,1fr)">
+      ${nb('surface', 'Surface (m²)')}${sel('support', 'Support')}${sel('depose', 'Existant à déposer')}${sel('iso', 'Isolation')}
+      ${sel('protection', 'Protection / usage')}${sel('revet', 'Revêtement')}${nb('rel', 'Relevés (ml)', 'Acrotères + émergences')}${nb('relH', 'Hauteur relevés (m)', '', '0.05')}
+      ${nb('couv', 'Couvertines (ml)')}${nb('emerg', 'Émergences / pénétrations (u)', '', '1')}${nb('ep', 'Sorties EP (u)', '', '1')}
+      <div class="field" style="justify-content:flex-end"><label>&nbsp;</label><button class="btn primary" id="cad-gen">${icon('check')} Composer la liste</button></div>
+    </div>
+    <div id="cad-gen-apercu"></div>
+  </details>`;
+}
+function cadBindAssistant(v) {
+  $$('[data-a]', v).forEach(el => el.oninput = el.onchange = () => { CAD.asst[el.dataset.a] = el.type === 'number' ? (+el.value || 0) : el.value; });
+  $('#cad-gen').onclick = () => {
+    const a = CAD.asst;
+    if (!(+a.surface > 0)) { toast('Saisissez la surface', 'err'); return; }
+    const lignes = cadComposer(a);
+    const appliquer = () => {
+      CAD.lignes = lignes.map(({ ref, qte, v, h }) => { const l = { ref, qte: Math.round(qte * 100) / 100 }; if (v !== undefined) l.v = v; if (h !== undefined || cadAHauteur(ref)) l.h = h || IKO_REL_H; return l; });
+      CAD.surface = +a.surface; CAD.asstPourquoi = Object.fromEntries(lignes.map(l => [l.ref, l.why]));
+      cadSauverCourant(); renderCadences($('#view'));
+      toast(lignes.length + ' ouvrages composés — vérifiez et ajustez dans « Ouvrages retenus »');
+    };
+    if (CAD.lignes.length) confirmDialog('Remplacer les ' + CAD.lignes.length + ' ouvrage(s) déjà retenus par la composition proposée ?', appliquer, 'Remplacer');
+    else appliquer();
+  };
+}
+
+/* ===== Étude en cours : sauvegarde automatique + « Mes études » ===== */
+const cadEtat = () => JSON.parse(JSON.stringify({ nom: CAD.nom || '', surface: CAD.surface, equipe: CAD.equipe, hj: CAD.hj, coeff: CAD.coeff, lignes: CAD.lignes, mats: CAD.mats, asst: CAD.asst, asstPourquoi: CAD.asstPourquoi || {} }));
+function cadAppliquerEtat(e) {
+  Object.assign(CAD, { nom: e.nom || '', surface: +e.surface || 0, equipe: +e.equipe || 2, hj: +e.hj || CAD_PARAMS.heuresJour,
+    coeff: Object.assign(Object.fromEntries(CAD_COEFFS.map(c => [c.key, c.def])), e.coeff || {}), lignes: e.lignes || [], mats: e.mats || [],
+    asst: Object.assign({}, CAD_ASST_DEF, e.asst || {}), asstPourquoi: e.asstPourquoi || {} });
+}
+function cadSauverCourant() { if (!DB.data || CAD._pour !== DB.data) return; DB.data.cadCourant = cadEtat(); DB.save(); }
+/* Recharge l'étude en cours du profil (au premier affichage, ou après changement de profil). */
+function cadRestaurer() {
+  if (CAD._pour === DB.data) return;
+  CAD._pour = DB.data;
+  if (DB.data.cadCourant) cadAppliquerEtat(DB.data.cadCourant);
+  else cadAppliquerEtat({ asst: CAD_ASST_DEF });
+}
+function cadEtudesBarre() {
+  return `<div class="page-actions" style="margin-bottom:14px;align-items:center">
+    <span class="t-muted" style="font-size:12.5px">Étude :</span> <b>${esc(CAD.nom || 'sans nom')}</b>
+    <span class="t-muted" style="font-size:12px">· enregistrée automatiquement</span>
+    <span class="spacer"></span>
+    <button class="btn small" id="cad-e-new">${icon('plus')} Nouvelle étude</button>
+    <button class="btn small" id="cad-e-save">${icon('check')} Enregistrer sous…</button>
+    <button class="btn small" id="cad-e-list">${icon('book')} Mes études (${DB.data.cadEtudes.length})</button>
+  </div>`;
+}
+function cadBindEtudes() {
+  $('#cad-e-new').onclick = () => confirmDialog('Démarrer une nouvelle étude ? L\'étude en cours sera vidée (enregistrez-la d\'abord si besoin).', () => {
+    cadAppliquerEtat({ asst: CAD_ASST_DEF }); cadSauverCourant(); renderCadences($('#view')); }, 'Nouvelle étude');
+  $('#cad-e-save').onclick = () => {
+    const m = modal({ title: 'Enregistrer l\'étude', body: `<div class="field"><label>Nom de l'étude</label><input id="e-nom" value="${esc(CAD.nom || '')}" placeholder="ex. Collège Voltaire — terrasse B"></div>`,
+      footer: `<button class="btn" data-c>Annuler</button><button class="btn primary" id="e-ok">Enregistrer</button>` });
+    m.root.querySelector('[data-c]').onclick = m.close;
+    $('#e-ok').onclick = () => {
+      const nom = $('#e-nom').value.trim(); if (!nom) { toast('Donnez un nom à l\'étude', 'err'); return; }
+      CAD.nom = nom; const e = cadEtat(), ex = DB.data.cadEtudes.find(x => x.nom === nom);
+      if (ex) Object.assign(ex, { date: todayISO(), etat: e }); else DB.data.cadEtudes.unshift({ id: uid(), nom, date: todayISO(), etat: e });
+      cadSauverCourant(); m.close(); toast('Étude « ' + nom + ' » enregistrée'); renderCadences($('#view'));
+    };
+  };
+  $('#cad-e-list').onclick = () => {
+    const list = DB.data.cadEtudes;
+    const m = modal({ title: 'Mes études de cadence', wide: true,
+      body: !list.length ? '<p class="t-muted" style="margin:0">Aucune étude enregistrée.</p>' : `<div class="table-wrap"><table><thead><tr><th>Étude</th><th>Date</th><th class="num">Ouvrages</th><th class="num">Surface</th><th></th></tr></thead><tbody>
+        ${list.map(x => `<tr><td class="t-strong">${esc(x.nom)}</td><td class="t-muted">${fmtDate(x.date)}</td><td class="num">${(x.etat.lignes || []).length}</td><td class="num">${x.etat.surface ? num(x.etat.surface) + ' m²' : '—'}</td>
+          <td class="num" style="white-space:nowrap"><button class="btn small" data-e-open="${x.id}">Ouvrir</button><button class="icon-btn danger" data-e-del="${x.id}" title="Supprimer">${icon('trash')}</button></td></tr>`).join('')}</tbody></table></div>`,
+      footer: `<button class="btn" data-c>Fermer</button>` });
+    m.root.querySelector('[data-c]').onclick = m.close;
+    $$('[data-e-open]', m.root).forEach(b => b.onclick = () => { const x = list.find(y => y.id === b.dataset.eOpen); cadAppliquerEtat(x.etat); cadSauverCourant(); m.close(); renderCadences($('#view')); toast('Étude « ' + x.nom + ' » ouverte'); });
+    $$('[data-e-del]', m.root).forEach(b => b.onclick = () => { DB.data.cadEtudes = list.filter(y => y.id !== b.dataset.eDel); DB.save(); m.close(); toast('Étude supprimée'); renderCadences($('#view')); });
+  };
+}
+
 /* ===== Vue 1 : Chiffrage ===== */
 function cadVueChiffrage(v) {
   const selCoeff = c => `<div class="field"><label>${esc(c.label)}</label><select data-coeff="${c.key}">${c.opts.map((o, i) =>
     `<option value="${i}" ${CAD.coeff[c.key] === i ? 'selected' : ''} title="${esc(o[2] || '')}">${esc(o[0])} (×${o[1]})</option>`).join('')}</select></div>`;
-  v.innerHTML = `
-    <div class="card card-pad">
+  v.innerHTML = `${cadEtudesBarre()}${cadAssistantHtml()}
+    <div class="card card-pad" style="margin-top:16px">
       <div class="card-title">1 · Chantier</div>
       <div class="form-grid" style="grid-template-columns:repeat(3,1fr)">
         <div class="field"><label>Surface de référence (m²)</label><input data-cad="surface" type="number" min="0" step="any" value="${CAD.surface}"><span class="hint">0 = la plus grande quantité saisie en m²</span></div>
@@ -4012,6 +4155,7 @@ function cadVueChiffrage(v) {
       <div id="cad-mats" style="margin-top:12px"></div>
     </div>
     <div id="cad-out" class="cad-out" style="margin-top:16px"></div>`;
+  cadBindEtudes(); cadBindAssistant(v);
   $$('[data-cad]', v).forEach(el => el.oninput = () => { CAD[el.dataset.cad] = +el.value || 0; cadRefreshOut(); });
   $$('[data-coeff]', v).forEach(el => el.onchange = () => { CAD.coeff[el.dataset.coeff] = +el.value; cadRefreshOut(); });
   $$('[data-mode]', v).forEach(b => b.onclick = () => { CAD.mode = b.dataset.mode; CAD.f.fam = ''; renderCadences($('#view')); });
@@ -4099,7 +4243,7 @@ function cadRefreshPanier() {
     `<div class="table-wrap"><table>
       <thead><tr><th>Réf.</th><th>Ouvrage</th><th>Fournitures (pour le BTE)</th><th class="num">Quantité</th><th>U</th><th class="num">Hauteur relevé</th><th></th></tr></thead>
       <tbody>${CAD.lignes.map(l => { const o = cadOuvrage(l.ref); if (!o) return ''; const vs = CAD_VARIANTES[l.ref]; return `<tr>
-        <td class="t-muted">${esc(l.ref)}</td><td class="t-strong" style="white-space:normal" title="${esc(o[CAD_I.DESC])}">${esc(o[CAD_I.DES])}<br><span class="t-muted" style="font-size:11.5px;font-weight:400">${esc(cadFamille(o))}</span></td>
+        <td class="t-muted">${esc(l.ref)}</td><td class="t-strong" style="white-space:normal" title="${esc(o[CAD_I.DESC])}">${esc(o[CAD_I.DES])}<br><span class="t-muted" style="font-size:11.5px;font-weight:400">${esc(cadFamille(o))}${CAD.asstPourquoi && CAD.asstPourquoi[l.ref] ? ' · ' + esc(CAD.asstPourquoi[l.ref]) : ''}</span></td>
         <td>${vs ? (vs.length ? `<select data-v="${esc(l.ref)}" style="max-width:260px;font-size:12px">${vs.map((x, i) => `<option value="${i}" ${l.v === i ? 'selected' : ''}>${esc(x.lib)}</option>`).join('')}<option value="-1" ${l.v === -1 ? 'selected' : ''}>— main d'œuvre seule —</option></select>` : '<span class="t-muted" style="font-size:12px">main d\'œuvre seule</span>')
           : `<span class="t-muted" style="font-size:12px">${cadCompo(l.ref).length ? 'composition de l\'ouvrage' : '—'}</span>`}</td>
         <td class="num"><input data-q="${esc(l.ref)}" type="number" min="0" step="any" value="${l.qte}" style="max-width:110px;text-align:right"></td>
@@ -4126,6 +4270,7 @@ function cadAlerteReleves() {
     <span class="t-muted" style="font-size:12px">(linéaire estimé = périmètre d'une toiture carrée, à ajuster)</span></p>`;
 }
 function cadRefreshOut() {
+  cadSauverCourant();
   const gc = $('#cad-gc'); if (gc) gc.textContent = '×' + cadCoefGlobal().toFixed(3).replace('.', ',');
   cadAlerteReleves();
   const out = $('#cad-out'); if (!out) return;
@@ -4181,7 +4326,7 @@ function importCadenceToBte() {
     if (!lignes.length) { toast('Rien à importer', 'err'); return; }
     const sel = $('#i-bte').value; let bte;
     if (sel) { bte = DB.data.bte.find(x => x.id === sel); bte.lignes.push(...lignes); }
-    else { bte = { id: uid(), nom: 'Estimation cadence' + (surf ? ' — ' + num(surf) + ' m²' : ''), adresse: '', otp: '', dateEdition: todayISO(), margePct: 0.30, notes: 'Généré depuis la base Cadences (' + steps.map(s => s.ref + ' ' + num(s.qte) + ' ' + s.unite).join(', ') + ')', lignes }; DB.data.bte.unshift(bte); }
+    else { bte = { id: uid(), nom: (CAD.nom || 'Estimation cadence') + (surf ? ' — ' + num(surf) + ' m²' : ''), adresse: '', otp: '', dateEdition: todayISO(), margePct: 0.30, notes: 'Généré depuis la base Cadences (' + steps.map(s => s.ref + ' ' + num(s.qte) + ' ' + s.unite).join(', ') + ')', lignes }; DB.data.bte.unshift(bte); }
     DB.save(); m.close(); toast('Chiffrage importé dans le BTE'); go('bte'); bteEditor(bte.id);
   };
 }
