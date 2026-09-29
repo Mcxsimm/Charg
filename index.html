@@ -1327,6 +1327,224 @@ const CAD_U_TEMPS = ['h', 'j', 'Forf.'];
 const CAD_DOMAINES = [...new Set(CAD_SECTIONS.map(s => s.split('—')[0].trim()))];
 
 /* -------------------------------------------------------------------------
+   2 ter. Catalogue IKO (ex-Axter) — produits & complexes d'étanchéité
+   Désignations et compositions reprises des fiches procédés / fiches produits
+   IKO (iko.fr). Les consommations sont des repères de chiffrage (recouvrements
+   et chutes inclus) à ajuster selon le DTA du procédé retenu. Les prix sont le
+   tarif négocié saisi dans l'onglet Produits (stocké dans le profil) : l'outil
+   ne contient aucun tarif public IKO.
+   ------------------------------------------------------------------------- */
+const IKO_FAMILLES = [
+  'Primaires & vernis',
+  'Pare-vapeur',
+  'Isolants IKO enertherm (PIR)',
+  'Colles & fixations',
+  '1res couches / sous-couches',
+  '2es couches autoprotégées',
+  'Monocouches',
+  'Anti-racines & végétalisation',
+  'Relevés & équerres',
+  'Membranes synthétiques PVC',
+  'Étanchéité liquide',
+  'Accessoires IKOpro',
+  'Hors IKO (compléments de complexe)',
+];
+/* Produits : [réf., famille, désignation, descriptif, unité de chiffrage, conditionnement / info] */
+const IKO_I = { REF: 0, FAM: 1, DES: 2, DESC: 3, U: 4, COND: 5 };
+const IKO_PRODUITS = [
+  // Primaires & vernis
+  ['PRI-01', 0, 'IKOpro Primaire Bitume Adérosol SR', "Vernis d'imprégnation à froid (EIF) en bitume élastomère avec dopant d'adhérence, solvant aromatique, séchage rapide. Support béton / maçonnerie avant soudure.", 'l', '≈ 0,20 à 0,30 l/m²'],
+  ['PRI-02', 0, "IKOpro Primaire ECOL'eau", "Enduit d'imprégnation à froid non solvanté (émulsion de bitume sur-stabilisée). Chantiers sensibles aux odeurs / COV.", 'l', '≈ 0,25 l/m²'],
+  ['PRI-03', 0, 'Vernis EIF ANTAC / ANTAC GC', "Vernis bitumineux d'imprégnation à froid (gamme historique Axter).", 'l', '≈ 0,25 l/m²'],
+  // Pare-vapeur
+  ['PV-01', 1, 'IKO VAP', "Pare-vapeur soudable voile de verre pour systèmes autoprotégés ou sous protection, locaux à faible et moyenne hygrométrie. Permet le collage des isolants.", 'm²', 'Rouleau'],
+  ['PV-02', 1, 'IKO VAP ALPA 3 en 1', "Pare-vapeur soudable triple fonction : imprégnation du support + pare-vapeur + collage direct des isolants PIR / PSE (bandes auto-adhésives). Pas d'EIF préalable. Béton, bois et dérivés.", 'm²', 'Rouleau 7 × 1 m (≈ 20 kg)'],
+  ['PV-03', 1, 'IKO VAP ALPA ALU 3 en 1', "Version à armature aluminium du VAP ALPA 3 en 1 : imprégnation + pare-vapeur + collage direct des isolants, pour hygrométrie plus élevée.", 'm²', 'Rouleau 7 × 1 m'],
+  ['PV-04', 1, 'IKO VAP STICK ALU', "Pare-vapeur auto-adhésif, finition aluminium/polyester. Tôle d'acier nervurée et maçonnerie en forte hygrométrie, bois et panneaux dérivés en faible/moyenne hygrométrie. Pose sans flamme.", 'm²', 'Rouleau 20 × 1,08 m (≈ 27 kg)'],
+  ['PV-05', 1, 'IKO VAP STICK ALU GR', "Pare-vapeur auto-adhésif aluminium, variante à surface grésée.", 'm²', 'Rouleau'],
+  ['PV-06', 1, 'IKO VAP ACIER', "Écran pare-vapeur voile de verre contrecollé aluminium (face alu dessus) sur TAN à plages perforées/crevées (faible et moyenne hygrométrie) et TAN pleines (forte hygrométrie).", 'm²', 'Rouleau 150 × 1 m (≈ 29,7 kg)'],
+  ['PV-07', 1, 'Hyrène 25/25 TS', "Feuille bitume SBS armée voile de verre, sablée. Pare-vapeur soudé ou cloué sur béton, béton cellulaire, bois ; ou couche d'un bicouche.", 'm²', 'Rouleau 7 × 1 m'],
+  // Isolants
+  ['ISO-01', 2, 'IKO enertherm ALU', "Panneau PIR parements aluminium multicouche étanche au gaz, λ 0,022 W/(m·K). Toitures-terrasses sur TAN et bois, fixé mécaniquement sous étanchéité apparente.", 'm²', 'Panneau 2400 × 1200 mm — ép. 60 à 160 mm'],
+  ['ISO-02', 2, 'IKO enertherm ALU XL PRO', "Panneau PIR polyvalent parement aluminium-kraft, support d'étanchéité sur béton ou bois ; pose semi-indépendante auto-adhésive ou fixée mécaniquement.", 'm²', 'Panneau 1200 × 600 mm'],
+  ['ISO-03', 2, 'IKO enertherm KR ALU', "Panneau PIR parements aluminium pour toitures-terrasses sous protection lourde (gravillons, dalles, végétalisation).", 'm²', 'Panneau 1200 × 600 mm'],
+  ['ISO-04', 2, 'IKO enertherm ALU TAP', "Panneaux PIR parements aluminium à pente intégrée (forme de pente isolante).", 'm²', 'Selon calepinage'],
+  ['ISO-05', 2, 'IKO enertherm MG', "Panneau PIR parements voile minéral, support d'étanchéité collé ou fixé.", 'm²', 'Panneau'],
+  ['ISO-06', 2, 'IKO enertherm BGF', "Panneau PIR parement voile de verre bitumé, compatible pose de la 1re couche.", 'm²', 'Panneau'],
+  // Colles & fixations
+  ['COL-01', 3, 'IKOpro Colle PU', "Colle polyuréthane mono-composant réagissant à l'humidité pour collage des isolants : cordons ≈ 50 g/ml espacés de 30 cm, 2 cordons mini par panneau.", 'kg', '≈ 0,20 à 0,30 kg/m²'],
+  ['COL-02', 3, 'IKOpro Colle Mastic (Mastic Hyrène)', "Mastic-colle bitumineux à froid pour collages et raccords.", 'kg', 'Bidon 25 kg'],
+  ['FIX-01', 3, 'Fixation mécanique isolant / étanchéité (vis + plaquette)', "Élément de fixation pour isolant ou 1re couche fixée en lisière. Densité selon zone de vent et étude de fixation (fournisseur fixation).", 'u', 'Selon étude au vent'],
+  // 1res couches
+  ['SC-01', 4, 'IKO DUO STICK L3 ADH', "1re couche auto-adhésive semi-indépendante SBS, armature polyester stabilisé. Bicouche sans flamme sur isolant PSE / PUR / PIR, maçonnerie ou bois.", 'm²', 'Rouleau'],
+  ['SC-02', 4, 'IKO DUO STICK L3 T3 SI', "1re couche auto-adhésive SBS, associée à IKO DUO FUSION FEU AR/F pour un classement BROOF(t3) sur PSE ou PIR (pente ≤ 17 %).", 'm²', 'Rouleau'],
+  ['SC-03', 4, 'IKO DUO STICK SOLAR L4 T3 SI', "1re couche auto-adhésive renforcée (L4) pour procédés photovoltaïques sur étanchéité bicouche auto-adhésive.", 'm²', 'Rouleau'],
+  ['SC-04', 4, 'IKO DUO FUSION F/F', "1re couche soudable SBS d'un bicouche autoprotégé, ou 1re / 2e couche sous protection lourde.", 'm²', 'Rouleau'],
+  ['SC-05', 4, 'IKO DUO FUSION F/G', "Sous-couche SBS grésée : 1re couche d'un bicouche autoprotégé ou sous protection lourde ; aussi sous-couche clouée sur bois et pare-vapeur.", 'm²', 'Rouleau'],
+  ['SC-06', 4, 'IKO DUO FUSION L4 F/G', "Sous-couche SBS renforcée 4 mm (L4) grésée pour bicouche soudé.", 'm²', 'Rouleau'],
+  ['SC-07', 4, 'IKO DUO TOPACIER FMP/G', "1re couche SBS polyester stabilisé ép. ≥ 2,5 mm fixée mécaniquement en lisière, joints soudés 10 cm. Référence des procédés autoprotégés fixés mécaniquement.", 'm²', 'Rouleau'],
+  ['SC-08', 4, 'IKO DUO ACIER F/G', "1re couche SBS du procédé IKO DUO ACIER (bicouche sur TAN / bois).", 'm²', 'Rouleau'],
+  ['SC-09', 4, 'IKO DUO ACIER JA F/G', "1re couche SBS à joints auto-adhésifs, fixée mécaniquement, adaptée aux isolants PSE (pas de flamme au droit des joints).", 'm²', 'Rouleau'],
+  ['SC-10', 4, 'IKO DUO ACIER SOLAR L4 FMP/G', "1re couche renforcée fixée mécaniquement en lisière sous recouvrement soudé, pour procédés photovoltaïques.", 'm²', 'Rouleau'],
+  ['SC-11', 4, 'Baryprène 20 I', "1re couche SBS soudée aux joints (gamme historique Axter).", 'm²', 'Rouleau'],
+  ['SC-12', 4, 'Baryprène 3000 SA', "1re couche SBS auto-adhésive / soudable (gamme historique Axter).", 'm²', 'Rouleau'],
+  // 2es couches
+  ['AP-01', 5, 'IKO DUO FUSION AR/F', "2e couche SBS armée voile de verre, autoprotégée paillettes d'ardoise, soudée en plein sur la 1re couche.", 'm²', 'Rouleau'],
+  ['AP-02', 5, 'IKO DUO FUSION FEU AR/F', "2e couche autoprotégée ardoisée ép. 2,65 mm, classement BROOF(t3) avec IKO DUO STICK L3 T3 SI.", 'm²', 'Rouleau'],
+  ['AP-03', 5, 'IKO DUO ACIER AR/F', "2e couche SBS voile de verre ép. ≥ 2,5 mm autoprotégée ardoise, soudée sur 1re couche fixée mécaniquement.", 'm²', 'Rouleau'],
+  ['AP-04', 5, 'IKO DUO ACIER AR/G', "2e couche autoprotégée ardoise du procédé IKO DUO ACIER, sous-face grésée.", 'm²', 'Rouleau'],
+  ['AP-05', 5, 'IKO DUO ACIER 3000 FEU L4 AR/F', "2e couche autoprotégée renforcée à performance feu, procédé IKO DUO ACIER.", 'm²', 'Rouleau'],
+  // Monocouches
+  ['MO-01', 6, 'IKO MONO RENO 3000', "Monocouche SBS 3 mm armature polyester, autoprotégé ardoise, soudé : réfection de toitures bitumineuses existantes.", 'm²', 'Rouleau'],
+  ['MO-02', 6, 'IKO MONO ACIER AR/F', "Monocouche SBS 4 mm polyester stabilisé, autoprotégé ardoise, fixé mécaniquement en lisière, joints soudés 10 cm (long.) / 15 cm (transv.).", 'm²', 'Rouleau'],
+  ['MO-03', 6, 'IKO MONO FORUM', "Monocouche SBS 4 mm polyester stabilisé, sous protection lourde, dure ou dalles sur plots : inaccessible, technique, accessible piétons.", 'm²', 'Rouleau'],
+  ['MO-04', 6, 'IKO MONO PARKING AR/F', "Monocouche SBS pour toitures accessibles aux véhicules sous béton bitumineux / asphalte (procédé IKO PARKING), soudé en plein ou semi-indépendant.", 'm²', 'Rouleau'],
+  ['MO-05', 6, 'IKO MONO STICK SARKING 4000', "Monocouche auto-adhésif ≥ 3,5 mm pour étanchéité complémentaire sous couverture (double toiture ventilée, sarking).", 'm²', 'Rouleau'],
+  // Anti-racines & végétalisation
+  ['VEG-01', 7, 'IKO DUO GREEN 3000 AR/F', "2e couche SBS polyester ép. ≥ 3 mm traitée anti-racines, procédé IKO DUO GREEN (toitures-terrasses jardins / végétalisées).", 'm²', 'Rouleau'],
+  ['VEG-02', 7, 'IKO WATERFIX', "Système de rétention temporaire des eaux pluviales en toiture (sous gravillons, pavés drainants ou végétalisation).", 'm²', 'Selon calepinage'],
+  ['VEG-03', 7, 'Plaque végétalisée Manuplac®', "Plaque de végétalisation précultivée mise en œuvre sur bicouche IKO (procédés « sous Manuplac »).", 'm²', 'Plaque'],
+  // Relevés & équerres
+  ['REL-01', 8, 'IKO ÉQUERRE 25', "Équerre de renfort SBS ép. ≥ 3,5 mm, bande de 25 cm soudée en plein avec retombée ≥ 10 cm sur la 1re couche.", 'ml', 'Rouleau prédécoupé'],
+  ['REL-02', 8, 'IKO RLV AR/F', "Feuille de relevé SBS armature polyester stabilisé + aluminium, autoprotection minérale (ardoise).", 'm²', 'Rouleau'],
+  ['REL-03', 8, 'IKO RLV ALU/F', "Feuille de relevé à autoprotection aluminium.", 'm²', 'Rouleau'],
+  ['REL-04', 8, 'IKO RLV ALU AR/F', "Feuille de relevé aluminium avec finition paillettes d'ardoise.", 'm²', 'Rouleau'],
+  ['REL-05', 8, 'IKO RLV ALU PLUS', "Feuille de relevé autoprotégée aluminium renforcée.", 'm²', 'Rouleau'],
+  // PVC
+  ['PVC-01', 9, 'IKO ARMOURPLAN SM 120', "Membrane PVC-P ép. 1,2 mm, monocouche fixé mécaniquement, soudure air chaud (DTA IKO ARMOURPLAN ACIER).", 'm²', 'Rouleau larg. 1,06 m'],
+  ['PVC-02', 9, 'IKO ARMOURPLAN SM 150', "Membrane PVC-P ép. 1,5 mm, monocouche fixé mécaniquement, soudure air chaud.", 'm²', 'Rouleau larg. 1,06 m'],
+  // Liquides
+  ['LIQ-01', 10, 'IKO hybritech MS Detail', "Résine mono-composante polymères hybrides (sans solvant ni isocyanate) pour points singuliers : relevés, chéneaux, émergences. Gris 7037, beige 1015, noir 9004…", 'kg', 'Seaux 3,5 / 7 / 20 kg'],
+  ['LIQ-02', 10, 'IKO hybritech Roof', "Étanchéité liquide hybride de partie courante pour toitures-terrasses.", 'kg', 'Seau'],
+  ['LIQ-03', 10, 'IKO metatech Detail (PMMA)', "Résine PMMA bi-composante à séchage rapide pour détails complexes : relevés, coupoles, lanterneaux, busettes, chéneaux.", 'kg', 'Kit'],
+  ['LIQ-04', 10, 'Voile d\'armature polyester (liquide)', "Voile de renfort noyé dans la résine IKO hybritech / metatech.", 'm²', 'Rouleau'],
+  // Accessoires IKOpro
+  ['ACC-01', 11, 'IKOpro Stickall', "Mastic-colle hybride multi-usages (collages, calfeutrements).", 'u', 'Cartouche'],
+  ['ACC-02', 11, 'IKOpro Mastic Toiture', "Mastic bitumineux de réparation / calfeutrement.", 'u', 'Cartouche'],
+  ['ACC-03', 11, 'IKOpro Régénérant Bitume', "Enduit de rénovation élastique à base de bitume pour anciennes étanchéités.", 'l', 'Bidon 5 l'],
+  ['ACC-04', 11, 'IKOpro Elastic Rubber', "Revêtement élastique caoutchouc pour réparations et points singuliers.", 'l', 'Bidon'],
+  // Hors IKO
+  ['HI-01', 12, 'Laine de roche étanchéité (hors IKO)', "Panneaux laine de roche support d'étanchéité (Rockwool, Knauf…), solution incombustible ERP.", 'm²', 'Fournisseur isolant'],
+  ['HI-02', 12, 'PSE étanchéité (hors IKO)', "Panneaux polystyrène expansé support d'étanchéité.", 'm²', 'Fournisseur isolant'],
+  ['HI-03', 12, 'Gravillons roulés 15/25 (hors IKO)', "Protection meuble ép. ≥ 4 cm (≈ 80 kg/m²).", 't', '≈ 0,08 t/m²'],
+  ['HI-04', 12, 'Dalles sur plots (hors IKO)', "Dallettes béton + plots réglables, terrasse accessible piétons.", 'm²', 'Fournisseur dalles'],
+  ['HI-05', 12, 'Écran de désolidarisation non-tissé (hors IKO)', "Non-tissé polyester de séparation sous protection lourde.", 'm²', 'Rouleau'],
+  ['HI-06', 12, 'Complexe végétalisation extensive (hors IKO)', "Couche drainante + filtre + substrat + sedum précultivé.", 'm²', 'Fournisseur végétalisation'],
+];
+/* Prix repères (€ HT / unité) repris des BTE existants ; à remplacer par le tarif négocié. */
+const IKO_PRIX_DEFAUT = { 'PV-01': 3.29, 'COL-01': 7.46, 'SC-01': 5.57, 'AP-02': 5.96, 'REL-01': 1.52, 'REL-05': 8.58 };
+
+/* Catégories de complexes (alignées sur les sections COMPLEXES du référentiel cadences). */
+const IKO_CATS = [
+  'Sans isolant — autoprotégé',
+  'Sans isolant — sous protection lourde',
+  'Avec isolant — autoprotégé',
+  'Avec isolant — sous protection lourde',
+  'Fixé mécaniquement (TAN / bois)',
+  'Végétalisé & rétention d\'eau',
+  'Parking / circulable',
+  'Réfection',
+  'Relevés & points singuliers',
+];
+/* Complexes : couches = [réf. produit, consommation par unité de complexe, rôle].
+   cad = ouvrage du référentiel cadences servant au temps de pose (null = à chiffrer à part). */
+const IKO_COMPLEXES = [
+  { ref: 'IKO-A01', cat: 0, u: 'm²', proc: 'IKO DUO STICK', sup: 'béton / bois', usage: 'Inaccessible', cad: 'CXA-003',
+    nom: 'Bicouche auto-adhésif apparent autoprotégé — sans isolant',
+    couches: [['PRI-01', 0.25, 'Imprégnation'], ['SC-01', 1.12, '1re couche auto-adhésive'], ['AP-01', 1.12, '2e couche autoprotégée soudée']] },
+  { ref: 'IKO-A02', cat: 0, u: 'm²', proc: 'IKO DUO FUSION', sup: 'béton', usage: 'Inaccessible', cad: 'CXA-001',
+    nom: 'Bicouche thermosoudable apparent autoprotégé — sans isolant',
+    couches: [['PRI-01', 0.25, 'Imprégnation'], ['SC-04', 1.12, '1re couche soudée en plein'], ['AP-01', 1.12, '2e couche autoprotégée soudée']] },
+  { ref: 'IKO-A03', cat: 0, u: 'm²', proc: 'IKO MONO', sup: 'béton', usage: 'Inaccessible', cad: 'CXA-001',
+    nom: 'Monocouche thermosoudable apparent autoprotégé — sans isolant',
+    couches: [['PRI-01', 0.25, 'Imprégnation'], ['MO-01', 1.12, 'Monocouche autoprotégé soudé']] },
+  { ref: 'IKO-B01', cat: 1, u: 'm²', proc: 'IKO DUO FUSION sous lestage', sup: 'béton', usage: 'Inaccessible', cad: 'CXB-001',
+    nom: 'Bicouche thermosoudable sous gravillons — sans isolant',
+    couches: [['PRI-01', 0.25, 'Imprégnation'], ['SC-04', 1.12, '1re couche soudée aux joints'], ['SC-04', 1.12, '2e couche soudée en plein'], ['HI-05', 1.1, 'Écran de désolidarisation'], ['HI-03', 0.08, 'Protection gravillons']] },
+  { ref: 'IKO-B02', cat: 1, u: 'm²', proc: 'IKO DUO FUSION', sup: 'béton', usage: 'Accessible piétons', cad: 'CXB-002',
+    nom: 'Bicouche thermosoudable sous dalles sur plots — sans isolant',
+    couches: [['PRI-01', 0.25, 'Imprégnation'], ['SC-04', 1.12, '1re couche soudée en plein'], ['SC-04', 1.12, '2e couche soudée en plein'], ['HI-04', 1.0, 'Dalles sur plots']] },
+  { ref: 'IKO-B03', cat: 1, u: 'm²', proc: 'IKO MONO FORUM', sup: 'béton', usage: 'Inaccessible / technique / piétons', cad: 'CXB-001',
+    nom: 'Monocouche IKO MONO FORUM sous protection lourde — sans isolant',
+    couches: [['PRI-01', 0.25, 'Imprégnation'], ['MO-03', 1.12, 'Monocouche 4 mm'], ['HI-05', 1.1, 'Écran de désolidarisation'], ['HI-03', 0.08, 'Protection gravillons']] },
+  { ref: 'IKO-C01', cat: 2, u: 'm²', proc: 'IKO DUO STICK', sup: 'béton', usage: 'Inaccessible (local chauffé)', cad: 'CXC-001',
+    nom: 'Béton + IKO VAP ALPA 3 en 1 + PIR + bicouche auto-adhésif autoprotégé',
+    couches: [['PV-02', 1.1, 'Pare-vapeur 3 en 1 (collage isolant)'], ['ISO-02', 1.03, 'Isolant PIR'], ['SC-01', 1.12, '1re couche auto-adhésive'], ['AP-01', 1.12, '2e couche autoprotégée soudée']] },
+  { ref: 'IKO-C02', cat: 2, u: 'm²', proc: 'IKO DUO STICK — BROOF(t3)', sup: 'béton', usage: 'Inaccessible, exigence feu', cad: 'CXC-001',
+    nom: 'Béton + IKO VAP + PIR collé + bicouche auto-adhésif BROOF(t3)',
+    couches: [['PRI-01', 0.25, 'Imprégnation'], ['PV-01', 1.1, 'Pare-vapeur soudé'], ['COL-01', 0.25, 'Collage isolant'], ['ISO-02', 1.03, 'Isolant PIR'], ['SC-02', 1.12, '1re couche auto-adhésive T3'], ['AP-02', 1.12, '2e couche FEU autoprotégée']] },
+  { ref: 'IKO-C03', cat: 2, u: 'm²', proc: 'IKO DUO FUSION', sup: 'béton', usage: 'Inaccessible, ERP / incombustible', cad: 'CXC-002',
+    nom: 'Béton + IKO VAP + laine de roche collée + bicouche thermosoudable autoprotégé',
+    couches: [['PRI-01', 0.25, 'Imprégnation'], ['PV-01', 1.1, 'Pare-vapeur soudé'], ['COL-01', 0.25, 'Collage isolant'], ['HI-01', 1.03, 'Laine de roche'], ['SC-04', 1.12, '1re couche'], ['AP-01', 1.12, '2e couche autoprotégée soudée']] },
+  { ref: 'IKO-C04', cat: 2, u: 'm²', proc: 'IKO DUO STICK', sup: 'béton', usage: 'Inaccessible', cad: 'CXC-001',
+    nom: 'Béton + IKO VAP ALPA 3 en 1 + PSE + bicouche auto-adhésif autoprotégé',
+    couches: [['PV-02', 1.1, 'Pare-vapeur 3 en 1 (collage isolant)'], ['HI-02', 1.03, 'Isolant PSE'], ['SC-01', 1.12, '1re couche auto-adhésive'], ['AP-01', 1.12, '2e couche autoprotégée soudée']] },
+  { ref: 'IKO-D01', cat: 3, u: 'm²', proc: 'IKO DUO FUSION sous lestage', sup: 'béton', usage: 'Inaccessible', cad: 'CXD-001',
+    nom: 'Béton + IKO VAP + enertherm KR ALU + bicouche sous gravillons',
+    couches: [['PRI-01', 0.25, 'Imprégnation'], ['PV-01', 1.1, 'Pare-vapeur soudé'], ['ISO-03', 1.03, 'Isolant PIR sous protection lourde'], ['SC-04', 1.12, '1re couche (indépendance)'], ['SC-04', 1.12, '2e couche soudée en plein'], ['HI-05', 1.1, 'Écran de désolidarisation'], ['HI-03', 0.08, 'Protection gravillons']] },
+  { ref: 'IKO-D02', cat: 3, u: 'm²', proc: 'IKO DUO FUSION', sup: 'béton', usage: 'Accessible piétons', cad: 'CXD-002',
+    nom: 'Béton + IKO VAP + PIR collé + bicouche sous dalles sur plots',
+    couches: [['PRI-01', 0.25, 'Imprégnation'], ['PV-01', 1.1, 'Pare-vapeur soudé'], ['COL-01', 0.25, 'Collage isolant'], ['ISO-03', 1.03, 'Isolant PIR sous protection lourde'], ['SC-04', 1.12, '1re couche'], ['SC-04', 1.12, '2e couche soudée en plein'], ['HI-04', 1.0, 'Dalles sur plots']] },
+  { ref: 'IKO-D03', cat: 3, u: 'm²', proc: 'IKO MONO FORUM', sup: 'béton', usage: 'Inaccessible / technique', cad: 'CXD-001',
+    nom: 'Béton + IKO VAP + enertherm KR ALU + monocouche sous gravillons',
+    couches: [['PRI-01', 0.25, 'Imprégnation'], ['PV-01', 1.1, 'Pare-vapeur soudé'], ['ISO-03', 1.03, 'Isolant PIR sous protection lourde'], ['MO-03', 1.12, 'Monocouche 4 mm'], ['HI-05', 1.1, 'Écran de désolidarisation'], ['HI-03', 0.08, 'Protection gravillons']] },
+  { ref: 'IKO-E01', cat: 4, u: 'm²', proc: 'IKO DUO TOPACIER', sup: 'TAN / bois', usage: 'Inaccessible', cad: 'CXC-003',
+    nom: 'Bac acier + IKO VAP ACIER + enertherm ALU + bicouche fixé mécaniquement autoprotégé',
+    couches: [['PV-06', 1.1, 'Pare-vapeur alu'], ['ISO-01', 1.03, 'Isolant PIR'], ['FIX-01', 6, 'Fixations isolant + 1re couche'], ['SC-07', 1.12, '1re couche fixée en lisière'], ['AP-03', 1.12, '2e couche autoprotégée soudée']] },
+  { ref: 'IKO-E02', cat: 4, u: 'm²', proc: 'IKO DUO ACIER', sup: 'TAN', usage: 'Inaccessible, ERP / incombustible', cad: 'CXC-004',
+    nom: 'Bac acier + IKO VAP STICK ALU + laine de roche + bicouche fixé mécaniquement',
+    couches: [['PV-04', 1.1, 'Pare-vapeur auto-adhésif'], ['HI-01', 1.03, 'Laine de roche'], ['FIX-01', 6, 'Fixations isolant + 1re couche'], ['SC-07', 1.12, '1re couche fixée en lisière'], ['AP-03', 1.12, '2e couche autoprotégée soudée']] },
+  { ref: 'IKO-E03', cat: 4, u: 'm²', proc: 'IKO DUO ACIER JA', sup: 'TAN', usage: 'Inaccessible', cad: 'CXC-003',
+    nom: 'Bac acier + IKO VAP ACIER + PSE + bicouche fixé méca. à joints auto-adhésifs',
+    couches: [['PV-06', 1.1, 'Pare-vapeur alu'], ['HI-02', 1.03, 'Isolant PSE'], ['FIX-01', 5, 'Fixations isolant + 1re couche'], ['SC-09', 1.12, '1re couche joints auto-adhésifs'], ['AP-03', 1.12, '2e couche autoprotégée soudée']] },
+  { ref: 'IKO-E04', cat: 4, u: 'm²', proc: 'IKO MONO ACIER', sup: 'TAN / bois', usage: 'Inaccessible', cad: 'CXC-004',
+    nom: 'Bac acier + IKO VAP ACIER + isolant + monocouche fixé mécaniquement autoprotégé',
+    couches: [['PV-06', 1.1, 'Pare-vapeur alu'], ['ISO-01', 1.03, 'Isolant PIR (ou laine de roche)'], ['FIX-01', 5, 'Fixations isolant + monocouche'], ['MO-02', 1.12, 'Monocouche 4 mm fixé en lisière']] },
+  { ref: 'IKO-E05', cat: 4, u: 'm²', proc: 'IKO DUO TOPACIER', sup: 'TAN / bois', usage: 'Inaccessible / technique', cad: null,
+    nom: 'Bicouche fixé mécaniquement apparent autoprotégé — sans isolant',
+    couches: [['FIX-01', 3, 'Fixations 1re couche'], ['SC-07', 1.12, '1re couche fixée en lisière'], ['AP-03', 1.12, '2e couche autoprotégée soudée']] },
+  { ref: 'IKO-E06', cat: 4, u: 'm²', proc: 'IKO ARMOURPLAN ACIER', sup: 'TAN', usage: 'Inaccessible', cad: 'CXC-003',
+    nom: 'Bac acier + IKO VAP ACIER + enertherm ALU + membrane PVC-P fixée mécaniquement',
+    couches: [['PV-06', 1.1, 'Pare-vapeur alu'], ['ISO-01', 1.03, 'Isolant PIR'], ['FIX-01', 5, 'Fixations isolant + membrane'], ['PVC-02', 1.08, 'Membrane PVC-P 1,5 mm']] },
+  { ref: 'IKO-F01', cat: 5, u: 'm²', proc: 'IKO DUO GREEN', sup: 'béton', usage: 'Toiture végétalisée', cad: 'CXD-004',
+    nom: 'Béton + IKO VAP + PIR + bicouche anti-racines IKO DUO GREEN + végétalisation',
+    couches: [['PRI-01', 0.25, 'Imprégnation'], ['PV-01', 1.1, 'Pare-vapeur soudé'], ['COL-01', 0.25, 'Collage isolant'], ['ISO-03', 1.03, 'Isolant PIR sous protection lourde'], ['SC-04', 1.12, '1re couche'], ['VEG-01', 1.12, '2e couche anti-racines'], ['HI-06', 1.0, 'Végétalisation extensive']] },
+  { ref: 'IKO-F02', cat: 5, u: 'm²', proc: 'IKO DUO GREEN', sup: 'béton', usage: 'Toiture végétalisée', cad: null,
+    nom: 'Bicouche anti-racines IKO DUO GREEN sous plaques Manuplac® — sans isolant',
+    couches: [['PRI-01', 0.25, 'Imprégnation'], ['SC-04', 1.12, '1re couche'], ['VEG-01', 1.12, '2e couche anti-racines'], ['VEG-03', 1.0, 'Plaques végétalisées']] },
+  { ref: 'IKO-F03', cat: 5, u: 'm²', proc: 'IKO DUO FUSION + IKO WATERFIX', sup: 'béton', usage: 'Inaccessible, rétention EP', cad: 'CXD-001',
+    nom: 'Béton + IKO VAP + PIR + bicouche + rétention IKO WATERFIX sous gravillons',
+    couches: [['PRI-01', 0.25, 'Imprégnation'], ['PV-01', 1.1, 'Pare-vapeur soudé'], ['ISO-03', 1.03, 'Isolant PIR sous protection lourde'], ['SC-04', 1.12, '1re couche'], ['SC-04', 1.12, '2e couche soudée en plein'], ['VEG-02', 1.0, 'Rétention d\'eau'], ['HI-03', 0.08, 'Protection gravillons']] },
+  { ref: 'IKO-G01', cat: 6, u: 'm²', proc: 'IKO PARKING', sup: 'béton', usage: 'Accessible véhicules', cad: null,
+    nom: 'Monocouche IKO MONO PARKING sous béton bitumineux — sans isolant',
+    couches: [['PRI-01', 0.3, 'Imprégnation'], ['MO-04', 1.12, 'Monocouche soudé en plein']] },
+  { ref: 'IKO-H01', cat: 7, u: 'm²', proc: 'IKO DUO STICK', sup: 'ancienne étanchéité', usage: 'Inaccessible', cad: 'CXA-002',
+    nom: 'Réfection : bicouche auto-adhésif autoprotégé sur ancienne étanchéité',
+    couches: [['PRI-01', 0.25, 'Imprégnation'], ['SC-01', 1.12, '1re couche auto-adhésive'], ['AP-01', 1.12, '2e couche autoprotégée soudée']] },
+  { ref: 'IKO-H02', cat: 7, u: 'm²', proc: 'IKO MONO RENO', sup: 'ancienne étanchéité', usage: 'Inaccessible', cad: 'CXA-002',
+    nom: 'Réfection : monocouche IKO MONO RENO 3000 sur ancienne étanchéité',
+    couches: [['PRI-01', 0.25, 'Imprégnation'], ['MO-01', 1.12, 'Monocouche 3 mm autoprotégé']] },
+  { ref: 'IKO-H03', cat: 7, u: 'm²', proc: 'IKO MONO ACIER', sup: 'ancienne étanchéité / TAN', usage: 'Inaccessible', cad: null,
+    nom: 'Réfection : monocouche fixé mécaniquement autoprotégé',
+    couches: [['FIX-01', 3, 'Fixations en lisière'], ['MO-02', 1.12, 'Monocouche 4 mm']] },
+  { ref: 'IKO-R01', cat: 8, u: 'ml', proc: 'Relevé bitumineux', sup: 'acrotère béton', usage: 'Relevé h ≤ 0,30 m', cad: 'ET2-004',
+    nom: 'Relevé bitumineux autoprotégé ardoise (équerre + IKO RLV AR/F)',
+    couches: [['PRI-01', 0.12, 'Imprégnation'], ['REL-01', 1.05, 'Équerre de renfort'], ['REL-02', 0.5, 'Relevé autoprotégé']] },
+  { ref: 'IKO-R02', cat: 8, u: 'ml', proc: 'Relevé bitumineux', sup: 'acrotère béton', usage: 'Relevé h ≤ 0,30 m', cad: 'ET2-004',
+    nom: 'Relevé bitumineux autoprotégé aluminium (équerre + IKO RLV ALU PLUS)',
+    couches: [['PRI-01', 0.12, 'Imprégnation'], ['REL-01', 1.05, 'Équerre de renfort'], ['REL-05', 0.5, 'Relevé autoprotégé alu']] },
+  { ref: 'IKO-R03', cat: 8, u: 'ml', proc: 'Relevé bitumineux isolé', sup: 'acrotère béton', usage: 'Relevé isolé h ≤ 0,30 m', cad: 'ET2-005',
+    nom: 'Relevé isolé (isolant + équerre + IKO RLV ALU/F)',
+    couches: [['PRI-01', 0.12, 'Imprégnation'], ['ISO-03', 0.3, 'Isolant de relevé'], ['REL-01', 1.05, 'Équerre de renfort'], ['REL-03', 0.55, 'Relevé autoprotégé alu']] },
+  { ref: 'IKO-R04', cat: 8, u: 'm²', proc: 'IKO hybritech MS Detail', sup: 'tous supports', usage: 'Points singuliers', cad: null,
+    nom: 'Étanchéité liquide de points singuliers — IKO hybritech MS Detail armé',
+    couches: [['LIQ-01', 2.0, 'Résine (2 passes)'], ['LIQ-04', 1.1, 'Voile d\'armature']] },
+  { ref: 'IKO-R05', cat: 8, u: 'm²', proc: 'IKO metatech Detail', sup: 'tous supports', usage: 'Détails complexes, séchage rapide', cad: null,
+    nom: 'Étanchéité liquide PMMA — IKO metatech Detail armé',
+    couches: [['LIQ-03', 3.0, 'Résine PMMA'], ['LIQ-04', 1.1, 'Voile d\'armature']] },
+];
+
+/* -------------------------------------------------------------------------
    3. Objectifs (fiche de fonction Chargé d'affaires SAS)
    ------------------------------------------------------------------------- */
 const OBJECTIFS_DEFAUT = { caAnnuel: 750000, margeCible: 0.30, devisMois: 45, rdvMois: 4, delaiDevis: 7, delaiFacture: 7, delaiRapport: 7, delaiPaiement: 45, tauxHoraireMO: 45 };
@@ -1374,6 +1592,7 @@ const DB = {
     if (!Array.isArray(d.agenda)) d.agenda = [];
     if (!Array.isArray(d.todos)) d.todos = [];
     if (!Array.isArray(d.otps)) d.otps = [];
+    if (!d.ikoPrix || typeof d.ikoPrix !== 'object' || Array.isArray(d.ikoPrix)) d.ikoPrix = {};
     d.otps.forEach(o => { if (o.horsPerimetre === undefined) o.horsPerimetre = false; });
     d.pointages = migratePointages(d.pointages);
     d.bte = d.bte.map(migrateBte);
@@ -1575,6 +1794,7 @@ const NAV = [
   { route: 'chantiers', ico: 'building', label: 'Chantiers', render: renderChantiers },
   { route: 'planning', ico: 'calendar', label: 'Planning & pointages', render: renderPlanning },
   { route: 'cadences', ico: 'clock', label: 'Cadences', render: renderCadences },
+  { route: 'iko', ico: 'layers', label: 'Catalogue IKO', render: renderIko },
   { route: 'bte', ico: 'calculator', label: 'BTE — Budget chantier', render: renderBTE },
   { route: 'achats', ico: 'cart', label: 'Achats fournisseurs', render: renderAchats },
   { group: 'Exécution' },
@@ -3379,6 +3599,164 @@ function exportCadences() {
   exportXlsx('estimation_cadences', ['ref', 'ouvrage', 'famille', 'unite', 'quantite', 'temps_std_h', 'coef_chantier', 'cadence_corrigee', 'temps_total_h'],
     steps.map(s => [s.ref, s.nom, s.famille, s.unite, s.qte, s.hStd, s.coef, num(s.cad) + ' ' + s.unite + '/j', Math.round(s.h * 100) / 100]),
     { sheet: 'Estimation', money: [], totals: false });
+}
+
+/* ---------- Catalogue IKO (produits & complexes) ---------- */
+const IKO = { vue: 'complexes', f: { cat: '', fam: '', q: '' } };
+const ikoProduit = ref => IKO_PRODUITS.find(p => p[IKO_I.REF] === ref);
+/* Prix unitaire retenu : tarif saisi dans le profil, sinon prix repère, sinon 0. */
+const ikoPrix = ref => { const v = DB.data.ikoPrix[ref]; return v !== undefined && v !== '' ? +v || 0 : (IKO_PRIX_DEFAUT[ref] || 0); };
+const ikoPrixSaisi = ref => DB.data.ikoPrix[ref] !== undefined && DB.data.ikoPrix[ref] !== '';
+const ikoTexte = c => c.ref + ' ' + c.nom + ' ' + c.proc + ' ' + c.sup + ' ' + c.usage + ' ' + c.couches.map(k => (ikoProduit(k[0]) || [])[IKO_I.DES]).join(' ');
+
+/* Chiffrage d'un complexe pour une quantité donnée : fournitures + temps de pose (référentiel cadences). */
+function ikoChiffrer(c, qte) {
+  const lignes = c.couches.map(([ref, conso, role]) => {
+    const p = ikoProduit(ref), q = qte * conso, pu = ikoPrix(ref);
+    return { ref, role, conso, des: p[IKO_I.DES], unite: p[IKO_I.U], qte: q, pu, total: q * pu, sansPrix: !pu };
+  });
+  const fourn = lignes.reduce((s, l) => s + l.total, 0);
+  const o = c.cad ? cadOuvrage(c.cad) : null;
+  const hU = o && o[CAD_I.U] === c.u ? o[CAD_I.H] : 0;
+  const taux = +DB.data.objectifs.tauxHoraireMO || CAD_PARAMS.tauxMO;
+  return { lignes, fourn, o, hU, h: hU * qte, taux, mo: hU * qte * taux };
+}
+
+function renderIko(v) {
+  const complexes = IKO.vue === 'complexes';
+  v.innerHTML = `
+    <p class="t-muted" style="margin:0 0 16px;max-width:900px">Catalogue <b>IKO</b> (ex-Axter) : <b>${IKO_PRODUITS.length} produits</b> et <b>${IKO_COMPLEXES.length} complexes d'étanchéité</b>
+      (bicouches soudés, auto-adhésifs, fixés mécaniquement, monocouches, végétalisés, parking, PVC, liquides, relevés).
+      Saisissez votre tarif négocié dans l'onglet Produits : chaque complexe est alors chiffré au m² (ou ml) et s'importe dans un BTE
+      avec le temps de pose du référentiel cadences. Les consommations sont des repères (recouvrements et chutes inclus) à valider sur le DTA du procédé.</p>
+    <div class="page-actions">
+      <button class="btn small ${complexes ? 'primary' : ''}" data-vue="complexes">${icon('layers')} Complexes (${IKO_COMPLEXES.length})</button>
+      <button class="btn small ${!complexes ? 'primary' : ''}" data-vue="produits">${icon('book')} Produits & tarifs (${IKO_PRODUITS.length})</button>
+      <span class="spacer"></span>
+      <button class="btn small" id="iko-xlsx">${icon('download')} Exporter</button>
+    </div>
+    <div class="card card-pad">
+      <div class="form-grid" style="grid-template-columns:repeat(2,1fr)">
+        ${complexes
+          ? `<div class="field"><label>Type de complexe</label><select data-f="cat"><option value="">Tous les types</option>${IKO_CATS.map((c, i) => `<option value="${i}" ${IKO.f.cat === String(i) ? 'selected' : ''}>${esc(c)}</option>`).join('')}</select></div>`
+          : `<div class="field"><label>Famille</label><select data-f="fam"><option value="">Toutes les familles</option>${IKO_FAMILLES.map((f, i) => `<option value="${i}" ${IKO.f.fam === String(i) ? 'selected' : ''}>${esc(f)}</option>`).join('')}</select></div>`}
+        <div class="field"><label>Recherche</label><input data-f="q" type="search" placeholder="${complexes ? 'ex. DUO STICK, bac acier, végétalisé…' : 'ex. VAP, enertherm, RLV…'}" value="${esc(IKO.f.q)}"></div>
+      </div>
+      <div id="iko-list" style="margin-top:14px"></div>
+    </div>`;
+  $$('[data-vue]', v).forEach(b => b.onclick = () => { IKO.vue = b.dataset.vue; renderIko(v); });
+  const cat = v.querySelector('[data-f="cat"]'), fam = v.querySelector('[data-f="fam"]');
+  if (cat) cat.onchange = e => { IKO.f.cat = e.target.value; ikoRefreshList(); };
+  if (fam) fam.onchange = e => { IKO.f.fam = e.target.value; ikoRefreshList(); };
+  v.querySelector('[data-f="q"]').oninput = e => { IKO.f.q = e.target.value; ikoRefreshList(); };
+  $('#iko-xlsx').onclick = complexes ? ikoExportComplexes : ikoExportProduits;
+  ikoRefreshList();
+}
+function ikoRefreshList() {
+  const box = $('#iko-list'); if (!box) return;
+  const q = IKO.f.q.trim().toLowerCase();
+  if (IKO.vue === 'complexes') {
+    const list = IKO_COMPLEXES.filter(c => (IKO.f.cat === '' || c.cat === +IKO.f.cat) && (!q || ikoTexte(c).toLowerCase().includes(q)));
+    box.innerHTML = !list.length ? '<p class="t-muted">Aucun complexe ne correspond à ces filtres.</p>' :
+      `<div class="table-wrap"><table>
+        <thead><tr><th>Réf.</th><th>Complexe</th><th>Support</th><th>Usage</th><th class="num">Fournitures / u</th><th class="num">Pose</th><th></th></tr></thead>
+        <tbody>${list.map(c => { const k = ikoChiffrer(c, 1), manque = k.lignes.some(l => l.sansPrix); return `<tr>
+          <td class="t-muted">${esc(c.ref)}</td>
+          <td style="white-space:normal;min-width:260px"><span class="link t-strong" data-open="${c.ref}">${esc(c.nom)}</span><br><span class="t-muted" style="font-size:11.5px">${esc(IKO_CATS[c.cat])} · ${esc(c.proc)} · ${c.couches.length} couche(s)</span></td>
+          <td style="white-space:normal">${esc(c.sup)}</td><td class="t-muted" style="white-space:normal">${esc(c.usage)}</td>
+          <td class="num">${eur2(k.fourn)}/${esc(c.u)}${manque ? ' <span class="chip" title="Certains produits n\'ont pas de prix : complétez l\'onglet Produits">prix à compléter</span>' : ''}</td>
+          <td class="num">${k.hU ? cadNum3(k.hU) + ' h/' + esc(c.u) : '<span class="t-muted">—</span>'}</td>
+          <td class="num"><button class="btn small" data-open="${c.ref}">${icon('calculator')} Chiffrer</button></td></tr>`; }).join('')}</tbody></table></div>
+      <p class="t-muted" style="margin:8px 0 0;font-size:12px">${list.length} complexe(s). Protections lourdes, isolants laine de roche / PSE et végétalisation sont signalés « hors IKO ».</p>`;
+    $$('[data-open]', box).forEach(b => b.onclick = () => ikoComplexeModal(b.dataset.open));
+  } else {
+    const list = IKO_PRODUITS.filter(p => (IKO.f.fam === '' || p[IKO_I.FAM] === +IKO.f.fam) && (!q || (p.join(' ') + ' ' + IKO_FAMILLES[p[IKO_I.FAM]]).toLowerCase().includes(q)));
+    box.innerHTML = !list.length ? '<p class="t-muted">Aucun produit ne correspond à ces filtres.</p>' :
+      `<div class="table-wrap"><table>
+        <thead><tr><th>Réf.</th><th>Produit</th><th>Famille</th><th>Conditionnement / conso.</th><th>U</th><th class="num">Mon tarif € HT</th></tr></thead>
+        <tbody>${list.map(p => { const r = p[IKO_I.REF]; return `<tr>
+          <td class="t-muted">${esc(r)}</td>
+          <td style="white-space:normal;min-width:280px"><span class="t-strong">${esc(p[IKO_I.DES])}</span><br><span class="t-muted" style="font-size:11.5px">${esc(p[IKO_I.DESC])}</span></td>
+          <td class="t-muted" style="white-space:normal">${esc(IKO_FAMILLES[p[IKO_I.FAM]])}</td><td class="t-muted" style="white-space:normal">${esc(p[IKO_I.COND])}</td><td>${esc(p[IKO_I.U])}</td>
+          <td class="num"><input data-prix="${esc(r)}" type="number" min="0" step="0.01" value="${ikoPrixSaisi(r) ? DB.data.ikoPrix[r] : ''}" placeholder="${IKO_PRIX_DEFAUT[r] ? String(IKO_PRIX_DEFAUT[r]).replace('.', ',') : '—'}" style="max-width:100px;text-align:right" title="Vide = prix repère (grisé)"></td></tr>`; }).join('')}</tbody></table></div>
+      <p class="t-muted" style="margin:8px 0 0;font-size:12px">${list.length} produit(s). Tarifs enregistrés dans le profil courant ; laissez vide pour utiliser le prix repère affiché en grisé.</p>`;
+    $$('[data-prix]', box).forEach(el => el.onchange = () => {
+      const r = el.dataset.prix;
+      if (el.value === '') delete DB.data.ikoPrix[r]; else DB.data.ikoPrix[r] = +el.value || 0;
+      DB.save(); toast('Tarif enregistré');
+    });
+  }
+}
+const eur2 = n => (isFinite(n) ? n : 0).toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+function ikoComplexeModal(ref) {
+  const c = IKO_COMPLEXES.find(x => x.ref === ref); if (!c) return;
+  let qte = c.u === 'm²' && +CAD.surface > 0 ? +CAD.surface : 100, withMo = true;
+  const m = modal({ title: c.ref + ' — ' + c.nom, xwide: true,
+    body: `<p class="t-muted" style="margin-top:0">${esc(IKO_CATS[c.cat])} · procédé <b>${esc(c.proc)}</b> · support ${esc(c.sup)} · ${esc(c.usage)}</p>
+      <div class="form-grid" style="grid-template-columns:repeat(3,1fr)">
+        <div class="field"><label>Quantité (${esc(c.u)})</label><input id="k-qte" type="number" min="0" step="any" value="${qte}"></div>
+        <div class="field"><label>Temps de pose (référentiel cadences)</label><div id="k-cad" class="t-muted" style="padding-top:8px"></div></div>
+        <div class="field"><label>Main d'œuvre</label><label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;padding-top:8px;font-weight:400;text-transform:none;letter-spacing:0"><input id="k-mo" type="checkbox" checked style="width:auto"> Importer aussi dans le BTE</label><span class="hint">Temps standard, sans coefficient chantier</span></div>
+      </div>
+      <div id="k-out" style="margin-top:12px"></div>`,
+    footer: `<button class="btn" data-c>Fermer</button><span class="spacer"></span>
+      ${c.cad ? `<button class="btn" id="k-cadbtn">${icon('clock')} Ajouter aux cadences</button>` : ''}
+      <button class="btn primary" id="k-bte">${icon('calculator')} Importer dans un BTE</button>` });
+  const refresh = () => {
+    const k = ikoChiffrer(c, qte);
+    $('#k-cad').innerHTML = k.o ? `${esc(k.o[CAD_I.REF])} — ${esc(k.o[CAD_I.DES])} : <b>${cadNum3(k.hU)} h/${esc(c.u)}</b>` : 'Pas d\'ouvrage associé — main d\'œuvre à chiffrer à part';
+    $('#k-out').innerHTML = `<div class="table-wrap"><table>
+      <thead><tr><th>Couche</th><th>Produit</th><th class="num">Conso / ${esc(c.u)}</th><th class="num">Quantité</th><th class="num">PU</th><th class="num">Total</th></tr></thead>
+      <tbody>${k.lignes.map(l => `<tr><td class="t-muted">${esc(l.role)}</td><td class="t-strong">${esc(l.des)}</td>
+        <td class="num">${cadNum3(l.conso)} ${esc(l.unite)}</td><td class="num">${num(l.qte)} ${esc(l.unite)}</td>
+        <td class="num">${l.sansPrix ? '<span class="chip">à saisir</span>' : eur2(l.pu)}</td><td class="num">${eur(l.total)}</td></tr>`).join('')}</tbody>
+      <tfoot>
+        <tr><td colspan="5">Fournitures — ${eur2(qte ? k.fourn / qte : 0)} / ${esc(c.u)}</td><td class="num">${eur(k.fourn)}</td></tr>
+        ${k.hU ? `<tr><td colspan="5">Main d'œuvre — ${num(k.h)} h × ${eur(k.taux)}/h</td><td class="num">${eur(k.mo)}</td></tr>
+        <tr><td colspan="5">Déboursé sec (fournitures + MO) — ${eur2(qte ? (k.fourn + k.mo) / qte : 0)} / ${esc(c.u)}</td><td class="num">${eur(k.fourn + k.mo)}</td></tr>` : ''}
+      </tfoot></table></div>
+      ${k.lignes.some(l => l.sansPrix) ? '<p class="t-muted" style="font-size:12px;margin:8px 0 0">Des produits n\'ont pas de tarif : renseignez-les dans l\'onglet « Produits & tarifs ».</p>' : ''}`;
+  };
+  $('#k-qte').oninput = e => { qte = +e.target.value || 0; refresh(); };
+  $('#k-mo').onchange = e => { withMo = e.target.checked; };
+  m.root.querySelector('[data-c]').onclick = m.close;
+  const cb = $('#k-cadbtn');
+  if (cb) cb.onclick = () => {
+    const l = CAD.lignes.find(x => x.ref === c.cad);
+    if (l) l.qte = (+l.qte || 0) + qte; else CAD.lignes.push({ ref: c.cad, qte });
+    m.close(); toast('Ouvrage ' + c.cad + ' ajouté au calculateur de cadences'); go('cadences');
+  };
+  $('#k-bte').onclick = () => { if (!qte) { toast('Saisissez une quantité', 'err'); return; } m.close(); ikoVersBte(c, qte, withMo); };
+  refresh();
+}
+function ikoVersBte(c, qte, withMo) {
+  const k = ikoChiffrer(c, qte), r2 = n => Math.ceil(Math.round(n * 1e4) / 100) / 100;
+  const lignes = k.lignes.map(l => ({ cat: BTE_CATS[2], designation: l.des + ' — ' + l.role, unite: l.unite, qte: r2(l.qte), pu: l.pu }));
+  if (withMo && k.hU) lignes.push({ cat: BTE_CATS[1], designation: k.o[CAD_I.REF] + ' — ' + c.nom, unite: 'h', qte: Math.round(k.h * 10) / 10, pu: k.taux });
+  const total = lignes.reduce((s, l) => s + l.qte * l.pu, 0);
+  const m = modal({ title: 'Importer le complexe dans un BTE',
+    body: `<p class="t-muted" style="margin-top:0">${esc(c.ref)} — ${esc(c.nom)} · <b>${num(qte)} ${esc(c.u)}</b> · ${lignes.length} ligne(s) pour ${eur(total)}.</p>
+      <div class="field"><label>BTE cible</label><select id="i-bte"><option value="">➕ Nouveau BTE</option>${DB.data.bte.map(b => `<option value="${b.id}">${esc(b.nom)}</option>`).join('')}</select></div>`,
+    footer: `<button class="btn" data-c>Annuler</button><button class="btn primary" id="i-go">Importer</button>` });
+  m.root.querySelector('[data-c]').onclick = m.close;
+  $('#i-go').onclick = () => {
+    const sel = $('#i-bte').value; let bte;
+    if (sel) { bte = DB.data.bte.find(x => x.id === sel); bte.lignes.push(...lignes); }
+    else { bte = { id: uid(), nom: c.nom + ' — ' + num(qte) + ' ' + c.u, adresse: '', otp: '', dateEdition: todayISO(), margePct: 0.30, notes: 'Complexe IKO ' + c.ref + ' (' + c.proc + ') importé depuis le catalogue IKO', lignes: [...lignes] }; DB.data.bte.unshift(bte); }
+    DB.save(); m.close(); toast('Complexe IKO importé dans le BTE'); go('bte'); bteEditor(bte.id);
+  };
+}
+function ikoExportProduits() {
+  exportXlsx('catalogue_IKO_produits', ['ref', 'famille', 'produit', 'descriptif', 'unite', 'conditionnement', 'pu'],
+    IKO_PRODUITS.map(p => [p[IKO_I.REF], IKO_FAMILLES[p[IKO_I.FAM]], p[IKO_I.DES], p[IKO_I.DESC], p[IKO_I.U], p[IKO_I.COND], ikoPrix(p[IKO_I.REF])]),
+    { sheet: 'Produits IKO', money: ['pu'], totals: false });
+}
+function ikoExportComplexes() {
+  const rows = [];
+  IKO_COMPLEXES.forEach(c => ikoChiffrer(c, 1).lignes.forEach(l => rows.push([c.ref, IKO_CATS[c.cat], c.nom, c.proc, c.sup, c.u, l.role, l.des, l.conso, l.unite, l.pu, l.total])));
+  exportXlsx('catalogue_IKO_complexes', ['ref', 'type', 'complexe', 'procede', 'support', 'unite_complexe', 'couche', 'produit', 'conso', 'unite', 'pu', 'cout_unitaire'],
+    rows, { sheet: 'Complexes IKO', money: ['pu', 'cout_unitaire'], totals: false });
 }
 
 /* ---------- Clients ---------- */
