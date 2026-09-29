@@ -3673,6 +3673,8 @@ const CAD = {
   equipe: 2, hj: CAD_PARAMS.heuresJour, surface: 0,
   coeff: Object.fromEntries(CAD_COEFFS.map(c => [c.key, c.def])),
   lignes: [],                       // [{ ref, qte, h? }]
+  mats: [],                         // matériaux ajoutés directement : [{ src: 'mat' | 'grille', ref, qte }]
+  mq: '',                           // recherche de matériaux dans le chiffrage
   f: { dom: '', fam: '', q: '' },   // filtres des ouvrages
   m: { fam: '', q: '', stock: '' }, // filtres matériaux / grille
 };
@@ -3743,6 +3745,30 @@ const cadEstRelevé = o => o[CAD_I.FAM] === 13 || (o[CAD_I.U] === 'ml' && cadAHa
 const cadEstPartieCourante = o => o[CAD_I.U] === 'm²' && ([3, 4].includes(o[CAD_I.SEC]) || (o[CAD_I.SEC] >= 7 && o[CAD_I.SEC] <= 10));
 const cadPerimEstime = s => s > 0 ? Math.round(4 * Math.sqrt(s)) : 0;
 
+/* Matériau ajouté directement au chiffrage (base matériaux ou référence de la grille IKO). */
+const IKO_U_GRILLE = { M2: 'm²', ML: 'ml', KG: 'kg', LI: 'l', U: 'u', BI: 'bidon', BA: 'bande', PL: 'plaque' };
+const cadMatCle = l => l.src + ':' + l.ref;
+function cadMatDirect(l) {
+  const q = +l.qte || 0;
+  if (l.src === 'grille') {
+    /* Référence déjà rattachée 1:1 à un matériau de la base → on passe par lui (prix saisi, cumul avec les ouvrages). */
+    const lie = Object.entries(IKO_LIEN_GRILLE).find(([, x]) => x[0] === l.ref && !x[1]);
+    if (lie) return cadMatDirect({ src: 'mat', ref: lie[0], qte: q });
+    const g = ikoLigneGrille(l.ref); if (!g) return null;
+    const pu = ikoPuGrille(g);
+    return { ref: 'G:' + l.ref, role: 'Ajout direct', conso: 1, des: g[IKO_G.DES], unite: IKO_U_GRILLE[g[IKO_G.U]] || String(g[IKO_G.U]).toLowerCase(),
+      qte: q, pu, total: q * pu, sansPrix: !pu, code: g[IKO_G.CODE] || g[IKO_G.PHX], delai: !g[IKO_G.STOCK], saisi: false };
+  }
+  const p = matProduit(l.ref); if (!p) return null;
+  const k = ikoGrille(l.ref), pu = matPrix(l.ref);
+  return { ref: l.ref, role: 'Ajout direct', conso: 1, des: p[IKO_I.DES], unite: p[IKO_I.U], qte: q, pu, total: q * pu, sansPrix: !pu,
+    code: k ? k.g[IKO_G.CODE] || k.g[IKO_G.PHX] : '', delai: !!(k && !k.g[IKO_G.STOCK]), saisi: ikoPrixSaisi(l.ref) };
+}
+function cadAjouterMat(src, ref, qte) {
+  if (CAD.mats.some(l => l.src === src && l.ref === ref)) { toast('Matériau déjà dans le chiffrage', 'err'); return false; }
+  CAD.mats.push({ src, ref, qte: qte !== undefined ? +qte : 1 });
+  return true;
+}
 function cadCompute() {
   const gc = cadCoefGlobal(), hj = Math.max(1, +CAD.hj || CAD_PARAMS.heuresJour), eq = Math.max(1, +CAD.equipe || 1), taux = cadTaux();
   const steps = CAD.lignes.map(l => {
@@ -3762,6 +3788,10 @@ function cadCompute() {
     const m = mats[f.ref] || (mats[f.ref] = { ...f, qte: 0, total: 0, ouvrages: [] });
     m.qte += f.qte; m.total += f.total; if (!m.ouvrages.includes(s.ref)) m.ouvrages.push(s.ref);
   }));
+  CAD.mats.forEach(l => { const f = cadMatDirect(l); if (!f) return;
+    const m = mats[f.ref] || (mats[f.ref] = { ...f, qte: 0, total: 0, ouvrages: [] });
+    m.qte += f.qte; m.total += f.total; if (!m.ouvrages.includes('ajout direct')) m.ouvrages.push('ajout direct');
+  });
   const materiaux = Object.values(mats).sort((a, b) => b.total - a.total);
   const fournTot = materiaux.reduce((s, m) => s + m.total, 0), mo = totalH * taux;
   return { gc, steps, totalH, jours, surf, cadGlob: jours > 0 ? surf / jours : 0, eq, hj, taux, materiaux, fournTot, mo };
@@ -3834,6 +3864,12 @@ function cadVueChiffrage(v) {
       <div class="card-title">4 · Ouvrages retenus</div>
       <div id="cad-panier"></div>
     </div>
+    <div class="card card-pad" style="margin-top:16px">
+      <div class="card-title">5 · Matériaux ajoutés (base matériaux & grille IKO 2026)</div>
+      <div class="field"><label>Rechercher un matériau ou une référence IKO</label><input id="cad-mq" type="search" placeholder="ex. gravillons, DUO FUSION BLANC, ET02207, BAND BUTYLE…" value="${esc(CAD.mq)}"></div>
+      <div id="cad-mres" style="margin-top:10px"></div>
+      <div id="cad-mats" style="margin-top:12px"></div>
+    </div>
     <div id="cad-out" class="cad-out" style="margin-top:16px"></div>`;
   $$('[data-cad]', v).forEach(el => el.oninput = () => { CAD[el.dataset.cad] = +el.value || 0; cadRefreshOut(); });
   $$('[data-coeff]', v).forEach(el => el.onchange = () => { CAD.coeff[el.dataset.coeff] = +el.value; cadRefreshOut(); });
@@ -3842,9 +3878,54 @@ function cadVueChiffrage(v) {
     const add = e.target.closest('[data-add]'), del = e.target.closest('[data-del]'), ed = e.target.closest('[data-edit]');
     if (add) cadAjouter(add.dataset.add, add.dataset.qte);
     if (del) { CAD.lignes = CAD.lignes.filter(l => l.ref !== del.dataset.del); cadRefreshPanier(); cadRefreshCat(); }
+    const madd = e.target.closest('[data-madd]'), mdel = e.target.closest('[data-mrm]');
+    if (madd) { const [src, ...r] = madd.dataset.madd.split(':'); if (cadAjouterMat(src, r.join(':'))) { cadRefreshMats(); cadRefreshMatRes(); } }
+    if (mdel) { CAD.mats = CAD.mats.filter(l => cadMatCle(l) !== mdel.dataset.mrm); cadRefreshMats(); cadRefreshMatRes(); }
     if (ed) cadOuvrageForm(ed.dataset.edit, () => { cadRefreshCat(); cadRefreshPanier(); });
   };
-  cadRefreshCat(); cadRefreshPanier();
+  $('#cad-mq').oninput = e => { CAD.mq = e.target.value; cadRefreshMatRes(); };
+  cadRefreshCat(); cadRefreshPanier(); cadRefreshMatRes(); cadRefreshMats();
+}
+/* Résultats de recherche : base matériaux puis références de la grille non rattachées à la base. */
+function cadRefreshMatRes() {
+  const box = $('#cad-mres'); if (!box) return;
+  const q = CAD.mq.trim().toLowerCase();
+  if (q.length < 2) { box.innerHTML = '<p class="t-muted" style="margin:0;font-size:12px">Saisissez au moins 2 caractères. Tous les matériaux de la base et les ' + IKO_GRILLE_ROWS.length + ' références de la grille IKO sont disponibles.</p>'; return; }
+  const dansBase = new Set(Object.values(IKO_LIEN_GRILLE).filter(x => !x[1]).map(x => x[0]));
+  const res = matTous().filter(p => (p.join(' ') + ' ' + ((IKO_LIEN_GRILLE[p[IKO_I.REF]] || [])[0] || '')).toLowerCase().includes(q))
+    .map(p => { const f = cadMatDirect({ src: 'mat', ref: p[IKO_I.REF], qte: 1 }); return { cle: 'mat:' + p[IKO_I.REF], f, src: 'Base' }; })
+    .concat(IKO_GRILLE_ROWS.filter(g => !dansBase.has(g[IKO_G.CODE]) && g.slice(0, 3).join(' ').toLowerCase().includes(q))
+      .map(g => { const c = g[IKO_G.CODE] || g[IKO_G.PHX]; return { cle: 'grille:' + c, f: cadMatDirect({ src: 'grille', ref: c, qte: 1 }), src: 'Grille IKO' }; }));
+  const pris = new Set(CAD.mats.map(cadMatCle));
+  box.innerHTML = !res.length ? '<p class="t-muted" style="margin:0">Aucun matériau trouvé.</p>' :
+    `<div class="table-wrap" style="max-height:260px;overflow:auto"><table><thead><tr><th>Source</th><th>Matériau</th><th>Code IKO</th><th>U</th><th class="num">PU</th><th></th></tr></thead><tbody>
+    ${res.slice(0, 30).map(r => `<tr><td class="t-muted">${r.src}</td><td class="t-strong" style="white-space:normal">${esc(r.f.des)}${r.f.delai ? ' <span class="chip" style="color:#b3261e">délai 2 sem.</span>' : ''}</td>
+      <td class="t-muted">${esc(r.f.code || '—')}</td><td>${esc(r.f.unite)}</td><td class="num">${r.f.sansPrix ? '<span class="chip">à saisir</span>' : eur2(r.f.pu)}</td>
+      <td class="num">${pris.has(r.cle) ? '<span class="chip">ajouté</span>' : `<button class="btn small" data-madd="${esc(r.cle)}">${icon('plus')}</button>`}</td></tr>`).join('')}</tbody></table></div>
+    ${res.length > 30 ? `<p class="t-muted" style="margin:6px 0 0;font-size:12px">${res.length} résultats — 30 affichés, affinez la recherche.</p>` : ''}`;
+}
+function cadRefreshMats() {
+  const box = $('#cad-mats'); if (!box) return;
+  const rows = CAD.mats.map(l => ({ l, f: cadMatDirect(l) })).filter(x => x.f);
+  box.innerHTML = !rows.length ? '<p class="t-muted" style="margin:0">Aucun matériau ajouté directement.</p>' :
+    `<div class="table-wrap"><table><thead><tr><th>Matériau</th><th>Code IKO</th><th class="num">Quantité</th><th>U</th><th class="num">PU</th><th class="num">Total</th><th></th></tr></thead><tbody>
+    ${rows.map(({ l, f }) => `<tr><td class="t-strong" style="white-space:normal">${esc(f.des)}</td><td class="t-muted">${esc(f.code || '—')}</td>
+      <td class="num"><input data-mq="${esc(cadMatCle(l))}" type="number" min="0" step="any" value="${l.qte}" style="max-width:110px;text-align:right"></td>
+      <td>${esc(f.unite)}</td><td class="num">${l.src === 'mat' || f.ref !== 'G:' + l.ref
+        ? `<input data-mpu="${esc(f.ref)}" type="number" min="0" step="0.01" value="${ikoPrixSaisi(f.ref) ? DB.data.ikoPrix[f.ref] : ''}" placeholder="${f.sansPrix ? 'à saisir' : (ikoGrille(f.ref) ? ikoGrille(f.ref).pu : f.pu).toFixed(2).replace('.', ',')}" style="max-width:90px;text-align:right" title="Prix enregistré dans la base matériaux (vide = grille)">`
+        : eur2(f.pu)}</td><td class="num" data-mtot="${esc(cadMatCle(l))}">${eur(f.total)}</td>
+      <td class="num"><button class="btn small" data-mrm="${esc(cadMatCle(l))}">${icon('trash')}</button></td></tr>`).join('')}</tbody></table></div>`;
+  $$('[data-mq]', box).forEach(el => el.oninput = () => {
+    const l = CAD.mats.find(x => cadMatCle(x) === el.dataset.mq); if (!l) return;
+    l.qte = +el.value || 0; const f = cadMatDirect(l);
+    box.querySelector(`[data-mtot="${CSS.escape(el.dataset.mq)}"]`).textContent = eur(f ? f.total : 0);
+    cadRefreshOut();
+  });
+  $$('[data-mpu]', box).forEach(el => el.onchange = () => {
+    const r = el.dataset.mpu; if (el.value === '') delete DB.data.ikoPrix[r]; else DB.data.ikoPrix[r] = +el.value || 0;
+    DB.save(); toast('Prix enregistré dans la base matériaux'); setTimeout(cadRefreshMats, 0);
+  });
+  cadRefreshOut();
 }
 function cadAjouter(ref, qteForcee) {
   if (CAD.lignes.some(l => l.ref === ref)) { toast('Ouvrage déjà retenu', 'err'); return; }
@@ -3908,20 +3989,20 @@ function cadRefreshOut() {
 }
 function cadencesResult() {
   const r = cadCompute(), { gc, steps, totalH, jours, surf, cadGlob, eq, hj, materiaux, fournTot, mo, taux } = r;
-  if (!steps.length) return '<p class="t-muted">Sélectionnez au moins un ouvrage pour lancer l\'estimation.</p>';
+  if (!steps.length && !materiaux.length) return '<p class="t-muted">Sélectionnez au moins un ouvrage ou un matériau pour lancer l\'estimation.</p>';
   const manque = materiaux.some(m => m.sansPrix), delai = materiaux.some(m => m.delai);
   return `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px">
     <div class="cad-metric"><div class="cm-label">Temps de pose total</div><div class="cm-value">${num(totalH)} h</div><div class="cm-sub">Coefficient chantier : ×${gc.toFixed(3).replace('.', ',')}</div></div>
     <div class="cad-metric green"><div class="cm-label">Durée chantier</div><div class="cm-value">${num(jours)} j</div><div class="cm-sub">équipe de ${eq} pers. · ${num(hj)} h/j · ${num(cadGlob)} m²/j</div></div>
     <div class="cad-metric amber"><div class="cm-label">Fournitures</div><div class="cm-value">${eur(fournTot)}</div><div class="cm-sub">${materiaux.length} matériau(x)${manque ? ' · prix à compléter' : ''}</div></div>
     <div class="cad-metric"><div class="cm-label">Déboursé sec (MO + fournitures)</div><div class="cm-value">${eur(mo + fournTot)}</div><div class="cm-sub">MO ${eur(mo)} (${eur(taux)}/h)${surf ? ' · ' + eur2((mo + fournTot) / surf) + '/m²' : ''}</div></div></div>
-  <div class="table-wrap" style="margin-top:16px"><table class="cad-steps">
+  ${steps.length ? `<div class="table-wrap" style="margin-top:16px"><table class="cad-steps">
     <thead><tr><th>Réf.</th><th>Ouvrage</th><th class="num">Qté</th><th class="num">Temps std</th><th class="num">Cadence corrigée</th><th class="num">Temps</th><th class="num">MO</th><th class="num">Fournitures</th></tr></thead>
     <tbody>${steps.map(s => `<tr><td class="t-muted">${esc(s.ref)}</td><td class="t-strong" style="white-space:normal">${esc(s.nom)}${s.hRel !== undefined ? ` <span class="t-muted">(h = ${num(s.hRel * 100)} cm)</span>` : ''}</td>
       <td class="num">${num(s.qte)} ${esc(s.unite)}</td><td class="num">${cadNum3(s.hStd)} h/${esc(s.unite)}</td>
       <td class="num">${num(s.cad)} ${esc(s.unite)}/j${s.coef === 1 ? ' <span class="t-muted">(non pondéré)</span>' : ''}</td>
       <td class="num">${num(s.h)} h</td><td class="num">${eur(s.h * taux)}</td><td class="num">${s.fourn.length ? eur(s.fournTot) : '<span class="t-muted">—</span>'}</td></tr>`).join('')}</tbody>
-    <tfoot><tr><td colspan="5">TOTAL — ${num(jours)} jours équipe</td><td class="num">${num(totalH)} h</td><td class="num">${eur(mo)}</td><td class="num">${eur(fournTot)}</td></tr></tfoot></table></div>
+    <tfoot><tr><td colspan="5">TOTAL — ${num(jours)} jours équipe</td><td class="num">${num(totalH)} h</td><td class="num">${eur(mo)}</td><td class="num">${eur(steps.reduce((s, x) => s + x.fournTot, 0))}</td></tr></tfoot></table></div>` : ''}
   ${materiaux.length ? `<div class="card-title" style="margin-top:18px">Matériaux à commander</div>
   <div class="table-wrap"><table>
     <thead><tr><th>Matériau</th><th>Code IKO</th><th class="num">Quantité</th><th class="num">PU</th><th class="num">Total</th><th>Ouvrages</th></tr></thead>
@@ -3935,9 +4016,9 @@ function cadencesResult() {
 }
 function importCadenceToBte() {
   const { steps, totalH, surf, materiaux, taux, mo, fournTot } = cadCompute();
-  if (!steps.length) { toast('Aucune tâche à importer', 'err'); return; }
+  if (!steps.length && !materiaux.length) { toast('Rien à importer', 'err'); return; }
   const r2 = n => Math.ceil(Math.round(n * 1e4) / 100) / 100;
-  const lignesMo = steps.filter(s => s.h > 0).map(s => ({ cat: BTE_CATS[1], designation: s.ref + ' — ' + s.nom, unite: 'h', qte: Math.round(s.h * 10) / 10, pu: taux }));
+  const lignesMo = steps.filter(s => s.h > 0).map(s => ({ cat: BTE_CATS[1], designation: s.ref + ' — ' + s.nom, unite: 'h', qte: Math.round(s.h * 100) / 100, pu: taux }));
   const lignesF = materiaux.map(m => ({ cat: BTE_CATS[2], designation: (m.code ? m.code + ' ' : '') + m.des, unite: m.unite, qte: r2(m.qte), pu: Math.round(m.pu * 1e4) / 1e4 }));
   const bteOpts = DB.data.bte.map(b => `<option value="${b.id}">${esc(b.nom)}</option>`).join('');
   const m = modal({ title: 'Importer le chiffrage dans un BTE',
@@ -4094,12 +4175,13 @@ function cadVueMateriaux(v) {
           <td style="white-space:normal;min-width:170px">${k ? `<span class="t-strong">${esc(k.g[IKO_G.CODE] || 'PHX ' + k.g[IKO_G.PHX])}</span> ${ikoStockChip(k.g)}<br><span class="t-muted" style="font-size:11.5px">${esc(k.g[IKO_G.DES])}</span><br><span style="font-size:12px">${eur2(k.pu)} / ${esc(p[IKO_I.U])} EC incl.</span>` : `<span class="t-muted">${perso ? 'Matériau ajouté' : 'Hors grille'}</span>`}</td>
           <td>${esc(p[IKO_I.U])}</td>
           <td class="num"><input data-prix="${esc(r)}" type="number" min="0" step="0.01" value="${ikoPrixSaisi(r) ? DB.data.ikoPrix[r] : ''}" placeholder="${k ? k.pu.toFixed(2).replace('.', ',') : 'à saisir'}" style="max-width:100px;text-align:right" title="Vide = prix de la grille (grisé)"></td>
-          <td>${perso ? `<button class="icon-btn" data-medit="${esc(r)}" title="Modifier">${icon('edit')}</button><button class="icon-btn danger" data-mdel="${esc(r)}" title="Supprimer">${icon('trash')}</button>` : ''}</td></tr>`; }).join('')}</tbody></table></div>
+          <td style="white-space:nowrap"><button class="btn small" data-mchif="${esc(r)}" title="Ajouter au chiffrage">${icon('plus')} chiffrage</button>${perso ? `<button class="icon-btn" data-medit="${esc(r)}" title="Modifier">${icon('edit')}</button><button class="icon-btn danger" data-mdel="${esc(r)}" title="Supprimer">${icon('trash')}</button>` : ''}</td></tr>`; }).join('')}</tbody></table></div>
       <p class="t-muted" style="margin:8px 0 0;font-size:12px">${list.length} matériau(x). Laissez le prix vide pour appliquer la grille IKO ; un prix saisi la remplace (autre coloris, remise, autre fournisseur).</p>`;
     $$('[data-prix]', $('#m-list')).forEach(el => el.onchange = () => {
       const r = el.dataset.prix; if (el.value === '') delete DB.data.ikoPrix[r]; else DB.data.ikoPrix[r] = +el.value || 0;
       DB.save(); toast('Prix enregistré');
     });
+    $$('[data-mchif]', $('#m-list')).forEach(b => b.onclick = () => { if (cadAjouterMat('mat', b.dataset.mchif)) toast('Ajouté au chiffrage (onglet Chiffrage, section 5)'); });
     $$('[data-medit]', $('#m-list')).forEach(b => b.onclick = () => matForm(b.dataset.medit, refresh));
     $$('[data-mdel]', $('#m-list')).forEach(b => b.onclick = () => {
       const r = b.dataset.mdel, usages = cadTous().filter(o => cadCompo(o[CAD_I.REF]).some(k => k[0] === r)).map(o => o[CAD_I.REF]);
@@ -4155,14 +4237,16 @@ function cadVueGrille(v) {
     const list = IKO_GRILLE_ROWS.filter(g => (CAD.m.stock === '' || g[IKO_G.STOCK] === +CAD.m.stock) && (!q || g.slice(0, 5).join(' ').toLowerCase().includes(q)));
     $('#g-list').innerHTML = !list.length ? '<p class="t-muted">Aucune référence ne correspond à ces filtres.</p>' :
       `<div class="table-wrap"><table>
-        <thead><tr><th>Code IKO</th><th>Phoenix</th><th>Désignation</th><th>Stock</th><th>Cond.</th><th class="num">Poids</th><th class="num">Long.</th><th>U prix</th><th class="num">Prix HT</th><th class="num">Éco-contr.</th><th class="num">Prix EC incl.</th></tr></thead>
+        <thead><tr><th>Code IKO</th><th>Phoenix</th><th>Désignation</th><th>Stock</th><th>Cond.</th><th class="num">Poids</th><th class="num">Long.</th><th>U prix</th><th class="num">Prix HT</th><th class="num">Éco-contr.</th><th class="num">Prix EC incl.</th><th></th></tr></thead>
         <tbody>${list.map(g => { const used = ikoGrilleUtilisee(g[IKO_G.CODE] || g[IKO_G.PHX]); return `<tr>
           <td class="t-strong">${esc(g[IKO_G.CODE] || '—')}</td><td class="t-muted">${esc(g[IKO_G.PHX])}</td>
           <td style="white-space:normal;min-width:240px">${esc(g[IKO_G.DES])}${used.length ? `<br><span class="t-muted" style="font-size:11.5px">Matériau de la base (${used.join(', ')})</span>` : ''}</td>
           <td>${ikoStockChip(g)}</td><td>${esc(g[IKO_G.COND])}</td>
           <td class="num">${g[IKO_G.POIDS] != null ? num(g[IKO_G.POIDS]) + ' kg' : '—'}</td><td class="num">${g[IKO_G.LONG] != null ? num(g[IKO_G.LONG]) + ' ml' : '—'}</td>
-          <td>${esc(g[IKO_G.U])}</td><td class="num">${eur2(g[IKO_G.PU])}</td><td class="num t-muted">${eur2(g[IKO_G.EC])}</td><td class="num t-strong">${eur2(ikoPuGrille(g))}</td></tr>`; }).join('')}</tbody></table></div>
+          <td>${esc(g[IKO_G.U])}</td><td class="num">${eur2(g[IKO_G.PU])}</td><td class="num t-muted">${eur2(g[IKO_G.EC])}</td><td class="num t-strong">${eur2(ikoPuGrille(g))}</td>
+          <td><button class="btn small" data-gchif="${esc(g[IKO_G.CODE] || g[IKO_G.PHX])}" title="Ajouter au chiffrage">${icon('plus')} chiffrage</button></td></tr>`; }).join('')}</tbody></table></div>
       <p class="t-muted" style="margin:8px 0 0;font-size:12px">${list.length} référence(s). VERT : tenu en stock par IKO ; ROUGE : non garanti, prévoir ≈ 2 semaines d'approvisionnement.</p>`;
+    $$('[data-gchif]', $('#g-list')).forEach(b => b.onclick = () => { if (cadAjouterMat('grille', b.dataset.gchif)) toast('Ajouté au chiffrage (onglet Chiffrage, section 5)'); });
   };
   v.querySelector('[data-g="stock"]').onchange = e => { CAD.m.stock = e.target.value; refresh(); };
   v.querySelector('[data-g="q"]').oninput = e => { CAD.m.q = e.target.value; refresh(); };
