@@ -138,6 +138,9 @@ a{color:var(--brand-2)}
 #nav-collapse{margin-left:-6px}
 
 .top-actions{display:flex;align-items:center;gap:6px;margin-left:auto;flex:none}
+#width-btn{width:auto;padding:0 10px;gap:6px;font-size:12.5px}
+#width-btn .lbl{display:inline}
+@media(max-width:960px){#width-btn{display:none}}
 
 /* Profil */
 .profile-btn{display:flex;align-items:center;gap:8px;height:38px;padding:0 10px 0 4px;border-radius:10px;border:1px solid var(--border);
@@ -249,7 +252,7 @@ details.detail>summary::-webkit-details-marker{display:none}
 details.detail>summary .ic{transition:transform .15s;color:var(--text-3)}
 details.detail[open]>summary .ic{transform:rotate(180deg)}
 details.detail>summary:hover{color:var(--text)}
-details.detail>.detail-body{padding:0 16px 16px;display:grid;gap:var(--gap)}
+details.detail>.detail-body{padding:0 16px 16px;display:grid;grid-template-columns:minmax(0,1fr);gap:var(--gap)}
 
 /* ============================== KPI ==================================== */
 .kpi-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:var(--gap);margin-bottom:var(--gap)}
@@ -277,9 +280,13 @@ thead th{position:sticky;top:0;z-index:1;background:var(--surface-2);text-align:
 tbody td{padding:var(--row-py) var(--row-px);border-bottom:1px solid var(--border);vertical-align:middle}
 td.wrap,th.wrap{white-space:normal;min-width:220px}
 /* Colonnes étirables — poignée sur le bord droit de chaque en-tête */
-.col-rsz{position:absolute;top:0;right:-3px;width:7px;height:100%;cursor:col-resize;z-index:2;touch-action:none}
-.col-rsz::after{content:"";position:absolute;left:3px;top:5px;bottom:5px;width:1px;background:transparent;transition:background .15s}
-.col-rsz:hover::after,.col-rsz.active::after{background:var(--brand-2)}
+.col-rsz{position:absolute;top:0;right:-4px;width:9px;height:100%;cursor:col-resize;z-index:2;touch-action:none}
+/* Séparateur toujours visible entre les en-têtes : on voit où tirer */
+.col-rsz::after{content:"";position:absolute;left:4px;top:9px;bottom:9px;width:1px;border-radius:1px;background:var(--border-strong);transition:background .15s,width .15s,left .15s}
+.col-rsz:hover::after,.col-rsz.active::after{background:var(--brand-2);width:3px;left:3px;top:4px;bottom:4px}
+thead th:last-child .col-rsz::after{display:none}
+th.col-key,td.col-key{background:color-mix(in srgb,var(--brand-soft) 60%,transparent)}
+thead th.col-key{color:var(--brand-2)}
 thead th:last-child .col-rsz{right:0}
 body.col-resizing{cursor:col-resize;user-select:none}
 table.rsz{table-layout:fixed}
@@ -777,6 +784,7 @@ html[data-density="compact"] .filters input:not([type=checkbox]),html[data-densi
         </button>
         <button id="nav-collapse" class="btn ghost icon" aria-label="Réduire ou déployer le menu" title="Réduire / déployer le menu latéral"></button>
         <div class="top-actions">
+          <button id="width-btn" class="btn ghost" aria-label="Largeur d'affichage"></button>
           <button id="btn-export" class="btn ghost" title="Exporter les données du profil (sauvegarde locale)">Sauvegarde</button>
           <button id="btn-import" class="btn ghost" title="Importer une sauvegarde">Restaurer</button>
           <input type="file" id="import-file" accept="application/json" hidden>
@@ -875,6 +883,7 @@ const ICONS = {
   cart: '<circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>',
   checkSquare: '<polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>',
   activity: '<polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>',
+  widthIc: '<path d="M21 12H3"/><path d="m7 8-4 4 4 4"/><path d="m17 8 4 4-4 4"/>',
   sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/>',
   moon: '<path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>',
   zap: '<path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z"/>',
@@ -2284,11 +2293,11 @@ function go(route) {
    Réglages liés au poste (taille d'écran), pas au profil : stockés à part.
    ------------------------------------------------------------------------- */
 const UI_KEY = 'chargepro.ui';
-const UI_WIDTHS = { confort: 'Confort', large: 'Large', plein: 'Plein' };
+const UI_WIDTHS = { confort: 'Confort', large: 'Large', plein: 'Plein écran' };
 const UI_DENSITES = { normal: 'Normale', compact: 'Compacte' };
 const UI_THEMES = { auto: 'Auto', light: 'Clair', dark: 'Sombre' };
 const UI = {
-  prefs: { width: 'confort', density: 'normal', theme: 'auto', nav: 'full' },
+  prefs: { width: 'large', density: 'normal', theme: 'auto', nav: 'full' },
   load() {
     let saved = null; try { saved = JSON.parse(localStorage.getItem(UI_KEY)); } catch {}
     if (saved && typeof saved === 'object') {
@@ -2304,12 +2313,16 @@ const UI = {
   // Bouton soleil/lune : force le thème inverse de celui affiché, et le mémorise
   toggleTheme() { this.set('theme', this.isDark() ? 'light' : 'dark'); },
   toggleNav() { this.set('nav', this.prefs.nav === 'compact' ? 'full' : 'compact'); },
+  // Bouton de la barre du haut : Confort → Large → Plein écran → Confort…
+  cycleWidth() { const k = Object.keys(UI_WIDTHS); this.set('width', k[(k.indexOf(this.prefs.width) + 1) % k.length]); toast('Largeur d\'affichage : ' + UI_WIDTHS[this.prefs.width]); },
   apply() {
     const r = document.documentElement;
     r.dataset.width = this.prefs.width;
     r.dataset.density = this.prefs.density;
     r.dataset.nav = this.prefs.nav;
     if (this.prefs.theme === 'auto') delete r.dataset.theme; else r.dataset.theme = this.prefs.theme;
+    const wb = document.getElementById('width-btn');
+    if (wb) { wb.innerHTML = icon('widthIc') + '<span class="lbl">' + UI_WIDTHS[this.prefs.width] + '</span>'; wb.title = 'Largeur d\'affichage : ' + UI_WIDTHS[this.prefs.width] + ' — cliquer pour changer'; }
     const tb = document.getElementById('theme-btn');
     if (tb) tb.innerHTML = icon(this.isDark() ? 'sun' : 'moon');
   }
@@ -2384,7 +2397,17 @@ function setupResizable(t, key) {
   });
 }
 let colsRaf = 0;
-function initResizableTables() { $$('#view .table-wrap > table').forEach((t, i) => { if (!t.dataset.rsz) setupResizable(t, colKey(t, i)); }); }
+function initResizableTables() { $$('#view .table-wrap > table').forEach((t, i) => { if (!t.dataset.rsz) setupResizable(t, colKey(t, i)); }); initKeptDetails(); }
+// Sections repliables : ouvertes ou fermées comme la dernière fois (par poste)
+const DETAILS_KEY = 'chargepro.details';
+function initKeptDetails() {
+  let st = {}; try { st = JSON.parse(localStorage.getItem(DETAILS_KEY)) || {}; } catch {}
+  $$('#view details[data-keep]').forEach(d => {
+    if (d.dataset.kept) return; d.dataset.kept = '1';
+    if (st[d.dataset.keep]) d.open = true;
+    d.addEventListener('toggle', () => { st[d.dataset.keep] = d.open; try { localStorage.setItem(DETAILS_KEY, JSON.stringify(st)); } catch {} });
+  });
+}
 function scheduleCols() { cancelAnimationFrame(colsRaf); colsRaf = requestAnimationFrame(initResizableTables); }
 function resetAllCols() { Cols.clear(); $$('#view .table-wrap > table').forEach(clearCols); toast('Largeurs de colonnes réinitialisées'); }
 
@@ -2571,7 +2594,7 @@ function renderDashboard(v) {
       </div>
       <div class="card card-pad" id="todo-card"></div>
     </div>
-    <details class="detail">
+    <details class="detail" data-keep="dash-detail">
       <summary>${icon('chevron')} Détail — objectifs, CA mensuel, chantiers en cours</summary>
       <div class="detail-body">
         <div class="grid-2">
@@ -3142,18 +3165,19 @@ function renderRAF(v) {
   const nom = f => `<td class="t-strong">${esc(f.code)}</td><td><span class="link" data-run="${esc(f.code)}">${esc(otpLabel(f.code) || '—')}</span></td><td class="t-muted">${esc(clientNom(otpClientId(f.code)))}</td>`;
   const act = f => `<td class="actions-cell"><button class="icon-btn" data-run="${esc(f.code)}" title="Analyser">${icon('target')}</button></td>`;
   // Vue 1 — la boîte à affaires : commandé mais pas encore mis en facturation (« le coffre »)
+  // La boîte à affaires, chiffre clé de cette vue, vient juste après le client (colonne mise en avant)
   const tblCoffre = () => `<div class="table-wrap"><table><thead><tr><th>OTP</th><th>Libellé</th><th>Client</th>
+      <th class="num col-key" title="Commandé − déjà mis en facturation">Boîte à affaires</th>
       <th class="num" title="Chantiers signés : commande, en cours, réceptionnés, facturés">Commandé HT</th>
       <th class="num" title="CA déjà mis en facturation (lignes CA imputées), cumulé">Déjà mis en factu.</th>
       <th class="num" title="Travaux réalisés (chantiers réceptionnés) pas encore mis en facturation">Fait à mettre en factu.</th>
       <th class="num" title="Commandes signées restant à réaliser">Restant à réaliser</th>
-      <th class="num" title="Commandé − déjà mis en facturation">Boîte à affaires</th>
       <th class="num" title="Commandes fournisseurs passées et non réceptionnées">Engagé non reçu</th><th></th></tr></thead>
-    <tbody>${fin.map(f => `<tr>${nom(f)}<td class="num">${eur(f.commandeHT)}</td><td class="num">${eur(f.caCumul)}</td>
+    <tbody>${fin.map(f => `<tr>${nom(f)}<td class="num col-key t-strong ${f.coffre >= 0 ? 'margin-good' : 'margin-bad'}">${eur(f.coffre)}</td>
+      <td class="num">${eur(f.commandeHT)}</td><td class="num">${eur(f.caCumul)}</td>
       <td class="num">${eur(f.coffreFait)}</td><td class="num">${eur(f.coffreAFaire)}</td>
-      <td class="num t-strong ${f.coffre >= 0 ? 'margin-good' : 'margin-bad'}">${eur(f.coffre)}</td>
       <td class="num t-muted">${eur(f.engage)}</td>${act(f)}</tr>`).join('')}</tbody>
-    <tfoot><tr class="t-strong"><td colspan="3">TOTAL (${codes.length} OTP)</td><td class="num">${eur(T.commandeHT)}</td><td class="num">${eur(T.caCumul)}</td><td class="num">${eur(T.coffreFait)}</td><td class="num">${eur(T.coffreAFaire)}</td><td class="num ${T.coffre >= 0 ? 'margin-good' : 'margin-bad'}">${eur(T.coffre)}</td><td class="num">${eur(T.engage)}</td><td></td></tr></tfoot></table></div>`;
+    <tfoot><tr class="t-strong"><td colspan="3">TOTAL (${codes.length} OTP)</td><td class="num col-key ${T.coffre >= 0 ? 'margin-good' : 'margin-bad'}">${eur(T.coffre)}</td><td class="num">${eur(T.commandeHT)}</td><td class="num">${eur(T.caCumul)}</td><td class="num">${eur(T.coffreFait)}</td><td class="num">${eur(T.coffreAFaire)}</td><td class="num">${eur(T.engage)}</td><td></td></tr></tfoot></table></div>`;
   // Vue 2 — le mois : ce que je mets en facturation MOINS ce qui est réceptionné sur le mois
   const tblMois = () => `<div class="table-wrap"><table><thead><tr><th>OTP</th><th>Libellé</th><th>Client</th>
       <th class="num" title="Lignes CA du mois — ce que je mets en facturation">Mis en factu. ${esc(PL)}</th>
@@ -3199,7 +3223,7 @@ function renderRAF(v) {
     ${codes.length ? (rafVue === 'coffre' ? tblCoffre() : rafVue === 'mois' ? tblMois() : tblSynthese())
       : nbHors ? emptyState('target', 'Aucun OTP à suivre', 'Les ' + nbHors + ' OTP existants sont marqués hors périmètre (commandes seules). Utilisez le bouton « Afficher » pour les consulter malgré tout.')
       : emptyState('target', 'Aucun OTP', 'Les OTP apparaissent dès qu\'ils sont utilisés sur un devis, un chantier, une facture ou un achat.')}
-    <details class="detail">
+    <details class="detail" data-keep="raf-aide">
       <summary>${icon('chevron')} Comment lire cet écran — ${rafPerLabel()}</summary>
       <div class="detail-body"><p class="t-muted" style="margin:0;max-width:960px">Deux lectures distinctes, à ne pas confondre :
       <b>la boîte à affaires</b> — ce qui est <b>commandé</b> (travaux faits ou restant à faire) mais <b>pas encore mis en facturation</b> : c'est le coffre —
@@ -3743,7 +3767,7 @@ function renderCA(v) {
       <div class="section-head">${icon('bar')}<h2>CA & marge par mois — ${caYear}</h2></div>
       ${monthlyBarChart(caYear)}
     </div>
-    <details class="detail">
+    <details class="detail" data-keep="ca-couts">
       <summary>${icon('chevron')} Détail des coûts de ${PM} et mode de calcul</summary>
       <div class="detail-body">
         <div class="grid-3">
@@ -6829,6 +6853,7 @@ function boot() {
   $('#btn-export').innerHTML = icon('download') + '<span class="lbl">Sauvegarde</span>';
   $('#btn-import').innerHTML = icon('upload') + '<span class="lbl">Restaurer</span>';
   $('#theme-btn').onclick = () => UI.toggleTheme();
+  $('#width-btn').onclick = () => UI.cycleWidth();
   if (window.matchMedia) matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => UI.apply());
   UI.apply();
   buildNav();
