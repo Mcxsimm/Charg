@@ -39,6 +39,9 @@
   --cat-1:#2a6fc4; --cat-2:#1d7a52; --cat-3:#a15c07; --cat-4:#6941c6;
   --cat-5:#c4320a; --cat-6:#0e7490; --cat-7:#be185d; --cat-8:#4d7c0f; --cat-0:#5d6b82;
   --scrim:rgba(10,18,32,.55);
+  /* Barre latérale */
+  --side-bg:#0e2340; --side-bg-2:#13305a; --side-text:#c3cfe0; --side-text-strong:#ffffff;
+  --side-muted:#7f93b0; --side-border:rgba(255,255,255,.08); --side-w:276px;
   --radius-sm:6px; --radius:10px; --radius-lg:14px;
   --shadow-xs:0 1px 2px rgba(16,24,40,.05);
   --shadow-sm:0 1px 3px rgba(16,24,40,.08),0 1px 2px rgba(16,24,40,.04);
@@ -74,6 +77,7 @@
     --info:#53b1fd; --info-soft:#102539; --info-line:#1d4a75;
     --serie-1:#3987e5; --serie-2:#d95926; --grid:#222b37;
     --scrim:rgba(0,0,0,.6);
+    --side-bg:#0a1220; --side-bg-2:#111c30;
     --shadow-xs:0 1px 2px rgba(0,0,0,.3);
     --shadow-sm:0 1px 3px rgba(0,0,0,.4),0 1px 2px rgba(0,0,0,.3);
     --shadow-md:0 8px 24px rgba(0,0,0,.45);
@@ -93,6 +97,7 @@
   --info:#53b1fd; --info-soft:#102539; --info-line:#1d4a75;
   --serie-1:#3987e5; --serie-2:#d95926; --grid:#222b37;
   --scrim:rgba(0,0,0,.6);
+  --side-bg:#0a1220; --side-bg-2:#111c30;
   --shadow-xs:0 1px 2px rgba(0,0,0,.3);
   --shadow-sm:0 1px 3px rgba(0,0,0,.4),0 1px 2px rgba(0,0,0,.3);
   --shadow-md:0 8px 24px rgba(0,0,0,.45);
@@ -117,8 +122,8 @@ a{color:var(--brand-2)}
 .ic-lg{width:22px;height:22px}
 
 /* ============================== Coquille =============================== */
-#app{min-height:100vh;display:flex;flex-direction:column}
-#main{flex:1;min-width:0;display:flex;flex-direction:column}
+#app{min-height:100vh;display:flex}
+#main{flex:1;min-width:0;display:flex;flex-direction:column;margin-left:var(--side-w);transition:margin-left .25s var(--ease-drawer)}
 
 #topbar{position:sticky;top:0;z-index:40;height:62px;display:flex;align-items:center;gap:14px;padding:0 24px;
   background:color-mix(in srgb,var(--surface) 92%,transparent);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
@@ -129,24 +134,10 @@ a{color:var(--brand-2)}
 .logo-text{font-weight:750;font-size:16.5px;letter-spacing:-.01em;white-space:nowrap}
 #menu-toggle{display:none;border:0;background:none;color:var(--text);padding:6px;border-radius:8px}
 #menu-toggle:hover{background:var(--surface-3)}
+#topbar>.brand{display:none}
+#nav-collapse{margin-left:-6px}
 
-/* Espaces (groupes du menu) */
-.espaces{display:flex;gap:2px;margin:0 auto;min-width:0}
-.esp{border:0;background:none;height:38px;padding:0 12px;border-radius:10px;font-weight:600;font-size:14px;color:var(--text-2);
-  display:inline-flex;align-items:center;gap:7px;white-space:nowrap;transition:background .12s,color .12s}
-.esp:hover{background:var(--surface-3);color:var(--text)}
-.esp.on{color:var(--brand-2);background:var(--brand-soft)}
 .top-actions{display:flex;align-items:center;gap:6px;margin-left:auto;flex:none}
-
-/* Onglets de l'espace */
-#subnav{position:sticky;top:62px;z-index:35;background:color-mix(in srgb,var(--bg) 92%,transparent);
-  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-bottom:1px solid var(--border)}
-.subnav-in{max-width:var(--content-max);margin:0 auto;padding:0 var(--view-pad-x);display:flex;gap:4px;overflow-x:auto;scrollbar-width:none}
-.subnav-in::-webkit-scrollbar{display:none}
-#subnav button{flex:none;border:0;background:none;height:44px;padding:0 12px;display:inline-flex;align-items:center;gap:7px;
-  font-weight:550;font-size:13.5px;color:var(--text-3);border-bottom:2px solid transparent;margin-bottom:-1px;white-space:nowrap}
-#subnav button:hover{color:var(--text)}
-#subnav button.active{color:var(--text);border-bottom-color:var(--accent)}
 
 /* Profil */
 .profile-btn{display:flex;align-items:center;gap:8px;height:38px;padding:0 10px 0 4px;border-radius:10px;border:1px solid var(--border);
@@ -157,17 +148,34 @@ a{color:var(--brand-2)}
 .avatar{width:30px;height:30px;border-radius:50%;background:var(--brand);color:#fff;display:grid;place-items:center;
   font-weight:650;font-size:12px;flex:none}
 
-/* Tiroir de navigation (mobile) */
-#sidebar{display:none}
+/* Barre latérale */
+#sidebar{position:fixed;inset:0 auto 0 0;width:var(--side-w);z-index:50;display:flex;flex-direction:column;
+  background:var(--side-bg);color:var(--side-text);border-right:1px solid var(--side-border);transition:width .25s var(--ease-drawer)}
+#sidebar .brand{height:62px;padding:0 18px;border-radius:0;border-bottom:1px solid var(--side-border);color:var(--side-text-strong)}
+#nav{flex:1;overflow-y:auto;overflow-x:hidden;padding:8px 12px 12px;display:flex;flex-direction:column;gap:1px;scrollbar-width:thin;scrollbar-color:var(--side-bg-2) transparent}
+.nav-group{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--side-muted);font-weight:650;padding:14px 10px 5px;white-space:nowrap}
+.nav-group:first-child{padding-top:8px}
+.nav-item{position:relative;display:flex;align-items:center;gap:11px;width:100%;padding:9px 10px;border:0;background:none;border-radius:8px;
+  color:var(--side-text);font-size:13.5px;font-weight:550;text-align:left;white-space:nowrap;transition:background .12s,color .12s}
+.nav-item>span{overflow:hidden;text-overflow:ellipsis}
+.nav-item .ic{color:var(--side-muted);transition:color .12s}
+.nav-item:hover{background:rgba(255,255,255,.06);color:var(--side-text-strong)}
+.nav-item:hover .ic{color:var(--side-text)}
+.nav-item.active{background:var(--side-bg-2);color:var(--side-text-strong);font-weight:600}
+.nav-item.active .ic{color:var(--accent)}
+.nav-item.active::before{content:"";position:absolute;left:-12px;top:8px;bottom:8px;width:3px;border-radius:0 3px 3px 0;background:var(--accent)}
+.foot-note{font-size:11.5px;color:var(--side-muted);padding:12px 18px 14px;line-height:1.4;border-top:1px solid var(--side-border)}
 .drawer-back{display:none}
-.nav-group{font-size:11.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--text-3);font-weight:650;padding:14px 12px 4px}
-.nav-item{display:flex;align-items:center;gap:10px;width:100%;padding:9px 12px;border:0;background:none;border-radius:8px;
-  color:var(--text);font-size:14px;font-weight:550;text-align:left}
-.nav-item .ic{color:var(--text-3)}
-.nav-item:hover{background:var(--surface-3)}
-.nav-item.active{background:var(--brand-soft);color:var(--brand-2)}
-.nav-item.active .ic{color:var(--brand-2)}
-.foot-note{font-size:12px;color:var(--text-3);padding:12px;line-height:1.4}
+/* Menu réduit aux icônes (réglage par poste) */
+@media(min-width:961px){
+  html[data-nav="compact"]{--side-w:68px}
+  html[data-nav="compact"] #sidebar .logo-text,html[data-nav="compact"] .nav-item>span,html[data-nav="compact"] .foot-note{display:none}
+  html[data-nav="compact"] #sidebar .brand{justify-content:center;padding:0}
+  html[data-nav="compact"] #nav{padding:8px 10px}
+  html[data-nav="compact"] .nav-item{justify-content:center;padding:10px 0}
+  html[data-nav="compact"] .nav-item.active::before{left:-10px}
+  html[data-nav="compact"] .nav-group{font-size:0;padding:0;height:1px;margin:10px 6px;background:var(--side-border)}
+}
 
 /* Menu déroulant */
 .menu{position:fixed;top:58px;right:16px;background:var(--surface);border:1px solid var(--border);border-radius:12px;
@@ -370,6 +378,8 @@ input[type=checkbox],input[type=radio]{accent-color:var(--brand-2)}
 .page-actions{display:flex;gap:8px;align-items:center;margin-bottom:var(--gap);flex-wrap:wrap}
 .grid-2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--gap)}
 .grid-3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--gap)}
+/* Deux colonnes seulement quand chacune a la place de respirer */
+.grid-auto{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,520px),1fr));gap:var(--gap);align-items:start}
 .stat-line{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:9px 0;border-bottom:1px solid var(--border);font-size:13.5px}
 .stat-line:last-child{border-bottom:0}
 .stat-line>span{color:var(--text-2)}
@@ -562,7 +572,7 @@ button.link{border:0;background:none;padding:0;font:inherit;font-weight:600}
 
 /* Assistant */
 .wz{display:grid;grid-template-columns:262px minmax(0,1fr);gap:var(--gap);align-items:start}
-.wz-rail{position:sticky;top:122px;display:flex;flex-direction:column;gap:10px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px;box-shadow:var(--shadow-xs)}
+.wz-rail{position:sticky;top:80px;display:flex;flex-direction:column;gap:10px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px;box-shadow:var(--shadow-xs)}
 .wz-doc{display:flex;align-items:center;gap:10px;padding:10px;border-radius:10px;background:var(--brand-soft);color:var(--brand-2)}
 .wz-doc b{display:block;font-size:14px}
 .wz-doc em{font-style:normal;font-size:12px;opacity:.85;display:block;max-width:170px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -671,7 +681,7 @@ html[data-density="compact"] .filters input:not([type=checkbox]),html[data-densi
 @media(max-width:1340px){.top-actions .lbl{display:none}.top-actions .btn.ghost{width:36px;padding:0}}
 /* 6 chiffres clés : deux rangées de 3 plutôt qu'une rangée bancale */
 @media(min-width:1101px){.kpi-grid:has(>.kpi:nth-child(6):last-child){grid-template-columns:repeat(3,minmax(0,1fr))}}
-@media(max-width:1180px){.esp{padding:0 9px;font-size:13.5px}.profile-btn .p-name{display:none}}
+@media(max-width:1180px){.profile-btn .p-name{display:none}}
 @media(max-width:1100px){
   .kpi-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
   .grid-3{grid-template-columns:repeat(2,minmax(0,1fr))}
@@ -685,16 +695,15 @@ html[data-density="compact"] .filters input:not([type=checkbox]),html[data-densi
   .dl-name em{display:none}
 }
 @media(max-width:960px){
-  .espaces{display:none}
+  #main{margin-left:0}
   #menu-toggle{display:inline-flex}
+  #nav-collapse{display:none}
+  #topbar>.brand{display:flex}
   #topbar{padding:0 12px;gap:8px}
-  /* Tiroir de navigation */
-  #sidebar{display:flex;flex-direction:column;position:fixed;inset:0 auto 0 0;width:min(300px,86vw);z-index:70;background:var(--surface);
-    border-right:1px solid var(--border);box-shadow:var(--shadow-lg);transform:translateX(-105%);transition:transform .3s var(--ease-drawer);visibility:hidden}
+  /* La barre latérale devient un tiroir */
+  #sidebar{width:min(290px,86vw);z-index:70;box-shadow:var(--shadow-lg);transform:translateX(-105%);transition:transform .3s var(--ease-drawer);visibility:hidden}
   #sidebar.open{transform:none;visibility:visible}
-  #sidebar .brand{padding:14px 16px;border-bottom:1px solid var(--border);border-radius:0}
   #sidebar .logo-text{display:inline}
-  #nav{flex:1;overflow:auto;padding:4px 10px 10px}
   #sidebar.open+.drawer-back{display:block;position:fixed;inset:0;z-index:65;background:var(--scrim)}
 }
 @media(max-width:760px){
@@ -742,7 +751,7 @@ html[data-density="compact"] .filters input:not([type=checkbox]),html[data-densi
 @media (prefers-reduced-motion: reduce){
   #view.view-enter,.modal,.modal-back,.menu,.toast{animation:rm-fade .18s ease}
   .btn:active,.kpi[data-goto]:hover{transform:none}
-  #sidebar{transition:none}
+  #sidebar,#main{transition:none}
 }
 </style>
 
@@ -766,7 +775,7 @@ html[data-density="compact"] .filters input:not([type=checkbox]),html[data-densi
           <span class="logo-mark" aria-hidden="true">CP</span>
           <span class="logo-text">ChargéPro</span>
         </button>
-        <nav class="espaces" id="espaces" aria-label="Espaces"></nav>
+        <button id="nav-collapse" class="btn ghost icon" aria-label="Réduire ou déployer le menu" title="Réduire / déployer le menu latéral"></button>
         <div class="top-actions">
           <button id="btn-export" class="btn ghost" title="Exporter les données du profil (sauvegarde locale)">Sauvegarde</button>
           <button id="btn-import" class="btn ghost" title="Importer une sauvegarde">Restaurer</button>
@@ -775,7 +784,6 @@ html[data-density="compact"] .filters input:not([type=checkbox]),html[data-densi
           <button id="profile-btn" class="profile-btn"></button>
         </div>
       </header>
-      <div id="subnav"><div class="subnav-in" id="subnav-in"></div></div>
       <div class="content">
         <div class="page-head">
           <div class="ph-txt">
@@ -2250,16 +2258,10 @@ function buildNav() {
     ? `<div class="nav-group">${n.group}</div>`
     : `<button class="nav-item" data-route="${n.route}" title="${esc(n.label)}">${icon(n.ico)} <span>${n.label}</span></button>`).join('');
   $$('.nav-item').forEach(b => b.onclick = () => go(b.dataset.route));
-  $('#espaces').innerHTML = NAV_GROUPS.map((g, i) => `<button class="esp" data-esp="${i}">${esc(g.label)}</button>`).join('');
-  $$('#espaces .esp').forEach(b => b.onclick = () => go(NAV_GROUPS[+b.dataset.esp].routes[0]));
 }
-// Onglets de l'espace courant + espace actif dans la barre du haut
+// Sur-titre de la page : le groupe du menu auquel appartient l'écran
 function updateChrome(route) {
-  const g = groupOf(route);
-  $('#subnav-in').innerHTML = g.routes.map(r => `<button data-route="${r}" class="${r === route ? 'active' : ''}">${icon(ROUTES[r].ico, 'ic-sm')} ${esc(ROUTES[r].label)}</button>`).join('');
-  $$('#subnav-in button').forEach(b => b.onclick = () => go(b.dataset.route));
-  $$('#espaces .esp').forEach(b => b.classList.toggle('on', NAV_GROUPS[+b.dataset.esp] === g));
-  $('#page-eyebrow').textContent = g.label;
+  $('#page-eyebrow').textContent = groupOf(route).label;
 }
 function go(route) {
   if (route === 'iko') route = 'cadences'; // ancien « Catalogue IKO », fusionné dans Cadences
@@ -2286,13 +2288,14 @@ const UI_WIDTHS = { confort: 'Confort', large: 'Large', plein: 'Plein' };
 const UI_DENSITES = { normal: 'Normale', compact: 'Compacte' };
 const UI_THEMES = { auto: 'Auto', light: 'Clair', dark: 'Sombre' };
 const UI = {
-  prefs: { width: 'confort', density: 'normal', theme: 'auto' },
+  prefs: { width: 'confort', density: 'normal', theme: 'auto', nav: 'full' },
   load() {
     let saved = null; try { saved = JSON.parse(localStorage.getItem(UI_KEY)); } catch {}
     if (saved && typeof saved === 'object') {
       if (Object.prototype.hasOwnProperty.call(UI_WIDTHS, saved.width)) this.prefs.width = saved.width;
       if (Object.prototype.hasOwnProperty.call(UI_DENSITES, saved.density)) this.prefs.density = saved.density;
       if (Object.prototype.hasOwnProperty.call(UI_THEMES, saved.theme)) this.prefs.theme = saved.theme;
+      if (saved.nav === 'compact' || saved.nav === 'full') this.prefs.nav = saved.nav;
     }
     this.apply();
   },
@@ -2300,10 +2303,12 @@ const UI = {
   isDark() { return this.prefs.theme === 'dark' || (this.prefs.theme === 'auto' && !!window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches); },
   // Bouton soleil/lune : force le thème inverse de celui affiché, et le mémorise
   toggleTheme() { this.set('theme', this.isDark() ? 'light' : 'dark'); },
+  toggleNav() { this.set('nav', this.prefs.nav === 'compact' ? 'full' : 'compact'); },
   apply() {
     const r = document.documentElement;
     r.dataset.width = this.prefs.width;
     r.dataset.density = this.prefs.density;
+    r.dataset.nav = this.prefs.nav;
     if (this.prefs.theme === 'auto') delete r.dataset.theme; else r.dataset.theme = this.prefs.theme;
     const tb = document.getElementById('theme-btn');
     if (tb) tb.innerHTML = icon(this.isDark() ? 'sun' : 'moon');
@@ -2415,6 +2420,7 @@ function profileMenuHTML() {
       normal: 'Espacements standards', compact: 'Lignes serrées — plus d\'infos à l\'écran' })}</div>
     <div class="menu-pref"><span>Thème</span>${segHTML('theme', UI_THEMES, {
       auto: 'Suit le réglage de l\'appareil', light: 'Toujours clair', dark: 'Toujours sombre' })}</div>
+    <button class="menu-item" data-navtoggle>${icon('menu')} ${UI.prefs.nav === 'compact' ? 'Déployer le menu latéral' : 'Réduire le menu latéral'}</button>
     ${Cols.any() ? `<button class="menu-item" data-colreset>${icon('swap')} Réinitialiser les largeurs de colonnes</button>` : ''}
     <div class="menu-sep"></div>
     <button class="menu-item danger" data-del>${icon('trash')} Supprimer ce profil</button>
@@ -2424,6 +2430,7 @@ function bindProfileMenu(root, close) {
   const refresh = () => { root.innerHTML = profileMenuHTML(); bindProfileMenu(root, close); };
   $$('[data-switch]', root).forEach(b => b.onclick = () => { close(); DB.switchTo(b.dataset.switch); afterProfileChange(); });
   $$('.menu-seg button', root).forEach(b => b.onclick = e => { e.stopPropagation(); UI.set(b.parentElement.dataset.pref, b.dataset.v); refresh(); });
+  root.querySelector('[data-navtoggle]').onclick = e => { e.stopPropagation(); UI.toggleNav(); refresh(); };
   const cr = root.querySelector('[data-colreset]');
   if (cr) cr.onclick = e => { e.stopPropagation(); resetAllCols(); refresh(); };
   root.querySelector('[data-new]').onclick = () => { close(); profileForm(); };
@@ -2553,7 +2560,7 @@ function renderDashboard(v) {
       ${kpi('Carnet de commandes', eur(carnet), 'Commandes + chantiers en cours', 'book', '', null, 'chantiers')}
       ${kpi('Encours facturé', eur(impayes), impRetard ? impRetard + ' facture(s) en retard' : 'À jour', 'receipt', impRetard ? 'red' : 'green', null, 'factures')}
     </div>
-    <div class="grid-2">
+    <div class="grid-auto">
       <div class="card card-pad">
         <div class="section-head">${icon('bell')}<h2>Actions prioritaires</h2>${actions.length ? `<span class="spacer"></span><span class="chip">${actions.length}</span>` : ''}</div>
         ${actions.length ? `<div class="alert-list">${actions.slice(0, 9).map(a => `<div class="alert ${a.tone}" data-goto="${a.route}" style="cursor:pointer">
@@ -6817,6 +6824,8 @@ function imprimerDoc(titre, blocks) {
 function boot() {
   UI.load();
   $('#menu-toggle').innerHTML = icon('menu');
+  $('#nav-collapse').innerHTML = icon('menu');
+  $('#nav-collapse').onclick = () => UI.toggleNav();
   $('#btn-export').innerHTML = icon('download') + '<span class="lbl">Sauvegarde</span>';
   $('#btn-import').innerHTML = icon('upload') + '<span class="lbl">Restaurer</span>';
   $('#theme-btn').onclick = () => UI.toggleTheme();
