@@ -428,7 +428,19 @@ input[type=checkbox],input[type=radio]{accent-color:var(--brand-2)}
 .filters label.chip{height:30px}
 .search-wrap{position:relative;display:inline-flex;align-items:center;max-width:100%}
 .search-wrap .ic{position:absolute;left:11px;color:var(--text-3);width:16px;height:16px;pointer-events:none}
-.search-wrap input{padding-left:34px;min-width:240px}
+.search-wrap input,.filters .search-wrap input:not([type=checkbox]){padding-left:34px;min-width:240px}
+button.link{border:0;background:none;padding:0;font:inherit;font-weight:600}
+/* Chiffres clés servant de filtre */
+.kpi[data-fstat]{cursor:pointer;transition:box-shadow .15s,border-color .15s}
+@media(hover:hover) and (pointer:fine){.kpi[data-fstat]:hover{box-shadow:var(--shadow-md);border-color:var(--border-strong)}}
+.kpi.on{border-color:var(--brand-2);box-shadow:0 0 0 1px var(--brand-2)}
+.kpi-value.neg{color:var(--neg)}
+/* Période + fiche OTP (RAF) sur une seule ligne */
+.raf-ctrl{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1.1fr) minmax(0,.8fr) minmax(0,1.2fr) auto;gap:12px;align-items:end}
+.raf-ctrl .btn{height:38px}
+@media(max-width:1100px){.raf-ctrl{grid-template-columns:repeat(2,minmax(0,1fr))}.raf-ctrl .field:first-child{grid-column:1/-1}}
+@media(max-width:480px){.raf-ctrl{grid-template-columns:minmax(0,1fr)}}
+.filters .pill-tabs{margin:0}
 
 /* Alertes */
 .alert-list{display:flex;flex-direction:column;gap:8px}
@@ -3159,33 +3171,35 @@ function renderRAF(v) {
         ${act(f)}</tr>`).join('')}</tbody>
       <tfoot><tr class="t-strong"><td colspan="3">TOTAL (${codes.length} OTP)</td><td class="num">${eur(T.marche)}</td><td class="num">${eur(T.ca)}</td><td class="num">${eur(T.dep)}</td><td class="num ${mCls(T.marge)}">${eur(T.marge)}</td><td class="num ${mCls(T.marge)}">${T.marche ? pct(Tpct) : '—'}</td><td class="num">${eur(T.caCumul)}</td><td class="num">${eur(T.raf)}</td><td></td></tr></tfoot></table></div>`;
   v.innerHTML = `
-    <div class="section-head" style="margin-top:0">${icon('target')}<h2>RAF — suivi financier par OTP</h2><span class="spacer"></span><span class="chip">${rafPerLabel()}</span></div>
-    <p class="t-muted" style="margin-top:-8px;max-width:960px">Deux lectures distinctes, à ne pas confondre :
-      <b>la boîte à affaires</b> — ce qui est <b>commandé</b> (travaux faits ou restant à faire) mais <b>pas encore mis en facturation</b> : c'est le coffre —
-      et <b>le mois</b> — ce que je <b>mets en facturation</b> sur le mois, <b>moins</b> ce qui est réellement <b>réceptionné</b> dessus (commandes fournisseurs reçues + pointage).
-      La troisième vue conserve la synthèse historique (marge réalisée et reste à facturer sur le marché signé).
-      Les OTP marqués <b>hors périmètre</b> (suivis par un autre chargé d'affaires, sur lesquels vous passez seulement des commandes) sont exclus de cet écran.</p>
+    <div class="card card-pad" style="margin-bottom:16px">
+      <div class="raf-ctrl">
+        <div class="field"><label>Fiche d'analyse d'un OTP</label>
+          <select id="raf-otp"><option value="">— Choisir un OTP —</option>${all.map(c => `<option value="${esc(c)}">${esc(c)}${otpLabel(c) ? ' — ' + esc(otpLabel(c)) : ''}</option>`).join('')}</select></div>
+        ${rafPeriodControls()}
+        <button class="btn primary" id="raf-run">${icon('trend')} Ouvrir la fiche</button>
+      </div>
+    </div>
     <div class="kpi-grid">
       ${cardK('Boîte à affaires (mon coffre)', eur(T.coffre), 'Commandé ' + eur(T.commandeHT) + ' − mis en factu. ' + eur(T.caCumul), T.coffre >= 0 ? 'green' : 'amber')}
       ${cardK('Mis en facturation — ' + PL, eur(T.caMois), 'Lignes CA du mois')}
       ${cardK('Réceptionné — ' + PL, eur(T.depMois), 'Achats ' + eur(T.achatsMois) + ' · Pointage ' + eur(T.moMois), 'amber')}
       ${cardK('Marge du mois', (T.caMois || T.depMois) ? eur(T.margeMois) : '—', T.caMois ? pct(TpctMois) + ' de la mise en facturation' : 'Aucune mise en facturation', T.margeMois >= 0 ? 'green' : 'amber')}
     </div>
-    <div class="card card-pad" style="margin-bottom:16px">
-      <div class="form-grid">
-        <div class="field full"><label>Élément d'OTP (ouvrir la fiche d'analyse)</label>
-          <select id="raf-otp"><option value="">— Choisir un OTP —</option>${all.map(c => `<option value="${esc(c)}">${esc(c)}${otpLabel(c) ? ' — ' + esc(otpLabel(c)) : ''}</option>`).join('')}</select></div>
-        ${rafPeriodControls()}
-      </div>
-      <div style="display:flex;justify-content:flex-end;margin-top:14px"><button class="btn primary" id="raf-run">${icon('trend')} Exécuter</button></div>
-    </div>
     <div class="filters"><span class="search-wrap">${icon('search')}<input id="raf-q" placeholder="Rechercher (OTP, libellé, client…)" value="${esc(rafQ)}"></span><span class="chip">${codes.length} OTP</span>
-      ${Object.entries(RAF_VUES).map(([k, l]) => `<button class="btn small ${rafVue === k ? 'primary' : ''}" data-vue="${k}">${esc(l)}</button>`).join('')}
+      <div class="pill-tabs">${Object.entries(RAF_VUES).map(([k, l]) => `<button class="${rafVue === k ? 'active' : ''}" data-vue="${k}">${esc(l)}</button>`).join('')}</div>
       ${nbHors ? `<button class="btn small ${rafHors ? 'primary' : ''}" id="raf-hors" title="OTP suivis par un autre chargé d'affaires : vous n'y passez que des commandes">${rafHors ? 'Masquer' : 'Afficher'} ${nbHors > 1 ? 'les ' + nbHors + ' OTP' : "l'OTP"} hors périmètre</button>` : ''}
       <span class="spacer"></span><button class="btn small" id="raf-list-csv">${icon('download')} Excel</button></div>
     ${codes.length ? (rafVue === 'coffre' ? tblCoffre() : rafVue === 'mois' ? tblMois() : tblSynthese())
       : nbHors ? emptyState('target', 'Aucun OTP à suivre', 'Les ' + nbHors + ' OTP existants sont marqués hors périmètre (commandes seules). Utilisez le bouton « Afficher » pour les consulter malgré tout.')
-      : emptyState('target', 'Aucun OTP', 'Les OTP apparaissent dès qu\'ils sont utilisés sur un devis, un chantier, une facture ou un achat.')}`;
+      : emptyState('target', 'Aucun OTP', 'Les OTP apparaissent dès qu\'ils sont utilisés sur un devis, un chantier, une facture ou un achat.')}
+    <details class="detail">
+      <summary>${icon('chevron')} Comment lire cet écran — ${rafPerLabel()}</summary>
+      <div class="detail-body"><p class="t-muted" style="margin:0;max-width:960px">Deux lectures distinctes, à ne pas confondre :
+      <b>la boîte à affaires</b> — ce qui est <b>commandé</b> (travaux faits ou restant à faire) mais <b>pas encore mis en facturation</b> : c'est le coffre —
+      et <b>le mois</b> — ce que je <b>mets en facturation</b> sur le mois, <b>moins</b> ce qui est réellement <b>réceptionné</b> dessus (commandes fournisseurs reçues + pointage).
+      La troisième vue conserve la synthèse historique (marge réalisée et reste à facturer sur le marché signé).
+      Les OTP marqués <b>hors périmètre</b> (suivis par un autre chargé d'affaires, sur lesquels vous passez seulement des commandes) sont exclus de cet écran.</p></div>
+    </details>`;
   rafBindPeriod(v);
   rafBindDetail(v, el => el.dataset.code ? [el.dataset.code] : codes);
   $('#raf-run').onclick = () => {
@@ -3697,18 +3711,21 @@ function renderCA(v) {
   const caAnnee = yearRows.reduce((s, r) => s + (+r.prixVente || 0), 0), margeAnnee = caAnnee - cA.tot;
   const o = DB.data.objectifs;
   const cand = caCandidates();
+  const PM = MOIS[caMonth] + ' ' + caYear;
+  const signe = n => (n < 0 ? '−' : '') + eur(Math.abs(n));
+  // L'essentiel d'abord : le mois choisi, puis le cumul de l'année ; le détail des coûts est repliable.
   v.innerHTML = `
     <div class="page-actions"><button class="btn primary" id="add">${icon('plus')} Ajouter une ligne</button>
       <button class="btn" id="cloture">${icon('checkSquare')} Fin de mois — sélectionner les affaires${cand.length ? ` &nbsp;<span class="badge b-relance">${cand.length}</span>` : ''}</button>
-      <span class="spacer"></span><button class="btn small" id="csv">${icon('download')} Excel du mois</button></div>
-    <div class="filters">
-      <select id="fmonth">${MOIS.map((mm, i) => `<option value="${i}" ${i === caMonth ? 'selected' : ''}>${mm}</option>`).join('')}</select>
-      <select id="fyear">${yearsRange().map(y => `<option value="${y}" ${y === caYear ? 'selected' : ''}>${y}</option>`).join('')}</select>
-      <span class="chip">Mis en facturation ${eur(totVente)}</span><span class="chip">Marge ${eur(totMarge)} · ${pct(totVente ? totMarge / totVente : 0)}</span></div>
+      <span class="spacer"></span>
+      <select id="fmonth" class="input" style="width:auto" aria-label="Mois">${MOIS.map((mm, i) => `<option value="${i}" ${i === caMonth ? 'selected' : ''}>${mm}</option>`).join('')}</select>
+      <select id="fyear" class="input" style="width:auto" aria-label="Année">${yearsRange().map(y => `<option value="${y}" ${y === caYear ? 'selected' : ''}>${y}</option>`).join('')}</select>
+      <button class="btn" id="csv">${icon('download')} Excel du mois</button></div>
     <div class="kpi-grid">
-      <div class="kpi"><div class="kpi-top"><span class="kpi-label">CA cumulé ${caYear}</span><span class="kpi-ico">${icon('euro')}</span></div><div class="kpi-value">${eur(caAnnee)}</div><div class="kpi-sub">Objectif ${eur(o.caAnnuel)}</div><div class="progress ${caAnnee >= o.caAnnuel ? 'green' : ''}"><i style="width:${Math.min(100, caAnnee / (o.caAnnuel || 1) * 100)}%"></i></div></div>
-      <div class="kpi"><div class="kpi-top"><span class="kpi-label">Marge cumulée ${caYear}</span><span class="kpi-ico green">${icon('trend')}</span></div><div class="kpi-value">${eur(margeAnnee)}</div><div class="kpi-sub">${pct(caAnnee ? margeAnnee / caAnnee : 0)} du CA · coûts réels ${eur(cA.tot)}</div></div>
-      <div class="kpi"><div class="kpi-top"><span class="kpi-label">Lignes du mois</span><span class="kpi-ico">${icon('file')}</span></div><div class="kpi-value">${rows.length}</div><div class="kpi-sub">${MOIS[caMonth]} ${caYear}</div></div>
+      <div class="kpi"><div class="kpi-top"><span class="kpi-label">Mis en facturation — ${PM}</span><span class="kpi-ico">${icon('receipt')}</span></div><div class="kpi-value">${unitSmall(eur(totVente))}</div><div class="kpi-sub">${rows.length - nonComptees.length} ligne(s) comptée(s)${nonComptees.length ? ` · ${nonComptees.length} non comptée(s)` : ''}</div></div>
+      <div class="kpi"><div class="kpi-top"><span class="kpi-label">Marge du mois</span><span class="kpi-ico ${totMarge < 0 ? 'red' : 'green'}">${icon('trend')}</span></div><div class="kpi-value ${totMarge < 0 ? 'neg' : ''}">${unitSmall(signe(totMarge))}</div><div class="kpi-sub">${totVente ? pct(totMarge / totVente) + ' · ' : ''}coûts réels ${eur(cM.tot)}</div></div>
+      <div class="kpi"><div class="kpi-top"><span class="kpi-label">CA cumulé ${caYear}</span><span class="kpi-ico">${icon('euro')}</span></div><div class="kpi-value">${unitSmall(eur(caAnnee))}</div><div class="progress ${caAnnee >= o.caAnnuel ? 'green' : ''}"><i style="width:${Math.min(100, caAnnee / (o.caAnnuel || 1) * 100)}%"></i></div><div class="kpi-sub">Objectif ${eur(o.caAnnuel)} · ${Math.round(caAnnee / (o.caAnnuel || 1) * 100)} %</div></div>
+      <div class="kpi"><div class="kpi-top"><span class="kpi-label">Marge cumulée ${caYear}</span><span class="kpi-ico ${margeAnnee < 0 ? 'red' : 'green'}">${icon('trend')}</span></div><div class="kpi-value ${margeAnnee < 0 ? 'neg' : ''}">${unitSmall(signe(margeAnnee))}</div><div class="kpi-sub">${pct(caAnnee ? margeAnnee / caAnnee : 0)} du CA · coûts réels ${eur(cA.tot)}</div></div>
     </div>
     ${rows.length ? `<div class="table-wrap"><table><thead><tr><th>OTP</th><th>Chantier mis en facturation</th><th class="num">Montant HT</th><th></th></tr></thead>
       <tbody>${rows.map(r => `<tr><td class="t-strong">${esc(r.otp || '—')}${!r.otp ? ' <span class="badge b-perdu" title="Sans code OTP : non compté (CA, marge, RAF)">sans OTP — non compté</span>' : otpHorsPerimetre(r.otp) ? ' <span class="chip" title="Non compté (CA, marge, RAF)">hors périmètre — non compté</span>' : ''}</td><td>${esc(r.chantier)}</td><td class="num ${otpCompte(r.otp) ? 't-strong' : 't-muted'}">${eur(r.prixVente)}</td>
@@ -3716,16 +3733,22 @@ function renderCA(v) {
       <tfoot><tr><td colspan="2">TOTAL ${MOIS[caMonth]}${nonComptees.length ? ` <span class="t-muted">(hors ${nonComptees.length} ligne(s) non comptée(s))</span>` : ''}</td><td class="num">${eur(totVente)}</td><td></td></tr></tfoot></table></div>`
       : emptyState('euro', 'Aucune ligne pour ' + MOIS[caMonth] + ' ' + caYear, 'Mettez en facturation vos chantiers : seul leur montant est imputé à l\'OTP.')}
     <div class="card card-pad" style="margin-top:16px">
-      <div class="card-title">Coûts de ${MOIS[caMonth]} ${caYear} — repris des autres sections</div>
-      <p class="t-muted" style="margin:-4px 0 14px;max-width:900px">La mise en facturation ne porte que le <b>montant du chantier</b> sur l'OTP choisi.
-        Les <b>matériaux et le matériel</b> viennent des commandes fournisseurs <b>réceptionnées</b> (section Achats fournisseurs) et la
-        <b>main d'œuvre</b> des <b>heures pointées</b> (section Planning &amp; pointages). Sans code OTP ou OTP hors périmètre : non compté — mêmes chiffres que la section RAF.</p>
-      <div class="grid-3">
-        <div class="cad-metric"><div class="cm-label">Achats réceptionnés</div><div class="cm-value" style="font-size:22px">${eur(cM.achats)}</div><div class="cm-sub">Matériaux et matériel du mois</div></div>
-        <div class="cad-metric amber"><div class="cm-label">Main d'œuvre pointée</div><div class="cm-value" style="font-size:22px">${eur(cM.mo)}</div><div class="cm-sub">${num(cM.heures)} h pointées</div></div>
-        <div class="cad-metric ${totMarge >= 0 ? 'green' : ''}"><div class="cm-label">Marge du mois</div><div class="cm-value" style="font-size:22px">${eur(totMarge)}</div><div class="cm-sub">${eur(totVente)} − ${eur(cM.tot)} · ${totVente ? pct(totMarge / totVente) : '—'}</div></div>
+      <div class="section-head">${icon('bar')}<h2>CA & marge par mois — ${caYear}</h2></div>
+      ${monthlyBarChart(caYear)}
+    </div>
+    <details class="detail">
+      <summary>${icon('chevron')} Détail des coûts de ${PM} et mode de calcul</summary>
+      <div class="detail-body">
+        <div class="grid-3">
+          <div class="cad-metric"><div class="cm-label">Achats réceptionnés</div><div class="cm-value" style="font-size:22px">${eur(cM.achats)}</div><div class="cm-sub">Matériaux et matériel du mois</div></div>
+          <div class="cad-metric amber"><div class="cm-label">Main d'œuvre pointée</div><div class="cm-value" style="font-size:22px">${eur(cM.mo)}</div><div class="cm-sub">${num(cM.heures)} h pointées</div></div>
+          <div class="cad-metric ${totMarge >= 0 ? 'green' : ''}"><div class="cm-label">Marge du mois</div><div class="cm-value" style="font-size:22px">${eur(totMarge)}</div><div class="cm-sub">${eur(totVente)} − ${eur(cM.tot)} · ${totVente ? pct(totMarge / totVente) : '—'}</div></div>
+        </div>
+        <p class="t-muted" style="margin:0;max-width:900px">La mise en facturation ne porte que le <b>montant du chantier</b> sur l'OTP choisi.
+          Les <b>matériaux et le matériel</b> viennent des commandes fournisseurs <b>réceptionnées</b> (section Achats fournisseurs) et la
+          <b>main d'œuvre</b> des <b>heures pointées</b> (section Planning &amp; pointages). Sans code OTP ou OTP hors périmètre : non compté — mêmes chiffres que la section RAF.</p>
       </div>
-    </div>`;
+    </details>`;
   $('#add').onclick = () => caForm();
   $('#cloture').onclick = () => caPicker();
   $('#fmonth').onchange = e => { caMonth = +e.target.value; syncPeriode('ca'); renderCA(v); };
@@ -4923,9 +4946,9 @@ function renderFactures(v) {
   const recouvre = (encaisse + emisMontant) ? Math.round(encaisse / (encaisse + emisMontant) * 100) : 0;
   v.innerHTML = `
     <div class="kpi-grid">
-      <div class="kpi"><div class="kpi-top"><span class="kpi-label">À émettre</span><span class="kpi-ico ${aEmettreRetard ? 'red' : ''}">${icon('receipt')}</span></div><div class="kpi-value">${eur(aEmettre.reduce((s, f) => s + (+f.montantHT || 0), 0))}</div><div class="kpi-sub">${aEmettre.length} facture(s)${aEmettreRetard ? ` · ${aEmettreRetard} en retard 7 j` : ''}</div></div>
-      <div class="kpi"><div class="kpi-top"><span class="kpi-label">Émises impayées</span><span class="kpi-ico ${impRetard ? 'red' : ''}">${icon('euro')}</span></div><div class="kpi-value">${eur(emisMontant)}</div><div class="kpi-sub">${emises.length} facture(s)${impRetard ? ` · ${impRetard} en retard` : ''}</div></div>
-      <div class="kpi"><div class="kpi-top"><span class="kpi-label">Encaissé</span><span class="kpi-ico green">${icon('check')}</span></div><div class="kpi-value">${eur(encaisse)}</div><div class="kpi-sub">Réglé</div></div>
+      <div class="kpi ${factFilter.statut === 'a_emettre' ? 'on' : ''}" data-fstat="a_emettre" title="Afficher les factures à émettre"><div class="kpi-top"><span class="kpi-label">À émettre</span><span class="kpi-ico ${aEmettreRetard ? 'red' : ''}">${icon('receipt')}</span></div><div class="kpi-value">${eur(aEmettre.reduce((s, f) => s + (+f.montantHT || 0), 0))}</div><div class="kpi-sub">${aEmettre.length} facture(s)${aEmettreRetard ? ` · ${aEmettreRetard} en retard 7 j` : ''}</div></div>
+      <div class="kpi ${factFilter.statut === 'emise' ? 'on' : ''}" data-fstat="emise" title="Afficher les factures émises non réglées"><div class="kpi-top"><span class="kpi-label">Émises impayées</span><span class="kpi-ico ${impRetard ? 'red' : ''}">${icon('euro')}</span></div><div class="kpi-value">${eur(emisMontant)}</div><div class="kpi-sub">${emises.length} facture(s)${impRetard ? ` · ${impRetard} en retard` : ''}</div></div>
+      <div class="kpi ${factFilter.statut === 'payee' ? 'on' : ''}" data-fstat="payee" title="Afficher les factures payées"><div class="kpi-top"><span class="kpi-label">Encaissé</span><span class="kpi-ico green">${icon('check')}</span></div><div class="kpi-value">${eur(encaisse)}</div><div class="kpi-sub">Réglé</div></div>
       <div class="kpi"><div class="kpi-top"><span class="kpi-label">Taux de recouvrement</span><span class="kpi-ico">${icon('trend')}</span></div><div class="kpi-value">${recouvre} %</div><div class="progress ${recouvre >= 90 ? 'green' : ''}"><i style="width:${recouvre}%"></i></div></div>
     </div>
     <div class="card card-pad" style="margin-bottom:16px">
@@ -4951,6 +4974,8 @@ function renderFactures(v) {
   $('#fs').onchange = e => { factFilter.statut = e.target.value; renderFactures(v); };
   $('#fotp').onchange = e => { factFilter.otp = e.target.value; renderFactures(v); };
   $$('[data-fotp]', v).forEach(b => b.onclick = () => { factFilter.otp = b.dataset.fotp; renderFactures(v); });
+  // Un clic sur un chiffre clé filtre la liste sur ce statut (second clic : retire le filtre)
+  $$('[data-fstat]', v).forEach(k => k.onclick = () => { factFilter.statut = factFilter.statut === k.dataset.fstat ? '' : k.dataset.fstat; renderFactures(v); $('#q').scrollIntoView({ block: 'center', behavior: 'smooth' }); });
   $('#csv').onclick = () => exportXlsx('factures', ['num', 'otp', 'client', 'objet', 'dateFG', 'dateEmission', 'echeance', 'montantHT', 'statut'], list.map(f => [f.num, f.otp, f.client, f.objet, f.dateFG, f.dateEmission, factureEcheance(f), f.montantHT, STATUTS_FACT[f.statut]]), { sheet: 'Factures', money: ['montantHT'] });
   $$('[data-edit]', v).forEach(b => b.onclick = () => factForm(b.dataset.edit));
   $$('[data-pay]', v).forEach(b => b.onclick = () => { const f = DB.data.factures.find(x => x.id === b.dataset.pay); f.statut = 'payee'; f.datePaiement = todayISO(); if (!f.dateEmission) f.dateEmission = todayISO(); DB.save(); toast('Facture réglée'); renderFactures(v); });
