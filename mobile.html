@@ -156,6 +156,7 @@ nav .badge{position:absolute;top:4px;left:calc(50% + 6px);background:var(--neg);
   <nav id="tabs"></nav>
   <input type="file" id="import-file" accept="application/json,.json" hidden>
 
+<script src="drive.js"></script>
 <script>
 'use strict';
 /* =========================================================================
@@ -196,6 +197,7 @@ const IC = {
   upload: '<path d="M12 16V4M7 9l5-5 5 5M4 20h16"/>',
   desktop: '<rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/>',
   swap: '<path d="M7 7h13l-4-4M17 17H4l4 4"/>',
+  cloud: '<path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/>',
 };
 const icon = n => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${IC[n]}</svg>`;
 
@@ -217,7 +219,9 @@ function saveTodos() {
   let raw = {}; try { raw = JSON.parse(localStorage.getItem(k)) || {}; } catch { /* vide */ }
   raw.todos = D.todos;
   localStorage.setItem(k, JSON.stringify(raw));
+  if (hasDrive()) CPDrive.planifier(3000);
 }
+const hasDrive = () => typeof CPDrive !== 'undefined';
 const profile = () => meta.profiles.find(p => p.id === meta.currentId);
 const clientById = id => D.clients.find(c => c.id === id);
 const clientNom = id => (clientById(id) || {}).nom || '';
@@ -269,20 +273,20 @@ function renderTabs() {
 }
 function render() {
   const p = profile();
-  $('#h-sub').textContent = p ? p.nom + (p.agence ? ' · ' + p.agence : '') : 'Aucune donnée sur ce téléphone';
+  const drv = hasDrive() && CPDrive.connecte() ? ' · ' + CPDrive.libelle() : '';
+  $('#h-sub').textContent = (p ? p.nom + (p.agence ? ' · ' + p.agence : '') : 'Aucune donnée sur ce téléphone') + drv;
   renderTabs();
   const v = $('#view');
-  if (!D) { v.innerHTML = welcome(); $('#w-import').onclick = () => $('#import-file').click(); return; }
+  if (!D) { v.innerHTML = welcome(); $('#w-import').onclick = () => $('#import-file').click(); const wd = $('#w-drive'); if (wd) wd.onclick = driveConnect; return; }
   ({ home: vHome, agenda: vAgenda, todo: vTodo, sites: vSites, contacts: vContacts })[tab](v);
 }
 function welcome() {
   return `<div class="card welcome">
     <h3 style="margin:0 0 6px">Bienvenue sur ChargéPro mobile</h3>
-    <p>Les données sont enregistrées dans le navigateur de chaque appareil. Pour retrouver les vôtres ici :</p>
-    <ol><li>Sur le PC, dans ChargéPro, cliquez sur <b>Sauvegarde</b>.</li>
-      <li>Envoyez-vous le fichier <b>.json</b> (mail, Drive…).</li>
-      <li>Sur ce téléphone, touchez <b>Importer</b> et choisissez le fichier.</li></ol>
-    <button class="btn" id="w-import" style="width:100%;margin-top:6px">Importer une sauvegarde</button>
+    <p>Si la sauvegarde commune Google Drive est activée sur le PC (bouton <b>Drive</b>), connectez le même compte Google ici : vos données arrivent toutes seules.</p>
+    ${hasDrive() ? `<button class="btn" id="w-drive" style="width:100%;margin:6px 0 14px">Connecter Google Drive</button>` : ''}
+    <p>Sinon, depuis le PC : <b>Sauvegarde</b>, envoyez-vous le fichier <b>.json</b>, puis importez-le ici.</p>
+    <button class="btn ghost" id="w-import" style="width:100%;margin-top:6px">Importer une sauvegarde</button>
   </div>`;
 }
 
@@ -410,11 +414,14 @@ function vContacts(v) {
 }
 
 /* ---------- Menu, import, toast ---------- */
-function toast(msg) { const t = document.createElement('div'); t.className = 'toast'; t.textContent = msg; document.body.appendChild(t); setTimeout(() => t.remove(), 2200); }
+function toast(msg) { $$('.toast').forEach(x => x.remove()); const t = document.createElement('div'); t.className = 'toast'; t.textContent = msg; document.body.appendChild(t); setTimeout(() => t.remove(), 2200); }
 function openMenu() {
   const back = document.createElement('div'); back.className = 'sheet-back';
   back.innerHTML = `<div class="sheet">
     ${meta.profiles.length > 1 ? `<div class="hd">Profil</div>${meta.profiles.map(p => `<button data-p="${esc(p.id)}" class="${p.id === meta.currentId ? 'on' : ''}">${icon('user')}${esc(p.nom)}</button>`).join('')}<div class="sep"></div>` : ''}
+    ${hasDrive() ? (CPDrive.connecte()
+      ? (CPDrive.etat === 'reconnexion' ? `<button data-drive>${icon('cloud')}Reconnecter Google Drive</button>` : `<button data-sync>${icon('cloud')}Synchroniser maintenant <small style="margin-left:auto;color:var(--text-3)">${esc(CPDrive.libelle())}</small></button>`)
+      : `<button data-drive>${icon('cloud')}Connecter Google Drive (sauvegarde commune)</button>`) : ''}
     <button data-import>${icon('upload')}Importer une sauvegarde (.json)</button>
     <a href="index.html?complet">${icon('desktop')}Version complète</a>
   </div>`;
@@ -423,6 +430,8 @@ function openMenu() {
   back.onclick = e => { if (e.target === back) close(); };
   $$('[data-p]', back).forEach(b => b.onclick = () => { meta.currentId = b.dataset.p; localStorage.setItem(META_KEY, JSON.stringify(meta)); close(); load(); render(); });
   $('[data-import]', back).onclick = () => { close(); $('#import-file').click(); };
+  const dd = $('[data-drive]', back); if (dd) dd.onclick = () => { close(); driveConnect(); };
+  const ds = $('[data-sync]', back); if (ds) ds.onclick = async () => { close(); await CPDrive.synchroniser(true); toast(CPDrive.etat === 'ok' ? 'Synchronisé' : (CPDrive.erreur || 'Échec')); };
 }
 function importFile(file) {
   const r = new FileReader();
@@ -439,8 +448,25 @@ function importFile(file) {
     }
     localStorage.setItem(dataKey(meta.currentId), JSON.stringify(data));
     load(); tab = 'home'; render(); toast('Sauvegarde importée');
+    if (hasDrive()) CPDrive.planifier(1000);
   };
   r.readAsText(file);
+}
+
+/* ---------- Sauvegarde commune Google Drive (drive.js) ---------- */
+async function driveConnect() {
+  if (!CPDrive.clientId()) {
+    const id = prompt("Identifiant client OAuth Google (le même que dans OmSmK / la version complète) :");
+    if (!id || !id.trim()) return;
+    CPDrive.definirClientId(id);
+  }
+  try { await CPDrive.connecter(); toast(CPDrive.etat === 'erreur' ? CPDrive.erreur : 'Google Drive connecté'); }
+  catch (e) { toast(e.message || 'Connexion impossible'); }
+}
+if (hasDrive()) {
+  CPDrive.onStatut = () => { const p = profile(); if (p || CPDrive.connecte()) $('#h-sub').textContent = (p ? p.nom + (p.agence ? ' · ' + p.agence : '') : 'ChargéPro') + (CPDrive.connecte() ? ' · ' + CPDrive.libelle() : ''); };
+  CPDrive.onChange = recus => { load(); render(); if (recus) toast('Données mises à jour depuis Drive'); };
+  CPDrive.occupe = () => { const a = document.activeElement; return !!(a && /^(INPUT|TEXTAREA)$/.test(a.tagName) && a.value); };
 }
 
 $('#menu-btn').innerHTML = icon('dots');
@@ -450,6 +476,7 @@ $('#import-file').onchange = e => { if (e.target.files[0]) importFile(e.target.f
 window.addEventListener('storage', e => { if (e.key && e.key.startsWith('chargepro.v2')) { load(); render(); } });
 load();
 render();
+if (hasDrive()) CPDrive.init();
 </script>
 </body>
 </html>
