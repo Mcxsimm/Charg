@@ -760,6 +760,10 @@ html[data-density="compact"] .filters input:not([type=checkbox]),html[data-densi
   .btn:active,.kpi[data-goto]:hover{transform:none}
   #sidebar,#main{transition:none}
 }
+.drive-dot{width:8px;height:8px;border-radius:50%;background:var(--text-3);flex:none}
+.drive-dot.ok{background:var(--pos)} .drive-dot.encours{background:var(--info)} .drive-dot.erreur,.drive-dot.reconnexion{background:var(--warn)}
+#drive-btn{gap:6px;position:relative}
+@media(max-width:1340px){.top-actions #drive-btn .drive-dot{position:absolute;right:6px;top:6px}}
 </style>
 
 </head>
@@ -785,6 +789,7 @@ html[data-density="compact"] .filters input:not([type=checkbox]),html[data-densi
         <button id="nav-collapse" class="btn ghost icon" aria-label="Réduire ou déployer le menu" title="Réduire / déployer le menu latéral"></button>
         <div class="top-actions">
           <button id="width-btn" class="btn ghost" aria-label="Largeur d'affichage"></button>
+          <button id="drive-btn" class="btn ghost" title="Sauvegarde commune sur Google Drive (PC + téléphone)"></button>
           <button id="btn-export" class="btn ghost" title="Exporter les données du profil (sauvegarde locale)">Sauvegarde</button>
           <button id="btn-import" class="btn ghost" title="Importer une sauvegarde">Restaurer</button>
           <input type="file" id="import-file" accept="application/json" hidden>
@@ -809,6 +814,7 @@ html[data-density="compact"] .filters input:not([type=checkbox]),html[data-densi
   <div id="modal-root"></div>
   <div id="toast-root"></div>
 
+  <script src="drive.js"></script>
   <script>
 /* =========================================================================
    ChargéPro — Assistant Chargé d'Affaires (étanchéité)
@@ -874,6 +880,7 @@ const ICONS = {
   bar: '<line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/>',
   calendar: '<rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>',
   receipt: '<path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1V2l-2 1-2-1-2 1-2-1-2 1-2-1z"/><line x1="8" y1="8" x2="16" y2="8"/><line x1="8" y1="12" x2="16" y2="12"/>',
+  cloud: '<path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/>',
   phone: '<path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.8 19.8 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.09 4.18 2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/>',
   wrench: '<path d="M14.7 6.3a4 4 0 0 0-5.4 5.4l-6.6 6.6a2 2 0 1 0 2.8 2.8l6.6-6.6a4 4 0 0 0 5.4-5.4l-2.9 2.9-2-2 2.9-2.9z"/>',
   pin: '<path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>',
@@ -2022,7 +2029,7 @@ const DB = {
     }
     return this.meta;
   },
-  saveMeta() { localStorage.setItem(META_KEY, JSON.stringify(this.meta)); },
+  saveMeta() { localStorage.setItem(META_KEY, JSON.stringify(this.meta)); driveSoon(); },
 
   normalize(d) {
     d = d || {};
@@ -2056,7 +2063,7 @@ const DB = {
     this.data = this.normalize(d || {});
     return this.data;
   },
-  save() { if (this.currentProfile()) localStorage.setItem(dataKey(this.meta.currentId), JSON.stringify(this.data)); },
+  save() { if (this.currentProfile()) { localStorage.setItem(dataKey(this.meta.currentId), JSON.stringify(this.data)); driveSoon(); } },
 
   currentProfile() { return this.meta.profiles.find(p => p.id === this.meta.currentId) || null; },
   createProfile(nom, agence, demo) {
@@ -2467,6 +2474,65 @@ function bindProfileMenu(root, close) {
     confirmDialog(`Supprimer définitivement le profil « ${DB.currentProfile().nom} » et toutes ses données ?`,
       () => { DB.deleteProfile(DB.meta.currentId); afterProfileChange(); toast('Profil supprimé'); }); };
 }
+/* ---------- Sauvegarde commune Google Drive (drive.js, même principe qu'OmSmK) ---------- */
+const hasDrive = () => typeof CPDrive !== 'undefined';
+function driveSoon() { if (hasDrive()) CPDrive.planifier(5000); }
+function renderDriveBtn() {
+  const b = $('#drive-btn'); if (!b) return;
+  if (!hasDrive()) { b.style.display = 'none'; return; }
+  b.innerHTML = `${icon('cloud')}<span class="lbl">${esc(CPDrive.connecte() ? CPDrive.libelle() : 'Drive')}</span><span class="drive-dot ${CPDrive.connecte() ? CPDrive.etat : ''}"></span>`;
+  b.title = CPDrive.connecte() ? (CPDrive.erreur || 'Sauvegarde commune Google Drive — ' + CPDrive.email()) : 'Sauvegarde commune sur Google Drive (PC + téléphone)';
+}
+function driveBusy() {
+  if ($('#modal-root').children.length) return true;
+  const a = document.activeElement;
+  return !!(a && a.closest && a.closest('#view') && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName));
+}
+function driveReload(recus, conflits) {
+  DB.loadMeta();
+  if (!DB.meta.profiles.length) { renderProfileButton(); firstRun(); return; }
+  if (!DB.currentProfile()) DB.meta.currentId = DB.meta.profiles[0].id;
+  DB.loadProfile(DB.meta.currentId);
+  renderProfileButton();
+  if (!$('#modal-root').children.length) go(current);
+  if (recus) toast(conflits ? `Données mises à jour depuis Drive (${conflits} conflit(s) : version de ce poste conservée)` : 'Données mises à jour depuis Google Drive');
+}
+function driveDialog() {
+  const D = CPDrive, on = D.connecte(), der = D.derniere();
+  const m = modal({ title: 'Sauvegarde commune — Google Drive', body: on ? `
+      <div class="stat-line"><span>Compte</span><b>${esc(D.email() || 'Google')}</b></div>
+      <div class="stat-line"><span>État</span><b>${esc(D.etat === 'reconnexion' ? 'Session expirée — reconnexion nécessaire' : D.etat === 'erreur' ? D.erreur : D.etat === 'encours' ? 'Synchronisation…' : 'À jour')}</b></div>
+      <div class="stat-line"><span>Dernière synchronisation</span><b>${der ? der.toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' }) : '—'}</b></div>
+      <p class="t-muted" style="margin:12px 0 6px">Tous les profils sont enregistrés dans le dossier <b>ChargéPro</b> de votre Drive, avec une copie datée par jour (30 jours). Le PC et le téléphone connectés au même compte retrouvent les mêmes données.</p>
+      <details class="detail"><summary>${icon('chevron')} Revenir à une copie datée</summary><div class="detail-body" id="d-copies"><span class="t-muted">Chargement…</span></div></details>`
+    : `<p style="margin-top:0">Enregistrez ChargéPro sur votre <b>Google Drive</b> pour retrouver les mêmes données sur le PC et le téléphone, comme dans OmSmK.</p>
+      <ul class="t-muted" style="padding-left:18px;line-height:1.6;margin:0 0 12px"><li>Les données restent aussi sur l'appareil : l'outil marche hors-ligne.</li>
+      <li>Synchronisation automatique ; copie datée chaque jour, conservée 30 jours.</li>
+      <li>Autorisation limitée aux fichiers créés par l'outil (dossier « ChargéPro »).</li></ul>
+      <div class="field"><label>Identifiant client OAuth Google</label><input id="d-cid" value="${esc(D.clientId())}" placeholder="xxxxxxxx.apps.googleusercontent.com">
+      <div class="hint">Le même que dans OmSmK (repris automatiquement s'il y est déjà saisi sur cet appareil).</div></div>`,
+    footer: on ? `<button class="btn danger" id="d-off">Déconnecter</button><span style="flex:1"></span>${D.etat === 'reconnexion' ? `<button class="btn primary" id="d-co">Reconnecter</button>` : `<button class="btn primary" id="d-sync">${icon('swap')} Synchroniser</button>`}`
+      : `<button class="btn" data-c>Annuler</button><button class="btn primary" id="d-co">${icon('cloud')} Connecter Google Drive</button>` });
+  const c = m.root.querySelector('[data-c]'); if (c) c.onclick = m.close;
+  const co = $('#d-co', m.root);
+  if (co) co.onclick = async () => {
+    const cid = $('#d-cid', m.root); if (cid) { if (!cid.value.trim()) { toast("Renseignez l'identifiant client Google", 'err'); return; } D.definirClientId(cid.value); }
+    co.disabled = true;
+    try { await D.connecter(); m.close(); toast(D.etat === 'erreur' ? D.erreur : 'Google Drive connecté', D.etat === 'erreur' ? 'err' : 'ok'); }
+    catch (e) { co.disabled = false; toast(e.message || 'Connexion impossible', 'err'); }
+  };
+  const sy = $('#d-sync', m.root);
+  if (sy) sy.onclick = async () => { sy.disabled = true; await D.synchroniser(true); m.close(); toast(D.etat === 'ok' ? 'Synchronisé' : (D.erreur || 'Échec'), D.etat === 'ok' ? 'ok' : 'err'); };
+  const off = $('#d-off', m.root);
+  if (off) off.onclick = () => { m.close(); confirmDialog('Déconnecter Google Drive sur cet appareil ? Les données restent sur le poste et sur le Drive.', () => { D.deconnecter(); toast('Drive déconnecté'); }, 'Déconnecter'); };
+  const host = $('#d-copies', m.root);
+  if (host && D.jetonValide()) D.listerCopies().then(l => {
+    host.innerHTML = l.length ? l.map(f => `<div class="stat-line"><span>${esc(f.name.replace(/^chargepro_|\.json$/g, ''))}</span><button class="btn small" data-copie="${esc(f.id)}">Restaurer</button></div>`).join('') : '<span class="t-muted">Aucune copie pour le moment.</span>';
+    $$('[data-copie]', host).forEach(b => b.onclick = () => { m.close(); confirmDialog('Remplacer toutes les données (tous profils, ce poste et le Drive) par cette copie ?', () => D.restaurerCopie(b.dataset.copie).then(() => toast('Copie restaurée')).catch(e => toast(e.message, 'err')), 'Restaurer'); });
+  }).catch(e => { host.innerHTML = `<span class="t-muted">${esc(e.message)}</span>`; });
+  else if (host) host.innerHTML = '<span class="t-muted">Reconnectez Drive pour voir les copies.</span>';
+}
+
 function toggleProfileMenu() {
   const root = $('#menu-root');
   if (root.innerHTML) { root.innerHTML = ''; return; }
@@ -6926,6 +6992,7 @@ function boot() {
   $('#drawer-back').onclick = () => $('#sidebar').classList.remove('open');
   $('#profile-btn').onclick = e => { e.stopPropagation(); toggleProfileMenu(); };
   $('#btn-export').onclick = exportAll;
+  $('#drive-btn').onclick = () => { if (hasDrive()) driveDialog(); };
   $('#btn-import').onclick = () => $('#import-file').click();
   $('#import-file').onchange = e => { if (e.target.files[0]) importAll(e.target.files[0]); e.target.value = ''; };
   // Double-clic sur une ligne = ouvrir/éditer l'élément (plus intuitif)
@@ -6939,6 +7006,8 @@ function boot() {
   // Les vues se redessinent seules (filtres, onglets…) : on réarme les poignées à chaque rendu.
   new MutationObserver(scheduleCols).observe($('#view'), { childList: true, subtree: true });
 
+  if (hasDrive()) { CPDrive.onStatut = renderDriveBtn; CPDrive.onChange = driveReload; CPDrive.occupe = driveBusy; CPDrive.init(); }
+  renderDriveBtn();
   DB.loadMeta();
   if (!DB.meta.profiles.length) { renderProfileButton(); firstRun(); return; }
   if (!DB.currentProfile()) DB.meta.currentId = DB.meta.profiles[0].id;
