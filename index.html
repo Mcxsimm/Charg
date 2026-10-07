@@ -539,6 +539,11 @@ button.link{border:0;background:none;padding:0;font:inherit;font-weight:600}
 .xls .tot,.xls .sub{padding:0 8px;font-variant-numeric:tabular-nums}
 .xls .xls-act{text-align:center}
 .xls .xls-act .icon-btn{padding:3px}
+.xls .xls-act{white-space:nowrap}
+.xls .drag-h{cursor:grab;touch-action:none;color:var(--text-3)}
+.xls tr.dragging>td{background:var(--brand-soft)!important}
+.xls tr.dragging{outline:2px solid var(--brand-2);outline-offset:-2px}
+body.row-dragging,body.row-dragging *{cursor:grabbing!important;user-select:none}
 .xls select{border:0;background:transparent;width:100%;height:25px;padding:0 4px;font-size:11.5px;font-family:inherit;color:var(--text-2)}
 .xls textarea.pdesc{display:block;border:0;background:transparent;width:100%;resize:vertical;min-height:22px;padding:2px 8px 4px;font-size:11.5px;line-height:1.35;font-family:inherit;color:var(--text-2)}
 .xls .bte-poste td,.xls .dv-poste td{height:auto;overflow:visible}
@@ -898,6 +903,7 @@ const ICONS = {
   tick: '<path d="M20 6 9 17l-5-5"/>',
   chevLeft: '<path d="m15 18-6-6 6-6"/>',
   chevRight: '<path d="m9 18 6-6-6-6"/>',
+  grip: '<circle cx="9" cy="6" r="1"/><circle cx="15" cy="6" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="9" cy="18" r="1"/><circle cx="15" cy="18" r="1"/>',
 };
 function icon(name, cls = '') {
   return `<svg class="ic ${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[name] || ''}</svg>`;
@@ -4023,7 +4029,7 @@ function bteAutocomplete(inp, catIdx, onPick) {
   const close = () => { if (box) { box.remove(); box = null; } };
   const pick = i => { const s = items[i]; if (s) { close(); onPick(s); } };
   const render = () => {
-    items = bteSuggestions(catIdx, inp.value);
+    items = bteSuggestions(typeof catIdx === 'function' ? catIdx() : catIdx, inp.value);
     if (!items.length || document.activeElement !== inp) { close(); return; }
     if (!box) { box = document.createElement('div'); box.className = 'bte-sugg'; document.body.appendChild(box); }
     const r = inp.getBoundingClientRect();
@@ -4044,6 +4050,36 @@ function bteAutocomplete(inp, catIdx, onPick) {
   inp.addEventListener('blur', () => setTimeout(close, 100));
   const scroller = inp.closest('.modal-body'); if (scroller) scroller.addEventListener('scroll', close);
 }
+/* Déplacement de lignes de tableau par la poignée .drag-h : glisser (souris ou doigt) ou ↑ / ↓ au clavier.
+   opts.place(tr, cible, apres) décide où la ligne peut aller ; opts.onDrop(tr) est appelé après. */
+function dragRows(table, opts) {
+  const scroller = table.closest('.modal-body');
+  table.addEventListener('pointerdown', e => {
+    const h = e.target.closest('.drag-h'), tr = h && h.closest(opts.row); if (!tr || e.button > 0) return;
+    e.preventDefault(); tr.classList.add('dragging'); document.body.classList.add('row-dragging');
+    const move = ev => {
+      if (scroller) { const r = scroller.getBoundingClientRect();
+        if (ev.clientY < r.top + 40) scroller.scrollTop -= 14; else if (ev.clientY > r.bottom - 40) scroller.scrollTop += 14; }
+      const el = document.elementFromPoint(ev.clientX, ev.clientY), cible = el && el.closest('tr');
+      if (!cible || cible === tr || !table.contains(cible)) return;
+      const r = cible.getBoundingClientRect(); opts.place(tr, cible, ev.clientY > r.top + r.height / 2);
+    };
+    const fin = () => { window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', fin); window.removeEventListener('pointercancel', fin);
+      tr.classList.remove('dragging'); document.body.classList.remove('row-dragging'); opts.onDrop(tr); };
+    window.addEventListener('pointermove', move); window.addEventListener('pointerup', fin); window.addEventListener('pointercancel', fin);
+  });
+  table.addEventListener('keydown', e => {
+    const h = e.target.closest('.drag-h'), tr = h && h.closest(opts.row);
+    if (!tr || (e.key !== 'ArrowUp' && e.key !== 'ArrowDown')) return;
+    e.preventDefault(); const bas = e.key === 'ArrowDown';
+    let c = bas ? tr.nextElementSibling : tr.previousElementSibling;
+    if (!c || !c.matches(opts.row)) { // bord de section : on passe dans le bloc voisin
+      const tb = bas ? tr.parentElement.nextElementSibling : tr.parentElement.previousElementSibling;
+      c = tb && (bas ? tb.firstElementChild : tb.lastElementChild);
+    }
+    if (c) { opts.place(tr, c, bas); opts.onDrop(tr); h.focus(); }
+  });
+}
 function bteEditor(id) {
   const b = id ? DB.data.bte.find(x => x.id === id) : { id: uid(), nom: '', adresse: '', otp: '', dateEdition: todayISO(), margePct: 0.30, notes: '', lignes: [], ouvrages: [] };
   if (!Array.isArray(b.ouvrages)) b.ouvrages = [];
@@ -4056,7 +4092,7 @@ function bteEditor(id) {
     <td class="num"><input data-f="pu" type="number" step="any" value="${l.pu || ''}"></td>
     <td class="num tot">${eur((+l.qte || 0) * (+l.pu || 0))}</td>
     <td><select data-f="ouv" title="Poste d'ouvrage du devis auquel cette dépense est affectée">${ouvOpts(l.ouv)}</select></td>
-    <td class="xls-act"><button class="icon-btn danger" data-rm title="Retirer">${icon('trash')}</button></td></tr>`;
+    <td class="xls-act"><button class="icon-btn drag-h" title="Glisser pour déplacer la ligne (ou ↑ / ↓ au clavier)">${icon('grip')}</button><button class="icon-btn danger" data-rm title="Retirer">${icon('trash')}</button></td></tr>`;
   const secBody = (cat, idx) => `<tbody data-sec="${idx}">
       <tr class="bte-sec"><td colspan="4">${esc(cat)}</td><td class="num"></td><td></td><td class="xls-act"><button class="icon-btn" data-add="${idx}" title="Ajouter une ligne">${icon('plus')}</button></td></tr>
       ${b.lignes.filter(l => l.cat === cat).map(lineRow).join('')}
@@ -4070,10 +4106,10 @@ function bteEditor(id) {
     <td class="num pds" data-pds title="Déboursé sec : dépenses affectées + part des dépenses réparties"></td>
     <td class="num"><input data-p="pu" type="number" step="any" value="${o.pu || ''}" title="PU de vente HT — laisser vide pour le calcul automatique (DS × coef ÷ quantité)"></td>
     <td class="num tot" data-ptot></td>
-    <td class="xls-act"><button class="icon-btn danger" data-prm title="Retirer le poste">${icon('trash')}</button></td></tr>`;
+    <td class="xls-act"><button class="icon-btn drag-h" title="Glisser pour déplacer le poste (ou ↑ / ↓ au clavier)">${icon('grip')}</button><button class="icon-btn danger" data-prm title="Retirer le poste">${icon('trash')}</button></td></tr>`;
   const m = modal({ title: isNew ? 'Nouveau BTE' : 'BTE — ' + (b.nom || ''), xwide: true,
-    body: `<div class="table-wrap" style="box-shadow:none"><table class="xls">
-      <colgroup><col style="width:auto"><col style="width:92px"><col style="width:70px"><col style="width:92px"><col style="width:124px"><col style="width:150px"><col style="width:38px"></colgroup>
+    body: `<div class="table-wrap" style="box-shadow:none"><table class="xls" id="b-lignes">
+      <colgroup><col style="width:auto"><col style="width:92px"><col style="width:70px"><col style="width:92px"><col style="width:124px"><col style="width:150px"><col style="width:64px"></colgroup>
       <tbody>
         <tr class="xls-head"><td colspan="2"><input id="b-adr" value="${esc(b.adresse)}" placeholder="Adresse du chantier"></td><td class="xls-lbl" colspan="2">Date d'édition :</td><td colspan="3"><input id="b-date" type="date" value="${b.dateEdition || todayISO()}"></td></tr>
         <tr class="xls-head"><td colspan="4"><input id="b-nom" value="${esc(b.nom)}" placeholder="Nom du chantier"></td><td class="xls-bte" colspan="3">BTE</td></tr>
@@ -4088,7 +4124,7 @@ function bteEditor(id) {
     <p class="t-muted" style="margin:0 0 8px;font-size:12px">Listez les ouvrages tels qu'ils figureront au devis, puis affectez chaque dépense à son poste (colonne « Poste devis »).
       Les dépenses non affectées (installation de chantier, études, frais connexes…) sont <b>réparties au prorata</b>. PU de vente = déboursé sec × coef. ÷ quantité — saisissez un PU pour le forcer.</p>
     <div class="table-wrap" style="box-shadow:none"><table class="xls" id="b-postes">
-      <colgroup><col style="width:38px"><col style="width:auto"><col style="width:84px"><col style="width:62px"><col style="width:110px"><col style="width:104px"><col style="width:118px"><col style="width:38px"></colgroup>
+      <colgroup><col style="width:38px"><col style="width:auto"><col style="width:84px"><col style="width:62px"><col style="width:110px"><col style="width:104px"><col style="width:118px"><col style="width:64px"></colgroup>
       <tbody><tr class="xls-colhead"><td>N°</td><td>Ouvrage élémentaire</td><td class="num">Qté</td><td>Uni.</td><td class="num">Déb. sec</td><td class="num">PU vente HT</td><td class="num">Total HT</td><td class="xls-act"><button class="icon-btn" id="b-padd" title="Ajouter un poste">${icon('plus')}</button></td></tr></tbody>
       <tbody id="b-plist">${b.ouvrages.map(posteRow).join('')}</tbody>
       <tbody><tr class="bte-sub"><td></td><td class="num" id="b-pinfo" style="font-weight:400;font-size:11.5px;padding:0 8px;white-space:normal"></td><td colspan="4" class="num">TOTAL DEVIS HT :</td><td class="num sub" id="b-ptot"></td><td></td></tr></tbody>
@@ -4132,7 +4168,7 @@ function bteEditor(id) {
   };
   const bindRow = tr => {
     tr.querySelectorAll('input, select').forEach(inp => inp.oninput = refresh);
-    const catIdx = +tr.closest('[data-sec]').dataset.sec, g = f => tr.querySelector(`[data-f="${f}"]`);
+    const catIdx = () => +tr.closest('[data-sec]').dataset.sec, g = f => tr.querySelector(`[data-f="${f}"]`);
     bteAutocomplete(g('designation'), catIdx, s => {
       g('designation').value = s.designation; g('unite').value = s.unite || ''; if (s.pu) g('pu').value = Math.round(s.pu * 100) / 100;
       refresh(); g('qte').focus(); g('qte').select();
@@ -4148,6 +4184,18 @@ function bteEditor(id) {
   $('#b-padd').onclick = () => { const tmp = document.createElement('tbody'); tmp.innerHTML = posteRow({ id: uid(), designation: '', desc: '', unite: '', qte: 0, pu: 0 });
     const tr = tmp.firstElementChild; $('#b-plist').appendChild(tr); bindPoste(tr); refresh(); majSelects(); tr.querySelector('input').focus(); };
   $('#b-marge').oninput = refresh;
+  /* Réorganisation : une dépense peut changer de place et de catégorie (la catégorie suit la section
+     où elle est déposée) ; les postes changent d'ordre, donc de numéro dans le devis. */
+  dragRows($('#b-lignes'), { row: '.bte-line',
+    place: (tr, cible, apres) => {
+      if (cible.matches('.bte-line')) cible[apres ? 'after' : 'before'](tr);
+      else if (cible.matches('.bte-sec')) cible.after(tr);
+      else if (cible.matches('.bte-sub') && cible.closest('[data-sec]')) cible.before(tr);
+    },
+    onDrop: refresh });
+  dragRows($('#b-postes'), { row: '.bte-poste',
+    place: (tr, cible, apres) => { if (cible.matches('.bte-poste')) cible[apres ? 'after' : 'before'](tr); },
+    onDrop: () => { refresh(); majSelects(); } });
   $$('[data-add]', m.root).forEach(btn => btn.onclick = () => { const tb = m.root.querySelector(`[data-sec="${btn.dataset.add}"]`); const sub = tb.querySelector('.bte-sub'); const tmp = document.createElement('tbody'); tmp.innerHTML = lineRow({ designation: '', unite: '', qte: 0, pu: 0 }); const tr = tmp.firstElementChild; tb.insertBefore(tr, sub); bindRow(tr); tr.querySelector('input').focus(); refresh(); });
   m.root.querySelector('[data-c]').onclick = m.close;
   $('#b-csv').onclick = () => { collect(); const nomPoste = ouv => { const i = b.ouvrages.findIndex(o => o.id === ouv); return i < 0 ? '' : (i + 1) + '. ' + b.ouvrages[i].designation; };
