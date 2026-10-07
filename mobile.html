@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#12335c">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="ChargéPro">
+  <title>ChargéPro mobile</title>
+  <script>
+    /* Même thème que la version complète (préférence partagée) */
+    try { const t = (JSON.parse(localStorage.getItem('chargepro.ui')) || {}).theme; if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t; } catch (_e) { /* stockage indisponible */ }
+  </script>
+  <style>
+/* ==========================================================================
+   ChargéPro mobile — l'essentiel en poche. Mêmes jetons que index.html.
+   ========================================================================== */
+:root{
+  color-scheme:light;
+  --bg:#f4f6f9; --surface:#ffffff; --surface-2:#f8f9fb; --surface-3:#eef1f5;
+  --border:#e4e8ee; --border-strong:#cdd4de;
+  --text:#101828; --text-2:#475467; --text-3:#667085;
+  --brand:#12335c; --brand-2:#1d4f8f; --brand-soft:#e9eff8;
+  --accent:#e8590c;
+  --pos:#067647; --pos-soft:#ecfdf3;
+  --neg:#b42318; --neg-soft:#fef3f2;
+  --warn:#b54708; --warn-soft:#fffaeb;
+  --cat-0:#5d6b82; --cat-1:#2a6fc4; --cat-4:#6941c6; --cat-5:#c4320a; --cat-6:#0e7490;
+  --radius:12px;
+  --shadow-sm:0 1px 3px rgba(16,24,40,.08),0 1px 2px rgba(16,24,40,.04);
+  --font:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:where(:not([data-theme="light"])){
+    color-scheme:dark;
+    --bg:#0b0f15; --surface:#131922; --surface-2:#18202b; --surface-3:#1f2834;
+    --border:#263040; --border-strong:#354255;
+    --text:#e8edf3; --text-2:#b4bfcc; --text-3:#8b97a7;
+    --brand:#3b78d8; --brand-2:#5a91e6; --brand-soft:#182a44;
+    --accent:#f07a35;
+    --pos:#47cd89; --pos-soft:#0f2a1d;
+    --neg:#f97066; --neg-soft:#33171a;
+    --warn:#fdb022; --warn-soft:#2f2410;
+    --shadow-sm:0 1px 3px rgba(0,0,0,.4);
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#0b0f15; --surface:#131922; --surface-2:#18202b; --surface-3:#1f2834;
+  --border:#263040; --border-strong:#354255;
+  --text:#e8edf3; --text-2:#b4bfcc; --text-3:#8b97a7;
+  --brand:#3b78d8; --brand-2:#5a91e6; --brand-soft:#182a44;
+  --accent:#f07a35;
+  --pos:#47cd89; --pos-soft:#0f2a1d;
+  --neg:#f97066; --neg-soft:#33171a;
+  --warn:#fdb022; --warn-soft:#2f2410;
+  --shadow-sm:0 1px 3px rgba(0,0,0,.4);
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--text);font-family:var(--font);font-size:16px;-webkit-text-size-adjust:100%}
+body{padding-bottom:calc(68px + env(safe-area-inset-bottom))}
+button,input{font:inherit;color:inherit}
+a{color:var(--brand-2);text-decoration:none}
+
+header{position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:10px;
+  padding:calc(10px + env(safe-area-inset-top)) 16px 10px;background:var(--brand);color:#fff}
+@media (prefers-color-scheme: dark){:root:where(:not([data-theme="light"])) header{background:var(--surface);border-bottom:1px solid var(--border)}}
+:root[data-theme="dark"] header{background:var(--surface);border-bottom:1px solid var(--border)}
+.logo{width:30px;height:30px;border-radius:8px;background:var(--accent);display:grid;place-items:center;font-weight:800;font-size:13px;color:#fff;flex:none}
+.h-txt{flex:1;min-width:0}
+.h-txt b{display:block;font-size:16px}
+.h-txt span{display:block;font-size:12px;opacity:.75;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.h-btn{background:rgba(255,255,255,.14);border:0;color:#fff;border-radius:10px;width:40px;height:40px;display:grid;place-items:center;cursor:pointer}
+.h-btn svg{width:20px;height:20px}
+
+main{padding:16px;max-width:640px;margin:0 auto}
+h2{font-size:13px;text-transform:uppercase;letter-spacing:.04em;color:var(--text-3);margin:22px 4px 8px;font-weight:600}
+h2:first-child{margin-top:4px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow-sm)}
+
+.kpis{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.kpi{padding:12px 14px}
+.kpi .l{font-size:12px;color:var(--text-3)}
+.kpi .v{font-size:20px;font-weight:700;margin-top:4px;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kpi .s{font-size:12px;color:var(--text-2);margin-top:2px}
+.kpi .s.bad{color:var(--neg)} .kpi .s.ok{color:var(--pos)}
+.bar{height:5px;border-radius:3px;background:var(--surface-3);margin-top:8px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--brand-2);border-radius:3px}
+
+.list{overflow:hidden}
+.row{display:flex;align-items:center;gap:12px;padding:12px 14px;border-top:1px solid var(--border);min-height:52px}
+.row:first-child{border-top:0}
+.row .main{flex:1;min-width:0}
+.row .t{font-weight:600;font-size:15px;overflow-wrap:anywhere}
+.row .m{font-size:13px;color:var(--text-2);margin-top:2px;overflow-wrap:anywhere}
+.dot{width:10px;height:10px;border-radius:50%;flex:none}
+.tag{font-size:12px;font-weight:600;padding:3px 8px;border-radius:999px;white-space:nowrap;flex:none}
+.tag.bad{background:var(--neg-soft);color:var(--neg)}
+.tag.warn{background:var(--warn-soft);color:var(--warn)}
+.tag.ok{background:var(--pos-soft);color:var(--pos)}
+.tag.mute{background:var(--surface-3);color:var(--text-2)}
+.act{width:42px;height:42px;border-radius:50%;display:grid;place-items:center;background:var(--brand-soft);color:var(--brand-2);flex:none}
+.act svg{width:19px;height:19px}
+.empty{padding:16px;color:var(--text-3);font-size:14px;text-align:center}
+.more{padding:10px;text-align:center;font-size:13px;color:var(--text-3);border-top:1px solid var(--border)}
+
+.day-h{display:flex;justify-content:space-between;align-items:baseline}
+.day-h small{font-size:12px;color:var(--text-3);text-transform:none;letter-spacing:0;font-weight:500}
+.time{font-size:13px;font-weight:700;color:var(--text-2);width:44px;flex:none;font-variant-numeric:tabular-nums}
+
+.add{display:flex;flex-wrap:wrap;gap:8px;padding:10px}
+.add #txt{flex:1 1 100%}
+.add input{flex:1;min-width:0;border:1px solid var(--border-strong);background:var(--surface-2);border-radius:10px;padding:11px 12px}
+.add input[type=date]{color:var(--text-3);min-height:44px}
+.add input[type=date].set{color:var(--text)}
+.btn{border:0;border-radius:10px;background:var(--brand-2);color:#fff;font-weight:600;padding:0 16px;min-height:44px;cursor:pointer}
+.btn.ghost{background:var(--surface-3);color:var(--text)}
+.check{width:26px;height:26px;border-radius:50%;border:2px solid var(--border-strong);flex:none;display:grid;place-items:center;background:none;cursor:pointer;padding:0}
+.check svg{width:15px;height:15px;opacity:0}
+.done .check{background:var(--pos);border-color:var(--pos);color:#fff}
+.done .check svg{opacity:1}
+.done .t{text-decoration:line-through;color:var(--text-3);font-weight:500}
+.toggle{display:block;width:100%;background:none;border:0;padding:12px;color:var(--text-3);font-size:14px;cursor:pointer}
+
+.search{width:100%;border:1px solid var(--border-strong);background:var(--surface);border-radius:10px;padding:12px 14px;margin-bottom:10px}
+
+nav{position:fixed;left:0;right:0;bottom:0;z-index:5;display:grid;grid-template-columns:repeat(5,1fr);
+  background:var(--surface);border-top:1px solid var(--border);padding-bottom:env(safe-area-inset-bottom)}
+nav button{background:none;border:0;padding:8px 0 7px;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11px;color:var(--text-3);cursor:pointer;position:relative}
+nav button svg{width:22px;height:22px}
+nav button.on{color:var(--brand-2);font-weight:600}
+nav .badge{position:absolute;top:4px;left:calc(50% + 6px);background:var(--neg);color:#fff;font-size:10px;font-weight:700;border-radius:999px;padding:1px 5px;min-width:16px}
+
+.sheet-back{position:fixed;inset:0;background:rgba(10,18,32,.55);z-index:10;display:flex;align-items:flex-end}
+.sheet{background:var(--surface);width:100%;border-radius:16px 16px 0 0;padding:8px 0 calc(12px + env(safe-area-inset-bottom));max-width:640px;margin:0 auto}
+.sheet button,.sheet a{display:flex;align-items:center;gap:12px;width:100%;background:none;border:0;padding:14px 20px;text-align:left;color:var(--text);font-size:16px;cursor:pointer}
+.sheet button svg,.sheet a svg{width:20px;height:20px;color:var(--text-3)}
+.sheet .sep{height:1px;background:var(--border);margin:6px 0}
+.sheet .hd{padding:10px 20px 4px;font-size:12px;color:var(--text-3);text-transform:uppercase;letter-spacing:.04em}
+.sheet .on{color:var(--brand-2);font-weight:600}
+
+.welcome{padding:22px 18px;text-align:center}
+.welcome p{color:var(--text-2);font-size:14px;line-height:1.5}
+.welcome ol{text-align:left;color:var(--text-2);font-size:14px;line-height:1.6;padding-left:20px}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(80px + env(safe-area-inset-bottom));background:var(--text);color:var(--bg);padding:10px 16px;border-radius:10px;font-size:14px;z-index:20}
+.note{font-size:12px;color:var(--text-3);text-align:center;margin:18px 8px 0;line-height:1.5}
+  </style>
+</head>
+<body>
+  <header>
+    <span class="logo">CP</span>
+    <div class="h-txt"><b>ChargéPro</b><span id="h-sub"></span></div>
+    <button class="h-btn" id="menu-btn" aria-label="Menu"></button>
+  </header>
+  <main id="view"></main>
+  <nav id="tabs"></nav>
+  <input type="file" id="import-file" accept="application/json,.json" hidden>
+
+<script>
+'use strict';
+/* =========================================================================
+   Lecture des données de la version complète (même localStorage, même origine).
+   Seule la to-do list est modifiable ici : on ne réécrit que le champ « todos »
+   du profil, le reste des données n'est jamais touché.
+   ========================================================================= */
+const META_KEY = 'chargepro.v2.meta';
+const dataKey = id => 'chargepro.v2.data.' + id;
+const OBJ_DEF = { caAnnuel: 750000, devisMois: 45, delaiDevis: 7, delaiFacture: 7, delaiRapport: 7, delaiPaiement: 45 };
+
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+const isoDate = d => { const x = new Date(d); return `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, '0')}-${String(x.getDate()).padStart(2, '0')}`; };
+const todayISO = () => isoDate(new Date());
+const addDays = (iso, n) => { const d = new Date(iso + 'T00:00:00'); d.setDate(d.getDate() + n); return isoDate(d); };
+const daysBetween = (a, b) => Math.round((new Date(b + 'T00:00:00') - new Date(a + 'T00:00:00')) / 864e5);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const eur = n => (isFinite(n) ? n : 0).toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 });
+const eurK = n => Math.abs(n) >= 10000 ? (n / 1000).toLocaleString('fr-FR', { maximumFractionDigits: 0 }) + '\u00a0k€' : eur(n);
+const fmtDate = iso => iso ? new Date(iso + 'T00:00:00').toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' }) : '';
+const fmtDay = iso => new Date(iso + 'T00:00:00').toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
+const telHref = t => 'tel:' + String(t).replace(/[^\d+]/g, '');
+const mapHref = a => 'https://maps.google.com/?q=' + encodeURIComponent(a);
+
+const IC = {
+  home: '<path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>',
+  cal: '<rect x="3" y="4.5" width="18" height="16" rx="2"/><path d="M3 9.5h18M8 2.5v4M16 2.5v4"/>',
+  check: '<rect x="3" y="3" width="18" height="18" rx="3"/><path d="m8 12 3 3 5-6"/>',
+  site: '<path d="M3 21h18M5 21V10l7-5 7 5v11M9 21v-6h6v6"/>',
+  user: '<circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/>',
+  dots: '<circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/>',
+  phone: '<path d="M5 3h4l2 5-2.5 1.5a11 11 0 0 0 6 6L16 13l5 2v4a2 2 0 0 1-2 2A17 17 0 0 1 3 5a2 2 0 0 1 2-2z"/>',
+  mail: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/>',
+  pin: '<path d="M12 21s-7-6.2-7-12a7 7 0 0 1 14 0c0 5.8-7 12-7 12z"/><circle cx="12" cy="9" r="2.5"/>',
+  tick: '<path d="m5 12.5 4.5 4.5L19 7.5"/>',
+  upload: '<path d="M12 16V4M7 9l5-5 5 5M4 20h16"/>',
+  desktop: '<rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/>',
+  swap: '<path d="M7 7h13l-4-4M17 17H4l4 4"/>',
+};
+const icon = n => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${IC[n]}</svg>`;
+
+let meta = { profiles: [], currentId: null }, D = null;
+function load() {
+  try { meta = JSON.parse(localStorage.getItem(META_KEY)) || meta; } catch { /* vide */ }
+  if (!Array.isArray(meta.profiles)) meta.profiles = [];
+  if (!meta.profiles.some(p => p.id === meta.currentId)) meta.currentId = meta.profiles[0] ? meta.profiles[0].id : null;
+  D = null;
+  if (!meta.currentId) return;
+  let raw = null; try { raw = JSON.parse(localStorage.getItem(dataKey(meta.currentId))); } catch { /* vide */ }
+  D = raw || {};
+  ['clients', 'chantiers', 'devis', 'ca', 'factures', 'contrats', 'visites', 'prospection', 'equipes', 'otps', 'agenda', 'todos'].forEach(k => { if (!Array.isArray(D[k])) D[k] = []; });
+  D.objectifs = Object.assign({}, OBJ_DEF, D.objectifs || {});
+}
+// On relit le stockage avant d'écrire pour ne jamais écraser autre chose que la to-do list.
+function saveTodos() {
+  const k = dataKey(meta.currentId);
+  let raw = {}; try { raw = JSON.parse(localStorage.getItem(k)) || {}; } catch { /* vide */ }
+  raw.todos = D.todos;
+  localStorage.setItem(k, JSON.stringify(raw));
+}
+const profile = () => meta.profiles.find(p => p.id === meta.currentId);
+const clientById = id => D.clients.find(c => c.id === id);
+const clientNom = id => (clientById(id) || {}).nom || '';
+const otpHors = code => { const o = D.otps.find(x => x.code === code); return !!(o && o.horsPerimetre); };
+const otpCompte = code => !!(code && String(code).trim()) && !otpHors(code);
+
+/* ---------- Calculs (mêmes règles que le tableau de bord complet) ---------- */
+const factureEcheance = f => f.dateEmission ? addDays(f.dateEmission, +f.echeanceJours || D.objectifs.delaiPaiement) : '';
+function collectActions() {
+  const o = D.objectifs, t = todayISO(), acts = [];
+  D.devis.filter(d => d.statut === 'attente' && d.dateDemande).forEach(d => {
+    const rest = o.delaiDevis - daysBetween(d.dateDemande, t);
+    if (rest <= 2) acts.push({ tone: rest < 0 ? 'bad' : 'warn', urg: rest, title: 'Devis à envoyer', sub: d.objet || d.ref, badge: rest < 0 ? `Retard ${-rest} j` : rest === 0 ? "Aujourd'hui" : `${rest} j` });
+  });
+  D.devis.filter(d => ['envoye', 'relance'].includes(d.statut) && d.relance && d.relance <= t).forEach(d =>
+    acts.push({ tone: 'warn', urg: 0, title: 'Relancer le devis', sub: [d.objet || d.ref, clientNom(d.clientId)].filter(Boolean).join(' · '), badge: fmtDate(d.relance), tel: (clientById(d.clientId) || {}).tel }));
+  D.factures.forEach(f => {
+    const ech = factureEcheance(f);
+    if (f.statut === 'a_emettre' && f.dateFG && daysBetween(f.dateFG, t) > o.delaiFacture)
+      acts.push({ tone: 'bad', urg: -daysBetween(f.dateFG, t), title: 'Facture à émettre', sub: f.objet, badge: 'Retard' });
+    if (f.statut === 'emise' && ech && ech < t)
+      acts.push({ tone: 'bad', urg: -daysBetween(ech, t), title: 'Impayé', sub: [f.client, f.objet].filter(Boolean).join(' · '), badge: 'Éch. ' + fmtDate(ech), tel: (clientById(f.clientId) || {}).tel });
+  });
+  D.contrats.filter(c => (!c.dateFin || c.dateFin >= t) && !D.visites.some(v => v.contratId === c.id && v.statut === 'planifiee' && v.datePrevue >= t))
+    .forEach(c => acts.push({ tone: 'warn', urg: 1, title: 'Visite à programmer', sub: [clientNom(c.clientId), c.nom].filter(Boolean).join(' · '), badge: 'Entretien' }));
+  D.visites.filter(v => v.statut === 'realisee' && v.dateRealisee && !v.rapportDate && daysBetween(v.dateRealisee, t) > o.delaiRapport).forEach(v => {
+    const c = D.contrats.find(x => x.id === v.contratId);
+    acts.push({ tone: 'bad', urg: -daysBetween(v.dateRealisee, t), title: "Rapport d'intervention en retard", sub: c ? clientNom(c.clientId) : '', badge: 'Retard' });
+  });
+  D.prospection.filter(p => p.prochaine && p.prochaine <= t && !['gagne', 'sans_suite'].includes(p.statut))
+    .forEach(p => acts.push({ tone: 'warn', urg: 0, title: 'Relance prospect', sub: p.nom, badge: fmtDate(p.prochaine) }));
+  return acts.sort((a, b) => a.urg - b.urg);
+}
+function agendaOn(iso) {
+  return D.agenda.filter(a => a.dateDebut && iso >= a.dateDebut && iso <= (a.dateFin || a.dateDebut))
+    .sort((a, b) => (a.heureDebut || '99').localeCompare(b.heureDebut || '99'));
+}
+const TYPE_COLOR = { perso: 'var(--cat-0)', reunion: 'var(--cat-4)', conges: 'var(--cat-5)', autre: 'var(--cat-6)', chantier: 'var(--cat-1)' };
+const openTodos = () => D.todos.filter(t => !t.done);
+
+/* ---------- Vues ---------- */
+let tab = 'home', showDone = false, query = '';
+const TABS = [['home', 'Accueil', 'home'], ['agenda', 'Agenda', 'cal'], ['todo', 'Tâches', 'check'], ['sites', 'Chantiers', 'site'], ['contacts', 'Contacts', 'user']];
+
+function renderTabs() {
+  const late = D ? collectActions().filter(a => a.tone === 'bad').length : 0;
+  $('#tabs').innerHTML = TABS.map(([k, l, ic]) => `<button data-tab="${k}" class="${tab === k ? 'on' : ''}">${icon(ic)}${l}${k === 'home' && late ? `<span class="badge">${late}</span>` : ''}</button>`).join('');
+  $$('#tabs button').forEach(b => b.onclick = () => { tab = b.dataset.tab; render(); scrollTo(0, 0); });
+}
+function render() {
+  const p = profile();
+  $('#h-sub').textContent = p ? p.nom + (p.agence ? ' · ' + p.agence : '') : 'Aucune donnée sur ce téléphone';
+  renderTabs();
+  const v = $('#view');
+  if (!D) { v.innerHTML = welcome(); $('#w-import').onclick = () => $('#import-file').click(); return; }
+  ({ home: vHome, agenda: vAgenda, todo: vTodo, sites: vSites, contacts: vContacts })[tab](v);
+}
+function welcome() {
+  return `<div class="card welcome">
+    <h3 style="margin:0 0 6px">Bienvenue sur ChargéPro mobile</h3>
+    <p>Les données sont enregistrées dans le navigateur de chaque appareil. Pour retrouver les vôtres ici :</p>
+    <ol><li>Sur le PC, dans ChargéPro, cliquez sur <b>Sauvegarde</b>.</li>
+      <li>Envoyez-vous le fichier <b>.json</b> (mail, Drive…).</li>
+      <li>Sur ce téléphone, touchez <b>Importer</b> et choisissez le fichier.</li></ol>
+    <button class="btn" id="w-import" style="width:100%;margin-top:6px">Importer une sauvegarde</button>
+  </div>`;
+}
+
+function vHome(v) {
+  const o = D.objectifs, t = todayISO(), now = new Date(), yr = now.getFullYear(), mo = now.getMonth();
+  const ca = D.ca.filter(r => r.annee === yr && otpCompte(r.otp)).reduce((s, r) => s + (+r.prixVente || 0), 0);
+  const caP = Math.round(ca / (o.caAnnuel || 1) * 100);
+  const carnet = D.chantiers.filter(c => ['commande', 'en_cours'].includes(c.statut)).reduce((s, c) => s + (+c.montantHT || 0), 0);
+  const encours = D.factures.filter(f => f.statut === 'emise').reduce((s, f) => s + (+f.montantHT || 0), 0);
+  const retard = D.factures.filter(f => { const e = factureEcheance(f); return f.statut === 'emise' && e && e < t; }).length;
+  const devisMois = D.devis.filter(d => { const r = d.dateEnvoi || d.dateDemande; if (!r) return false; const x = new Date(r + 'T00:00:00'); return x.getMonth() === mo && x.getFullYear() === yr; }).length;
+  const acts = collectActions();
+  const today = agendaOn(t);
+  const dueTodos = openTodos().filter(x => !x.waiting && x.due && x.due <= t);
+  const bar = p => `<div class="bar"><i style="width:${Math.min(100, Math.max(0, p))}%"></i></div>`;
+
+  v.innerHTML = `
+    <h2>${esc(fmtDay(t))}</h2>
+    <div class="kpis">
+      <div class="card kpi"><div class="l">CA ${yr}</div><div class="v">${eurK(ca)}</div>${bar(caP)}<div class="s">${caP} % de ${eurK(o.caAnnuel)}</div></div>
+      <div class="card kpi"><div class="l">Devis du mois</div><div class="v">${devisMois} / ${o.devisMois}</div>${bar(devisMois / (o.devisMois || 1) * 100)}<div class="s">objectif mensuel</div></div>
+      <div class="card kpi"><div class="l">Carnet de commandes</div><div class="v">${eurK(carnet)}</div><div class="s">à réaliser</div></div>
+      <div class="card kpi"><div class="l">Encours facturé</div><div class="v">${eurK(encours)}</div><div class="s ${retard ? 'bad' : 'ok'}">${retard ? retard + ' en retard' : 'À jour'}</div></div>
+    </div>
+
+    <h2>Aujourd'hui</h2>
+    <div class="card list">
+      ${today.map(evRow).join('')}
+      ${dueTodos.map(x => `<div class="row"><span class="dot" style="background:var(--accent)"></span><div class="main"><div class="t">${esc(x.text)}</div><div class="m">Tâche${x.due < t ? ' · prévue le ' + fmtDate(x.due) : ''}</div></div>${x.due < t ? '<span class="tag bad">Retard</span>' : ''}</div>`).join('')}
+      ${today.length || dueTodos.length ? '' : '<div class="empty">Rien de prévu aujourd\'hui.</div>'}
+    </div>
+
+    <h2>À traiter${acts.length ? ' · ' + acts.length : ''}</h2>
+    <div class="card list">
+      ${acts.length ? acts.slice(0, 8).map(a => `<div class="row"><div class="main"><div class="t">${esc(a.title)}</div>${a.sub ? `<div class="m">${esc(a.sub)}</div>` : ''}</div>
+        <span class="tag ${a.tone}">${esc(a.badge)}</span>${a.tel ? `<a class="act" href="${telHref(a.tel)}" aria-label="Appeler">${icon('phone')}</a>` : ''}</div>`).join('')
+        + (acts.length > 8 ? `<div class="more">+ ${acts.length - 8} autre(s) — voir la version complète</div>` : '')
+        : '<div class="empty">Tout est à jour 👍</div>'}
+    </div>`;
+}
+function evRow(a) {
+  const eq = a.type === 'chantier' ? D.equipes.find(e => e.id === a.equipeId) : null;
+  const sub = [eq && eq.nom, (a.companions || []).join(', '), a.heureFin && a.heureDebut ? a.heureDebut + '–' + a.heureFin : ''].filter(Boolean).join(' · ');
+  return `<div class="row">${a.heureDebut ? `<span class="time">${esc(a.heureDebut)}</span>` : ''}<span class="dot" style="background:${TYPE_COLOR[a.type] || 'var(--cat-0)'}"></span>
+    <div class="main"><div class="t">${esc(a.title || 'Sans titre')}</div>${sub ? `<div class="m">${esc(sub)}</div>` : ''}</div></div>`;
+}
+
+function vAgenda(v) {
+  const t = todayISO(); let html = '', any = false;
+  for (let i = 0; i < 14; i++) {
+    const d = addDays(t, i), evs = agendaOn(d);
+    const todos = openTodos().filter(x => x.due === d);
+    if (!evs.length && !todos.length && i > 0) continue;
+    any = any || evs.length || todos.length;
+    const lab = i === 0 ? "Aujourd'hui" : i === 1 ? 'Demain' : fmtDay(d);
+    html += `<h2 class="day-h"><span>${esc(lab)}</span>${i < 2 ? `<small>${esc(fmtDay(d))}</small>` : ''}</h2><div class="card list">
+      ${evs.map(evRow).join('')}
+      ${todos.map(x => `<div class="row"><span class="dot" style="background:var(--accent)"></span><div class="main"><div class="t">${esc(x.text)}</div><div class="m">Échéance tâche</div></div></div>`).join('')}
+      ${evs.length || todos.length ? '' : '<div class="empty">Rien de prévu.</div>'}</div>`;
+  }
+  v.innerHTML = html + (any ? '' : '<p class="note">Aucun événement sur les 14 prochains jours.</p>') + '<p class="note">14 prochains jours. Pour ajouter ou modifier un événement, utilisez la version complète.</p>';
+}
+
+function vTodo(v) {
+  const t = todayISO();
+  const rank = x => x.done ? 2 : x.waiting ? 1 : 0;
+  const list = D.todos.filter(x => showDone || !x.done).slice().sort((a, b) => rank(a) - rank(b) || (a.due || '9999').localeCompare(b.due || '9999'));
+  const nDone = D.todos.filter(x => x.done).length;
+  v.innerHTML = `
+    <h2>Ma to-do list · ${openTodos().length} à faire</h2>
+    <div class="card list">
+      <form class="add" id="add"><input id="txt" placeholder="Nouvelle tâche…" maxlength="200" autocomplete="off"><input type="date" id="due" aria-label="Échéance" title="Échéance (optionnel)"><button class="btn">OK</button></form>
+      ${list.map(x => {
+        const late = !x.done && x.due && x.due < t, soon = !x.done && x.due && !late && daysBetween(t, x.due) <= 3;
+        const meta = [x.waiting && !x.done ? 'En attente de retour' : '', x.status || ''].filter(Boolean).join(' · ');
+        return `<div class="row ${x.done ? 'done' : ''}" data-id="${esc(x.id)}"><button class="check" aria-label="Fait">${icon('tick')}</button>
+          <div class="main"><div class="t">${esc(x.text)}</div>${meta ? `<div class="m">${esc(meta)}</div>` : ''}</div>
+          ${x.due ? `<span class="tag ${late ? 'bad' : soon ? 'warn' : 'mute'}">${fmtDate(x.due)}</span>` : ''}</div>`;
+      }).join('') || '<div class="empty">Aucune tâche.</div>'}
+      ${nDone ? `<button class="toggle" id="show-done">${showDone ? 'Masquer' : 'Afficher'} les tâches faites (${nDone})</button>` : ''}
+    </div>`;
+  const due = $('#due');
+  due.onchange = () => due.classList.toggle('set', !!due.value);
+  $('#add').onsubmit = e => {
+    e.preventDefault(); const txt = $('#txt').value.trim(); if (!txt) return;
+    D.todos.push({ id: uid(), text: txt, due: due.value || '', done: false, date: todayISO() });
+    saveTodos(); vTodo(v); toast('Tâche ajoutée');
+  };
+  $$('.check', v).forEach(b => b.onclick = () => {
+    const x = D.todos.find(y => y.id === b.closest('.row').dataset.id); if (!x) return;
+    x.done = !x.done; if (x.done) { x.waiting = false; x.waitingSince = ''; }
+    saveTodos(); vTodo(v); renderTabs();
+  });
+  const sd = $('#show-done'); if (sd) sd.onclick = () => { showDone = !showDone; vTodo(v); };
+}
+
+function vSites(v) {
+  const order = { en_cours: 0, commande: 1 };
+  const list = D.chantiers.filter(c => c.statut in order).sort((a, b) => order[a.statut] - order[b.statut] || String(a.nom).localeCompare(String(b.nom)));
+  const block = (title, items) => items.length ? `<h2>${title} · ${items.length}</h2><div class="card list">${items.map(c => {
+    const cl = clientById(c.clientId) || {};
+    return `<div class="row"><div class="main"><div class="t">${esc(c.nom || 'Chantier')}</div>
+      <div class="m">${esc([cl.nom, c.otp, +c.montantHT ? eurK(+c.montantHT) : ''].filter(Boolean).join(' · '))}</div>
+      ${c.adresse ? `<div class="m">${esc(c.adresse)}</div>` : ''}</div>
+      ${c.adresse ? `<a class="act" href="${mapHref(c.adresse)}" target="_blank" rel="noopener" aria-label="Itinéraire">${icon('pin')}</a>` : ''}
+      ${cl.tel ? `<a class="act" href="${telHref(cl.tel)}" aria-label="Appeler le client">${icon('phone')}</a>` : ''}</div>`;
+  }).join('')}</div>` : '';
+  v.innerHTML = (block('En cours', list.filter(c => c.statut === 'en_cours')) + block('Commandés, à démarrer', list.filter(c => c.statut === 'commande')))
+    || '<div class="card empty">Aucun chantier en cours.</div>';
+}
+
+function vContacts(v) {
+  v.innerHTML = `<input class="search" id="q" type="search" placeholder="Rechercher un client, un contact…" value="${esc(query)}"><div id="res"></div>`;
+  const draw = () => {
+    const q = query.toLowerCase().trim();
+    const list = D.clients.filter(c => !q || [c.nom, c.contact, c.adresse, c.type].some(s => String(s || '').toLowerCase().includes(q)))
+      .sort((a, b) => String(a.nom).localeCompare(String(b.nom)));
+    $('#res').innerHTML = `<div class="card list">${list.map(c => `<div class="row"><div class="main"><div class="t">${esc(c.nom)}</div>
+      <div class="m">${esc([c.contact, c.tel].filter(Boolean).join(' · '))}</div>${c.adresse ? `<div class="m">${esc(c.adresse)}</div>` : ''}</div>
+      ${c.email ? `<a class="act" href="mailto:${esc(c.email)}" aria-label="E-mail">${icon('mail')}</a>` : ''}
+      ${c.tel ? `<a class="act" href="${telHref(c.tel)}" aria-label="Appeler">${icon('phone')}</a>` : ''}</div>`).join('') || '<div class="empty">Aucun contact.</div>'}</div>`;
+  };
+  $('#q').oninput = e => { query = e.target.value; draw(); };
+  draw();
+}
+
+/* ---------- Menu, import, toast ---------- */
+function toast(msg) { const t = document.createElement('div'); t.className = 'toast'; t.textContent = msg; document.body.appendChild(t); setTimeout(() => t.remove(), 2200); }
+function openMenu() {
+  const back = document.createElement('div'); back.className = 'sheet-back';
+  back.innerHTML = `<div class="sheet">
+    ${meta.profiles.length > 1 ? `<div class="hd">Profil</div>${meta.profiles.map(p => `<button data-p="${esc(p.id)}" class="${p.id === meta.currentId ? 'on' : ''}">${icon('user')}${esc(p.nom)}</button>`).join('')}<div class="sep"></div>` : ''}
+    <button data-import>${icon('upload')}Importer une sauvegarde (.json)</button>
+    <a href="index.html?complet">${icon('desktop')}Version complète</a>
+  </div>`;
+  document.body.appendChild(back);
+  const close = () => back.remove();
+  back.onclick = e => { if (e.target === back) close(); };
+  $$('[data-p]', back).forEach(b => b.onclick = () => { meta.currentId = b.dataset.p; localStorage.setItem(META_KEY, JSON.stringify(meta)); close(); load(); render(); });
+  $('[data-import]', back).onclick = () => { close(); $('#import-file').click(); };
+}
+function importFile(file) {
+  const r = new FileReader();
+  r.onload = () => {
+    let parsed; try { parsed = JSON.parse(r.result); } catch { toast('Fichier invalide'); return; }
+    const data = parsed && parsed.data ? parsed.data : parsed;
+    if (!data || typeof data !== 'object' || Array.isArray(data)) { toast('Fichier invalide'); return; }
+    if (meta.currentId && !confirm(`Remplacer les données du profil « ${(profile() || {}).nom} » sur ce téléphone par cette sauvegarde ?`)) return;
+    if (!meta.currentId) {
+      const pr = parsed.profil || {}, id = uid();
+      meta.profiles.push({ id, nom: pr.nom || 'Mon profil', agence: pr.agence || '' });
+      meta.currentId = id;
+      localStorage.setItem(META_KEY, JSON.stringify(meta));
+    }
+    localStorage.setItem(dataKey(meta.currentId), JSON.stringify(data));
+    load(); tab = 'home'; render(); toast('Sauvegarde importée');
+  };
+  r.readAsText(file);
+}
+
+$('#menu-btn').innerHTML = icon('dots');
+$('#menu-btn').onclick = openMenu;
+$('#import-file').onchange = e => { if (e.target.files[0]) importFile(e.target.files[0]); e.target.value = ''; };
+// Données modifiées dans un autre onglet (version complète) : on se met à jour.
+window.addEventListener('storage', e => { if (e.key && e.key.startsWith('chargepro.v2')) { load(); render(); } });
+load();
+render();
+</script>
+</body>
+</html>
