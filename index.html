@@ -2435,6 +2435,7 @@ function profileMenuHTML() {
     <button class="menu-item" data-new>${icon('userPlus')} Nouveau profil</button>
     <button class="menu-item" data-edit>${icon('edit')} Renommer ce profil</button>
     <button class="menu-item" data-demo>${icon('layers')} Charger des données de démonstration</button>
+    <a class="menu-item" href="mobile.html" style="text-decoration:none;color:inherit">${icon('phone')} Version mobile (l'essentiel)</a>
     <div class="menu-sep"></div>
     <div class="menu-head">${icon('sliders', 'ic-sm')} Affichage — adapté à cet écran</div>
     <div class="menu-pref"><span>Largeur</span>${segHTML('width', UI_WIDTHS, {
@@ -6944,6 +6945,18 @@ function boot() {
   DB.loadProfile(DB.meta.currentId);
   renderProfileButton();
   go(location.hash.slice(1) || 'dashboard');
+  mobileHint();
+}
+// Sur téléphone : proposer la version mobile allégée (masquable, ou désactivée via ?complet)
+function mobileHint() {
+  if (/[?&]complet\b/.test(location.search)) { try { localStorage.setItem('chargepro.mobileHint', 'off'); } catch (_e) { /* */ } return; }
+  let off = false; try { off = localStorage.getItem('chargepro.mobileHint') === 'off'; } catch (_e) { /* */ }
+  if (off || !matchMedia('(max-width:760px) and (pointer:coarse)').matches) return;
+  const bar = document.createElement('div');
+  bar.style.cssText = 'position:fixed;left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom));z-index:60;display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:12px;background:var(--brand);color:#fff;box-shadow:var(--shadow-lg);font-size:14px';
+  bar.innerHTML = `${icon('phone')}<a href="mobile.html" style="flex:1;color:#fff;font-weight:600;text-decoration:none">Ouvrir la version mobile — l'essentiel</a><button aria-label="Masquer" style="background:none;border:0;color:#fff;font-size:22px;line-height:1;padding:0 4px;cursor:pointer">×</button>`;
+  bar.querySelector('button').onclick = () => { try { localStorage.setItem('chargepro.mobileHint', 'off'); } catch (_e) { /* */ } bar.remove(); };
+  document.body.appendChild(bar);
 }
 boot();
 
