@@ -168,6 +168,7 @@ a{color:var(--brand-2)}
 .nav-item.active .ic{color:var(--accent)}
 .nav-item.active::before{content:"";position:absolute;left:-12px;top:8px;bottom:8px;width:3px;border-radius:0 3px 3px 0;background:var(--accent)}
 .foot-note{font-size:11.5px;color:var(--side-muted);padding:12px 18px 14px;line-height:1.4;border-top:1px solid var(--side-border)}
+.foot-note a{color:inherit}
 .drawer-back{display:none}
 /* Menu réduit aux icônes (réglage par poste) */
 @media(min-width:961px){
@@ -775,7 +776,7 @@ html[data-density="compact"] .filters input:not([type=checkbox]),html[data-densi
         <span class="logo-text">ChargéPro</span>
       </div>
       <nav id="nav"></nav>
-      <div class="foot-note">Données enregistrées localement sur ce poste.</div>
+      <div class="foot-note">Données enregistrées localement sur ce poste.<br><a href="mentions-legales.html">Mentions légales &amp; confidentialité</a></div>
     </aside>
     <div class="drawer-back" id="drawer-back"></div>
 
@@ -2565,7 +2566,7 @@ function profileForm(id) {
 }
 function firstRun() {
   const m = modal({ title: 'Bienvenue sur ChargéPro',
-    body: `<p style="margin-top:0;color:var(--text-2)">Créez votre profil de chargé d'affaires. Vos données restent enregistrées localement sur ce poste et ne sont pas partagées.</p>
+    body: `<p style="margin-top:0;color:var(--text-2)">Créez votre profil de chargé d'affaires. Vos données restent enregistrées localement sur ce poste et ne sont pas partagées. <a href="mentions-legales.html" target="_blank" rel="noopener">En savoir plus</a></p>
     <div class="form-grid">
       <div class="field full"><label>Votre nom</label><input id="p-nom" placeholder="Prénom Nom"></div>
       <div class="field full"><label>Agence / secteur (optionnel)</label><input id="p-ag" placeholder="Agence de…"></div>

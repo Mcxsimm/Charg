@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mentions légales — ChargéPro</title>
+  <meta name="description" content="Mentions légales, données personnelles et cookies de ChargéPro.">
+  <script>
+    /* Même thème que l'outil (préférence partagée) */
+    try { const t = (JSON.parse(localStorage.getItem('chargepro.ui')) || {}).theme; if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t; } catch (_e) { /* stockage indisponible */ }
+  </script>
+  <style>
+/* ==========================================================================
+   ChargéPro — mentions légales & confidentialité. Mêmes jetons que index.html.
+   ========================================================================== */
+:root{
+  color-scheme:light;
+  --bg:#f4f6f9; --surface:#ffffff; --border:#e4e8ee;
+  --text:#101828; --text-2:#475467; --text-3:#667085;
+  --brand:#12335c; --brand-2:#1d4f8f; --brand-soft:#e9eff8;
+  --font:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:where(:not([data-theme="light"])){
+    color-scheme:dark;
+    --bg:#0b0f15; --surface:#131922; --border:#263040;
+    --text:#e8edf3; --text-2:#b4bfcc; --text-3:#8b97a7;
+    --brand:#3b78d8; --brand-2:#5a91e6; --brand-soft:#182a44;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#0b0f15; --surface:#131922; --border:#263040;
+  --text:#e8edf3; --text-2:#b4bfcc; --text-3:#8b97a7;
+  --brand:#3b78d8; --brand-2:#5a91e6; --brand-soft:#182a44;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--text);font-family:var(--font);font-size:16px;line-height:1.6;-webkit-text-size-adjust:100%}
+main{max-width:760px;margin:0 auto;padding:24px 16px 48px}
+.back{display:inline-block;margin-bottom:16px;color:var(--brand-2);text-decoration:none;font-size:14px}
+.back:hover{text-decoration:underline}
+h1{font-size:26px;margin:0 0 4px;color:var(--brand)}
+.maj{color:var(--text-3);font-size:13px;margin:0 0 24px}
+section{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px 20px;margin-bottom:16px}
+h2{font-size:18px;margin:0 0 10px;color:var(--brand)}
+h3{font-size:15px;margin:16px 0 6px}
+p,li{color:var(--text-2);font-size:15px}
+p{margin:0 0 10px}
+ul{margin:0 0 10px;padding-left:20px}
+strong{color:var(--text)}
+a{color:var(--brand-2)}
+.encart{background:var(--brand-soft);border-radius:8px;padding:10px 14px;margin:10px 0 0}
+.encart p{margin:0;color:var(--text)}
+  </style>
+</head>
+<body>
+<main>
+  <a class="back" href="index.html">← Retour à ChargéPro</a>
+  <h1>Mentions légales &amp; confidentialité</h1>
+  <p class="maj">Dernière mise à jour : 7 octobre 2026</p>
+
+  <section id="mentions">
+    <h2>1. Éditeur du site</h2>
+    <p>ChargéPro est un outil personnel, non commercial, édité à titre privé par <strong>Maxime Philippe</strong>, personne physique.</p>
+    <p><strong>Directeur de la publication :</strong> Maxime Philippe.</p>
+    <p><strong>Contact :</strong> via le profil GitHub de l'éditeur, <a href="https://github.com/Mcxsimm" rel="noopener">github.com/Mcxsimm</a>.</p>
+    <p>ChargéPro n'est ni édité ni approuvé par un employeur, une entreprise ou un fournisseur cité dans l'outil.</p>
+  </section>
+
+  <section id="hebergeur">
+    <h2>2. Hébergeur</h2>
+    <p><strong>GitHub, Inc.</strong> (service GitHub Pages)<br>
+      88 Colin P. Kelly Jr. Street, San Francisco, CA 94107, États-Unis<br>
+      <a href="https://github.com" rel="noopener">github.com</a></p>
+  </section>
+
+  <section id="propriete">
+    <h2>3. Propriété intellectuelle</h2>
+    <p>Le code et la présentation de ChargéPro sont la propriété de l'éditeur. Toute reproduction ou réutilisation sans autorisation est interdite.</p>
+    <p>Les noms de produits, de marques et de fabricants cités (par exemple IKO, AXTER) appartiennent à leurs titulaires respectifs. Ils ne sont mentionnés qu'à titre descriptif.</p>
+    <p>La police de caractères <strong>Inter</strong> (© The Inter Project Authors) est intégrée sous licence <a href="https://openfontlicense.org" rel="noopener">SIL Open Font License 1.1</a>.</p>
+  </section>
+
+  <section id="donnees">
+    <h2>4. Données personnelles</h2>
+    <h3>Où sont vos données ?</h3>
+    <p>ChargéPro n'a <strong>ni serveur ni base de données</strong>. Tout ce que vous saisissez (clients, chantiers, devis, BTE, agenda, pointages…) reste <strong>dans le navigateur de votre appareil</strong> (stockage local, « localStorage »). L'éditeur n'a aucun accès à ces données.</p>
+    <h3>Sauvegarde Google Drive (facultative)</h3>
+    <p>Si vous choisissez de connecter Google Drive, vos données sont copiées dans un dossier « ChargéPro » de <strong>votre propre</strong> compte Google (fichier <em>chargepro_donnees.json</em>, avec une copie datée par jour conservée 30 jours). L'autorisation demandée (« drive.file ») permet seulement à l'outil de voir les fichiers qu'il a lui-même créés. Ces données sont alors hébergées par Google LLC, y compris éventuellement hors de l'Union européenne, conformément aux <a href="https://policies.google.com/privacy?hl=fr" rel="noopener">règles de confidentialité de Google</a>. Vous pouvez retirer cet accès à tout moment depuis <a href="https://myaccount.google.com/permissions" rel="noopener">votre compte Google</a>.</p>
+    <h3>Données de tiers</h3>
+    <p>Si vous enregistrez des informations sur d'autres personnes (contacts clients, collaborateurs…), vous en êtes responsable. Limitez-vous aux informations strictement nécessaires à votre activité et supprimez celles qui ne servent plus.</p>
+    <h3>Durée de conservation et suppression</h3>
+    <p>Les données restent sur votre appareil tant que vous ne les supprimez pas. Pour tout effacer : supprimez le profil dans l'outil ou videz les données du site dans les réglages de votre navigateur. Si vous utilisez la sauvegarde Google Drive, supprimez aussi le dossier « ChargéPro » de votre Drive.</p>
+    <h3>Vos droits</h3>
+    <p>Vous gardez la maîtrise totale de vos données : vous pouvez les consulter, les modifier, les exporter (bouton « Sauvegarde ») et les supprimer directement dans l'outil. Pour toute question, contactez l'éditeur (voir § 1). Vous pouvez également adresser une réclamation à la <a href="https://www.cnil.fr/fr/plaintes" rel="noopener">CNIL</a>.</p>
+  </section>
+
+  <section id="cookies">
+    <h2>5. Cookies et traceurs</h2>
+    <p><strong>ChargéPro ne dépose aucun cookie publicitaire ou de mesure d'audience</strong> et n'utilise aucun outil de statistiques.</p>
+    <p>Le site utilise uniquement le stockage local du navigateur pour faire fonctionner l'outil (vos données, vos préférences d'affichage). Ces stockages sont strictement nécessaires au service demandé : ils ne requièrent donc pas votre consentement (article 82 de la loi Informatique et Libertés).</p>
+    <p>Le service de connexion Google n'est chargé que si vous cliquez vous-même sur « Connecter Google Drive ». Google peut alors utiliser ses propres cookies, régis par sa politique de confidentialité.</p>
+    <p>Les liens « Itinéraire » ouvrent Google Maps dans un nouvel onglet ; ce site tiers applique alors ses propres règles.</p>
+  </section>
+
+  <section id="responsabilite">
+    <h2>6. Responsabilité</h2>
+    <p>ChargéPro est fourni « en l'état », comme outil d'aide personnelle. Les calculs (BTE, marges, cadences, chiffrages) sont indicatifs et doivent être vérifiés avant tout usage contractuel. L'éditeur ne pourra être tenu responsable d'une erreur de calcul, d'une perte de données ou d'une indisponibilité du site. Pensez à faire des sauvegardes régulières.</p>
+    <div class="encart"><p>Droit applicable : droit français.</p></div>
+  </section>
+</main>
+</body>
+</html>
