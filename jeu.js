@@ -15,9 +15,10 @@
   /* ---------- Projection isométrique ---------- */
   const S = 24;                                  // pixels par mètre
   const CX = Math.cos(Math.PI / 6) * S, CY = 0.5 * S;
-  const P = (x, y, z = 0) => [(x - y) * CX, (x + y) * CY - z * S];
+  let ECH = 1;                                   // échelle : 1 = mètres (agence), < 1 = kilomètres (territoire)
+  const P = (x, y, z = 0) => [(x - y) * CX * ECH, ((x + y) * CY - z * S) * ECH];
   const pts = l => l.map(([x, y, z]) => P(x, y, z).map(v => v.toFixed(1)).join(',')).join(' ');
-  const versMonde = (sx, sy) => { const a = sx / CX, b = sy / CY; return { x: (a + b) / 2, y: (b - a) / 2 }; };
+  const versMonde = (sx, sy) => { const a = sx / CX / ECH, b = sy / CY / ECH; return { x: (a + b) / 2, y: (b - a) / 2 }; };
 
   const BAT = { w: 50, d: 30 };                  // emprise du bâtiment (m)
   const MONDE = { x0: -9, y0: -7, x1: 64, y1: 46 };
@@ -94,8 +95,8 @@
     return s;
   }
   const solPoly = (x, y, w, d, col, z = 0, attr = '') => `<polygon points="${pts([[x, y, z], [x + w, y, z], [x + w, y + d, z], [x, y + d, z]])}" fill="${col}" ${attr}/>`;
-  function disque(x, y, z, r, col, attr = '') { const [sx, sy] = P(x, y, z); return `<ellipse cx="${sx.toFixed(1)}" cy="${sy.toFixed(1)}" rx="${(r * S * 1.15).toFixed(1)}" ry="${(r * S * 0.66).toFixed(1)}" fill="${col}" ${attr}/>`; }
-  function boule(x, y, z, r, col, attr = '') { const [sx, sy] = P(x, y, z); return `<circle cx="${sx.toFixed(1)}" cy="${sy.toFixed(1)}" r="${(r * S).toFixed(1)}" fill="${col}" ${attr}/>`; }
+  function disque(x, y, z, r, col, attr = '') { const [sx, sy] = P(x, y, z); return `<ellipse cx="${sx.toFixed(1)}" cy="${sy.toFixed(1)}" rx="${(r * S * 1.15 * ECH).toFixed(1)}" ry="${(r * S * 0.66 * ECH).toFixed(1)}" fill="${col}" ${attr}/>`; }
+  function boule(x, y, z, r, col, attr = '') { const [sx, sy] = P(x, y, z); return `<circle cx="${sx.toFixed(1)}" cy="${sy.toFixed(1)}" r="${(r * S * ECH).toFixed(1)}" fill="${col}" ${attr}/>`; }
 
   const TEINTS = ['#f1c27d', '#e0ac69', '#c68642', '#8d5524', '#ffdbac'];
   const CHEMISES = ['#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#14b8a6', '#64748b', '#f97316'];
@@ -130,11 +131,12 @@
     let s = boite(x - 0.12, y - 0.12, 0, 0.24, 0.24, 1.3 * t, '#8b6b4a', { brut: true });
     if (sapin) {
       const [sx, sy] = P(x, y, 1.0 * t), [, top] = P(x, y, 3.4 * t);
-      s += `<polygon points="${(sx - 18 * t).toFixed(1)},${sy.toFixed(1)} ${sx.toFixed(1)},${top.toFixed(1)} ${(sx + 18 * t).toFixed(1)},${sy.toFixed(1)}" fill="#5aa65d"/><polygon points="${sx.toFixed(1)},${top.toFixed(1)} ${(sx + 18 * t).toFixed(1)},${sy.toFixed(1)} ${sx.toFixed(1)},${sy.toFixed(1)}" fill="#000" opacity=".1"/>`;
+      const l = 18 * t * ECH;
+      s += `<polygon points="${(sx - l).toFixed(1)},${sy.toFixed(1)} ${sx.toFixed(1)},${top.toFixed(1)} ${(sx + l).toFixed(1)},${sy.toFixed(1)}" fill="#5aa65d"/><polygon points="${sx.toFixed(1)},${top.toFixed(1)} ${(sx + l).toFixed(1)},${sy.toFixed(1)} ${sx.toFixed(1)},${sy.toFixed(1)}" fill="#000" opacity=".1"/>`;
     } else {
       s += boule(x, y, 2.1 * t, 0.95 * t, C.nuit ? '#3f7d45' : '#7fc97f') + boule(x - 0.25, y - 0.25, 2.45 * t, 0.5 * t, C.nuit ? '#4b8f52' : '#98d698');
     }
-    add(x + y + 0.5, `<ellipse cx="${P(x, y)[0].toFixed(1)}" cy="${P(x, y)[1].toFixed(1)}" rx="${(22 * t).toFixed(1)}" ry="${(11 * t).toFixed(1)}" fill="#000" opacity=".1"/>` + s);
+    add(x + y + 0.5, `<ellipse cx="${P(x, y)[0].toFixed(1)}" cy="${P(x, y)[1].toFixed(1)}" rx="${(22 * t * ECH).toFixed(1)}" ry="${(11 * t * ECH).toFixed(1)}" fill="#000" opacity=".1"/>` + s);
   }
   function etagere(x, y, w, h = 2.1, sens = 'x') {
     const d = 0.4, cols = ['#e8590c', '#1c7ed6', '#2f9e44', '#f59f00', '#7048e8', '#e64980', '#495057'];
@@ -490,18 +492,330 @@
       <g class="jx-objets">${items.map(o => o.s).join('')}</g><g id="jx-pnjs"></g><g id="jx-heros"></g><g class="jx-etiquettes">${etiq}</g>`;
   }
 
+  /* =======================================================================
+     Vue « Territoire » : la région autour de Rouen, en kilomètres
+     ======================================================================= */
+  const TER_ECH = 0.29;                           // 1 km ≈ 6 px
+  const LAT0 = 49.4431, LON0 = 1.0993;            // origine : Rouen
+  const KX = 111.32 * Math.cos(LAT0 * Math.PI / 180), KY = 110.57;
+  const km = (lat, lon) => [(lon - LON0) * KX, (LAT0 - lat) * KY];
+  const latlon = (x, y) => ({ lat: LAT0 - y / KY, lon: LON0 + x / KX });
+  const TER = { x0: -76, x1: 54, y0: -73, y1: 55 };
+  /* Communes : nom, latitude, longitude, codes postaux, taille (0 hameau … 3 grande ville) */
+  const COMMUNES = [
+    ['Rouen', 49.4431, 1.0993, '76000 76100', 3], ['Le Havre', 49.4944, 0.1079, '76600 76610 76620', 3],
+    ['Dieppe', 49.9229, 1.0775, '76200 76370', 2], ['Évreux', 49.0241, 1.1508, '27000', 2], ['Elbeuf', 49.2866, 1.0083, '76500', 2],
+    ['Fécamp', 49.7578, 0.3747, '76400', 2], ['Vernon', 49.0928, 1.4853, '27200', 2], ['Louviers', 49.2153, 1.1653, '27400', 2],
+    ['Yvetot', 49.6176, 0.7539, '76190', 1], ['Barentin', 49.5458, 0.9554, '76360', 1], ['Bolbec', 49.5733, 0.4728, '76210', 1],
+    ['Lillebonne', 49.5203, 0.5357, '76170', 1], ['Neufchâtel-en-Bray', 49.7339, 1.4406, '76270', 1], ['Forges-les-Eaux', 49.6131, 1.5444, '76440', 1],
+    ['Gournay-en-Bray', 49.4826, 1.7247, '76220', 1], ['Les Andelys', 49.2459, 1.4115, '27700', 1], ['Pont-Audemer', 49.3553, 0.5139, '27500', 1],
+    ['Bernay', 49.0889, 0.5983, '27300', 1], ['Honfleur', 49.419, 0.233, '14600', 1], ['Duclair', 49.4833, 0.8761, '76480', 1],
+    ['Caudebec-en-Caux', 49.5255, 0.7262, '76490', 1], ['Val-de-Reuil', 49.274, 1.21, '27100', 1], ['Pont-de-l’Arche', 49.304, 1.155, '27340', 1],
+    ['Gisors', 49.281, 1.777, '27140', 1], ['Eu', 50.048, 1.42, '76260', 1], ['Le Tréport', 50.059, 1.372, '76470', 1],
+    ['Saint-Valery-en-Caux', 49.87, 0.73, '76460', 1], ['Étretat', 49.707, 0.205, '76790', 1], ['Montivilliers', 49.545, 0.188, '76290', 1],
+    ['Le Neubourg', 49.15, 0.911, '27110', 1], ['Brionne', 49.196, 0.717, '27800', 1], ['Lyons-la-Forêt', 49.399, 1.476, '27480', 0],
+    ['Mont-Saint-Aignan', 49.463, 1.088, '76130', 0], ['Bois-Guillaume', 49.46, 1.12, '76230', 0], ['Bihorel', 49.455, 1.124, '76420', 0],
+    ['Darnétal', 49.445, 1.15, '76160', 0], ['Sotteville-lès-Rouen', 49.4097, 1.09, '76300', 0], ['Saint-Étienne-du-Rouvray', 49.3786, 1.105, '76800', 0],
+    ['Le Grand-Quevilly', 49.41, 1.04, '76120', 0], ['Le Petit-Quevilly', 49.425, 1.06, '76140', 0], ['Grand-Couronne', 49.356, 1.006, '76530', 0],
+    ['Petit-Couronne', 49.385, 1.027, '76650', 0], ['Canteleu', 49.44, 1.026, '76380', 0], ['Déville-lès-Rouen', 49.47, 1.05, '76250', 0],
+    ['Maromme', 49.48, 1.04, '76150', 0], ['Notre-Dame-de-Bondeville', 49.488, 1.05, '76960', 0], ['Malaunay', 49.527, 1.038, '76770', 0],
+    ['Montville', 49.549, 1.075, '76710', 0], ['Isneauville', 49.498, 1.153, '', 0], ['Franqueville-Saint-Pierre', 49.402, 1.166, '76520', 0],
+    ['Boos', 49.388, 1.204, '', 0], ['Mesnil-Esnard', 49.41, 1.14, '76240', 0], ['Bonsecours', 49.429, 1.13, '', 0], ['Belbeuf', 49.387, 1.143, '', 0],
+    ['Oissel', 49.342, 1.092, '76350', 0], ['Saint-Pierre-lès-Elbeuf', 49.279, 1.043, '76320', 0], ['Caudebec-lès-Elbeuf', 49.281, 1.023, '', 0],
+    ['Saint-Aubin-lès-Elbeuf', 49.303, 1.012, '76410', 0], ['Cléon', 49.312, 1.035, '', 0], ['Le Trait', 49.477, 0.816, '76580', 0],
+    ['Pavilly', 49.5675, 0.9546, '', 0], ['Clères', 49.6, 1.115, '76690', 0], ['Quincampoix', 49.528, 1.188, '', 0], ['Buchy', 49.584, 1.359, '76750', 0],
+    ['Ry', 49.472, 1.342, '76116', 0], ['Tôtes', 49.68, 1.047, '76890', 0], ['Doudeville', 49.723, 0.786, '76560', 0], ['Cany-Barville', 49.789, 0.638, '76450', 0],
+    ['Goderville', 49.645, 0.366, '76110', 0], ['Saint-Romain-de-Colbosc', 49.531, 0.358, '76430', 0], ['Harfleur', 49.507, 0.198, '76700', 0],
+    ['Gonfreville-l’Orcher', 49.505, 0.234, '', 0], ['Port-Jérôme-sur-Seine', 49.489, 0.571, '76330', 0], ['Bourg-Achard', 49.353, 0.817, '27310', 0],
+    ['Bourgtheroulde', 49.3, 0.878, '27520', 0], ['Romilly-sur-Andelle', 49.333, 1.255, '27610', 0], ['Pîtres', 49.317, 1.228, '', 0],
+    ['Gaillon', 49.161, 1.333, '27600', 0], ['Saint-Saëns', 49.673, 1.285, '76680', 0], ['Bellencombre', 49.708, 1.228, '', 0],
+    ['Envermeu', 49.896, 1.264, '76630', 0], ['Arques-la-Bataille', 49.88, 1.128, '76880', 0], ['Offranville', 49.871, 1.049, '76550', 0],
+    ['Luneray', 49.828, 0.917, '76810', 0], ['Fontaine-le-Dun', 49.812, 0.851, '76740', 0], ['Valmont', 49.761, 0.511, '76540', 0],
+    ['Criquetot-l’Esneval', 49.645, 0.264, '76280', 0], ['Fauville-en-Caux', 49.653, 0.59, '76640', 0], ['Yerville', 49.668, 0.896, '76760', 0],
+    ['Jumièges', 49.433, 0.818, '', 0], ['La Bouille', 49.35, 0.935, '', 0], ['Rives-en-Seine', 49.526, 0.726, '', 0],
+    ['Aumale', 49.769, 1.755, '76390', 0], ['Blangy-sur-Bresle', 49.932, 1.632, '76340', 0], ['Fleury-sur-Andelle', 49.362, 1.354, '27380', 0],
+    ['Étrépagny', 49.306, 1.611, '27150', 0], ['Pacy-sur-Eure', 49.016, 1.385, '27120', 0], ['Beuzeville', 49.343, 0.343, '27210', 0],
+    ['Montfort-sur-Risle', 49.296, 0.674, '27290', 0], ['Routot', 49.38, 0.733, '27350', 0],
+  ].map(([nom, lat, lon, cp, t]) => ({ nom, lat, lon, cp: cp.split(' ').filter(Boolean), t, cle: sansAccent(nom) }));
+  function sansAccent(t) { return String(t || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[’']/g, ' ').replace(/[^a-z0-9]+/g, ' ').trim(); }
+  /* Localise un texte d'adresse : code postal d'abord, sinon nom de commune (le plus long trouvé) */
+  function localiser(texte) {
+    const n = ' ' + sansAccent(texte) + ' ';
+    if (n.trim() === '') return null;
+    const cps = n.match(/\b\d{5}\b/g) || [];
+    for (const cp of cps) { const c = COMMUNES.find(x => x.cp.includes(cp)); if (c) return c; }
+    let best = null;
+    COMMUNES.forEach(c => { if (n.includes(' ' + c.cle + ' ') && (!best || c.cle.length > best.cle.length)) best = c; });
+    return best;
+  }
+  const SEINE = [[49.03, 1.55], [49.09, 1.49], [49.17, 1.45], [49.24, 1.41], [49.29, 1.33], [49.31, 1.24], [49.3, 1.16], [49.28, 1.08], [49.29, 1.01],
+    [49.33, 1.05], [49.35, 1.09], [49.4, 1.1], [49.435, 1.09], [49.445, 1.04], [49.42, 0.99], [49.36, 0.95], [49.38, 0.9], [49.47, 0.88], [49.45, 0.83],
+    [49.42, 0.8], [49.47, 0.79], [49.53, 0.73], [49.51, 0.66], [49.47, 0.55], [49.47, 0.47], [49.455, 0.35], [49.45, 0.25], [49.45, 0.12]];
+  const COTE = [[50.2, 1.6], [50.12, 1.45], [50.062, 1.372], [50.02, 1.31], [49.93, 1.08], [49.92, 1.03], [49.91, 0.99], [49.89, 0.87], [49.87, 0.8], [49.87, 0.71],
+    [49.85, 0.6], [49.8, 0.46], [49.76, 0.37], [49.74, 0.31], [49.71, 0.2], [49.68, 0.16], [49.6, 0.1], [49.53, 0.07], [49.48, 0.1], [49.465, 0.2],
+    [49.455, 0.3], [49.43, 0.3], [49.42, 0.23], [49.4, 0.15], [49.36, 0.08], [49.33, -0.05]];
+  const AXES = [
+    ['A13', [[49.05, 1.55], [49.13, 1.38], [49.22, 1.19], [49.33, 1.1], [49.33, 0.95], [49.35, 0.82], [49.37, 0.55], [49.37, 0.3], [49.38, 0.15]]],
+    ['A28', [[49.47, 1.12], [49.55, 1.2], [49.65, 1.33], [49.74, 1.43], [49.9, 1.55], [50.08, 1.7]]],
+    ['A29', [[49.51, 0.18], [49.55, 0.3], [49.58, 0.46], [49.62, 0.76], [49.62, 0.95], [49.64, 1.1], [49.7, 1.3], [49.74, 1.43], [49.8, 1.7]]],
+    ['A150', [[49.46, 1.05], [49.55, 0.96], [49.62, 0.76]]],
+    ['A151', [[49.55, 0.98], [49.68, 1.04], [49.8, 1.07], [49.91, 1.08]]],
+    ['A154', [[49.33, 1.1], [49.28, 1.2], [49.21, 1.17], [49.1, 1.16], [49.03, 1.15]]],
+    ['N31', [[49.45, 1.15], [49.47, 1.4], [49.48, 1.75]]],
+    ['A131', [[49.49, 0.18], [49.47, 0.46], [49.4, 0.5], [49.36, 0.53]]],
+    ['A29', [[49.47, 0.24], [49.41, 0.26], [49.38, 0.3]]],
+  ];
+  const FORETS = [['Roumare', 49.46, 0.98, 4.5], ['La Londe-Rouvray', 49.33, 1.0, 5], ['Forêt Verte', 49.5, 1.12, 3], ['Lyons', 49.42, 1.47, 8], ['Eawy', 49.75, 1.3, 5],
+    ['Brotonne', 49.44, 0.7, 5.5], ['Arques', 49.88, 1.2, 3.5], ['Bord-Louviers', 49.26, 1.12, 4], ['Trait-Maulévrier', 49.5, 0.78, 4]];
+  const STATUT_COUL = { prospect: '#adb5bd', devis: '#7048e8', commande: '#f59f00', en_cours: '#2f9e44', receptionne: '#1c7ed6', facture: '#868e96', perdu: '#e03131' };
+  let couches = { actifs: true, autres: true, prospects: true, clients: false };
+  let placement = null;                           // { kind, id, nom } : repositionnement en cours
+  let vue = 'agence';
+
+  function agenceGeo() {
+    const p = sur(() => DB.currentProfile(), null), c = p && localiser(p.agence);
+    return c || COMMUNES[0];
+  }
+  /* Tous les points à afficher (chantiers, prospects, clients), localisés si possible */
+  function pointsTer() {
+    const d = DB.data, out = [];
+    const pousser = (kind, obj, nom, sous, statut, couleur, texte) => {
+      const c = obj.geo && isFinite(obj.geo.lat) ? { lat: obj.geo.lat, lon: obj.geo.lon, nom: '', precis: true } : localiser(texte);
+      out.push({ kind, id: obj.id, obj, nom, sous, statut, couleur, texte, c, precis: !!(obj.geo && isFinite(obj.geo.lat)) });
+    };
+    d.chantiers.forEach(ch => {
+      if (ch.statut === 'perdu') return;
+      const actif = ['commande', 'en_cours'].includes(ch.statut);
+      if (actif ? !couches.actifs : !couches.autres) return;
+      pousser('chantier', ch, ch.nom || 'Chantier', sur(() => clientNom(ch.clientId), ''), ch.statut, STATUT_COUL[ch.statut] || '#868e96', ch.adresse);
+    });
+    if (couches.prospects) d.prospection.filter(p => !['gagne', 'sans_suite'].includes(p.statut)).forEach(p => pousser('prospect', p, p.nom || 'Prospect', p.objet || '', 'prospect', '#e64980', [p.adresse, p.ville].filter(Boolean).join(' ')));
+    if (couches.clients) d.clients.forEach(c => pousser('client', c, c.nom, c.type || '', 'client', '#1c7ed6', c.adresse));
+    // Plusieurs points dans la même commune : petite spirale pour ne pas les superposer
+    const parCle = {};
+    out.forEach(p => {
+      if (!p.c) return;
+      let [x, y] = km(p.c.lat, p.c.lon);
+      if (!p.precis) { const k = p.c.nom; const i = parCle[k] = (parCle[k] || 0) + 1; if (i > 1) { const a = i * 2.4, r = 0.9 * Math.sqrt(i - 1); x += Math.cos(a) * r; y += Math.sin(a) * r; } }
+      p.x = x; p.y = y;
+      p.horsCarte = x < TER.x0 || x > TER.x1 || y < TER.y0 || y > TER.y1;
+    });
+    return out;
+  }
+
+  function sceneTerritoire(E) {
+    palette(); items = []; rnd = prng(4242);
+    const ligne = l => l.map(([la, lo]) => P(...km(la, lo)).map(v => v.toFixed(1)).join(',')).join(' ');
+    let fond = '';
+    const coins = [[TER.x0, TER.y0], [TER.x1, TER.y0], [TER.x1, TER.y1], [TER.x0, TER.y1]];
+    fond += `<polygon points="${pts(coins.map(([x, y]) => [x, y, 0]))}" fill="${C.nuit ? '#2b3a2d' : '#d6e9b8'}"/>`;
+    // Bocage : parcelles de couleurs proches
+    for (let i = 0; i < 260; i++) {
+      const x = TER.x0 + rnd() * (TER.x1 - TER.x0), y = TER.y0 + rnd() * (TER.y1 - TER.y0), w = 3 + rnd() * 6, h = 3 + rnd() * 6;
+      fond += solPoly(x, y, w, h, C.nuit ? ['#2f4231', '#334a35', '#2a3b2c'][i % 3] : ['#cfe4a8', '#dcebbf', '#c7df9c', '#e6eec6'][i % 4]);
+    }
+    // Mer (au nord-ouest de la côte)
+    const mer = COTE.map(([la, lo]) => km(la, lo)).concat([[TER.x0 - 30, km(49.33, -0.05)[1]], [TER.x0 - 30, TER.y0 - 30], [TER.x1 + 30, TER.y0 - 30]]);
+    fond += `<polygon points="${pts(mer.map(([x, y]) => [x, y, 0]))}" fill="${C.nuit ? '#1b3550' : '#9fd0f0'}"/>`;
+    fond += `<polyline points="${ligne(COTE)}" fill="none" stroke="${C.nuit ? '#6b6046' : '#f1e3b8'}" stroke-width="5" stroke-linejoin="round"/>`;
+    fond += `<polyline class="jx-vague" points="${ligne(COTE)}" fill="none" stroke="#fff" stroke-opacity=".6" stroke-width="1.5" stroke-dasharray="6 14" transform="translate(-6 -4)"/>`;
+    { const [x, y] = P(...km(49.98, 0.5)); fond += `<g transform="translate(${x.toFixed(0)} ${y.toFixed(0)})"><g class="jx-ech"><text class="jx-mer" text-anchor="middle">Manche</text></g></g>`; }
+    // Seine
+    fond += `<polyline points="${ligne(SEINE)}" fill="none" stroke="${C.nuit ? '#1f4b78' : '#6fb7e8'}" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>`;
+    fond += `<polyline points="${ligne(SEINE.slice(-6))}" fill="none" stroke="${C.nuit ? '#1f4b78' : '#6fb7e8'}" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/>`;
+    fond += `<polyline class="jx-vague" points="${ligne(SEINE)}" fill="none" stroke="#fff" stroke-opacity=".55" stroke-width="1.2" stroke-dasharray="5 12"/>`;
+    [[49.375, 0.93], [49.2, 1.43], [49.49, 0.6]].forEach(([la, lo]) => { const [x, y] = P(...km(la, lo)); fond += `<g transform="translate(${x.toFixed(0)} ${y.toFixed(0)})"><g class="jx-ech"><text class="jx-fleuve" text-anchor="middle">Seine</text></g></g>`; });
+    // Routes
+    let routes = '', badges = '';
+    AXES.forEach(([nom, l]) => {
+      routes += `<polyline points="${ligne(l)}" fill="none" stroke="${C.nuit ? '#5c5a52' : '#e2b04a'}" stroke-width="4.5" stroke-linejoin="round" stroke-linecap="round"/>`;
+      routes += `<polyline points="${ligne(l)}" fill="none" stroke="${C.nuit ? '#8a8577' : '#fff4d6'}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;
+      const m = l[Math.floor(l.length / 2)], [x, y] = P(...km(m[0], m[1]));
+      if (nom !== 'A29' || l.length > 3) badges += `<g class="jx-route" transform="translate(${x.toFixed(1)} ${y.toFixed(1)})"><g class="jx-ech"><rect x="-15" y="-8" width="30" height="16" rx="4"/><text y="4" text-anchor="middle">${nom}</text></g></g>`;
+    });
+    // Forêts
+    FORETS.forEach(([nom, la, lo, r]) => {
+      const [cx, cy] = km(la, lo);
+      fond += disque(cx, cy, 0, r * 1.05, C.nuit ? '#284230' : '#a9d18e');
+      const n = Math.round(r * r * 1.6);
+      for (let i = 0; i < n; i++) { const a = rnd() * 6.283, d = Math.sqrt(rnd()) * r; arbre(cx + Math.cos(a) * d, cy + Math.sin(a) * d * 0.9, 0.55 + rnd() * 0.3, rnd() < 0.35); }
+    });
+    // Villes : grappes de maisons, cathédrale à Rouen, grues au Havre
+    const toits = ['#d9480f', '#c2410c', '#b45309', '#9a3412', '#6b7280'];
+    COMMUNES.forEach(c => {
+      const [cx, cy] = km(c.lat, c.lon);
+      const n = [1, 5, 12, 30][c.t], r = [0.3, 1.2, 2.2, 3.4][c.t];
+      if (c.t >= 1) fond += disque(cx, cy, 0, r * 1.25, C.nuit ? '#3d3f45' : '#ece4d4');
+      for (let i = 0; i < n; i++) {
+        const a = rnd() * 6.283, d = Math.sqrt(rnd()) * r, x = cx + Math.cos(a) * d, y = cy + Math.sin(a) * d, h = 0.5 + rnd() * (c.t === 3 ? 1.6 : 0.6);
+        boite(x - 0.35, y - 0.35, 0, 0.7, 0.7, h, C.nuit ? '#8e95a3' : '#f4efe6', { haut: toits[Math.floor(rnd() * toits.length)] });
+      }
+      if (c.nom === 'Rouen') { boite(cx - 0.4, cy - 0.4, 0, 0.8, 0.8, 4.5, '#cfc6b4', { haut: '#a39a88' }); const [sx, sy] = P(cx, cy, 4.5), [, ty] = P(cx, cy, 7.5); add(cx + cy + 0.9, `<polygon points="${(sx - 3).toFixed(1)},${sy.toFixed(1)} ${sx.toFixed(1)},${ty.toFixed(1)} ${(sx + 3).toFixed(1)},${sy.toFixed(1)}" fill="#8f8676"/>`); }
+      if (c.nom === 'Le Havre') for (let i = 0; i < 4; i++) { const x = cx + 1 + i * 0.9, y = cy + 1.8; boite(x, y, 0, 0.12, 0.12, 2.6, '#e03131'); boite(x - 0.8, y, 2.6, 1.2, 0.12, 0.12, '#e03131'); }
+    });
+    // Étiquettes des communes (les petites n'apparaissent qu'en zoomant)
+    const noms = COMMUNES.map(c => {
+      const [x, y] = P(...km(c.lat, c.lon), c.t >= 1 ? 2.2 : 0.6);
+      return `<g class="jx-ville t${c.t}" transform="translate(${x.toFixed(1)} ${y.toFixed(1)})"><g class="jx-ech"><text text-anchor="middle">${esc(c.nom)}</text></g></g>`;
+    }).join('');
+
+    // Agence (point de départ)
+    const ag = agenceGeo(), [ax, ay] = km(ag.lat, ag.lon);
+    objet('agence', 'Votre agence — entrer', () => {
+      boite(ax - 0.9, ay - 0.9, 0, 1.8, 1.8, 1.6, '#ffffff', { haut: '#2a6fc4' });
+      boite(ax - 0.5, ay - 0.5, 1.6, 1, 1, 0.5, '#e9eff8', { haut: '#2a6fc4' });
+    });
+    const agenceEtiq = (() => { const [x, y] = P(ax, ay, 2.4); return `<g class="jx-etiq jx-agence-etiq" transform="translate(${x.toFixed(1)} ${y.toFixed(1)})"><g class="jx-ech"><rect x="-58" y="-26" width="116" height="24" rx="12" class="jx-pill"/><circle cx="-44" cy="-14" r="4.5" fill="#2a6fc4"/><text x="-35" y="-10">Votre agence</text></g></g>`; })();
+
+    // Épingles
+    const P2 = pointsTer(), visibles = P2.filter(p => p.c && !p.horsCarte);
+    const traj = [];
+    const epingles = visibles.sort((a, b) => (a.x + a.y) - (b.x + b.y)).map(p => {
+      const [x, y] = P(p.x, p.y), actif = p.kind === 'chantier' && ['commande', 'en_cours'].includes(p.statut);
+      if (actif) traj.push(p);
+      const forme = p.kind === 'client' ? '<rect x="-7" y="-27" width="14" height="14" rx="3" fill="#fff"/>' : '<circle cy="-20" r="5.5" fill="#fff"/>';
+      return `<g class="jx-pin ${p.kind}${p.precis ? '' : ' approx'}" data-kind="${p.kind}" data-id="${esc(p.id)}" transform="translate(${x.toFixed(1)} ${y.toFixed(1)})">
+        <ellipse rx="5" ry="2.6" fill="#000" opacity=".25"/>
+        <g class="jx-ech">${p.kind === 'chantier'
+          ? `<path d="M0 0 C-3 -7 -11 -11 -11 -20 a11 11 0 1 1 22 0 c0 9 -8 13 -11 20z" fill="${p.couleur}" stroke="#fff" stroke-width="1.6"/>${forme}${actif ? '<circle class="jx-pouls" cy="-20" r="11" fill="none" stroke="' + p.couleur + '"/>' : ''}`
+          : `<path d="M0 0 C-2 -5 -8 -8 -8 -15 a8 8 0 1 1 16 0 c0 7 -6 10 -8 15z" fill="${p.couleur}" stroke="#fff" stroke-width="1.4"/>${p.kind === 'client' ? '<rect x="-3.5" y="-18.5" width="7" height="7" rx="1.5" fill="#fff"/>' : '<circle cy="-15" r="3.6" fill="#fff"/>'}`}
+          <text class="jx-pin-nom" y="${p.kind === 'chantier' ? -37 : -28}" text-anchor="middle">${esc(p.nom.length > 34 ? p.nom.slice(0, 32) + '…' : p.nom)}</text>
+        </g></g>`;
+    }).join('');
+    const trajets = traj.map(p => `<line x1="${P(ax, ay)[0].toFixed(1)}" y1="${P(ax, ay)[1].toFixed(1)}" x2="${P(p.x, p.y)[0].toFixed(1)}" y2="${P(p.x, p.y)[1].toFixed(1)}" class="jx-trajet" stroke="${p.couleur}"/>`).join('');
+    TERR.trajets = traj.map((p, i) => ({ ax, ay, bx: p.x, by: p.y, phase: i * 0.37, couleur: p.couleur }));
+    TERR.points = P2; TERR.agence = { x: ax, y: ay };
+
+    items.sort((a, b) => a.k - b.k);
+    const rose = (() => { const [x, y] = P(TER.x1 - 10, TER.y0 + 12); return `<g class="jx-rose" transform="translate(${x.toFixed(0)} ${y.toFixed(0)})"><g class="jx-ech"><circle r="20"/><path d="M0 -16 L5 0 L0 -3 L-5 0z" transform="rotate(${(Math.atan2(-CY, CX) * 180 / Math.PI + 90).toFixed(0)})" fill="#e03131"/><text y="-24" text-anchor="middle" transform="rotate(${(Math.atan2(-CY, CX) * 180 / Math.PI + 90).toFixed(0)})">N</text></g></g>`; })();
+    return `<g class="jx-fond">${fond}</g><g>${routes}</g><g class="jx-objets">${items.map(o => o.s).join('')}</g><g>${trajets}</g><g id="jx-vans"></g>
+      <g class="jx-etiquettes jx-villes">${noms}${badges}</g><g class="jx-epingles">${epingles}</g><g class="jx-etiquettes">${agenceEtiq}</g>${rose}`;
+  }
+  const TERR = { trajets: [], points: [], agence: { x: 0, y: 0 }, t: 0 };
+  /* Camionnettes qui font l'aller-retour agence ↔ chantiers actifs */
+  function majVans(dt) {
+    const g = svg && svg.querySelector('#jx-vans'); if (!g) return;
+    TERR.t += dt;
+    if (!g.childElementCount) g.innerHTML = TERR.trajets.map(() => `<g>${boite(-0.9, -0.5, 0, 1.8, 1, 0.9, '#ffffff', { brut: true, haut: '#e9ecef' })}${boite(-0.9, 0.5, 0.35, 1.8, 0.01, 0.2, '#1c7ed6', { brut: true })}</g>`).join('');
+    [...g.children].forEach((el, i) => {
+      const T = TERR.trajets[i], d = Math.hypot(T.bx - T.ax, T.by - T.ay) || 1;
+      let u = ((TERR.t * 1.2 / d) + T.phase) % 2; if (u > 1) u = 2 - u;       // aller-retour
+      if (reduit()) u = 0.5;
+      const [sx, sy] = P(T.ax + (T.bx - T.ax) * u, T.ay + (T.by - T.ay) * u);
+      el.setAttribute('transform', `translate(${sx.toFixed(1)} ${sy.toFixed(1)})`);
+    });
+  }
+  function listeTerritoire() {
+    const pts2 = TERR.points, ag = TERR.agence;
+    const situes = pts2.filter(p => p.c && !p.horsCarte && p.kind === 'chantier').map(p => ({ ...p, dist: Math.hypot(p.x - ag.x, p.y - ag.y) })).sort((a, b) => a.dist - b.dist);
+    const nonSitues = pts2.filter(p => (!p.c || p.horsCarte));
+    const ligne = p => `<button class="jx-tl" data-kind="${p.kind}" data-id="${esc(p.id)}"><i style="background:${p.couleur}"></i><span><b>${esc(p.nom)}</b><small>${esc(p.precis ? 'Position précise' : (p.c ? p.c.nom : ''))}${p.sous ? ' · ' + esc(p.sous) : ''}</small></span><em>${p.dist != null ? Math.round(p.dist) + ' km' : ''}</em></button>`;
+    return `<div class="jx-carte jx-terliste">
+      <div class="jx-tl-t">Chantiers sur la carte <span>${situes.length}</span></div>
+      <div class="jx-tl-l">${situes.map(ligne).join('') || '<div class="jx-tl-vide">Aucun chantier localisé. Indiquez la commune ou le code postal dans l’adresse.</div>'}</div>
+      ${nonSitues.length ? `<div class="jx-tl-t">À placer <span>${nonSitues.length}</span></div><div class="jx-tl-l">${nonSitues.map(p => `<div class="jx-tl np"><i style="background:${p.couleur}"></i><span><b>${esc(p.nom)}</b><small>${esc(p.texte || 'Sans adresse')}${p.horsCarte ? ' · hors région' : ''}</small></span><button class="jx-ibtn jx-placer" data-kind="${p.kind}" data-id="${esc(p.id)}" title="Placer sur la carte">${sur(() => icon('pin'), '+')}</button></div>`).join('')}</div>` : ''}
+    </div>`;
+  }
+  function trouverObjet(kind, id) {
+    const d = DB.data, l = kind === 'chantier' ? d.chantiers : kind === 'prospect' ? d.prospection : d.clients;
+    return l.find(x => String(x.id) === String(id)) || null;
+  }
+  function ficheChantier(ch, opts = {}) {
+    if (!ch) return;
+    const p = TERR.points.find(x => x.kind === 'chantier' && String(x.id) === String(ch.id));
+    const ag = TERR.agence, dist = p && p.c && !p.horsCarte ? Math.hypot(p.x - ag.x, p.y - ag.y) : null;
+    const loc = p && p.c ? (p.precis ? 'Position précise (placée à la main)' : 'Commune : ' + p.c.nom) : 'Non localisé';
+    const gps = p && p.c ? (p.precis ? p.c : { lat: p.c.lat, lon: p.c.lon }) : null;
+    boite2(`<div class="jx-d-tete"><span class="jx-d-zone" style="--c:${STATUT_COUL[ch.statut] || '#888'}">${esc(sur(() => STATUTS_CHANTIER[ch.statut], ch.statut))}</span><h3>${esc(ch.nom)}</h3><div class="jx-d-sous">${esc(sur(() => clientNom(ch.clientId), ''))}${ch.adresse ? ' · ' + esc(ch.adresse) : ''}</div></div>
+      <dl class="jx-d-stats">
+        <div><dt>Montant HT</dt><dd>${esc(eur(+ch.montantHT || 0))}</dd></div>
+        ${ch.otp ? `<div><dt>OTP</dt><dd>${esc(ch.otp)}</dd></div>` : ''}
+        <div><dt>Localisation</dt><dd>${esc(loc)}</dd></div>
+        ${dist != null ? `<div><dt>Depuis l’agence</dt><dd>${Math.round(dist)} km à vol d’oiseau · ~${Math.max(5, Math.round(dist * 1.3 / 70 * 60 / 5) * 5)} min</dd></div>` : ''}
+      </dl>${ch.notes ? `<p class="jx-d-texte">${esc(ch.notes)}</p>` : ''}
+      <div class="jx-d-act">
+        ${vue === 'agence' ? `<button class="jx-btn" data-jx-voircarte="${esc(ch.id)}">Voir sur le territoire</button>` : `<button class="jx-btn" data-jx-placer="${esc(ch.id)}">${p && p.c ? 'Repositionner' : 'Placer sur la carte'}</button>`}
+        ${gps ? `<a class="jx-btn" target="_blank" rel="noopener" href="https://www.google.com/maps/dir/?api=1&destination=${gps.lat.toFixed(5)},${gps.lon.toFixed(5)}">Itinéraire ↗</a>` : ''}
+        <button class="jx-btn primaire" data-jx-go="chantiers">Ouvrir Chantiers →</button>
+      </div>`);
+    const d = bulle.firstElementChild;
+    const vc = d.querySelector('[data-jx-voircarte]'); if (vc) vc.onclick = () => { changerVue('territoire', { focus: ch.id }); };
+    const pl = d.querySelector('[data-jx-placer]'); if (pl) pl.onclick = () => commencerPlacement('chantier', ch.id);
+    void opts;
+  }
+  function fichePoint(kind, id) {
+    const o = trouverObjet(kind, id); if (!o) return;
+    if (kind === 'chantier') { ficheChantier(o); return; }
+    const p = TERR.points.find(x => x.kind === kind && String(x.id) === String(id));
+    const route = kind === 'prospect' ? 'prospection' : 'clients';
+    boite2(`<div class="jx-d-tete"><span class="jx-d-zone" style="--c:${kind === 'prospect' ? '#e64980' : '#1c7ed6'}">${kind === 'prospect' ? 'Prospect' : 'Client'}</span><h3>${esc(o.nom || '—')}</h3><div class="jx-d-sous">${esc(p && p.texte || '')}</div></div>
+      <dl class="jx-d-stats">
+        ${kind === 'prospect' ? `<div><dt>Objet</dt><dd>${esc(o.objet || '—')}</dd></div><div><dt>Prochaine action</dt><dd>${esc(fmtDate(o.prochaine || o.date))}</dd></div>${o.potentiel ? `<div><dt>Potentiel</dt><dd>${esc(eur(+o.potentiel))}</dd></div>` : ''}`
+          : `<div><dt>Type</dt><dd>${esc(o.type || '—')}</dd></div><div><dt>Contact</dt><dd>${esc(o.contact || '—')}</dd></div>${o.tel ? `<div><dt>Téléphone</dt><dd><a href="tel:${esc(o.tel.replace(/\s/g, ''))}">${esc(o.tel)}</a></dd></div>` : ''}`}
+      </dl>
+      <div class="jx-d-act"><button class="jx-btn" data-jx-placer>${p && p.c ? 'Repositionner' : 'Placer sur la carte'}</button><button class="jx-btn primaire" data-jx-go="${route}">Ouvrir ${kind === 'prospect' ? 'Prospection' : 'Clients'} →</button></div>`);
+    bulle.querySelector('[data-jx-placer]').onclick = () => commencerPlacement(kind, id);
+  }
+  function commencerPlacement(kind, id) {
+    const o = trouverObjet(kind, id); if (!o) return;
+    fermerBulle();
+    if (vue !== 'territoire') changerVue('territoire');
+    placement = { kind, id, nom: o.nom || '' };
+    const b = racine.querySelector('.jx-placement');
+    b.hidden = false; b.innerHTML = `${sur(() => icon('pin'), '')}<span>Cliquez sur la carte pour placer <b>${esc(placement.nom)}</b></span><button class="jx-btn">Annuler</button>`;
+    b.querySelector('button').onclick = finirPlacement;
+    svg.classList.add('placement');
+  }
+  function finirPlacement() { placement = null; const b = racine && racine.querySelector('.jx-placement'); if (b) b.hidden = true; if (svg) svg.classList.remove('placement'); }
+  function poserPlacement(w) {
+    const o = trouverObjet(placement.kind, placement.id); if (!o) { finirPlacement(); return; }
+    const g = latlon(w.x, w.y);
+    o.geo = { lat: +g.lat.toFixed(5), lon: +g.lon.toFixed(5) };
+    sur(() => DB.save());
+    const nom = placement.nom; finirPlacement();
+    sur(() => toast('Position enregistrée : ' + nom));
+    reconstruire();
+  }
+  function changerVue(v, opts = {}) {
+    if (v === vue) { if (opts.focus) viserPoint(opts.focus); return; }
+    vue = v; finirPlacement(); fermerBulle();
+    try { localStorage.setItem('chargepro.jeuVue', v); } catch (_e) { /* */ }
+    construire();
+    if (vue === 'agence') centrerSurHeros();
+    if (opts.focus) viserPoint(opts.focus, true);
+  }
+  function viserPoint(id, immediat) {
+    const p = TERR.points.find(x => String(x.id) === String(id) && x.c && !x.horsCarte); if (!p) return;
+    const [sx, sy] = P(p.x, p.y);
+    viser(sx, sy, Math.min(cam.w, 420));
+    if (immediat) { Object.assign(cam, { x: camCible.x, y: camCible.y, w: camCible.w, h: camCible.w * cam.h / cam.w }); camCible = null; appliquerCam(); }
+  }
+  function reconstruire() { const c = { ...cam }; construire(); Object.assign(cam, c); appliquerCam(); }
+
   /* ---------- Caméra (viewBox) ---------- */
   const cam = { x: 0, y: 0, w: 100, h: 100 };
   let vueTotale = null;
   function bornesMonde() {
+    if (vue === 'territoire') {
+      const c = [[TER.x0, TER.y0], [TER.x1, TER.y0], [TER.x1, TER.y1], [TER.x0, TER.y1]].map(([x, y]) => P(x, y));
+      const xs = c.map(p => p[0]), ys = c.map(p => p[1]);
+      return { x: Math.min(...xs), y: Math.min(...ys), w: Math.max(...xs) - Math.min(...xs), h: Math.max(...ys) - Math.min(...ys) };
+    }
     const c = [[MONDE.x0, MONDE.y0], [MONDE.x1, MONDE.y0], [MONDE.x1, MONDE.y1], [MONDE.x0, MONDE.y1]].map(([x, y]) => P(x, y));
     const xs = c.map(p => p[0]), ys = c.map(p => p[1]);
     return { x: Math.min(...xs), y: Math.min(...ys) - 80, w: Math.max(...xs) - Math.min(...xs), h: Math.max(...ys) - Math.min(...ys) + 80 };
   }
   function cadrer(zoom = 1) {
     const b = vueTotale, r = (monde.clientWidth || 1) / (monde.clientHeight || 1);
-    // Cadrage initial : le bâtiment et ses abords, au format de l'écran
-    const c = [[-4, -4], [BAT.w + 12, -4], [BAT.w + 12, BAT.d + 12], [-4, BAT.d + 12]].map(([x, y]) => P(x, y));
+    // Cadrage initial : le bâtiment et ses abords (ou l'agence et les chantiers), au format de l'écran
+    let zone = [[-4, -4], [BAT.w + 12, -4], [BAT.w + 12, BAT.d + 12], [-4, BAT.d + 12]];
+    if (vue === 'territoire') {
+      const ag = TERR.agence, l = TERR.points.filter(p => p.c && !p.horsCarte && p.kind === 'chantier');
+      const xs0 = [ag.x - 22, ag.x + 22, ...l.map(p => p.x)], ys0 = [ag.y - 22, ag.y + 22, ...l.map(p => p.y)];
+      const x0 = Math.min(...xs0) - 4, x1 = Math.max(...xs0) + 4, y0 = Math.min(...ys0) - 4, y1 = Math.max(...ys0) + 4;
+      zone = [[x0, y0], [x1, y0], [x1, y1], [x0, y1]];
+    }
+    const c = zone.map(([x, y]) => P(x, y));
     const xs = c.map(p => p[0]), ys = c.map(p => p[1]);
     let w = (Math.max(...xs) - Math.min(...xs)) / zoom, h = (Math.max(...ys) - Math.min(...ys) + 90) / zoom;
     if (w / h > r) h = w / r; else w = h * r;
@@ -511,23 +825,27 @@
   }
   function appliquerCam() {
     const b = vueTotale, r = cam.w / cam.h;
-    cam.w = Math.max(320, Math.min(b.w * 1.15, cam.w)); cam.h = cam.w / r;
+    cam.w = Math.max(largeurMin(), Math.min(b.w * 1.15, cam.w)); cam.h = cam.w / r;
+    const kz = cam.w / (svg.clientWidth || cam.w);   // unités de carte par pixel d'écran
+    svg.classList.toggle('proche', vue === 'territoire' && kz < 0.42);
+    svg.classList.toggle('tres-proche', vue === 'territoire' && kz < 0.22);
     cam.x = Math.max(b.x - cam.w * 0.3, Math.min(b.x + b.w - cam.w * 0.7, cam.x));
     cam.y = Math.max(b.y - cam.h * 0.3, Math.min(b.y + b.h - cam.h * 0.7, cam.y));
     svg.setAttribute('viewBox', `${cam.x.toFixed(1)} ${cam.y.toFixed(1)} ${cam.w.toFixed(1)} ${cam.h.toFixed(1)}`);
     echelleEtiquettes(); majMiniVue();
   }
+  const largeurMin = () => vue === 'territoire' ? 200 : 320;
   /* Étiquettes à taille constante à l'écran, quel que soit le zoom */
   let echelle = 0;
   function echelleEtiquettes() {
-    const k = Math.max(0.8, cam.w / (svg.clientWidth || cam.w));
+    const k = Math.max(vue === 'territoire' ? 0 : 0.8, cam.w / (svg.clientWidth || cam.w));
     if (Math.abs(k - echelle) < 0.005 && svg.querySelector('.jx-ech[transform]')) return;
     echelle = k;
     svg.querySelectorAll('.jx-ech').forEach(g => g.setAttribute('transform', `scale(${k.toFixed(3)})`));
   }
   function zoomer(f, sx, sy) {
     if (sx == null) { sx = cam.x + cam.w / 2; sy = cam.y + cam.h / 2; }
-    const nw = Math.max(320, Math.min(vueTotale.w * 1.15, cam.w * f)), k = nw / cam.w;
+    const nw = Math.max(largeurMin(), Math.min(vueTotale.w * 1.15, cam.w * f)), k = nw / cam.w;
     cam.x = sx - (sx - cam.x) * k; cam.y = sy - (sy - cam.y) * k; cam.w = nw; cam.h *= k;
     appliquerCam();
   }
@@ -687,8 +1005,12 @@
       <div class="jx-carte jx-stats">
         <div class="jx-stat" title="CA annuel réalisé"><span class="jx-si" style="--c:#2a6fc4">${ic('euro')}</span><div><small>CA</small><b>${esc(kEur(E.ca))}</b></div></div>
         <div class="jx-stat" title="Marge brute moyenne"><span class="jx-si" style="--c:#1d7a52">${ic('trend')}</span><div><small>Marge</small><b>${esc(pct(E.marge))}</b></div></div>
-        <div class="jx-stat" title="Chantiers en commande ou en cours (= camionnettes sur le parking)"><span class="jx-si" style="--c:#c27c0e">${ic('building')}</span><div><small>Chantiers</small><b>${E.actifs}</b></div></div>
+        <div class="jx-stat jx-stat-ter" title="Chantiers en commande ou en cours — cliquer pour les voir sur le territoire"><span class="jx-si" style="--c:#c27c0e">${ic('building')}</span><div><small>Chantiers</small><b>${E.actifs}</b></div></div>
         <button class="jx-stat jx-btn-quetes" title="Missions en cours (J)"><span class="jx-si" style="--c:${E.critiques ? '#e03131' : '#e8590c'}">${ic('bell')}</span><div><small>Missions</small><b>${E.actions.length}${E.critiques ? ` <em>${E.critiques} urgente${E.critiques > 1 ? 's' : ''}</em>` : ''}</b></div></button>
+      </div>
+      <div class="jx-carte jx-vues" role="tablist">
+        <button role="tab" data-jx-vue="agence" aria-selected="${vue === 'agence'}">${ic('building')}<span>Agence</span></button>
+        <button role="tab" data-jx-vue="territoire" aria-selected="${vue === 'territoire'}">${ic('pin')}<span>Territoire</span></button>
       </div>
       <div class="jx-carte jx-sortie">
         <button class="jx-ibtn" data-jx-aide title="Aide">?</button>
@@ -696,36 +1018,73 @@
       </div>
     </div>
     <div class="jx-dock">
-      <div class="jx-carte jx-espaces">${sur(() => NAV_GROUPS, []).map(g => `<button class="jx-chip" data-jx-espace="${esc(g.label)}"><i style="background:${ESPACES[g.label] || '#888'}"></i>${esc(g.label)}</button>`).join('')}</div>
+      ${vue === 'territoire'
+        ? `<div class="jx-carte jx-espaces">${[['actifs', 'Chantiers actifs', '#2f9e44'], ['autres', 'Autres chantiers', '#7048e8'], ['prospects', 'Prospects', '#e64980'], ['clients', 'Clients', '#1c7ed6']].map(([k, l, c]) => `<button class="jx-chip ${couches[k] ? 'on' : ''}" data-jx-couche="${k}" aria-pressed="${couches[k]}"><i style="background:${c}"></i>${l}</button>`).join('')}<button class="jx-chip jx-chip-liste" data-jx-liste>Liste</button></div>`
+        : `<div class="jx-carte jx-espaces">${sur(() => NAV_GROUPS, []).map(g => `<button class="jx-chip" data-jx-espace="${esc(g.label)}"><i style="background:${ESPACES[g.label] || '#888'}"></i>${esc(g.label)}</button>`).join('')}</div>`}
       <div class="jx-carte jx-zoom"><button class="jx-ibtn" data-jx-zoom="out" title="Dézoomer">−</button><button class="jx-ibtn" data-jx-zoom="fit" title="Vue d'ensemble">⤢</button><button class="jx-ibtn" data-jx-zoom="in" title="Zoomer">+</button></div>
     </div>`;
   }
 
   function construire() {
     const E = etat(); Etat = E;
-    const pnj = creerPnj();
-    racine.innerHTML = `<div class="jx-monde"><svg class="jx-svg" xmlns="http://www.w3.org/2000/svg">
+    const ter = vue === 'territoire';
+    ECH = ter ? TER_ECH : 1;
+    const pnj = ter ? (PNJ = [], '') : creerPnj();
+    const contenu = ter ? sceneTerritoire(E) : scene(E);
+    if (!ter) sur(() => { TERR.points = pointsTer(); const g = agenceGeo(), [x, y] = km(g.lat, g.lon); TERR.agence = { x, y }; });
+    const aide = 'ontouchstart' in window
+      ? (ter ? 'Touchez une épingle pour sa fiche · glissez pour déplacer · pincez pour zoomer' : 'Touchez une salle pour y aller · glissez pour déplacer la vue · pincez pour zoomer')
+      : (ter ? 'Clic sur une épingle : fiche du chantier · Molette : zoom · Glisser ou flèches : déplacer · V : vue agence · Échap : quitter'
+        : 'Flèches / ZQSD : marcher · Clic : aller · Double-clic : zoomer sur la salle · Molette : zoom · Glisser : déplacer · 1-6 : espaces · V : territoire · J : missions · Échap : quitter');
+    racine.innerHTML = `<div class="jx-monde"><svg class="jx-svg ${ter ? 'ter' : ''}" xmlns="http://www.w3.org/2000/svg">
         <defs><radialGradient id="jx-lampe"><stop offset="0" stop-color="#ffd27a" stop-opacity=".28"/><stop offset="1" stop-color="#ffd27a" stop-opacity="0"/></radialGradient></defs>
-        ${scene(E)}</svg></div>${hud(E)}${miniCarte()}
+        ${contenu}</svg></div>${hud(E)}${ter ? listeTerritoire() : miniCarte()}
       <div class="jx-survol" hidden></div>
       <div class="jx-invite" hidden></div>
-      <div class="jx-aide-bas">${'ontouchstart' in window ? 'Touchez une salle pour y aller · glissez pour déplacer la vue · pincez pour zoomer' : 'Flèches / ZQSD : marcher · Clic : aller · Double-clic : zoomer sur la salle · Molette : zoom · Glisser : déplacer · 1-6 : espaces · J : missions · Échap : quitter'}</div>
+      <div class="jx-placement" hidden></div>
+      <div class="jx-aide-bas">${aide}</div>
       <div class="jx-bulle-root"></div>`;
     monde = racine.querySelector('.jx-monde');
     svg = racine.querySelector('.jx-svg');
-    svg.querySelector('#jx-pnjs').innerHTML = pnj;
-    heros = svg.querySelector('#jx-heros');
+    heros = ter ? null : svg.querySelector('#jx-heros');
+    if (!ter) svg.querySelector('#jx-pnjs').innerHTML = pnj;
     invite = racine.querySelector('.jx-invite');
     survol = racine.querySelector('.jx-survol');
     bulle = racine.querySelector('.jx-bulle-root');
     const m = racine.querySelector('.jx-mini svg');
-    mini = { svg: m, vue: m.querySelector('.jx-mini-vue'), heros: m.querySelector('.jx-mini-heros'), pnj: [...m.querySelectorAll('.jx-mini-pnj')] };
+    mini = m ? { svg: m, vue: m.querySelector('.jx-mini-vue'), heros: m.querySelector('.jx-mini-heros'), pnj: [...m.querySelectorAll('.jx-mini-pnj')] } : null;
     vueTotale = bornesMonde();
-    corpsHeros(); dessinerHeros();
+    J.salle = null;
+    if (!ter) { corpsHeros(); dessinerHeros(); }
+    echelle = 0;
     cadrer(1);
+    if (ter && monde.clientWidth < 760) { const [sx, sy] = P(TERR.agence.x, TERR.agence.y); zoomer(0.45, sx, sy); cam.x = sx - cam.w / 2; cam.y = sy - cam.h / 2; appliquerCam(); }
     brancher(E);
   }
 
+  /* Aperçu au survol d'une épingle du territoire */
+  function apercuPin(el, cx, cy) {
+    const cle = el ? (el.dataset.id ? el.dataset.kind + ':' + el.dataset.id : 'agence') : '';
+    if (!cle || bulle.innerHTML || placement) { survol.hidden = true; survol.dataset.route = ''; return; }
+    if (survol.dataset.route !== cle) {
+      survol.dataset.route = cle;
+      if (cle === 'agence') survol.innerHTML = `<div class="jx-sv-t"><i style="background:#2a6fc4"></i><b>Votre agence</b></div><div class="jx-sv-a">Clic : entrer dans l’agence</div>`;
+      else {
+        const p = TERR.points.find(x => x.kind === el.dataset.kind && String(x.id) === el.dataset.id); if (!p) return;
+        const ag = TERR.agence, dist = Math.round(Math.hypot(p.x - ag.x, p.y - ag.y));
+        const etat2 = p.kind === 'chantier' ? sur(() => STATUTS_CHANTIER[p.statut], p.statut) : p.kind === 'prospect' ? 'Prospect' : 'Client';
+        survol.innerHTML = `<div class="jx-sv-t"><i style="background:${p.couleur}"></i><b>${esc(p.nom)}</b></div>
+          ${p.sous ? `<div class="jx-sv-l"><span>${esc(p.sous)}</span></div>` : ''}
+          <div class="jx-sv-l"><span>${esc(etat2)}</span><b>${p.kind === 'chantier' ? esc(eur(+p.obj.montantHT || 0)) : ''}</b></div>
+          <div class="jx-sv-l"><span>${esc(p.precis ? 'Position précise' : p.c.nom)}</span><b>${dist} km</b></div>
+          <div class="jx-sv-a">Clic : fiche${p.precis ? '' : ' · position à la commune près'}</div>`;
+      }
+    }
+    survol.hidden = false;
+    const r = racine.getBoundingClientRect(), w = survol.offsetWidth, h = survol.offsetHeight;
+    survol.style.left = Math.min(r.width - w - 10, cx + 16) + 'px';
+    survol.style.top = Math.min(r.height - h - 10, cy + 16) + 'px';
+  }
   /* Fiche-aperçu au survol d'une salle */
   function apercu(s, cx, cy) {
     if (!s || bulle.innerHTML) { survol.hidden = true; survol.dataset.route = ''; return; }
@@ -770,6 +1129,11 @@
       }
       if (e.pointerType === 'touch') return;
       const p = versVue(e.clientX, e.clientY); if (!p) return;
+      if (vue === 'territoire') {
+        const rr = racine.getBoundingClientRect(), pin = e.target.closest && e.target.closest('.jx-pin,.jx-obj');
+        apercuPin(pin, e.clientX - rr.left, e.clientY - rr.top);
+        return;
+      }
       const obj = e.target.closest && e.target.closest('.jx-obj,.jx-pnj');
       const w = versMonde(p.x, p.y), s = obj ? null : salleEn(w.x, w.y), r = s ? s.route : '';
       if (svg.dataset.survol !== r) {
@@ -791,6 +1155,15 @@
       const maintenant = Date.now(), double = maintenant - dernierClic < 320; dernierClic = maintenant;
       const p = versVue(e.clientX, e.clientY); if (!p) return;
       const w = versMonde(p.x, p.y);
+      if (vue === 'territoire') {
+        if (placement) { poserPlacement(w); return; }
+        const pin = e.target.closest && e.target.closest('.jx-pin');
+        if (pin) { fichePoint(pin.dataset.kind, pin.dataset.id); return; }
+        const o = e.target.closest && e.target.closest('.jx-obj,.jx-agence-etiq');
+        if (o) { changerVue('agence'); return; }
+        if (double) zoomer(0.5, p.x, p.y);
+        return;
+      }
       const obj = e.target.closest && e.target.closest('.jx-obj');
       if (obj) { clicObjet(obj.dataset.obj); return; }
       const pn = e.target.closest && e.target.closest('.jx-pnj');
@@ -803,15 +1176,21 @@
     };
     svg.addEventListener('pointerup', fin); svg.addEventListener('pointercancel', fin);
     svg.addEventListener('wheel', e => { e.preventDefault(); camCible = null; const p = versVue(e.clientX, e.clientY); zoomer(Math.exp(e.deltaY * 0.0015), p && p.x, p && p.y); }, { passive: false });
-    mini.svg.addEventListener('click', e => {
+    if (mini) mini.svg.addEventListener('click', e => {
       const m = mini.svg.getScreenCTM(); if (!m) return;
       const pt = mini.svg.createSVGPoint(); pt.x = e.clientX; pt.y = e.clientY;
       const q = pt.matrixTransform(m.inverse()); viser(q.x, q.y);
     });
+    racine.querySelectorAll('[data-jx-vue]').forEach(b => b.onclick = () => changerVue(b.dataset.jxVue));
+    const st = racine.querySelector('.jx-stat-ter'); if (st) st.onclick = () => changerVue('territoire');
+    racine.querySelectorAll('[data-jx-couche]').forEach(b => b.onclick = () => { couches[b.dataset.jxCouche] = !couches[b.dataset.jxCouche]; reconstruire(); });
+    const li = racine.querySelector('[data-jx-liste]'); if (li) li.onclick = () => racine.classList.toggle('liste-ouverte');
+    racine.querySelectorAll('.jx-tl[data-id]').forEach(b => b.onclick = () => { racine.classList.remove('liste-ouverte'); viserPoint(b.dataset.id); fichePoint(b.dataset.kind, b.dataset.id); });
+    racine.querySelectorAll('.jx-placer').forEach(b => b.onclick = () => { racine.classList.remove('liste-ouverte'); commencerPlacement(b.dataset.kind, b.dataset.id); });
     racine.querySelector('[data-jx-quitter]').onclick = () => fermer();
     racine.querySelector('[data-jx-aide]').onclick = aide;
     racine.querySelector('.jx-btn-quetes').onclick = () => journal(E);
-    racine.querySelectorAll('[data-jx-zoom]').forEach(b => b.onclick = () => { camCible = null; const z = b.dataset.jxZoom; if (z === 'fit') { if (cam.w < vueTotale.w * 0.6) cadrer(1); else centrerSurHeros(); } else zoomer(z === 'in' ? 0.75 : 1.33); });
+    racine.querySelectorAll('[data-jx-zoom]').forEach(b => b.onclick = () => { camCible = null; const z = b.dataset.jxZoom; if (z === 'fit') { if (vue === 'territoire' || cam.w < vueTotale.w * 0.6) cadrer(1); else centrerSurHeros(); } else zoomer(z === 'in' ? 0.75 : 1.33); });
     racine.querySelectorAll('[data-jx-espace]').forEach(b => b.onclick = () => espace(b.dataset.jxEspace));
   }
   /* Aller dans l'espace suivant (dock ou touches 1-6) : salle après salle */
@@ -860,6 +1239,19 @@
     if (T.has('ArrowUp') || T.has('z') || T.has('w')) ey -= 1;
     if (T.has('ArrowDown') || T.has('s')) ey += 1;
     let bouge = false;
+    if (vue === 'territoire') {
+      // Territoire : les flèches déplacent la vue, les camionnettes roulent
+      if (ex || ey) { const v = cam.w * 0.9 * dt; cam.x += ex * v; cam.y += ey * v; camCible = null; appliquerCam(); }
+      if (camCible) {
+        const k = reduit() ? 1 : Math.min(1, dt * 7), r = cam.w / cam.h;
+        cam.x += (camCible.x - cam.x) * k; cam.y += (camCible.y - cam.y) * k; cam.w += (camCible.w - cam.w) * k; cam.h = cam.w / r;
+        if (Math.abs(camCible.x - cam.x) + Math.abs(camCible.y - cam.y) + Math.abs(camCible.w - cam.w) < 1) camCible = null;
+        appliquerCam();
+      }
+      majVans(dt);
+      J.raf = requestAnimationFrame(boucle);
+      return;
+    }
     if (ex || ey) {
       // écran → monde : droite = (+x, −y), bas = (+x, +y) ; on glisse le long des cloisons
       let vx = ex + ey, vy = -ex + ey; const l = Math.hypot(vx, vy) || 1; vx /= l; vy /= l;
@@ -941,6 +1333,7 @@
     if (id === 'ecran') { dialogue(HALL); return; }
     if (id.startsWith('van:')) {
       const i = +id.slice(4), ch = Etat.actifsListe[i];
+      if (ch) { ficheChantier(ch); return; }
       if (!ch) { boite2(`<div class="jx-d-tete"><span class="jx-d-zone" style="--c:${ESPACES.Exploitation}">Parking</span><h3>Camionnette de l’agence</h3></div><p class="jx-d-texte">Aucun chantier en commande ou en cours : la camionnette attend sa prochaine mission.</p><div class="jx-d-act"><button class="jx-btn" data-jx-fermer>Fermer</button><button class="jx-btn primaire" data-jx-go="chantiers">Ouvrir Chantiers →</button></div>`); return; }
       boite2(`<div class="jx-d-tete"><span class="jx-d-zone" style="--c:${ESPACES.Exploitation}">Chantier en cours</span><h3>${esc(ch.nom)}</h3><div class="jx-d-sous">${esc(sur(() => clientNom(ch.clientId), ''))}${ch.adresse ? ' · ' + esc(ch.adresse) : ''}</div></div>
         <dl class="jx-d-stats">
@@ -988,6 +1381,8 @@
         <div><dt>Zoomer sur une salle</dt><dd>Double-clic</dd></div>
         <div><dt>Changer d'espace</dt><dd>Touches 1 à 6 · boutons du bas</dd></div>
         <div><dt>Camionnettes, collègues, écran du hall</dt><dd>Cliquables</dd></div>
+        <div><dt>Vue Territoire (touche V)</dt><dd>Vos chantiers, prospects et clients autour de Rouen</dd></div>
+        <div><dt>Localisation</dt><dd>Code postal ou commune de l’adresse · « Placer » pour une position précise</dd></div>
         <div><dt>Ouvrir l'écran</dt><dd>Entrée</dd></div>
         <div><dt>Zoom / vue</dt><dd>Molette · glisser · boutons en bas</dd></div>
         <div><dt>Missions</dt><dd>« ! » au-dessus des salles · touche J</dd></div>
@@ -1004,14 +1399,15 @@
     if (!ouverte) return;
     if (document.querySelector('#modal-root .modal-back')) return;
     const key = e.key.length === 1 ? e.key.toLowerCase() : e.key;
-    if (key === 'Escape') { e.preventDefault(); if (bulle.innerHTML) fermerBulle(); else fermer(); return; }
+    if (key === 'Escape') { e.preventDefault(); if (bulle.innerHTML) fermerBulle(); else if (placement) finirPlacement(); else fermer(); return; }
     if (bulle.innerHTML) {
       if (key === 'Enter' && document.activeElement && bulle.contains(document.activeElement)) return; // bouton focalisé
       if (key === 'Enter') { const b = bulle.querySelector('[data-jx-entrer]'); if (b) { e.preventDefault(); b.click(); } }
       return;
     }
+    if (key === 'v') { e.preventDefault(); changerVue(vue === 'agence' ? 'territoire' : 'agence'); return; }
     if (key === 'j') { e.preventDefault(); journal(); return; }
-    if (/^[1-9]$/.test(key)) { const g = sur(() => NAV_GROUPS[+key - 1], null); if (g) { e.preventDefault(); espace(g.label); } return; }
+    if (/^[1-9]$/.test(key) && vue === 'agence') { const g = sur(() => NAV_GROUPS[+key - 1], null); if (g) { e.preventDefault(); espace(g.label); } return; }
     if (key === '+' || key === '=') { zoomer(0.8); return; }
     if (key === '-') { zoomer(1.25); return; }
     if ((key === 'Enter' || key === ' ' || key === 'e') && J.salle) { e.preventDefault(); dialogue(J.salle); return; }
@@ -1035,8 +1431,10 @@
     ouverte = true;
     document.documentElement.classList.add('jeu-ouvert');
     racine.hidden = false;
+    try { vue = localStorage.getItem('chargepro.jeuVue') === 'territoire' ? 'territoire' : 'agence'; } catch (_e) { vue = 'agence'; }
+    finirPlacement();
     construire();
-    centrerSurHeros();
+    if (vue === 'agence') centrerSurHeros();
     cancelAnimationFrame(J.raf); J.t0 = 0; J.raf = requestAnimationFrame(boucle);
   }
   function fermer() {
