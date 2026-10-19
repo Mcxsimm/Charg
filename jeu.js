@@ -153,6 +153,13 @@
       }
     }
   }
+  /* Regroupe les éléments dessinés par fn en un objet cliquable */
+  function objet(id, titre, fn) {
+    const n0 = items.length; fn();
+    const part = items.splice(n0); if (!part.length) return;
+    part.sort((a, b) => a.k - b.k);
+    add(Math.max(...part.map(p => p.k)), `<g class="jx-obj" data-obj="${id}"><title>${esc(titre)}</title>${part.map(p => p.s).join('')}</g>`);
+  }
   function carton(x, y, z, t = 0.6) { boite(x, y, z, t, t, t * 0.8, '#d4a373', { extra: '' }); }
 
   /* ---------- Mobilier de chaque salle (coordonnées locales 0..10) ---------- */
@@ -220,10 +227,12 @@
       boite(X + 5.6, Y + 4.6, 0, 0.7, 2.3, 1.05, '#ffffff', { haut: C.bois });
       perso(X + 4, Y + 5.6, { chemise: '#2a6fc4' });
       // Écran géant des chiffres clés
-      boite(X + 1.2, Y + 1.4, 0, 0.3, 0.3, 1.2, '#495057');
-      boite(X + 0.4, Y + 1.5, 1.2, 2, 0.08, 1.3, '#1f2937', { face: C.nuit ? '#0f172a' : '#111827', k: X + Y + 3 });
-      const prog = Math.min(1, Etat.ca / (Etat.obj || 1));
-      [0.35, 0.55, 0.4, 0.75, 0.6, prog].forEach((v, i) => boite(X + 0.6 + i * 0.28, Y + 1.6, 1.35, 0.16, 0.01, 0.9 * Math.max(0.08, v), i === 5 ? '#4ade80' : '#60a5fa', { k: X + Y + 3.2 }));
+      objet('ecran', 'Écran des chiffres clés', () => {
+        boite(X + 1.2, Y + 1.4, 0, 0.3, 0.3, 1.2, '#495057');
+        boite(X + 0.4, Y + 1.5, 1.2, 2, 0.08, 1.3, '#1f2937', { face: C.nuit ? '#0f172a' : '#111827', k: X + Y + 3 });
+        const prog = Math.min(1, Etat.ca / (Etat.obj || 1));
+        [0.35, 0.55, 0.4, 0.75, 0.6, prog].forEach((v, i) => boite(X + 0.6 + i * 0.28, Y + 1.6, 1.35, 0.16, 0.01, 0.9 * Math.max(0.08, v), i === 5 ? '#4ade80' : '#60a5fa', { k: X + Y + 3.2 }));
+      });
       // Salon d'attente
       boite(X + 7, Y + 1, 0, 2.4, 0.9, 0.42, '#5b8db0'); boite(X + 7, Y + 1, 0.42, 2.4, 0.2, 0.45, '#4a7a9c', { k: X + Y + 9 });
       boite(X + 7.6, Y + 2.4, 0, 1.2, 0.7, 0.4, C.bois);
@@ -310,8 +319,8 @@
     const niv = Math.min(RANGS.length, Math.floor(ca / palier) + 1);
     const xp = niv >= RANGS.length ? 1 : (ca - (niv - 1) * palier) / palier;
     const critiques = actions.filter(a => a.tone === 'bad').length;
-    const actifs = sur(() => d.chantiers.filter(c => ['commande', 'en_cours'].includes(c.statut)).length, 0);
-    return { ca, obj, marge, cible: +o.margeCible || 0, actions, niv, xp, rang: RANGS[niv - 1], resteNiv: Math.max(0, niv * palier - ca), critiques, actifs };
+    const actifsListe = sur(() => d.chantiers.filter(c => ['commande', 'en_cours'].includes(c.statut)), []), actifs = actifsListe.length;
+    return { ca, obj, marge, cible: +o.margeCible || 0, actions, niv, xp, rang: RANGS[niv - 1], resteNiv: Math.max(0, niv * palier - ca), critiques, actifs, actifsListe };
   }
   /* Ce que l'on lit dans chaque salle : lignes de statistiques + pastille */
   function infos(route, E) {
@@ -438,14 +447,17 @@
       add(x + y + 2, `<path d="M${(sx - 34).toFixed(1)} ${(sy + 8).toFixed(1)} Q${sx.toFixed(1)} ${(sy - 22).toFixed(1)} ${(sx + 34).toFixed(1)} ${(sy + 8).toFixed(1)} Q${sx.toFixed(1)} ${(sy + 16).toFixed(1)} ${(sx - 34).toFixed(1)} ${(sy + 8).toFixed(1)}z" fill="#2f6fd6"/><path d="M${sx.toFixed(1)} ${(sy - 7).toFixed(1)} L${(sx + 34).toFixed(1)} ${(sy + 8).toFixed(1)} Q${sx.toFixed(1)} ${(sy + 16).toFixed(1)} ${sx.toFixed(1)} ${(sy + 12).toFixed(1)}z" fill="#000" opacity=".12"/>`);
     });
     perso(21.5, 37, { chemise: '#e64980' }); perso(28.5, 38, { chemise: '#12b886' });
+    // Une camionnette par chantier actif (cliquable : fiche du chantier)
     const vans = Math.max(1, Math.min(6, E.actifs || 0));
     for (let i = 0; i < vans; i++) {
-      const y = 1.4 + i * 4.6;
-      boite(53.2, y, 0.3, 4.2, 1.9, 1.6, '#ffffff', { extra: '' });
-      boite(52.2, y, 0.3, 1, 1.9, 1.1, '#f1f3f5');
-      boite(53.4, y + 1.9, 0.9, 3.8, 0.01, 0.25, '#1c7ed6', { k: 53 + y + 4 });
-      boite(52.25, y + 0.15, 1.05, 0.05, 1.6, 0.35, C.ecran, { k: 52 + y + 3 });
-      [[52.6, y + 1.9], [56.4, y + 1.9]].forEach(([a, b]) => add(a + b + 1, disque(a, b, 0.3, 0.32, '#212529')));
+      const y = 1.4 + i * 4.6, ch = E.actifsListe[i];
+      objet('van:' + (ch ? i : -1), ch ? ch.nom : 'Camionnette de l’agence', () => {
+        boite(53.2, y, 0.3, 4.2, 1.9, 1.6, '#ffffff');
+        boite(52.2, y, 0.3, 1, 1.9, 1.1, '#f1f3f5');
+        boite(53.4, y + 1.9, 0.9, 3.8, 0.01, 0.25, '#1c7ed6', { k: 53 + y + 4 });
+        boite(52.25, y + 0.15, 1.05, 0.05, 1.6, 0.35, C.ecran, { k: 52 + y + 3 });
+        [[52.6, y + 1.9], [56.4, y + 1.9]].forEach(([a, b]) => add(a + b + 1, disque(a, b, 0.3, 0.32, '#212529')));
+      });
     }
     const r2 = prng(7);
     const arbres = [];
@@ -475,7 +487,7 @@
     const halos = C.nuit ? SALLES.map(s => disque(s.x + 5, s.y + 5, 0, 4.2, 'url(#jx-lampe)')).join('') : '';
 
     return `<g class="jx-fond">${fond}</g><g class="jx-sols">${sols}</g><g class="jx-zones">${zones}</g><g>${halos}</g><g>${murs}</g>
-      <g class="jx-objets">${items.map(o => o.s).join('')}</g><g id="jx-heros"></g><g class="jx-etiquettes">${etiq}</g>`;
+      <g class="jx-objets">${items.map(o => o.s).join('')}</g><g id="jx-pnjs"></g><g id="jx-heros"></g><g class="jx-etiquettes">${etiq}</g>`;
   }
 
   /* ---------- Caméra (viewBox) ---------- */
@@ -503,7 +515,7 @@
     cam.x = Math.max(b.x - cam.w * 0.3, Math.min(b.x + b.w - cam.w * 0.7, cam.x));
     cam.y = Math.max(b.y - cam.h * 0.3, Math.min(b.y + b.h - cam.h * 0.7, cam.y));
     svg.setAttribute('viewBox', `${cam.x.toFixed(1)} ${cam.y.toFixed(1)} ${cam.w.toFixed(1)} ${cam.h.toFixed(1)}`);
-    echelleEtiquettes();
+    echelleEtiquettes(); majMiniVue();
   }
   /* Étiquettes à taille constante à l'écran, quel que soit le zoom */
   let echelle = 0;
@@ -521,17 +533,69 @@
   }
   function versVue(cx, cy) { const m = svg.getScreenCTM(); if (!m) return null; const p = svg.createSVGPoint(); p.x = cx; p.y = cy; return p.matrixTransform(m.inverse()); }
 
+  /* ---------- Murs : collisions et itinéraires (on passe par les portes) ---------- */
+  const MURS = (() => {
+    const m = [], seg = (v, at, a, b) => m.push({ v, at, a, b });
+    const en = (c, r) => SALLES.find(s => s.c === c && s.r === r);
+    const ouvert = (a, b) => a.type === 'hall' || b.type === 'hall';
+    for (let c = 1; c < 5; c++) for (let r = 0; r < 3; r++) if (!ouvert(en(c - 1, r), en(c, r))) { seg(true, c * SALLE, r * SALLE, r * SALLE + 4); seg(true, c * SALLE, r * SALLE + 6, r * SALLE + SALLE); }
+    for (let r = 1; r < 3; r++) for (let c = 0; c < 5; c++) if (!ouvert(en(c, r - 1), en(c, r))) { seg(false, r * SALLE, c * SALLE, c * SALLE + 4); seg(false, r * SALLE, c * SALLE + 6, c * SALLE + SALLE); }
+    seg(false, 0, -0.3, BAT.w); seg(true, 0, 0, BAT.d);                          // murs du fond
+    seg(false, BAT.d, 0, 22); seg(false, BAT.d, 28, BAT.w);                     // façade : entrée côté terrasse
+    seg(true, BAT.w, 0, 13); seg(true, BAT.w, 17, BAT.d);                       // et côté parking
+    return m;
+  })();
+  function bloque(x1, y1, x2, y2) {
+    for (const w of MURS) {
+      const [p1, p2, q1, q2] = w.v ? [x1, x2, y1, y2] : [y1, y2, x1, x2];
+      if (p1 === p2 || (p1 - w.at) * (p2 - w.at) > 0) continue;
+      const q = q1 + (q2 - q1) * (w.at - p1) / (p2 - p1);
+      if (q >= w.a - 0.3 && q <= w.b + 0.3) return true;
+    }
+    return false;
+  }
+  /* Plus court chemin sur une grille d'1 m, puis lissage en lignes droites */
+  function itineraire(ax, ay, bx, by) {
+    if (!bloque(ax, ay, bx, by)) return [[bx, by]];
+    const X0 = MONDE.x0, Y0 = MONDE.y0, NX = MONDE.x1 - X0, NY = MONDE.y1 - Y0;
+    const cl = (v, n) => Math.max(0, Math.min(n - 1, Math.floor(v)));
+    const cx = i => X0 + i + 0.5, cy = j => Y0 + j + 0.5;
+    const dep = cl(ax - X0, NX) + cl(ay - Y0, NY) * NX, arr = cl(bx - X0, NX) + cl(by - Y0, NY) * NX;
+    const prec = new Int32Array(NX * NY).fill(-1); prec[dep] = dep;
+    const file = [dep];
+    for (let h = 0; h < file.length && prec[arr] < 0; h++) {
+      const c = file[h], i = c % NX, j = (c - i) / NX;
+      for (const [di, dj] of [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]]) {
+        const ni = i + di, nj = j + dj; if (ni < 0 || nj < 0 || ni >= NX || nj >= NY) continue;
+        const n = ni + nj * NX; if (prec[n] >= 0 || bloque(cx(i), cy(j), cx(ni), cy(nj))) continue;
+        prec[n] = c; file.push(n);
+      }
+    }
+    if (prec[arr] < 0) return [[bx, by]];
+    const brut = [[bx, by]];
+    for (let c = prec[arr]; c !== dep; c = prec[c]) brut.unshift([cx(c % NX), cy(Math.floor(c / NX))]);
+    const out = []; let cur = [ax, ay], i = 0;
+    while (i < brut.length) {
+      let k = brut.length - 1;
+      while (k > i && bloque(cur[0], cur[1], brut[k][0], brut[k][1])) k--;
+      out.push(brut[k]); cur = brut[k]; i = k + 1;
+    }
+    return out;
+  }
+
   /* ---------- État du héros ---------- */
-  let racine = null, svg = null, monde = null, heros = null, bulle = null, invite = null;
+  let racine = null, svg = null, monde = null, heros = null, bulle = null, invite = null, survol = null, mini = null;
   let ouverte = false, dernier = 'dashboard';
-  const J = { x: HALL.x + 5, y: HALL.y + 7, cible: null, salleCible: null, touches: new Set(), t: 0, salle: null, raf: 0, t0: 0, suivre: false };
+  const J = { x: HALL.x + 5, y: HALL.y + 7, chemin: [], salleCible: null, touches: new Set(), t: 0, salle: null, raf: 0, t0: 0, suivre: false };
   const centreSalle = s => [s.x + 5, s.y + 6.6];
   const salleEn = (x, y) => SALLES.find(s => x >= s.x && x < s.x + SALLE && y >= s.y && y < s.y + SALLE) || null;
+  let camCible = null;                            // déplacement de caméra animé
 
   function dessinerHeros(bob) {
     if (!heros) return;
     const [sx, sy] = P(J.x, J.y);
     heros.setAttribute('transform', `translate(${sx.toFixed(1)} ${(sy - (bob || 0)).toFixed(1)})`);
+    if (mini) { const [mx, my] = P(J.x, J.y); mini.heros.setAttribute('cx', mx.toFixed(0)); mini.heros.setAttribute('cy', my.toFixed(0)); }
   }
   function corpsHeros() {
     rnd = prng(3);
@@ -539,6 +603,71 @@
       + `<g>${perso(0, 0, { casque: true, chemise: '#ff6b00', brut: true })}</g>`
       + `<g class="jx-moi" transform="translate(0 -${(2.15 * S).toFixed(0)})"><g class="jx-ech"><rect x="-16" y="-14" width="32" height="17" rx="8.5"/><text y="-1.5" text-anchor="middle">Moi</text></g></g>`;
     echelleEtiquettes();
+  }
+
+  /* ---------- Collègues qui circulent (chefs d'équipe et compagnons) ---------- */
+  let PNJ = [];
+  function creerPnj() {
+    const noms = [];
+    sur(() => DB.data.equipes, []).forEach(e => { if (e.chef) noms.push({ nom: e.chef, role: "Chef d'équipe", eq: e }); if (e.compagnon) noms.push({ nom: e.compagnon, role: 'Compagnon', eq: e }); });
+    if (!noms.length) ['Julie', 'Marc', 'Sofia'].forEach(n => noms.push({ nom: n, role: 'Collègue', eq: null }));
+    const r = prng(99), couleurs = ['#12b886', '#7048e8', '#e64980', '#1c7ed6', '#f76707', '#2f9e44'];
+    PNJ = noms.slice(0, 6).map((n, i) => {
+      const s = SALLES[(i * 4 + 3) % SALLES.length];
+      return { ...n, i, x: s.x + 3 + r() * 4, y: s.y + 3 + r() * 4, chemin: [], attente: 1 + r() * 4, t: r() * 10, casque: n.role !== 'Collègue', chemise: couleurs[i % couleurs.length] };
+    });
+    rnd = prng(17);
+    return PNJ.map(p => `<g class="jx-pnj" data-pnj="${p.i}"><title>${esc(p.nom)} — ${esc(p.role)}${p.eq ? ' · ' + esc(p.eq.nom) : ''}</title><ellipse cx="0" cy="0" rx="8" ry="4.5" fill="#000" opacity=".2"/>${perso(0, 0, { casque: p.casque, chemise: p.chemise, brut: true })}</g>`).join('');
+  }
+  function majPnj(dt) {
+    const r = Math.random;
+    PNJ.forEach(p => {
+      const el = p.el || (p.el = svg.querySelector(`.jx-pnj[data-pnj="${p.i}"]`)); if (!el) return;
+      let bouge = false;
+      if (p.attente > 0) p.attente -= dt;
+      else if (p.chemin.length) {
+        const [tx, ty] = p.chemin[0], dx = tx - p.x, dy = ty - p.y, d = Math.hypot(dx, dy), pas = 2.3 * dt;
+        if (d <= pas) { p.x = tx; p.y = ty; p.chemin.shift(); if (!p.chemin.length) p.attente = 3 + r() * 6; }
+        else { p.x += dx / d * pas; p.y += dy / d * pas; bouge = true; }
+      } else {
+        const s = SALLES[Math.floor(r() * SALLES.length)];
+        p.chemin = itineraire(p.x, p.y, s.x + 2.5 + r() * 5, s.y + 2.5 + r() * 5);
+      }
+      p.t += dt;
+      const [sx, sy] = P(p.x, p.y), bob = bouge && !reduit() ? Math.abs(Math.sin(p.t * 12)) * 2 : 0;
+      el.setAttribute('transform', `translate(${sx.toFixed(1)} ${(sy - bob).toFixed(1)})`);
+      if (mini && mini.pnj[p.i]) { mini.pnj[p.i].setAttribute('cx', sx.toFixed(0)); mini.pnj[p.i].setAttribute('cy', sy.toFixed(0)); }
+    });
+  }
+
+  /* ---------- Mini-carte ---------- */
+  function miniCarte() {
+    const c = [[-2, -2], [BAT.w + 12, -2], [BAT.w + 12, BAT.d + 6], [-2, BAT.d + 6]].map(([x, y]) => P(x, y));
+    const xs = c.map(p => p[0]), ys = c.map(p => p[1]);
+    const vb = `${Math.min(...xs)} ${Math.min(...ys)} ${Math.max(...xs) - Math.min(...xs)} ${Math.max(...ys) - Math.min(...ys)}`;
+    return `<div class="jx-carte jx-mini" title="Mini-carte : cliquez pour y déplacer la vue"><svg viewBox="${vb}" preserveAspectRatio="xMidYMid meet">
+      <polygon points="${pts([[52, -2, 0], [62, -2, 0], [62, 31, 0], [52, 31, 0]])}" class="jx-mini-sol"/>
+      ${SALLES.map(s => `<polygon data-route="${s.route}" points="${pts([[s.x + .4, s.y + .4, 0], [s.x + SALLE - .4, s.y + .4, 0], [s.x + SALLE - .4, s.y + SALLE - .4, 0], [s.x + .4, s.y + SALLE - .4, 0]])}" fill="${ESPACES[espaceDe(s.route)] || '#888'}" class="jx-mini-salle"/>`).join('')}
+      <rect class="jx-mini-vue" x="0" y="0" width="0" height="0"/>
+      ${PNJ.map(p => `<circle class="jx-mini-pnj" r="9"/>`).join('')}
+      <circle class="jx-mini-heros" r="16"/>
+    </svg></div>`;
+  }
+  function majMiniVue() {
+    if (!mini) return;
+    mini.vue.setAttribute('x', cam.x.toFixed(0)); mini.vue.setAttribute('y', cam.y.toFixed(0));
+    mini.vue.setAttribute('width', cam.w.toFixed(0)); mini.vue.setAttribute('height', cam.h.toFixed(0));
+  }
+  /* Caméra animée vers un point de la vue (et un zoom éventuel) */
+  function viser(sx, sy, w) {
+    const r = cam.w / cam.h, nw = w || cam.w;
+    camCible = { x: sx - nw / 2, y: sy - nw / r / 2, w: nw };
+  }
+  function zoomSalle(s) {
+    const c = [[s.x, s.y], [s.x + SALLE, s.y], [s.x + SALLE, s.y + SALLE], [s.x, s.y + SALLE]].map(([x, y]) => P(x, y));
+    const xs = c.map(p => p[0]), ys = c.map(p => p[1]), r = cam.w / cam.h;
+    const w = Math.max((Math.max(...xs) - Math.min(...xs)) * 1.5, (Math.max(...ys) - Math.min(...ys) + 120) * 1.4 * r);
+    viser((Math.max(...xs) + Math.min(...xs)) / 2, (Math.max(...ys) + Math.min(...ys)) / 2 - 20, w);
   }
 
   /* ---------- Interface (bandeau, dock, dialogues) ---------- */
@@ -574,71 +703,134 @@
 
   function construire() {
     const E = etat(); Etat = E;
+    const pnj = creerPnj();
     racine.innerHTML = `<div class="jx-monde"><svg class="jx-svg" xmlns="http://www.w3.org/2000/svg">
         <defs><radialGradient id="jx-lampe"><stop offset="0" stop-color="#ffd27a" stop-opacity=".28"/><stop offset="1" stop-color="#ffd27a" stop-opacity="0"/></radialGradient></defs>
-        ${scene(E)}</svg></div>${hud(E)}
+        ${scene(E)}</svg></div>${hud(E)}${miniCarte()}
+      <div class="jx-survol" hidden></div>
       <div class="jx-invite" hidden></div>
-      <div class="jx-aide-bas">${'ontouchstart' in window ? 'Touchez une salle pour y aller · glissez pour déplacer la vue' : 'Flèches / ZQSD : marcher · Clic : aller · Molette : zoom · Glisser : déplacer · Entrée : ouvrir · J : missions · Échap : quitter'}</div>
+      <div class="jx-aide-bas">${'ontouchstart' in window ? 'Touchez une salle pour y aller · glissez pour déplacer la vue · pincez pour zoomer' : 'Flèches / ZQSD : marcher · Clic : aller · Double-clic : zoomer sur la salle · Molette : zoom · Glisser : déplacer · 1-6 : espaces · J : missions · Échap : quitter'}</div>
       <div class="jx-bulle-root"></div>`;
     monde = racine.querySelector('.jx-monde');
     svg = racine.querySelector('.jx-svg');
+    svg.querySelector('#jx-pnjs').innerHTML = pnj;
     heros = svg.querySelector('#jx-heros');
     invite = racine.querySelector('.jx-invite');
+    survol = racine.querySelector('.jx-survol');
     bulle = racine.querySelector('.jx-bulle-root');
+    const m = racine.querySelector('.jx-mini svg');
+    mini = { svg: m, vue: m.querySelector('.jx-mini-vue'), heros: m.querySelector('.jx-mini-heros'), pnj: [...m.querySelectorAll('.jx-mini-pnj')] };
     vueTotale = bornesMonde();
     corpsHeros(); dessinerHeros();
     cadrer(1);
     brancher(E);
   }
 
+  /* Fiche-aperçu au survol d'une salle */
+  function apercu(s, cx, cy) {
+    if (!s || bulle.innerHTML) { survol.hidden = true; survol.dataset.route = ''; return; }
+    if (survol.dataset.route !== s.route) {
+      survol.dataset.route = s.route;
+      const E = Etat, I = infos(s.route, E), q = E.actions.filter(a => a.route === s.route).length;
+      survol.innerHTML = `<div class="jx-sv-t"><i style="background:${ESPACES[espaceDe(s.route)] || '#888'}"></i><b>${esc(s.nom)}</b></div>
+        ${I.lignes.slice(0, 3).map(([a, b]) => `<div class="jx-sv-l"><span>${esc(a)}</span><b>${esc(String(b))}</b></div>`).join('')}
+        ${q ? `<div class="jx-sv-m">${plur(q, 'mission')} en attente</div>` : ''}<div class="jx-sv-a">Clic : y aller · double-clic : zoomer</div>`;
+    }
+    survol.hidden = false;
+    const r = racine.getBoundingClientRect(), w = survol.offsetWidth, h = survol.offsetHeight;
+    survol.style.left = Math.min(r.width - w - 10, cx + 16) + 'px';
+    survol.style.top = Math.min(r.height - h - 10, cy + 16) + 'px';
+  }
+
   function brancher(E) {
-    let drag = null;
-    svg.addEventListener('pointerdown', e => { if (e.button) return; drag = { x: e.clientX, y: e.clientY, cx: cam.x, cy: cam.y, bouge: false, id: e.pointerId }; });
+    let drag = null, dernierClic = 0;
+    const doigts = new Map(); let pince = null;
+    svg.addEventListener('pointerdown', e => {
+      if (e.button) return;
+      doigts.set(e.pointerId, [e.clientX, e.clientY]);
+      if (doigts.size === 2) {
+        const [a, b] = [...doigts.values()];
+        pince = { d: Math.hypot(a[0] - b[0], a[1] - b[1]), w: cam.w }; drag = null; camCible = null; return;
+      }
+      drag = { x: e.clientX, y: e.clientY, cx: cam.x, cy: cam.y, bouge: false, id: e.pointerId };
+    });
     svg.addEventListener('pointermove', e => {
+      if (doigts.has(e.pointerId)) doigts.set(e.pointerId, [e.clientX, e.clientY]);
+      if (pince && doigts.size === 2) {
+        const [a, b] = [...doigts.values()], d = Math.hypot(a[0] - b[0], a[1] - b[1]);
+        const p = versVue((a[0] + b[0]) / 2, (a[1] + b[1]) / 2);
+        if (p && d > 10) zoomer((pince.w * pince.d / d) / cam.w, p.x, p.y);
+        return;
+      }
       if (drag && drag.id === e.pointerId) {
         const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
-        if (!drag.bouge && Math.hypot(dx, dy) > 5) { drag.bouge = true; try { svg.setPointerCapture(e.pointerId); } catch (_e) { /* */ } svg.classList.add('glisse'); }
+        if (!drag.bouge && Math.hypot(dx, dy) > 5) { drag.bouge = true; camCible = null; try { svg.setPointerCapture(e.pointerId); } catch (_e) { /* */ } svg.classList.add('glisse'); apercu(null); }
         if (drag.bouge) { const k = cam.w / svg.clientWidth; cam.x = drag.cx - dx * k; cam.y = drag.cy - dy * k; appliquerCam(); }
         return;
       }
+      if (e.pointerType === 'touch') return;
       const p = versVue(e.clientX, e.clientY); if (!p) return;
-      const w = versMonde(p.x, p.y), s = salleEn(w.x, w.y), r = s ? s.route : '';
+      const obj = e.target.closest && e.target.closest('.jx-obj,.jx-pnj');
+      const w = versMonde(p.x, p.y), s = obj ? null : salleEn(w.x, w.y), r = s ? s.route : '';
       if (svg.dataset.survol !== r) {
         svg.dataset.survol = r;
         svg.querySelectorAll('.jx-zone').forEach(z => z.classList.toggle('survol', z.dataset.route === r));
         svg.querySelectorAll('.jx-etiq').forEach(z => z.classList.toggle('survol', z.dataset.route === r));
       }
+      const rr = racine.getBoundingClientRect();
+      apercu(s, e.clientX - rr.left, e.clientY - rr.top);
     });
+    svg.addEventListener('pointerleave', () => apercu(null));
     const fin = e => {
+      doigts.delete(e.pointerId);
+      if (pince) { if (doigts.size < 2) pince = null; drag = null; return; }
       if (!drag || drag.id !== e.pointerId) return;
       const d = drag; drag = null; svg.classList.remove('glisse');
       if (d.bouge || e.type === 'pointercancel') return;
       if (bulle.innerHTML) { fermerBulle(); return; }
-      const et = e.target.closest && e.target.closest('.jx-etiq');
-      if (et) { aller(SALLES.find(s => s.route === et.dataset.route)); return; }
+      const maintenant = Date.now(), double = maintenant - dernierClic < 320; dernierClic = maintenant;
       const p = versVue(e.clientX, e.clientY); if (!p) return;
-      const w = versMonde(p.x, p.y), s = salleEn(w.x, w.y);
+      const w = versMonde(p.x, p.y);
+      const obj = e.target.closest && e.target.closest('.jx-obj');
+      if (obj) { clicObjet(obj.dataset.obj); return; }
+      const pn = e.target.closest && e.target.closest('.jx-pnj');
+      if (pn) { fichePnj(PNJ[+pn.dataset.pnj]); return; }
+      const et = e.target.closest && e.target.closest('.jx-etiq');
+      const s = et ? SALLES.find(x => x.route === et.dataset.route) : salleEn(w.x, w.y);
+      if (s && double) { J.salleCible = null; zoomSalle(s); return; }   // zoom seul, sans ouvrir la fiche
       if (s) aller(s);
-      else { J.cible = [Math.max(MONDE.x0 + 2, Math.min(MONDE.x1 - 2, w.x)), Math.max(MONDE.y0 + 2, Math.min(MONDE.y1 - 2, w.y))]; J.salleCible = null; J.suivre = true; }
+      else marcherVers(Math.max(MONDE.x0 + 2, Math.min(MONDE.x1 - 2, w.x)), Math.max(MONDE.y0 + 2, Math.min(MONDE.y1 - 2, w.y)));
     };
     svg.addEventListener('pointerup', fin); svg.addEventListener('pointercancel', fin);
-    svg.addEventListener('wheel', e => { e.preventDefault(); const p = versVue(e.clientX, e.clientY); zoomer(Math.exp(e.deltaY * 0.0015), p && p.x, p && p.y); }, { passive: false });
+    svg.addEventListener('wheel', e => { e.preventDefault(); camCible = null; const p = versVue(e.clientX, e.clientY); zoomer(Math.exp(e.deltaY * 0.0015), p && p.x, p && p.y); }, { passive: false });
+    mini.svg.addEventListener('click', e => {
+      const m = mini.svg.getScreenCTM(); if (!m) return;
+      const pt = mini.svg.createSVGPoint(); pt.x = e.clientX; pt.y = e.clientY;
+      const q = pt.matrixTransform(m.inverse()); viser(q.x, q.y);
+    });
     racine.querySelector('[data-jx-quitter]').onclick = () => fermer();
     racine.querySelector('[data-jx-aide]').onclick = aide;
     racine.querySelector('.jx-btn-quetes').onclick = () => journal(E);
-    racine.querySelectorAll('[data-jx-zoom]').forEach(b => b.onclick = () => { const z = b.dataset.jxZoom; if (z === 'fit') { if (cam.w < vueTotale.w * 0.6) cadrer(1); else centrerSurHeros(); } else zoomer(z === 'in' ? 0.75 : 1.33); });
-    racine.querySelectorAll('[data-jx-espace]').forEach(b => b.onclick = () => {
-      const g = sur(() => NAV_GROUPS.find(x => x.label === b.dataset.jxEspace), null); if (!g) return;
-      const cur = J.salle ? g.routes.indexOf(J.salle.route) : -1;
-      aller(SALLES.find(s => s.route === g.routes[(cur + 1) % g.routes.length]));
-    });
+    racine.querySelectorAll('[data-jx-zoom]').forEach(b => b.onclick = () => { camCible = null; const z = b.dataset.jxZoom; if (z === 'fit') { if (cam.w < vueTotale.w * 0.6) cadrer(1); else centrerSurHeros(); } else zoomer(z === 'in' ? 0.75 : 1.33); });
+    racine.querySelectorAll('[data-jx-espace]').forEach(b => b.onclick = () => espace(b.dataset.jxEspace));
+  }
+  /* Aller dans l'espace suivant (dock ou touches 1-6) : salle après salle */
+  function espace(label) {
+    const g = sur(() => NAV_GROUPS.find(x => x.label === label), null); if (!g) return;
+    const cur = J.salle ? g.routes.indexOf(J.salle.route) : -1;
+    const s = SALLES.find(x => x.route === g.routes[(cur + 1) % g.routes.length]);
+    if (s) { aller(s); const [sx, sy] = P(...centreSalle(s)); viser(sx, sy); }
   }
 
+  function marcherVers(x, y, salle) {
+    J.chemin = itineraire(J.x, J.y, x, y); J.salleCible = salle || null; J.suivre = true;
+  }
   function aller(s) {
     if (!s) return;
-    fermerBulle();
-    J.salleCible = s; J.cible = centreSalle(s); J.suivre = true;
-    if (reduit()) { [J.x, J.y] = J.cible; J.cible = null; J.salleCible = null; dessinerHeros(); recentrer(true); dialogue(s); }
+    fermerBulle(); apercu(null);
+    const [x, y] = centreSalle(s);
+    if (reduit()) { J.x = x; J.y = y; J.chemin = []; dessinerHeros(); recentrer(true); dialogue(s); return; }
+    marcherVers(x, y, s);
   }
   /* Sur petit écran, on démarre zoomé sur la salle du héros ; sinon vue d'ensemble */
   function centrerSurHeros() {
@@ -669,21 +861,30 @@
     if (T.has('ArrowDown') || T.has('s')) ey += 1;
     let bouge = false;
     if (ex || ey) {
-      // écran → monde : droite = (+x, −y), bas = (+x, +y)
+      // écran → monde : droite = (+x, −y), bas = (+x, +y) ; on glisse le long des cloisons
       let vx = ex + ey, vy = -ex + ey; const l = Math.hypot(vx, vy) || 1; vx /= l; vy /= l;
-      J.cible = null; J.salleCible = null; J.suivre = true;
-      J.x += vx * VITESSE * dt; J.y += vy * VITESSE * dt; bouge = true;
-    } else if (J.cible) {
-      const dx = J.cible[0] - J.x, dy = J.cible[1] - J.y, d = Math.hypot(dx, dy), pas = VITESSE * 1.8 * dt;
+      J.chemin = []; J.salleCible = null; J.suivre = true;
+      const px = vx * VITESSE * dt, py = vy * VITESSE * dt, m = 0.35;
+      if (!bloque(J.x, J.y, J.x + px + vx * m, J.y + py + vy * m)) { J.x += px; J.y += py; bouge = true; }
+      else if (px && !bloque(J.x, J.y, J.x + px + Math.sign(px) * m, J.y)) { J.x += px; bouge = true; }
+      else if (py && !bloque(J.x, J.y, J.x, J.y + py + Math.sign(py) * m)) { J.y += py; bouge = true; }
+    } else if (J.chemin.length) {
+      const [tx, ty] = J.chemin[0], dx = tx - J.x, dy = ty - J.y, d = Math.hypot(dx, dy), pas = VITESSE * 1.8 * dt;
       if (d <= pas) {
-        [J.x, J.y] = J.cible; J.cible = null;
-        if (J.salleCible) { const s = J.salleCible; J.salleCible = null; dialogue(s); }
+        J.x = tx; J.y = ty; J.chemin.shift();
+        if (!J.chemin.length && J.salleCible) { const s = J.salleCible; J.salleCible = null; dialogue(s); }
       } else { J.x += dx / d * pas; J.y += dy / d * pas; bouge = true; }
     }
     J.x = Math.max(MONDE.x0 + 1, Math.min(MONDE.x1 - 1, J.x)); J.y = Math.max(MONDE.y0 + 1, Math.min(MONDE.y1 - 1, J.y));
     if (bouge) { J.t += dt; dessinerHeros(reduit() ? 0 : Math.abs(Math.sin(J.t * 14)) * 3); }
     else if (J.t) { J.t = 0; dessinerHeros(); }
-    if (J.suivre) { recentrer(false); if (!bouge && !J.cible) J.suivre = false; }
+    if (camCible) {
+      const k = reduit() ? 1 : Math.min(1, dt * 7), r = cam.w / cam.h;
+      cam.x += (camCible.x - cam.x) * k; cam.y += (camCible.y - cam.y) * k; cam.w += (camCible.w - cam.w) * k; cam.h = cam.w / r;
+      if (Math.abs(camCible.x - cam.x) + Math.abs(camCible.y - cam.y) + Math.abs(camCible.w - cam.w) < 2) camCible = null;
+      appliquerCam();
+    } else if (J.suivre) { recentrer(false); if (!bouge && !J.chemin.length) J.suivre = false; }
+    majPnj(dt);
     majSalle();
     J.raf = requestAnimationFrame(boucle);
   }
@@ -692,6 +893,7 @@
     if (s === J.salle) return;
     J.salle = s;
     svg.querySelectorAll('.jx-zone').forEach(z => z.classList.toggle('ici', !!s && z.dataset.route === s.route));
+    if (mini) mini.svg.querySelectorAll('.jx-mini-salle').forEach(z => z.classList.toggle('ici', !!s && z.dataset.route === s.route));
     if (s && !bulle.innerHTML) {
       invite.hidden = false;
       invite.innerHTML = `<i style="background:${ESPACES[espaceDe(s.route)] || '#888'}"></i><b>${esc(s.nom)}</b><span>Entrée pour ouvrir</span>`;
@@ -711,6 +913,53 @@
     const f = d.querySelector('[data-jx-entrer]') || d.querySelector('button'); if (f) f.focus({ preventScroll: true });
     return d;
   }
+  /* Les vrais éléments de la salle (5 premiers), pour la fiche */
+  function elements(route) {
+    const d = DB.data, cl = id => sur(() => clientNom(id), ''), t = todayISO();
+    const L = (arr, f) => sur(() => arr.slice(0, 5).map(f), []);
+    switch (route) {
+      case 'devis': return L(d.devis.filter(x => ['attente', 'envoye', 'relance'].includes(x.statut)), x => [x.ref || '—', x.objet || '', sur(() => STATUTS_DEVIS[x.statut], x.statut)]);
+      case 'chantiers': return L(d.chantiers.filter(c => ['commande', 'en_cours'].includes(c.statut)), c => [c.nom, cl(c.clientId), eur(+c.montantHT || 0)]);
+      case 'factures': return L(d.factures.filter(f => f.statut !== 'payee'), f => [f.num || 'À émettre', (f.client ? f.client + ' · ' : '') + (f.objet || ''), eur(+f.montantHT || 0)]);
+      case 'prospection': return L(d.prospection.filter(p => !['gagne', 'sans_suite'].includes(p.statut)).sort((a, b) => ((a.prochaine || a.date || '') < (b.prochaine || b.date || '') ? -1 : 1)), p => [p.nom || '—', p.objet || p.ville || '', fmtDate(p.prochaine || p.date) + ((p.prochaine && p.prochaine <= t) ? ' · à relancer' : '')]);
+      case 'clients': return L(d.clients, c => [c.nom, c.type || '', c.adresse || '']);
+      case 'entretien': return L(d.contrats, c => [c.nom, cl(c.clientId), c.montantAnnuel ? eur(+c.montantAnnuel) + ' / an' : '']);
+      case 'achats': return L(d.commandes.filter(c => c.statut === 'commande').concat(d.commandes.filter(c => c.statut !== 'commande')), c => [c.fournisseur || '—', c.objet || '', sur(() => STATUTS_CMD[c.statut], c.statut)]);
+      case 'planning': return L(d.equipes, e => [e.nom, [e.chef, e.compagnon].filter(Boolean).join(' · '), '']);
+      case 'bte': return L(d.bte, b => [b.nom || '—', b.otp || '', sur(() => BTE_STATUTS[b.statut], '')]);
+      case 'otps': return L(sur(() => otpDistinct().filter(c => c.trim()), []), c => [c, sur(() => otpLabel(c), ''), cl(sur(() => otpClientId(c), ''))]);
+      case 'docs': return L(d.dossiers, x => [x.nom || x.titre || 'Dossier', x.otp || '', '']);
+    }
+    return [];
+  }
+  const listeElements = (route, titre) => {
+    const el = elements(route); if (!el.length) return '';
+    return `<div class="jx-d-liste"><div class="jx-d-qt">${esc(titre || 'Dans cette salle')}</div>${el.map(([a, b, c]) => `<button class="jx-el" data-jx-go="${route}"><b>${esc(a)}</b><span>${esc(b)}</span><em>${esc(c)}</em></button>`).join('')}</div>`;
+  };
+  /* Clic sur un objet de la scène */
+  function clicObjet(id) {
+    if (id === 'ecran') { dialogue(HALL); return; }
+    if (id.startsWith('van:')) {
+      const i = +id.slice(4), ch = Etat.actifsListe[i];
+      if (!ch) { boite2(`<div class="jx-d-tete"><span class="jx-d-zone" style="--c:${ESPACES.Exploitation}">Parking</span><h3>Camionnette de l’agence</h3></div><p class="jx-d-texte">Aucun chantier en commande ou en cours : la camionnette attend sa prochaine mission.</p><div class="jx-d-act"><button class="jx-btn" data-jx-fermer>Fermer</button><button class="jx-btn primaire" data-jx-go="chantiers">Ouvrir Chantiers →</button></div>`); return; }
+      boite2(`<div class="jx-d-tete"><span class="jx-d-zone" style="--c:${ESPACES.Exploitation}">Chantier en cours</span><h3>${esc(ch.nom)}</h3><div class="jx-d-sous">${esc(sur(() => clientNom(ch.clientId), ''))}${ch.adresse ? ' · ' + esc(ch.adresse) : ''}</div></div>
+        <dl class="jx-d-stats">
+          <div><dt>Statut</dt><dd>${esc(sur(() => STATUTS_CHANTIER[ch.statut], ch.statut))}</dd></div>
+          <div><dt>Montant HT</dt><dd>${esc(eur(+ch.montantHT || 0))}</dd></div>
+          ${ch.otp ? `<div><dt>OTP</dt><dd>${esc(ch.otp)}</dd></div>` : ''}
+          ${ch.dateDemande ? `<div><dt>Demande</dt><dd>${esc(fmtDate(ch.dateDemande))}</dd></div>` : ''}
+        </dl>${ch.notes ? `<p class="jx-d-texte">${esc(ch.notes)}</p>` : ''}
+        <div class="jx-d-act"><button class="jx-btn" data-jx-fermer>Fermer</button><button class="jx-btn primaire" data-jx-go="chantiers">Ouvrir Chantiers →</button></div>`);
+    }
+  }
+  function fichePnj(p) {
+    if (!p) return;
+    const sem = sur(() => mondayISO(), ''), h = p.eq ? sur(() => DB.data.pointages.filter(x => x.semaine === sem && x.workerNom === p.nom).reduce((s, x) => s + (x.h || []).reduce((a, b) => a + (+b || 0), 0), 0), 0) : 0;
+    const ou = salleEn(p.x, p.y);
+    boite2(`<div class="jx-d-tete"><span class="jx-d-zone" style="--c:${p.chemise}">${esc(p.role)}</span><h3>${esc(p.nom)}</h3><div class="jx-d-sous">${p.eq ? esc(p.eq.nom) : 'Agence'}${ou ? ' · actuellement : ' + esc(ou.nom) : ''}</div></div>
+      ${p.eq ? `<dl class="jx-d-stats"><div><dt>Heures pointées cette semaine</dt><dd>${esc(num(h))} h</dd></div></dl>` : '<p class="jx-d-texte">Un collègue de passage. Ajoutez vos équipes dans « Planning & pointages » pour croiser vos chefs d’équipe ici.</p>'}
+      <div class="jx-d-act"><button class="jx-btn" data-jx-fermer>Fermer</button><button class="jx-btn primaire" data-jx-go="planning">Ouvrir Planning →</button></div>`);
+  }
   function dialogue(s) {
     if (!s) return;
     const E = etat(), I = infos(s.route, E), q = E.actions.filter(a => a.route === s.route), esp = espaceDe(s.route);
@@ -718,6 +967,7 @@
       <p class="jx-d-texte">${esc(I.texte)}</p>
       ${I.lignes.length ? `<dl class="jx-d-stats">${I.lignes.map(([a, b]) => `<div><dt>${esc(a)}</dt><dd>${esc(String(b))}</dd></div>`).join('')}</dl>` : ''}
       ${q.length ? `<div class="jx-d-quetes"><div class="jx-d-qt">${plur(q.length, 'mission')} dans cette salle</div>${q.slice(0, 4).map(a => `<div class="jx-q ${a.tone}"><span>${a.title}</span><em>${esc(a.badge)}</em></div>`).join('')}${q.length > 4 ? `<div class="jx-q-plus">+ ${q.length - 4} autre(s)</div>` : ''}</div>` : ''}
+      ${listeElements(s.route)}
       <div class="jx-d-act"><button class="jx-btn" data-jx-fermer>Rester sur la carte</button><button class="jx-btn primaire" data-jx-entrer data-jx-go="${s.route}">Ouvrir ${esc(labelDe(s.route).replace(/ — .*/, ''))} →</button></div>`);
   }
   function journal(E) {
@@ -734,7 +984,10 @@
       <p class="jx-d-texte">Chaque salle est un écran de ChargéPro, regroupée par espace comme dans le menu. Les chiffres et le mobilier viennent de vos données, en direct.</p>
       <dl class="jx-d-stats">
         <div><dt>Marcher</dt><dd>Flèches ou ZQSD · clic sur le sol</dd></div>
-        <div><dt>Aller dans une salle</dt><dd>Clic sur la salle ou son étiquette</dd></div>
+        <div><dt>Aller dans une salle</dt><dd>Clic sur la salle ou son étiquette (on passe par les portes)</dd></div>
+        <div><dt>Zoomer sur une salle</dt><dd>Double-clic</dd></div>
+        <div><dt>Changer d'espace</dt><dd>Touches 1 à 6 · boutons du bas</dd></div>
+        <div><dt>Camionnettes, collègues, écran du hall</dt><dd>Cliquables</dd></div>
         <div><dt>Ouvrir l'écran</dt><dd>Entrée</dd></div>
         <div><dt>Zoom / vue</dt><dd>Molette · glisser · boutons en bas</dd></div>
         <div><dt>Missions</dt><dd>« ! » au-dessus des salles · touche J</dd></div>
@@ -758,6 +1011,7 @@
       return;
     }
     if (key === 'j') { e.preventDefault(); journal(); return; }
+    if (/^[1-9]$/.test(key)) { const g = sur(() => NAV_GROUPS[+key - 1], null); if (g) { e.preventDefault(); espace(g.label); } return; }
     if (key === '+' || key === '=') { zoomer(0.8); return; }
     if (key === '-') { zoomer(1.25); return; }
     if ((key === 'Enter' || key === ' ' || key === 'e') && J.salle) { e.preventDefault(); dialogue(J.salle); return; }
@@ -777,7 +1031,7 @@
       window.addEventListener('resize', () => { if (ouverte && svg) { const r = monde.clientWidth / monde.clientHeight; cam.h = cam.w / r; appliquerCam(); } });
     }
     const depart = SALLES.find(s => s.route === dernier) || HALL;
-    [J.x, J.y] = centreSalle(depart); J.cible = null; J.salleCible = null; J.salle = null; J.touches.clear();
+    [J.x, J.y] = centreSalle(depart); J.chemin = []; J.salleCible = null; J.salle = null; camCible = null; J.touches.clear();
     ouverte = true;
     document.documentElement.classList.add('jeu-ouvert');
     racine.hidden = false;
@@ -824,5 +1078,6 @@
     rafraichir() { if (ouverte) { const c = { ...cam }; construire(); Object.assign(cam, c); appliquerCam(); } },
     ouvrir, fermer,
     get ouverte() { return ouverte; },
+    get position() { return { x: J.x, y: J.y, salle: J.salle && J.salle.route }; },
   };
 })();
