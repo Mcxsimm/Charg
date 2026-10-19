@@ -770,6 +770,137 @@ html[data-density="compact"] .filters input:not([type=checkbox]),html[data-densi
 .drive-dot.ok{background:var(--pos)} .drive-dot.encours{background:var(--info)} .drive-dot.erreur,.drive-dot.reconnexion{background:var(--warn)}
 #drive-btn{gap:6px;position:relative}
 @media(max-width:1340px){.top-actions #drive-btn .drive-dot{position:absolute;right:6px;top:6px}}
+/* ==========================================================================
+   Mode carte (jeu vidéo) — voir jeu.js. Couleurs propres au jeu (pixel art),
+   indépendantes des jetons de l'application.
+   ========================================================================== */
+#game-btn.on{background:var(--accent-soft);color:var(--accent)}
+#jeu-fab{display:none;position:fixed;right:20px;bottom:20px;z-index:55;align-items:center;gap:8px;height:44px;padding:0 16px;
+  border:3px solid #3b2f2f;border-radius:4px;background:#ffd43b;color:#3b2f2f;font:700 13px/1 var(--font);
+  box-shadow:0 4px 0 #3b2f2f,0 10px 24px rgba(0,0,0,.25);text-transform:uppercase;letter-spacing:.04em}
+#jeu-fab:hover{background:#ffe066}
+#jeu-fab:active{transform:translateY(3px);box-shadow:0 1px 0 #3b2f2f}
+html[data-game="on"] #jeu-fab{display:inline-flex}
+html.jeu-ouvert #jeu-fab{display:none}
+html.jeu-ouvert,html.jeu-ouvert body{overflow:hidden}
+#jeu-root{position:fixed;inset:0;z-index:58;background:#2f6b3a;color:#3b2f2f;font-family:'VT323',ui-monospace,monospace;
+  -webkit-user-select:none;user-select:none;animation:jx-entree .35s steps(6) both}
+@keyframes jx-entree{from{clip-path:circle(0% at 50% 50%)}to{clip-path:circle(75% at 50% 50%)}}
+.jx-monde{position:absolute;inset:0;overflow:auto;scrollbar-width:none}
+.jx-monde::-webkit-scrollbar{display:none}
+.jx-svg{display:block;width:100%;height:100%;shape-rendering:crispEdges}
+@media(max-width:900px),(max-height:560px){.jx-svg{width:1350px;height:844px}}
+.jx-svg text{font-family:'Press Start 2P',ui-monospace,monospace}
+.jx-fen{fill:#9ad0ff}
+html[data-theme="dark"] .jx-fen{fill:#ffd43b;filter:drop-shadow(0 0 4px #ffd43b)}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .jx-fen{fill:#ffd43b;filter:drop-shadow(0 0 4px #ffd43b)}}
+.jx-feu{fill:#ff922b;animation:jx-feu .5s steps(2) infinite}
+@keyframes jx-feu{50%{fill:#ffd43b}}
+.jx-lieu{cursor:pointer;outline:none}
+.jx-lieu .jx-bat{transition:transform .15s steps(3)}
+.jx-lieu:hover .jx-bat,.jx-lieu:focus-visible .jx-bat,.jx-lieu.proche .jx-bat{transform:translateY(-4px)}
+.jx-halo{fill:none;stroke:#fff3bf;stroke-width:4;stroke-dasharray:10 8;opacity:0}
+.jx-lieu:hover .jx-halo,.jx-lieu:focus-visible .jx-halo,.jx-lieu.proche .jx-halo{opacity:.9;animation:jx-tourne 1.2s linear infinite}
+@keyframes jx-tourne{to{stroke-dashoffset:-36}}
+.jx-plaque text{font-size:9px;fill:#fff3bf}
+.jx-etiquettes{pointer-events:none}
+.jx-plaque{pointer-events:auto;cursor:pointer}
+.jx-etiq.proche .jx-plaque rect{fill:#e8590c;opacity:1}
+.jx-badge text{font-size:10px;fill:#fff}
+.jx-panneau text{font-size:9px;fill:#fff3bf}
+.jx-saut{animation:jx-saut .8s steps(4) infinite alternate}
+@keyframes jx-saut{to{transform:translateY(-8px)}}
+.jx-drapeau{animation:jx-drapeau .6s steps(2) infinite alternate;transform-box:fill-box;transform-origin:0 50%}
+@keyframes jx-drapeau{to{transform:scaleX(.82) skewY(4deg)}}
+.jx-pales{transform-box:fill-box;transform-origin:50% 50%;animation:jx-rot 6s linear infinite}
+.jx-aiguille{transform-box:fill-box;transform-origin:50% 100%;animation:jx-rot 10s steps(12) infinite}
+@keyframes jx-rot{to{transform:rotate(360deg)}}
+.jx-crochet{animation:jx-crochet 3s ease-in-out infinite alternate}
+@keyframes jx-crochet{to{transform:translateX(70px)}}
+.jx-fumee circle{transform-box:fill-box;transform-origin:50% 50%;animation:jx-fumee 2.7s linear infinite;opacity:0}
+@keyframes jx-fumee{0%{transform:translate(0,0) scale(.6);opacity:.8}100%{transform:translate(10px,-46px) scale(1.4);opacity:0}}
+.jx-eclat{animation:jx-eclat 1.4s steps(2) infinite}
+@keyframes jx-eclat{50%{opacity:.2}}
+.jx-vague{animation:jx-vague 2.5s linear infinite}
+@keyframes jx-vague{to{stroke-dashoffset:-72}}
+
+/* HUD */
+.jx-hud{position:absolute;left:12px;right:12px;top:12px;display:flex;gap:10px;align-items:flex-start;pointer-events:none;flex-wrap:wrap}
+.jx-hud>*{pointer-events:auto}
+.jx-carte{background:#f4e3b5;border:3px solid #3b2f2f;border-radius:4px;box-shadow:inset 0 0 0 3px #e3c98f,0 4px 0 rgba(0,0,0,.35);padding:8px 12px}
+.jx-perso{display:flex;gap:10px;align-items:center;min-width:250px}
+.jx-avatar{width:44px;height:44px;flex:none;display:grid;place-items:center;background:#1c7ed6;color:#fff;border:3px solid #3b2f2f;
+  font:12px/1 'Press Start 2P',ui-monospace,monospace}
+.jx-perso-txt{flex:1;min-width:0}
+.jx-nom{font:10px/1.4 'Press Start 2P',ui-monospace,monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.jx-niv{background:#e8590c;color:#fff;padding:1px 4px;margin-left:4px}
+.jx-rang{font-size:18px;line-height:1.1;color:#6d4c41}
+.jx-xp{height:10px;border:2px solid #3b2f2f;background:#3b2f2f;margin-top:3px}
+.jx-xp i{display:block;height:100%;background:repeating-linear-gradient(90deg,#51cf66 0 6px,#40c057 6px 8px)}
+.jx-xp-txt{font-size:15px;color:#6d4c41;line-height:1.2;margin-top:2px}
+.jx-stats{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.jx-vies{display:flex;gap:3px}
+.jx-stat{display:inline-flex;align-items:center;gap:6px;font-size:22px;line-height:1;background:none;border:0;padding:0;color:inherit;font-family:inherit}
+.jx-stat b{font-weight:400}
+.jx-stat span{font-size:17px;color:#6d4c41}
+.jx-px{image-rendering:pixelated;shape-rendering:crispEdges;flex:none}
+.jx-btn-quetes{cursor:pointer;padding:2px 6px;border:2px dashed transparent}
+.jx-btn-quetes:hover{border-color:#3b2f2f}
+.jx-sortie{margin-left:auto;display:flex;gap:6px;padding:6px}
+.jx-btn{font:10px/1 'Press Start 2P',ui-monospace,monospace;height:34px;padding:0 12px;border:3px solid #3b2f2f;border-radius:3px;
+  background:#fff9db;color:#3b2f2f;box-shadow:0 3px 0 #3b2f2f;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.jx-btn:hover{background:#fff3bf}
+.jx-btn:active{transform:translateY(3px);box-shadow:none}
+.jx-btn.primaire{background:#e8590c;color:#fff}
+.jx-btn.primaire:hover{background:#f76707}
+.jx-btn:focus-visible{outline:3px solid #1c7ed6;outline-offset:2px}
+.jx-invite{position:absolute;left:50%;bottom:54px;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:2px;
+  background:#3b2f2f;color:#fff3bf;border:3px solid #fff3bf;padding:8px 16px;box-shadow:0 4px 0 rgba(0,0,0,.4);pointer-events:none;text-align:center}
+.jx-invite b{font:10px/1.4 'Press Start 2P',ui-monospace,monospace}
+.jx-invite span{font-size:18px;animation:jx-eclat 1s steps(2) infinite}
+.jx-aide-bas{position:absolute;left:0;right:0;bottom:10px;text-align:center;font-size:18px;color:#fff;text-shadow:2px 2px 0 #000;pointer-events:none;padding:0 12px}
+
+/* Dialogue façon RPG */
+.jx-bulle-root:empty{display:none}
+.jx-bulle-root{position:absolute;inset:0;display:flex;align-items:flex-end;justify-content:center;padding:16px;background:rgba(0,0,0,.25)}
+.jx-dialogue{width:min(560px,100%);max-height:calc(100% - 110px);overflow:auto;background:#f4e3b5;border:4px solid #3b2f2f;border-radius:4px;
+  box-shadow:inset 0 0 0 4px #e3c98f,0 6px 0 rgba(0,0,0,.4);padding:18px 20px;animation:jx-pop .2s steps(4) both;font-size:20px;line-height:1.2}
+.jx-dialogue.large{width:min(720px,100%)}
+@keyframes jx-pop{from{transform:translateY(30px);opacity:0}}
+.jx-d-zone{display:inline-block;font:8px/1 'Press Start 2P',ui-monospace,monospace;background:#3b2f2f;color:#fff3bf;padding:4px 6px;margin-bottom:8px}
+.jx-dialogue h3{font:14px/1.4 'Press Start 2P',ui-monospace,monospace;margin:0;color:#3b2f2f;letter-spacing:0}
+.jx-d-sous{color:#6d4c41;font-size:18px}
+.jx-d-texte{margin:10px 0;color:#5c3d2e;font-style:italic}
+.jx-d-stats{margin:10px 0;display:grid;gap:2px}
+.jx-d-stats>div{display:flex;justify-content:space-between;gap:12px;padding:3px 0;border-bottom:2px dotted #c9a96e}
+.jx-d-stats dt{color:#6d4c41}
+.jx-d-stats dd{margin:0;font-weight:400;color:#3b2f2f;text-align:right}
+.jx-d-quetes{display:grid;gap:6px;margin:12px 0}
+.jx-d-qt{display:flex;align-items:center;gap:6px;font:9px/1 'Press Start 2P',ui-monospace,monospace;margin-bottom:2px}
+.jx-q{display:grid;grid-template-columns:1fr auto;gap:2px 10px;align-items:center;padding:6px 10px;border:2px solid #3b2f2f;background:#fff9db;
+  border-left:8px solid #fab005;text-align:left;font:inherit;color:inherit;width:100%}
+.jx-q.bad{border-left-color:#e03131}
+.jx-q em{font-style:normal;font-size:16px;background:#3b2f2f;color:#fff3bf;padding:0 6px;white-space:nowrap}
+.jx-q small{grid-column:1/-1;font-size:15px;color:#8d6e63}
+button.jx-q{cursor:pointer}
+button.jx-q:hover{background:#fff3bf}
+.jx-q-plus{font-size:16px;color:#6d4c41;text-align:center}
+.jx-d-act{display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap;margin-top:12px}
+@media(max-width:640px){
+  .jx-hud{left:8px;right:8px;top:8px;gap:6px}
+  .jx-perso{min-width:0;flex:1}
+  .jx-sortie{position:absolute;right:0;top:0;margin:0}
+  .jx-sortie .jx-btn span{display:none}
+  .jx-perso{margin-right:96px}
+  .jx-stats{gap:10px;padding:6px 10px}
+  .jx-stat{font-size:19px}
+  .jx-dialogue{font-size:18px;padding:14px}
+}
+@media (prefers-reduced-motion: reduce){
+  #jeu-root,.jx-dialogue{animation:rm-fade .18s ease}
+  .jx-pales,.jx-aiguille,.jx-crochet,.jx-fumee circle,.jx-saut,.jx-drapeau,.jx-vague,.jx-eclat,.jx-feu,.jx-halo,.jx-invite span{animation:none!important}
+  .jx-fumee circle{opacity:.5}
+}
 </style>
 
 </head>
@@ -799,6 +930,7 @@ html[data-density="compact"] .filters input:not([type=checkbox]),html[data-densi
           <button id="btn-export" class="btn ghost" title="Exporter les données du profil (sauvegarde locale)">Sauvegarde</button>
           <button id="btn-import" class="btn ghost" title="Importer une sauvegarde">Restaurer</button>
           <input type="file" id="import-file" accept="application/json" hidden>
+          <button id="game-btn" class="btn ghost" aria-pressed="false" title="Activer le mode carte (jeu vidéo)"></button>
           <button id="theme-btn" class="btn ghost icon" aria-label="Changer de thème" title="Thème clair / sombre"></button>
           <button id="profile-btn" class="profile-btn"></button>
         </div>
@@ -821,6 +953,7 @@ html[data-density="compact"] .filters input:not([type=checkbox]),html[data-densi
   <div id="toast-root"></div>
 
   <script src="drive.js"></script>
+  <script src="jeu.js"></script>
   <script>
 /* =========================================================================
    ChargéPro — Assistant Chargé d'Affaires (étanchéité)
@@ -903,6 +1036,7 @@ const ICONS = {
   tick: '<path d="M20 6 9 17l-5-5"/>',
   chevLeft: '<path d="m15 18-6-6 6-6"/>',
   chevRight: '<path d="m9 18 6-6-6-6"/>',
+  gamepad: '<line x1="6" y1="11" x2="10" y2="11"/><line x1="8" y1="9" x2="8" y2="13"/><line x1="15" y1="12" x2="15.01" y2="12"/><line x1="18" y1="10" x2="18.01" y2="10"/><path d="M17.32 5H6.68a4 4 0 0 0-3.98 3.59l-.9 8.07A3 3 0 0 0 4.78 20c.92 0 1.78-.42 2.35-1.14L8.6 17h6.8l1.47 1.86A3 3 0 0 0 19.22 20a3 3 0 0 0 2.98-3.34l-.9-8.07A4 4 0 0 0 17.32 5z"/>',
   grip: '<circle cx="9" cy="6" r="1"/><circle cx="15" cy="6" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="9" cy="18" r="1"/><circle cx="15" cy="18" r="1"/>',
 };
 function icon(name, cls = '') {
@@ -2300,6 +2434,7 @@ function go(route) {
   const v = $('#view');
   ROUTES[route].render(v);
   v.classList.remove('view-enter'); void v.offsetWidth; v.classList.add('view-enter');
+  if (window.CPJeu && CPJeu.ouverte) CPJeu.rafraichir(); // données rechargées pendant que la carte est affichée
 }
 
 /* -------------------------------------------------------------------------
@@ -2311,7 +2446,7 @@ const UI_WIDTHS = { confort: 'Confort', large: 'Large', plein: 'Plein écran' };
 const UI_DENSITES = { normal: 'Normale', compact: 'Compacte' };
 const UI_THEMES = { auto: 'Auto', light: 'Clair', dark: 'Sombre' };
 const UI = {
-  prefs: { width: 'large', density: 'normal', theme: 'auto', nav: 'full' },
+  prefs: { width: 'large', density: 'normal', theme: 'auto', nav: 'full', game: 'off' },
   load() {
     let saved = null; try { saved = JSON.parse(localStorage.getItem(UI_KEY)); } catch {}
     if (saved && typeof saved === 'object') {
@@ -2319,6 +2454,7 @@ const UI = {
       if (Object.prototype.hasOwnProperty.call(UI_DENSITES, saved.density)) this.prefs.density = saved.density;
       if (Object.prototype.hasOwnProperty.call(UI_THEMES, saved.theme)) this.prefs.theme = saved.theme;
       if (saved.nav === 'compact' || saved.nav === 'full') this.prefs.nav = saved.nav;
+      if (saved.game === 'on' || saved.game === 'off') this.prefs.game = saved.game;
     }
     this.apply();
   },
@@ -2334,6 +2470,7 @@ const UI = {
     r.dataset.width = this.prefs.width;
     r.dataset.density = this.prefs.density;
     r.dataset.nav = this.prefs.nav;
+    r.dataset.game = this.prefs.game; // mode carte (jeu vidéo) — voir jeu.js
     if (this.prefs.theme === 'auto') delete r.dataset.theme; else r.dataset.theme = this.prefs.theme;
     const wb = document.getElementById('width-btn');
     if (wb) { wb.innerHTML = icon('widthIc') + '<span class="lbl">' + UI_WIDTHS[this.prefs.width] + '</span>'; wb.title = 'Largeur d\'affichage : ' + UI_WIDTHS[this.prefs.width] + ' — cliquer pour changer'; }
@@ -7105,6 +7242,8 @@ function boot() {
   $('#btn-import').innerHTML = icon('upload') + '<span class="lbl">Restaurer</span>';
   $('#theme-btn').onclick = () => UI.toggleTheme();
   $('#width-btn').onclick = () => UI.cycleWidth();
+  $('#game-btn').innerHTML = icon('gamepad') + '<span class="lbl">Mode carte</span>';
+  $('#game-btn').onclick = () => { if (window.CPJeu && DB.currentProfile()) CPJeu.basculer(); };
   if (window.matchMedia) matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => UI.apply());
   UI.apply();
   buildNav();
@@ -7136,6 +7275,7 @@ function boot() {
   DB.loadProfile(DB.meta.currentId);
   renderProfileButton();
   go(location.hash.slice(1) || 'dashboard');
+  if (window.CPJeu) CPJeu.init();
   mobileHint();
 }
 // Sur téléphone : proposer la version mobile allégée (masquable, ou désactivée via ?complet)
