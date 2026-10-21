@@ -2320,7 +2320,9 @@ const DB = {
   normalize(d) {
     d = d || {};
     d.objectifs = Object.assign({}, OBJECTIFS_DEFAUT, d.objectifs || {});
-    ['clients', 'chantiers', 'devis', 'ca', 'bte', 'prospection', 'factures', 'contrats', 'visites', 'equipes', 'pointages', 'commandes', 'dossiers'].forEach(k => { if (!Array.isArray(d[k])) d[k] = []; });
+    ['clients', 'chantiers', 'devis', 'ca', 'bte', 'prospection', 'factures', 'contrats', 'visites', 'equipes', 'pointages', 'commandes', 'dossiers', 'marches', 'bcs'].forEach(k => { if (!Array.isArray(d[k])) d[k] = []; });
+    d.marches.forEach(x => { if (!Array.isArray(x.bpu)) x.bpu = []; });
+    d.bcs.forEach(x => { if (!Array.isArray(x.lignes)) x.lignes = []; });
     d.devis.forEach(x => { if (x.otp === undefined) x.otp = ''; if (x.clientId === undefined) x.clientId = ''; if (x.derniereRelance === undefined) x.derniereRelance = ''; if (x.nbRelances === undefined) x.nbRelances = 0; if (x.horsComptes === undefined) x.horsComptes = false; });
     d.factures.forEach(x => { if (x.otp === undefined) x.otp = ''; });
     d.ca.forEach(x => { if (x.sourceType === undefined) { x.sourceType = ''; x.sourceId = ''; } });
@@ -2388,7 +2390,7 @@ function migratePointages(list) {
   return Object.values(rows);
 }
 function demoData() {
-  const c1 = uid(), c2 = uid(), c3 = uid(), ch1 = uid(), ch2 = uid(), ch3 = uid();
+  const c1 = uid(), c2 = uid(), c3 = uid(), c4 = uid(), mc1 = uid(), ch1 = uid(), ch2 = uid(), ch3 = uid();
   const eqA = uid(), eqB = uid(), eqC = uid();
   return DB.normalize({
     objectifs: { ...OBJECTIFS_DEFAUT },
@@ -2396,6 +2398,27 @@ function demoData() {
       { id: c1, nom: 'SCI Les Terrasses', contact: 'M. Durand', tel: '06 12 34 56 78', email: 'contact@lesterrasses.fr', adresse: 'Lyon 69003', type: 'Syndic', notes: '' },
       { id: c2, nom: 'Groupe Logista', contact: 'Mme Petit', tel: '04 78 00 00 00', email: 'm.petit@logista.fr', adresse: 'Villeurbanne 69100', type: 'Grand compte', notes: 'BPU cadre national' },
       { id: c3, nom: 'Mairie de Bron', contact: 'Service Technique', tel: '04 72 00 00 00', email: 'st@bron.fr', adresse: 'Bron 69500', type: 'Public', notes: '' },
+      { id: c4, nom: "Habitat de l'Estuaire", contact: 'M. Leroy (gestion technique)', tel: '02 35 00 00 00', email: 'technique@habitat-estuaire.fr', adresse: 'Rouen 76000', type: 'Bailleur social', notes: 'Marché à bons de commande' },
+    ],
+    marches: [
+      { id: mc1, ref: 'MBC-2025-07', intitule: 'Entretien et recherche de fuites — toitures terrasses', clientId: c4, otp: '6004512', dateDebut: addDays(todayISO(), -150), dateFin: addDays(todayISO(), 945), montantMin: 20000, montantMax: 120000, coef: 1.032, delaiJours: 3, echeanceJours: 30, notes: 'Révision annuelle BT01', bpu: [
+        { code: 'F01', designation: 'Recherche de fuite toiture terrasse (forfait déplacement + diagnostic)', unite: 'u', pu: 185 },
+        { code: 'F02', designation: 'Test à la fumée / colorant', unite: 'u', pu: 95 },
+        { code: 'R01', designation: 'Reprise ponctuelle de relevé bitumineux', unite: 'ml', pu: 48 },
+        { code: 'R02', designation: 'Pièce de renfort sur membrane (≤ 1 m²)', unite: 'u', pu: 72 },
+        { code: 'R03', designation: "Remplacement d'une entrée d'eau pluviale", unite: 'u', pu: 210 },
+        { code: 'E01', designation: 'Nettoyage toiture terrasse et évacuations', unite: 'm²', pu: 1.8 },
+        { code: 'S01', designation: 'Mise en sécurité / bâchage provisoire', unite: 'u', pu: 160 },
+      ] },
+    ],
+    bcs: [
+      { id: uid(), marcheId: mc1, num: 'BC-25-0412', dateBC: addDays(todayISO(), -1), nature: 'Recherche de fuite', residence: 'Résidence Les Tilleuls', logement: 'Bât. B — log. 24', adresse: '12 rue des Tilleuls, Rouen', locataire: 'Mme Martin', telLocataire: '06 00 00 00 01', dateLimite: addDays(todayISO(), 2), dateIntervention: '', equipeId: eqC, statut: 'planifie', constat: '', factureId: '', lignes: [{ code: 'F01', designation: 'Recherche de fuite toiture terrasse (forfait déplacement + diagnostic)', unite: 'u', qte: 1, pu: 190.92 }], montantHT: 190.92 },
+      { id: uid(), marcheId: mc1, num: 'BC-25-0398', dateBC: addDays(todayISO(), -8), nature: 'Recherche de fuite', residence: 'Résidence Grieu', logement: 'Bât. A — log. 7', adresse: 'Rouen 76000', locataire: 'M. Benali', telLocataire: '', dateLimite: addDays(todayISO(), -5), dateIntervention: '', equipeId: '', statut: 'recu', constat: '', factureId: '', lignes: [{ code: 'F01', designation: 'Recherche de fuite toiture terrasse (forfait déplacement + diagnostic)', unite: 'u', qte: 1, pu: 190.92 }], montantHT: 190.92 },
+      { id: uid(), marcheId: mc1, num: 'BC-25-0377', dateBC: addDays(todayISO(), -15), nature: 'Recherche de fuite', residence: 'Résidence du Mont-Riboudet', logement: 'Bât. C — dernier étage', adresse: 'Rouen 76000', locataire: 'Gardien M. Roux', telLocataire: '', dateLimite: addDays(todayISO(), -12), dateIntervention: addDays(todayISO(), -12), equipeId: eqC, statut: 'realise', constat: "Décollement du relevé en pied d'acrotère côté nord. Reprise du relevé sur 4 ml et pose d'une pièce de renfort.", factureId: '', lignes: [
+        { code: 'F01', designation: 'Recherche de fuite toiture terrasse (forfait déplacement + diagnostic)', unite: 'u', qte: 1, pu: 190.92 },
+        { code: 'R01', designation: 'Reprise ponctuelle de relevé bitumineux', unite: 'ml', qte: 4, pu: 49.54 },
+        { code: 'R02', designation: 'Pièce de renfort sur membrane (≤ 1 m²)', unite: 'u', qte: 1, pu: 74.3 }], montantHT: 463.38 },
+      { id: uid(), marcheId: mc1, num: 'BC-25-0365', dateBC: addDays(todayISO(), -20), nature: 'Entretien', residence: 'Résidence Les Tilleuls', logement: 'Bâtiments A à C', adresse: '12 rue des Tilleuls, Rouen', locataire: '', telLocataire: '', dateLimite: addDays(todayISO(), -6), dateIntervention: addDays(todayISO(), -9), equipeId: eqC, statut: 'realise', constat: 'Nettoyage des terrasses et dégagement des EEP.', factureId: '', lignes: [{ code: 'E01', designation: 'Nettoyage toiture terrasse et évacuations', unite: 'm²', qte: 640, pu: 1.86 }], montantHT: 1190.4 },
     ],
     chantiers: [
       { id: ch1, otp: 'OTP-24001', nom: 'Réfection toiture bâtiment A', clientId: c1, adresse: 'Lyon 69003', statut: 'en_cours', dateDemande: addDays(todayISO(), -40), montantHT: 84000, notes: 'Étanchéité + relevés' },
@@ -2550,6 +2573,7 @@ const NAV = [
   { route: 'docs', ico: 'shield', label: "Documents d'exécution", render: renderDocs },
   { group: 'Entretien' },
   { route: 'entretien', ico: 'wrench', label: 'Contrats & visites', render: renderEntretien },
+  { route: 'marches', ico: 'book', label: 'Marchés à bons de commande', render: renderMarches },
   { group: 'Finances' },
   { route: 'ca', ico: 'euro', label: 'CA & Marge', render: renderCA },
   { route: 'factures', ico: 'receipt', label: 'Facturation', render: renderFactures },
@@ -2981,6 +3005,8 @@ function collectActions() {
   });
   DB.data.contrats.filter(contratAProgrammer).forEach(c => acts.push({ tone: 'warn', ico: 'wrench', route: 'entretien', urg: 1, title: `Visite à programmer — ${esc(clientNom(c.clientId))} (${esc(c.nom)})`, badge: 'À programmer' }));
   rapportsEnRetard().forEach(vz => { const c = DB.data.contrats.find(x => x.id === vz.contratId); acts.push({ tone: 'bad', ico: 'file', route: 'entretien', urg: -daysBetween(vz.dateRealisee, t), title: `Rapport d'intervention en retard — ${c ? esc(clientNom(c.clientId)) : ''}`, badge: 'Sous 7 j' }); });
+  DB.data.bcs.filter(bcEnRetard).forEach(b => acts.push({ tone: 'bad', ico: 'wrench', route: 'marches', urg: -daysBetween(b.dateLimite, t), title: `BC hors délai — ${esc(b.num || '')} ${esc(b.nature || '')} · ${esc([b.residence, b.logement].filter(Boolean).join(' '))}`, badge: `Avant ${fmtDate(b.dateLimite)}` }));
+  DB.data.bcs.filter(bcAFacturer).forEach(b => { const j = daysBetween(b.dateIntervention || t, t); if (j > o.delaiFacture) acts.push({ tone: 'warn', ico: 'receipt', route: 'marches', urg: -j, title: `BC réalisé à facturer — ${esc(b.num || '')} ${esc(b.residence || '')}`, badge: `Réalisé ${fmtDate(b.dateIntervention)}` }); });
   DB.data.prospection.filter(p => p.prochaine && p.prochaine <= t && !['gagne', 'sans_suite'].includes(p.statut)).forEach(p => acts.push({ tone: 'warn', ico: 'phone', route: 'prospection', urg: 0, title: `Relance prospect — ${esc(p.nom)}`, badge: fmtDate(p.prochaine) }));
   return acts.sort((a, b) => a.urg - b.urg);
 }
@@ -3965,7 +3991,7 @@ function exportRafListXlsx(fin) {
 
 /* ---------- Devis ---------- */
 const otpDistinct = () => [...new Set([...DB.data.devis.map(d => d.otp), ...DB.data.chantiers.map(c => c.otp), ...DB.data.factures.map(f => f.otp), ...DB.data.commandes.map(c => c.otp),
-  ...DB.data.ca.map(x => x.otp), ...DB.data.pointages.map(p => p.otp), ...(DB.data.otps || []).map(o => o.code)].filter(Boolean))].sort();
+  ...DB.data.ca.map(x => x.otp), ...DB.data.pointages.map(p => p.otp), ...DB.data.marches.map(m => m.otp), ...(DB.data.otps || []).map(o => o.code)].filter(Boolean))].sort();
 const commandesParOtp = otp => DB.data.commandes.filter(c => c.otp === otp).reduce((s, c) => s + (+c.montantHT || 0), 0);
 const inMonth = (iso, mois, annee) => { if (!iso) return false; const d = new Date(iso + 'T00:00:00'); return d.getMonth() === mois && d.getFullYear() === annee; };
 // Heures de main d'œuvre pointées sur l'OTP durant le mois (modèle en lignes)
@@ -4259,6 +4285,9 @@ function caCandidates() {
   const devisLies = new Set(DB.data.chantiers.map(c => c.sourceDevisId).filter(Boolean));
   DB.data.chantiers.filter(c => chantierFacturable(c) && c.statut !== 'perdu' && otpCompte(c.otp) && !caIsConsumed('chantier', c.id)).forEach(c => out.push({ type: 'chantier', id: c.id, otp: c.otp, clientId: c.clientId, designation: c.nom, montant: +c.montantHT || 0 }));
   DB.data.devis.filter(d => d.statut === 'accepte' && !d.horsComptes && otpCompte(d.otp) && !caIsConsumed('devis', d.id) && !devisLies.has(d.id)).forEach(d => out.push({ type: 'devis', id: d.id, otp: d.otp, clientId: d.clientId, designation: d.objet, montant: +d.montantHT || 0 }));
+  // BC réalisés des marchés à bons de commande : imputés à l'OTP du marché
+  DB.data.bcs.filter(b => b.statut === 'realise' && !caIsConsumed('bc', b.id)).forEach(b => { const mc = marcheById(b.marcheId);
+    if (mc && otpCompte(mc.otp)) out.push({ type: 'bc', id: b.id, otp: mc.otp, clientId: mc.clientId, designation: bcLibelle(b), montant: +b.montantHT || 0 }); });
   return out;
 }
 function caPicker() {
@@ -4266,14 +4295,14 @@ function caPicker() {
   const sansOtp = DB.data.chantiers.filter(c => chantierFacturable(c) && c.statut !== 'perdu' && !c.otp && !caIsConsumed('chantier', c.id)).length
     + DB.data.devis.filter(d => d.statut === 'accepte' && !d.horsComptes && !d.otp && !caIsConsumed('devis', d.id)).length;
   const m = modal({ title: 'Clôture de fin de mois — affaires à mettre en CA', wide: true,
-    body: `<p class="t-muted" style="margin-top:0">Sélectionnez les chantiers dont la <b>mise en facturation est autorisée</b> (section Chantiers) et les devis <b>acceptés</b> à mettre en facturation. Seul le <b>montant</b> de chaque affaire est imputé à son OTP : les matériaux, le matériel et la main d'œuvre restent suivis dans les sections <b>Achats fournisseurs</b> et <b>Planning &amp; pointages</b>.</p>
+    body: `<p class="t-muted" style="margin-top:0">Sélectionnez les chantiers dont la <b>mise en facturation est autorisée</b> (section Chantiers), les devis <b>acceptés</b> et les <b>bons de commande réalisés</b> à mettre en facturation. Seul le <b>montant</b> de chaque affaire est imputé à son OTP : les matériaux, le matériel et la main d'œuvre restent suivis dans les sections <b>Achats fournisseurs</b> et <b>Planning &amp; pointages</b>.</p>
     <div class="form-grid" style="max-width:360px">
       <div class="field"><label>Mois</label><select id="p-mois">${MOIS.map((mm, i) => `<option value="${i}" ${i === caMonth ? 'selected' : ''}>${mm}</option>`).join('')}</select></div>
       <div class="field"><label>Année</label><input id="p-annee" type="number" value="${caYear}"></div>
     </div>
     ${sansOtp ? `<p class="t-muted" style="margin:10px 0 0">${sansOtp} affaire(s) sans code OTP ignorée(s) : renseignez l'OTP (Chantiers / Devis) pour pouvoir la mettre en facturation.</p>` : ''}
     ${cand.length ? `<div class="table-wrap" style="margin-top:14px"><table><thead><tr><th><input type="checkbox" id="p-all"></th><th>Type</th><th>OTP</th><th>Désignation</th><th class="num">Montant HT imputé</th></tr></thead>
-      <tbody>${cand.map((c, i) => `<tr><td><input type="checkbox" class="p-chk" data-i="${i}" checked></td><td><span class="badge ${c.type === 'chantier' ? 'b-receptionne' : 'b-accepte'}">${c.type === 'chantier' ? 'Chantier' : 'Devis accepté'}</span></td><td class="t-strong">${esc(c.otp || '—')}</td><td>${esc(c.designation)}</td><td class="num">${eur(c.montant)}</td></tr>`).join('')}</tbody></table></div>
+      <tbody>${cand.map((c, i) => `<tr><td><input type="checkbox" class="p-chk" data-i="${i}" checked></td><td><span class="badge ${c.type === 'chantier' ? 'b-receptionne' : c.type === 'bc' ? 'b-commande' : 'b-accepte'}">${c.type === 'chantier' ? 'Chantier' : c.type === 'bc' ? 'Bon de commande' : 'Devis accepté'}</span></td><td class="t-strong">${esc(c.otp || '—')}</td><td>${esc(c.designation)}</td><td class="num">${eur(c.montant)}</td></tr>`).join('')}</tbody></table></div>
       <div class="field inline" style="margin-top:12px"><input type="checkbox" id="p-fact"><label for="p-fact" style="cursor:pointer">Créer aussi les factures correspondantes (statut « à émettre »)</label></div>`
       : `<div class="empty" style="padding:30px"><div class="em-ico">${icon('checkSquare')}</div><h3>Aucune affaire disponible</h3><div>Cochez « Autoriser la mise en facturation » sur un chantier (section Chantiers) ou acceptez un devis pour le voir apparaître ici.</div></div>`}`,
     footer: cand.length ? `<button class="btn" data-c>Annuler</button><button class="btn primary" id="p-go">Ajouter au CA du mois</button>` : `<button class="btn" data-c>Fermer</button>` });
@@ -4288,7 +4317,8 @@ function caPicker() {
     chosen.forEach(c => {
       const caId = uid();
       DB.data.ca.unshift({ id: caId, mois, annee, otp: c.otp || '', chantier: c.designation, prixVente: c.montant, fournitures: 0, engins: 0, moSmac: 0, sourceType: c.type, sourceId: c.id });
-      if (withFact) DB.data.factures.unshift({ id: uid(), sourceCaId: caId, num: '', otp: c.otp || '', clientId: c.clientId || '', client: clientNom(c.clientId) === '—' ? '' : clientNom(c.clientId), chantierId: c.type === 'chantier' ? c.id : '', objet: c.designation, dateFG: todayISO(), dateEmission: '', montantHT: c.montant, echeanceJours: DB.data.objectifs.delaiPaiement, datePaiement: '', statut: 'a_emettre' });
+      if (withFact && c.type === 'bc') { const bc = DB.data.bcs.find(x => x.id === c.id), f = bc && facturerBc(bc); if (f) f.sourceCaId = caId; }   // 1 BC = 1 facture, jamais en double
+      else if (withFact) DB.data.factures.unshift({ id: uid(), sourceCaId: caId, num: '', otp: c.otp || '', clientId: c.clientId || '', client: clientNom(c.clientId) === '—' ? '' : clientNom(c.clientId), chantierId: c.type === 'chantier' ? c.id : '', objet: c.designation, dateFG: todayISO(), dateEmission: '', montantHT: c.montant, echeanceJours: DB.data.objectifs.delaiPaiement, datePaiement: '', statut: 'a_emettre' });
     });
     caMonth = mois; caYear = annee; syncPeriode('ca'); DB.save(); m.close(); toast(chosen.length + ' affaire(s) ajoutée(s) au CA' + (withFact ? ' + factures créées' : '')); go('ca');
   };
@@ -5427,7 +5457,7 @@ function renderClients(v) {
 }
 function clientForm(id) {
   const c = id ? DB.data.clients.find(x => x.id === id) : { nom: '', type: 'Privé', contact: '', tel: '', email: '', adresse: '', notes: '' };
-  const types = ['Privé', 'Syndic', 'Public', 'Grand compte', 'Industriel', 'Promoteur'];
+  const types = ['Privé', 'Syndic', 'Bailleur social', 'Public', 'Grand compte', 'Industriel', 'Promoteur'];
   const m = modal({ title: id ? 'Modifier le client' : 'Nouveau client',
     body: `<div class="form-grid">
       <div class="field full"><label>Raison sociale / Nom</label><input id="f-nom" value="${esc(c.nom)}"></div>
@@ -5688,6 +5718,293 @@ function visiteForm(id, contratId) {
     if (id) Object.assign(vz, obj); else DB.data.visites.unshift({ id: uid(), ...obj });
     DB.save(); m.close(); toast('Visite enregistrée'); entretienTab = 'visites'; go('entretien');
   };
+}
+
+/* ---------- Marchés à bons de commande (bailleurs sociaux…) ----------
+   Un marché porte un BPU (bordereau de prix unitaires) et reçoit de nombreux
+   bons de commande (BC) : petites interventions (recherche de fuite, entretien,
+   dépannage). Chaque BC réalisé donne lieu à SA facture (1 BC = 1 facture). */
+const NATURES_BC = ['Recherche de fuite', 'Entretien', 'Dépannage / réparation', 'Mise en sécurité', 'Autre'];
+const STATUTS_BC = { recu: 'Reçu', planifie: 'Planifié', realise: 'Réalisé', annule: 'Annulé' };
+const marcheById = id => DB.data.marches.find(m => m.id === id);
+const bcFacture = bc => bc.factureId ? DB.data.factures.find(f => f.id === bc.factureId) : null;
+const bcTotal = l => Math.round((l || []).reduce((s, x) => s + (+x.qte || 0) * (+x.pu || 0), 0) * 100) / 100;
+const bcEnRetard = bc => ['recu', 'planifie'].includes(bc.statut) && !!bc.dateLimite && bc.dateLimite < todayISO();
+const bcAFacturer = bc => bc.statut === 'realise' && !bcFacture(bc);
+const bcLibelle = bc => [(/^bc/i.test(bc.num || '') ? '' : 'BC ') + (bc.num || '—'), bc.nature, [bc.residence, bc.logement].filter(Boolean).join(' ')].filter(Boolean).join(' — ');
+/* Montant engagé sur un marché : tous les BC non annulés */
+const marcheConsomme = id => DB.data.bcs.filter(b => b.marcheId === id && b.statut !== 'annule').reduce((s, b) => s + (+b.montantHT || 0), 0);
+function bcBadge(bc) {
+  if (bc.statut === 'annule') return `<span class="badge b-perdu">Annulé</span>`;
+  const f = bcFacture(bc);
+  if (f) return f.statut === 'payee' ? `<span class="badge b-accepte">Payé</span>` : `<span class="badge b-envoye">Facturé${f.statut === 'a_emettre' ? ' (à émettre)' : ''}</span>`;
+  if (bc.statut === 'realise') return `<span class="badge b-relance">Réalisé — à facturer</span>`;
+  if (bcEnRetard(bc)) return `<span class="badge b-perdu">${STATUTS_BC[bc.statut]} (hors délai)</span>`;
+  return `<span class="badge ${bc.statut === 'planifie' ? 'b-commande' : 'b-attente'}">${STATUTS_BC[bc.statut]}</span>`;
+}
+/* Crée la facture « à émettre » d'un BC réalisé et l'y rattache */
+function facturerBc(bc) {
+  if (bcFacture(bc)) return null;
+  const mc = marcheById(bc.marcheId) || {};
+  const cn = clientNom(mc.clientId);
+  const f = { id: uid(), bcId: bc.id, num: '', otp: mc.otp || '', clientId: mc.clientId || '', client: cn === '—' ? '' : cn, chantierId: '',
+    objet: bcLibelle(bc),
+    dateFG: bc.dateIntervention || todayISO(), dateEmission: '', montantHT: +bc.montantHT || 0, echeanceJours: +mc.echeanceJours || DB.data.objectifs.delaiPaiement, datePaiement: '', statut: 'a_emettre' };
+  DB.data.factures.unshift(f);
+  bc.factureId = f.id;
+  return f;
+}
+/* « 12,50 € » / « 1 250,5 » → 1250.5 */
+const parseNombreFr = s => +String(s ?? '').replace(/[\s  €]/g, '').replace(',', '.') || 0;
+
+let marchesTab = 'bcs';
+let bcFilter = { q: '', marche: '', statut: '' };
+function renderMarches(v) {
+  const bcs = DB.data.bcs, marches = DB.data.marches;
+  const enCours = bcs.filter(b => ['recu', 'planifie'].includes(b.statut));
+  const retard = enCours.filter(bcEnRetard);
+  const aFact = bcs.filter(bcAFacturer);
+  const yr = new Date().getFullYear();
+  const factAn = bcs.map(bcFacture).filter(f => f && (f.dateFG || '').startsWith(String(yr))).reduce((s, f) => s + (+f.montantHT || 0), 0);
+  const head = `
+    <p class="t-muted" style="margin-top:-2px;max-width:860px">Pour les clients en <b>marché à bons de commande</b> (bailleurs sociaux…) : chaque marché porte son <b>BPU</b>, chaque <b>BC</b> se chiffre en piochant dans le BPU, et un BC réalisé se facture en un clic (<b>1 BC = 1 facture</b>, sur l'OTP du marché).</p>
+    <div class="kpi-grid">
+      <div class="kpi ${bcFilter.statut === 'encours' ? 'on' : ''}" data-bstat="encours" style="cursor:pointer"><div class="kpi-top"><span class="kpi-label">BC en cours</span><span class="kpi-ico">${icon('wrench')}</span></div><div class="kpi-value">${enCours.length}</div><div class="kpi-sub">Reçus ou planifiés</div></div>
+      <div class="kpi ${bcFilter.statut === 'retard' ? 'on' : ''}" data-bstat="retard" style="cursor:pointer"><div class="kpi-top"><span class="kpi-label">Hors délai</span><span class="kpi-ico ${retard.length ? 'red' : 'green'}">${icon('alert')}</span></div><div class="kpi-value">${retard.length}</div><div class="kpi-sub">Délai d'intervention dépassé</div></div>
+      <div class="kpi ${bcFilter.statut === 'afacturer' ? 'on' : ''}" data-bstat="afacturer" style="cursor:pointer"><div class="kpi-top"><span class="kpi-label">Réalisés à facturer</span><span class="kpi-ico ${aFact.length ? 'amber' : 'green'}">${icon('receipt')}</span></div><div class="kpi-value">${eur(aFact.reduce((s, b) => s + (+b.montantHT || 0), 0))}</div><div class="kpi-sub">${aFact.length} BC</div></div>
+      <div class="kpi"><div class="kpi-top"><span class="kpi-label">Facturé ${yr}</span><span class="kpi-ico green">${icon('euro')}</span></div><div class="kpi-value">${eur(factAn)}</div><div class="kpi-sub">Sur BC</div></div>
+    </div>
+    <div class="pill-tabs"><button data-tab="bcs" class="${marchesTab === 'bcs' ? 'active' : ''}">Bons de commande</button><button data-tab="marches" class="${marchesTab === 'marches' ? 'active' : ''}">Marchés & BPU</button></div>`;
+  let body;
+  if (marchesTab === 'bcs') {
+    const list = bcs.filter(b => {
+      if (bcFilter.marche && b.marcheId !== bcFilter.marche) return false;
+      if (bcFilter.statut === 'encours' && !['recu', 'planifie'].includes(b.statut)) return false;
+      if (bcFilter.statut === 'retard' && !bcEnRetard(b)) return false;
+      if (bcFilter.statut === 'afacturer' && !bcAFacturer(b)) return false;
+      if (bcFilter.statut === 'facture' && !bcFacture(b)) return false;
+      if (bcFilter.q) { const s = [b.num, b.nature, b.residence, b.adresse, b.logement, b.locataire, (marcheById(b.marcheId) || {}).ref].join(' ').toLowerCase(); if (!s.includes(bcFilter.q.toLowerCase())) return false; }
+      return true;
+    }).sort((a, b) => (b.dateBC || '').localeCompare(a.dateBC || ''));
+    const multi = marches.length > 1;
+    body = `<div class="page-actions"><button class="btn primary" id="add-bc" ${marches.length ? '' : 'disabled title="Créez d\'abord un marché"'}>${icon('plus')} Nouveau BC</button>
+      ${aFact.length ? `<button class="btn" id="fact-all">${icon('receipt')} Facturer les ${aFact.length} BC réalisés</button>` : ''}
+      <span class="spacer"></span><button class="btn small" id="csv">${icon('download')} Excel</button></div>
+    <div class="filters"><span class="search-wrap">${icon('search')}<input id="q" placeholder="Rechercher (n° BC, résidence, logement, locataire…)" value="${esc(bcFilter.q)}"></span>
+      <select id="fm"><option value="">Tous les marchés</option>${marches.map(m => `<option value="${m.id}" ${bcFilter.marche === m.id ? 'selected' : ''}>${esc(m.ref || m.intitule)}</option>`).join('')}</select>
+      <select id="fs"><option value="">Tous les BC</option>${[['encours', 'En cours'], ['retard', 'Hors délai'], ['afacturer', 'Réalisés à facturer'], ['facture', 'Facturés']].map(([k, l]) => `<option value="${k}" ${bcFilter.statut === k ? 'selected' : ''}>${l}</option>`).join('')}</select>
+      <span class="chip">${list.length} BC</span></div>
+    ${list.length ? `<div class="table-wrap"><table><thead><tr><th>N° BC / nature</th>${multi ? '<th>Marché</th>' : ''}<th>Date BC</th><th class="wrap">Résidence / logement</th><th>À réaliser avant</th><th class="num">Montant HT</th><th>Statut</th><th></th></tr></thead>
+      <tbody>${list.map(b => { const mc = marcheById(b.marcheId); return `<tr><td class="t-strong"><span class="link" data-edit="${b.id}">${esc(b.num || '—')}</span><div class="t-muted" style="font-size:12px;font-weight:400">${esc(b.nature || '')}</div></td>${multi ? `<td><span class="chip">${esc(mc ? mc.ref || mc.intitule : '—')}</span></td>` : ''}<td>${fmtDate(b.dateBC)}</td>
+        <td class="wrap">${esc([b.residence, b.logement].filter(Boolean).join(' — ') || '—')}${b.locataire ? `<div class="t-muted" style="font-size:12px">${esc(b.locataire)}${b.telLocataire ? ' · ' + esc(b.telLocataire) : ''}</div>` : ''}</td>
+        <td class="${bcEnRetard(b) ? 'deadline-late' : ''}">${fmtDate(b.dateLimite)}${b.dateIntervention ? `<div class="t-muted" style="font-size:12px">Fait le ${fmtDate(b.dateIntervention)}</div>` : ''}</td><td class="num">${eur2(+b.montantHT || 0)}</td><td>${bcBadge(b)}</td>
+        <td class="actions-cell">${['recu', 'planifie'].includes(b.statut) ? `<button class="icon-btn" data-done="${b.id}" title="Marquer réalisé aujourd'hui">${icon('check')}</button>` : ''}${bcAFacturer(b) ? `<button class="icon-btn" data-fact="${b.id}" title="Facturer ce BC">${icon('receipt')}</button>` : ''}<button class="icon-btn" data-print="${b.id}" title="Attachement / bon d'intervention (PDF)">${icon('file')}</button><button class="icon-btn" data-edit="${b.id}" title="Modifier">${icon('edit')}</button><button class="icon-btn danger" data-del="${b.id}" title="Supprimer">${icon('trash')}</button></td></tr>`; }).join('')}</tbody>
+      <tfoot><tr><td colspan="${multi ? 5 : 4}">Total affiché</td><td class="num">${eur2(list.reduce((s, b) => s + (+b.montantHT || 0), 0))}</td><td colspan="2"></td></tr></tfoot></table></div>`
+      : emptyState('wrench', 'Aucun bon de commande', marches.length ? 'Saisissez les BC reçus du bailleur : ils se chiffrent depuis le BPU du marché.' : 'Créez d\'abord un marché (onglet « Marchés & BPU ») avec son bordereau de prix.')}`;
+  } else {
+    body = `<div class="page-actions"><button class="btn primary" id="add-m">${icon('plus')} Nouveau marché</button></div>
+    ${marches.length ? `<div class="table-wrap"><table><thead><tr><th>Réf.</th><th class="wrap">Intitulé / période</th><th>Client</th><th>OTP</th><th class="num">BPU</th><th class="num">BC</th><th class="num">Engagé / maximum HT</th><th></th></tr></thead>
+      <tbody>${marches.map(m => { const cons = marcheConsomme(m.id), max = +m.montantMax || 0, p = max ? Math.round(cons / max * 100) : 0; return `<tr><td class="t-strong">${esc(m.ref || '—')}</td><td class="wrap">${esc(m.intitule || '—')}<div class="t-muted" style="font-size:12px">${fmtDate(m.dateDebut)} → ${fmtDate(m.dateFin)}</div></td><td>${esc(clientNom(m.clientId))}</td><td><span class="chip">${esc(m.otp || '—')}</span></td>
+        <td class="num">${(m.bpu || []).length} prix</td><td class="num">${DB.data.bcs.filter(b => b.marcheId === m.id).length}</td>
+        <td class="num">${eur(cons)}${max ? ` <span class="t-muted">/ ${eur(max)} · ${p} %</span><div class="progress ${p >= 90 ? 'amber' : 'green'}" style="margin-top:4px"><i style="width:${Math.min(100, p)}%"></i></div>` : ''}</td>
+        <td class="actions-cell"><button class="icon-btn" data-bcm="${m.id}" title="Voir les BC de ce marché">${icon('layers')}</button><button class="icon-btn" data-editm="${m.id}" title="Modifier le marché et son BPU">${icon('edit')}</button><button class="icon-btn danger" data-delm="${m.id}" title="Supprimer">${icon('trash')}</button></td></tr>`; }).join('')}</tbody></table></div>`
+      : emptyState('book', 'Aucun marché', 'Créez un marché à bons de commande et collez son BPU depuis Excel.')}`;
+  }
+  v.innerHTML = head + body;
+  $$('[data-tab]', v).forEach(b => b.onclick = () => { marchesTab = b.dataset.tab; renderMarches(v); });
+  $$('[data-bstat]', v).forEach(k => k.onclick = () => { bcFilter.statut = bcFilter.statut === k.dataset.bstat ? '' : k.dataset.bstat; marchesTab = 'bcs'; renderMarches(v); });
+  if (marchesTab === 'bcs') {
+    if (marches.length) $('#add-bc').onclick = () => bcForm(null, bcFilter.marche);
+    $('#q').oninput = e => { bcFilter.q = e.target.value; renderMarches(v); const i = $('#q'); i.focus(); i.setSelectionRange(i.value.length, i.value.length); };
+    $('#fm').onchange = e => { bcFilter.marche = e.target.value; renderMarches(v); };
+    $('#fs').onchange = e => { bcFilter.statut = e.target.value; renderMarches(v); };
+    if ($('#fact-all')) $('#fact-all').onclick = () => confirmDialog(`Créer ${aFact.length} facture(s) « à émettre » (une par BC réalisé) ?`, () => { aFact.forEach(facturerBc); DB.save(); toast(aFact.length + ' facture(s) créée(s) — voir Facturation'); renderMarches(v); }, 'Facturer');
+    $('#csv').onclick = () => exportXlsx('bons_de_commande', ['num_bc', 'marche', 'otp', 'date_bc', 'nature', 'residence', 'logement', 'locataire', 'date_limite', 'date_intervention', 'montantHT', 'statut', 'facture'],
+      bcs.map(b => { const mc = marcheById(b.marcheId) || {}, f = bcFacture(b); return [b.num, mc.ref || mc.intitule || '', mc.otp || '', b.dateBC, b.nature, b.residence, b.logement, b.locataire, b.dateLimite, b.dateIntervention, +b.montantHT || 0, STATUTS_BC[b.statut], f ? (f.num || STATUTS_FACT[f.statut]) : '']; }), { sheet: 'BC', money: ['montantHT'] });
+    $$('[data-edit]', v).forEach(b => b.onclick = () => bcForm(b.dataset.edit));
+    $$('[data-print]', v).forEach(b => b.onclick = () => imprimerBc(DB.data.bcs.find(x => x.id === b.dataset.print)));
+    $$('[data-done]', v).forEach(b => b.onclick = () => { const bc = DB.data.bcs.find(x => x.id === b.dataset.done); bc.statut = 'realise'; if (!bc.dateIntervention) bc.dateIntervention = todayISO(); DB.save(); toast('BC réalisé — pensez à le facturer'); renderMarches(v); });
+    $$('[data-fact]', v).forEach(b => b.onclick = () => { const bc = DB.data.bcs.find(x => x.id === b.dataset.fact); if (facturerBc(bc)) { DB.save(); toast('Facture créée (à émettre) — voir Facturation'); } renderMarches(v); });
+    $$('[data-del]', v).forEach(b => b.onclick = () => confirmDialog('Supprimer ce bon de commande ? (sa facture éventuelle est conservée)', () => { DB.data.bcs = DB.data.bcs.filter(x => x.id !== b.dataset.del); DB.save(); toast('BC supprimé'); renderMarches(v); }));
+  } else {
+    $('#add-m').onclick = () => marcheForm();
+    $$('[data-editm]', v).forEach(b => b.onclick = () => marcheForm(b.dataset.editm));
+    $$('[data-bcm]', v).forEach(b => b.onclick = () => { bcFilter = { q: '', marche: b.dataset.bcm, statut: '' }; marchesTab = 'bcs'; renderMarches(v); });
+    $$('[data-delm]', v).forEach(b => {
+      const n = DB.data.bcs.filter(x => x.marcheId === b.dataset.delm).length;
+      b.onclick = () => n ? toast(`Ce marché a ${n} BC : supprimez-les d'abord`, 'err')
+        : confirmDialog('Supprimer ce marché et son BPU ?', () => { DB.data.marches = DB.data.marches.filter(x => x.id !== b.dataset.delm); DB.save(); toast('Marché supprimé'); renderMarches(v); });
+    });
+  }
+}
+
+const bpuRow = l => `<tr class="bpu-l">
+    <td><input data-p="code" value="${esc(l.code || '')}" placeholder="Code"></td>
+    <td><input data-p="designation" value="${esc(l.designation || '')}" placeholder="Désignation du prix"></td>
+    <td><input data-p="unite" value="${esc(l.unite || '')}" placeholder="u"></td>
+    <td class="num"><input data-p="pu" type="number" step="any" value="${l.pu || ''}"></td>
+    <td class="xls-act"><button class="icon-btn danger" data-prm title="Retirer">${icon('trash')}</button></td></tr>`;
+function marcheForm(id) {
+  const mc = id ? marcheById(id) : { ref: '', intitule: '', clientId: '', otp: '', dateDebut: todayISO(), dateFin: addDays(todayISO(), 365), montantMin: 0, montantMax: 0, coef: 1, delaiJours: 3, echeanceJours: DB.data.objectifs.delaiPaiement, notes: '', bpu: [] };
+  const clOpts = DB.data.clients.map(c => `<option value="${c.id}" ${mc.clientId === c.id ? 'selected' : ''}>${esc(c.nom)}${c.type ? ' (' + esc(c.type) + ')' : ''}</option>`).join('');
+  const m = modal({ title: id ? 'Modifier le marché' : 'Nouveau marché à bons de commande', wide: true,
+    body: `<div class="form-grid">
+      <div class="field"><label>N° / réf. du marché</label><input id="m-ref" value="${esc(mc.ref)}" placeholder="Ex. 2025-ETAN-03"></div>
+      <div class="field"><label>Client (bailleur)</label><select id="m-client"><option value="">— Aucun —</option>${clOpts}</select></div>
+      <div class="field full"><label>Intitulé</label><input id="m-int" value="${esc(mc.intitule)}" placeholder="Entretien et recherche de fuites — toitures terrasses"></div>
+      <div class="field"><label>N° OTP (imputation CA / factures)</label><input id="m-otp" value="${esc(mc.otp)}" list="m-otplist" placeholder="OTP…"><datalist id="m-otplist">${otpDistinct().map(o => `<option value="${esc(o)}">`).join('')}</datalist></div>
+      <div class="field"><label>Délai d'intervention par défaut (jours)</label><input id="m-delai" type="number" value="${mc.delaiJours ?? 3}"></div>
+      <div class="field"><label>Début</label><input id="m-deb" type="date" value="${mc.dateDebut || ''}"></div>
+      <div class="field"><label>Fin (reconductions comprises)</label><input id="m-fin" type="date" value="${mc.dateFin || ''}"></div>
+      <div class="field"><label>Montant minimum HT (€)</label><input id="m-min" type="number" value="${mc.montantMin || 0}"></div>
+      <div class="field"><label>Montant maximum HT (€)</label><input id="m-max" type="number" value="${mc.montantMax || 0}"></div>
+      <div class="field"><label>Coefficient de révision des prix</label><input id="m-coef" type="number" step="0.0001" value="${mc.coef || 1}" title="Appliqué aux prix du BPU lors du chiffrage des nouveaux BC"></div>
+      <div class="field"><label>Échéance de paiement (jours)</label><input id="m-ech" type="number" value="${mc.echeanceJours || DB.data.objectifs.delaiPaiement}"></div>
+      <div class="field full"><label>Notes</label><textarea id="m-notes" rows="2">${esc(mc.notes)}</textarea></div>
+    </div>
+    <div class="card-title" style="margin:16px 0 4px">BPU — bordereau de prix unitaires <span class="chip" id="m-nb"></span></div>
+    <p class="t-muted" style="margin:0 0 8px;font-size:12px">Collez directement les colonnes <b>Code · Désignation · Unité · PU HT</b> copiées depuis Excel, ou saisissez les prix ligne à ligne.</p>
+    <details style="margin-bottom:8px"><summary class="link" style="cursor:pointer">${icon('upload')} Coller le BPU depuis Excel</summary>
+      <textarea id="m-paste" rows="5" style="width:100%;margin-top:6px;font-family:monospace;font-size:12px" placeholder="F01&#9;Recherche de fuite toiture terrasse&#9;u&#9;180,00"></textarea>
+      <div style="display:flex;gap:8px;margin-top:6px"><button class="btn small" id="m-imp-add">Ajouter au BPU</button><button class="btn small" id="m-imp-rep">Remplacer le BPU</button></div></details>
+    <div class="table-wrap" style="box-shadow:none;max-height:340px;overflow:auto"><table class="xls">
+      <colgroup><col style="width:90px"><col style="width:auto"><col style="width:62px"><col style="width:104px"><col style="width:38px"></colgroup>
+      <tbody><tr class="xls-colhead"><td>Code</td><td>Désignation</td><td>Uni.</td><td class="num">PU HT</td><td class="xls-act"><button class="icon-btn" id="m-add" title="Ajouter un prix">${icon('plus')}</button></td></tr></tbody>
+      <tbody id="m-bpu">${(mc.bpu || []).map(bpuRow).join('')}</tbody></table></div>`,
+    footer: `<button class="btn" data-c>Annuler</button><button class="btn primary" id="save">Enregistrer</button>` });
+  m.root.querySelector('[data-c]').onclick = m.close;
+  const lignes = () => $$('.bpu-l', m.root).map(tr => { const g = f => tr.querySelector(`[data-p="${f}"]`).value;
+    return { code: g('code').trim(), designation: g('designation').trim(), unite: g('unite').trim(), pu: +g('pu') || 0 }; }).filter(l => l.code || l.designation);
+  const maj = () => { $('#m-nb').textContent = lignes().length + ' prix'; };
+  const bind = tr => { tr.querySelectorAll('input').forEach(i => i.oninput = maj); tr.querySelector('[data-prm]').onclick = () => { tr.remove(); maj(); }; };
+  const ajouter = ls => { const tmp = document.createElement('tbody'); tmp.innerHTML = ls.map(bpuRow).join(''); [...tmp.children].forEach(tr => { $('#m-bpu').appendChild(tr); bind(tr); }); maj(); };
+  $$('.bpu-l', m.root).forEach(bind);
+  $('#m-add').onclick = () => { ajouter([{}]); const l = $$('.bpu-l', m.root).pop(); l.querySelector('input').focus(); };
+  const importer = remplacer => {
+    const ls = $('#m-paste').value.split(/\r?\n/).map(r => r.split('\t').map(c => c.trim())).filter(c => c.some(Boolean))
+      .map(c => c.length >= 4 ? { code: c[0], designation: c[1], unite: c[2], pu: parseNombreFr(c[3]) } : c.length === 3 ? { code: '', designation: c[0], unite: c[1], pu: parseNombreFr(c[2]) } : { code: c[0] || '', designation: c[1] || '', unite: '', pu: 0 })
+      .filter(l => (l.code || l.designation) && !/^(code|désignation|designation)$/i.test(l.code || l.designation));  // ligne d'en-tête ignorée
+    if (!ls.length) { toast('Rien à importer : collez des colonnes séparées par des tabulations (copie Excel)', 'err'); return; }
+    if (remplacer) $('#m-bpu').innerHTML = '';
+    ajouter(ls); $('#m-paste').value = ''; toast(ls.length + ' prix importé(s)');
+  };
+  $('#m-imp-add').onclick = () => importer(false);
+  $('#m-imp-rep').onclick = () => importer(true);
+  maj();
+  $('#save').onclick = () => {
+    const obj = { ref: $('#m-ref').value.trim(), intitule: $('#m-int').value.trim(), clientId: $('#m-client').value, otp: $('#m-otp').value.trim(), dateDebut: $('#m-deb').value, dateFin: $('#m-fin').value,
+      montantMin: +$('#m-min').value || 0, montantMax: +$('#m-max').value || 0, coef: +$('#m-coef').value || 1, delaiJours: +$('#m-delai').value || 0, echeanceJours: +$('#m-ech').value || DB.data.objectifs.delaiPaiement, notes: $('#m-notes').value.trim(), bpu: lignes() };
+    if (!obj.ref && !obj.intitule) { toast('Renseignez la référence ou l\'intitulé du marché', 'err'); return; }
+    if (id) Object.assign(mc, obj); else DB.data.marches.unshift({ id: uid(), ...obj });
+    DB.save(); m.close(); toast('Marché enregistré'); marchesTab = 'marches'; go('marches');
+  };
+}
+
+const bcLigneRow = l => `<tr class="bc-l">
+    <td><input data-p="code" value="${esc(l.code || '')}" list="bc-bpulist" placeholder="Code BPU"></td>
+    <td><input data-p="designation" value="${esc(l.designation || '')}" placeholder="Désignation"></td>
+    <td class="num"><input data-p="qte" type="number" step="any" value="${l.qte || ''}"></td>
+    <td><input data-p="unite" value="${esc(l.unite || '')}" placeholder="u"></td>
+    <td class="num"><input data-p="pu" type="number" step="any" value="${l.pu || ''}"></td>
+    <td class="num tot"></td>
+    <td class="xls-act"><button class="icon-btn danger" data-prm title="Retirer">${icon('trash')}</button></td></tr>`;
+function bcForm(id, marcheId) {
+  const b = id ? DB.data.bcs.find(x => x.id === id) : { marcheId: marcheId || (DB.data.marches[0] || {}).id || '', num: '', dateBC: todayISO(), nature: NATURES_BC[0], residence: '', adresse: '', logement: '', locataire: '', telLocataire: '', dateLimite: '', dateIntervention: '', equipeId: '', statut: 'recu', constat: '', lignes: [] };
+  const mOpts = DB.data.marches.map(mc => `<option value="${mc.id}" ${b.marcheId === mc.id ? 'selected' : ''}>${esc([mc.ref, mc.intitule].filter(Boolean).join(' — '))}</option>`).join('');
+  const eqOpts = DB.data.equipes.map(e => `<option value="${e.id}" ${b.equipeId === e.id ? 'selected' : ''}>${esc(e.nom)}${e.chef ? ' — ' + esc(e.chef) : ''}</option>`).join('');
+  const f = id ? bcFacture(b) : null;
+  const m = modal({ title: id ? 'Bon de commande ' + (b.num || '') : 'Nouveau bon de commande', wide: true,
+    body: `<div class="form-grid">
+      <div class="field full"><label>Marché</label><select id="b-m">${mOpts}</select></div>
+      <div class="field"><label>N° de BC</label><input id="b-num" value="${esc(b.num)}" placeholder="N° du bon du bailleur"></div>
+      <div class="field"><label>Nature</label><select id="b-nat">${NATURES_BC.map(n => `<option ${b.nature === n ? 'selected' : ''}>${n}</option>`).join('')}</select></div>
+      <div class="field"><label>Date du BC</label><input id="b-dbc" type="date" value="${b.dateBC || ''}"></div>
+      <div class="field"><label>À réaliser avant le</label><input id="b-lim" type="date" value="${b.dateLimite || ''}"></div>
+      <div class="field"><label>Résidence / groupe</label><input id="b-res" value="${esc(b.residence)}" placeholder="Résidence Les Tilleuls"></div>
+      <div class="field"><label>Bâtiment / logement</label><input id="b-log" value="${esc(b.logement)}" placeholder="Bât. B — log. 24, 3e ét."></div>
+      <div class="field full"><label>Adresse</label><input id="b-adr" value="${esc(b.adresse)}"></div>
+      <div class="field"><label>Locataire / contact sur place</label><input id="b-loc" value="${esc(b.locataire)}"></div>
+      <div class="field"><label>Téléphone</label><input id="b-tel" value="${esc(b.telLocataire)}"></div>
+      <div class="field"><label>Statut</label><select id="b-st">${Object.entries(STATUTS_BC).map(([k, l]) => `<option value="${k}" ${b.statut === k ? 'selected' : ''}>${l}</option>`).join('')}</select></div>
+      <div class="field"><label>Date d'intervention</label><input id="b-dint" type="date" value="${b.dateIntervention || ''}"></div>
+      <div class="field"><label>Équipe</label><select id="b-eq"><option value="">—</option>${eqOpts}</select></div>
+      <div class="field full"><label>Constat / travaux réalisés</label><textarea id="b-const" rows="3" placeholder="Origine de la fuite, travaux effectués, préconisations…">${esc(b.constat)}</textarea></div>
+    </div>
+    <div class="card-title" style="margin:16px 0 4px">Chiffrage sur BPU <span class="chip" id="b-coef"></span></div>
+    <p class="t-muted" style="margin:0 0 8px;font-size:12px">Tapez le code (ou un mot) du prix : la désignation, l'unité et le prix révisé du BPU se remplissent seuls.</p>
+    <datalist id="bc-bpulist"></datalist>
+    <div class="table-wrap" style="box-shadow:none"><table class="xls">
+      <colgroup><col style="width:110px"><col style="width:auto"><col style="width:76px"><col style="width:58px"><col style="width:96px"><col style="width:110px"><col style="width:38px"></colgroup>
+      <tbody><tr class="xls-colhead"><td>Code</td><td>Désignation</td><td class="num">Qté</td><td>Uni.</td><td class="num">PU HT</td><td class="num">Total HT</td><td class="xls-act"><button class="icon-btn" id="b-add" title="Ajouter une ligne">${icon('plus')}</button></td></tr></tbody>
+      <tbody id="b-lignes">${(b.lignes || []).map(bcLigneRow).join('')}</tbody>
+      <tbody><tr class="bte-sub"><td></td><td></td><td colspan="3" class="num">TOTAL HT :</td><td class="num sub" id="b-tot"></td><td></td></tr></tbody></table></div>
+    ${f ? `<p class="t-muted" style="margin:10px 0 0">Facturé : ${esc(f.num || 'facture à émettre')} — ${STATUTS_FACT[f.statut]}. Modifier le chiffrage ne modifie pas la facture déjà créée.</p>` : ''}`,
+    footer: `${id ? `<button class="btn" id="b-print">${icon('file')} Attachement / PDF</button>` : ''}<span class="spacer"></span><button class="btn" data-c>Annuler</button><button class="btn primary" id="save">Enregistrer</button>` });
+  m.root.querySelector('[data-c]').onclick = m.close;
+  const marche = () => marcheById($('#b-m').value) || { bpu: [], coef: 1 };
+  const prixRevise = pu => Math.round((+pu || 0) * (+marche().coef || 1) * 100) / 100;
+  const majMarche = () => {
+    const mc = marche();
+    $('#bc-bpulist').innerHTML = (mc.bpu || []).map(p => `<option value="${esc(p.code || p.designation)}">${esc((p.code ? p.designation : '') + ' — ' + eur2(prixRevise(p.pu)) + ' / ' + (p.unite || 'u'))}</option>`).join('');
+    $('#b-coef').textContent = (mc.bpu || []).length + ' prix' + ((+mc.coef || 1) !== 1 ? ' · coef. ' + (+mc.coef).toLocaleString('fr-FR', { maximumFractionDigits: 4 }) : '');
+  };
+  const lignes = () => $$('.bc-l', m.root).map(tr => { const g = k => tr.querySelector(`[data-p="${k}"]`).value;
+    return { code: g('code').trim(), designation: g('designation').trim(), unite: g('unite').trim(), qte: +g('qte') || 0, pu: +g('pu') || 0 }; }).filter(l => l.code || l.designation || l.qte || l.pu);
+  const majTot = () => { $$('.bc-l', m.root).forEach(tr => { const g = k => +tr.querySelector(`[data-p="${k}"]`).value || 0; tr.querySelector('.tot').textContent = eur2(g('qte') * g('pu')); }); $('#b-tot').textContent = eur2(bcTotal(lignes())); };
+  const bind = tr => {
+    tr.querySelectorAll('input').forEach(i => i.oninput = majTot);
+    const code = tr.querySelector('[data-p="code"]');
+    code.onchange = () => {
+      const s = code.value.trim().toLowerCase(); if (!s) return;
+      const bpu = marche().bpu || [];
+      const p = bpu.find(x => (x.code || '').toLowerCase() === s) || bpu.find(x => (x.designation || '').toLowerCase() === s) || bpu.find(x => ((x.code || '') + ' ' + (x.designation || '')).toLowerCase().includes(s));
+      if (!p) return;
+      const set = (k, val) => { tr.querySelector(`[data-p="${k}"]`).value = val; };
+      set('code', p.code || ''); set('designation', p.designation || ''); set('unite', p.unite || ''); set('pu', prixRevise(p.pu));
+      const q = tr.querySelector('[data-p="qte"]'); if (!+q.value) q.value = 1;
+      majTot();
+    };
+    tr.querySelector('[data-prm]').onclick = () => { tr.remove(); majTot(); };
+  };
+  const ajouter = () => { const tmp = document.createElement('tbody'); tmp.innerHTML = bcLigneRow({}); const tr = tmp.firstElementChild; $('#b-lignes').appendChild(tr); bind(tr); majTot(); tr.querySelector('input').focus(); };
+  $$('.bc-l', m.root).forEach(bind);
+  $('#b-add').onclick = ajouter;
+  const majLimite = () => { const d = +(marche().delaiJours || 0); if ($('#b-dbc').value && d && !$('#b-lim').dataset.manuel) $('#b-lim').value = addDays($('#b-dbc').value, d); };
+  $('#b-lim').oninput = () => { $('#b-lim').dataset.manuel = '1'; };
+  if (b.dateLimite) $('#b-lim').dataset.manuel = '1';
+  $('#b-dbc').onchange = majLimite;
+  $('#b-m').onchange = () => { majMarche(); majLimite(); };
+  majMarche(); majLimite();
+  if (!id && !(b.lignes || []).length) ajouter();
+  majTot();
+  const lire = () => ({ marcheId: $('#b-m').value, num: $('#b-num').value.trim(), nature: $('#b-nat').value, dateBC: $('#b-dbc').value, dateLimite: $('#b-lim').value, residence: $('#b-res').value.trim(), logement: $('#b-log').value.trim(), adresse: $('#b-adr').value.trim(),
+    locataire: $('#b-loc').value.trim(), telLocataire: $('#b-tel').value.trim(), statut: $('#b-st').value, dateIntervention: $('#b-dint').value, equipeId: $('#b-eq').value, constat: $('#b-const').value.trim(), lignes: lignes() });
+  if (id) $('#b-print').onclick = () => imprimerBc({ ...b, ...lire(), montantHT: bcTotal(lignes()) });
+  $('#save').onclick = () => {
+    const obj = lire();
+    obj.montantHT = bcTotal(obj.lignes);
+    if (!obj.marcheId) { toast('Choisissez le marché', 'err'); return; }
+    if (obj.statut === 'realise' && !obj.dateIntervention) obj.dateIntervention = todayISO();
+    if (id) Object.assign(b, obj); else DB.data.bcs.unshift({ id: uid(), factureId: '', ...obj });
+    DB.save(); m.close(); toast('Bon de commande enregistré'); marchesTab = 'bcs'; go('marches');
+  };
+}
+/* Attachement / bon d'intervention à faire signer et à joindre à la facture */
+function imprimerBc(bc) {
+  if (!bc) return;
+  const mc = marcheById(bc.marcheId) || {}, eq = DB.data.equipes.find(e => e.id === bc.equipeId), l = bc.lignes || [];
+  imprimerDoc('Attachement BC ' + (bc.num || ''), [
+    { k: 'h1', t: "Attachement — bon de commande n° " + (bc.num || '—') },
+    { k: 'kv', rows: [['Client', clientNom(mc.clientId)], ['Marché', [mc.ref, mc.intitule].filter(Boolean).join(' — ') || '—'], ['Nature', bc.nature || '—'], ['Date du BC', fmtDate(bc.dateBC)],
+      ['Résidence / logement', [bc.residence, bc.logement].filter(Boolean).join(' — ') || '—'], ['Adresse', bc.adresse || '—'], ['Locataire / contact', [bc.locataire, bc.telLocataire].filter(Boolean).join(' — ') || '—'],
+      ["Date d'intervention", fmtDate(bc.dateIntervention)], ...(eq ? [['Intervenants', [eq.chef, eq.compagnon].filter(Boolean).join(', ')]] : [])] },
+    { k: 'h2', t: 'Constat / travaux réalisés' },
+    { k: 'p', t: bc.constat || '\n\n' },
+    { k: 'h2', t: 'Quantités réalisées (prix du BPU)' },
+    { k: 'tab', head: ['Code', 'Désignation', 'Qté', 'Unité', 'PU HT', 'Total HT'],
+      rows: [...l.map(x => [x.code || '', x.designation, num(x.qte), x.unite, eur2(x.pu), eur2(x.qte * x.pu)]), ['', 'TOTAL HT', '', '', '', eur2(bcTotal(l))]] },
+    { k: 'sp' },
+    { k: 'tab', head: ["Pour l'entreprise — date et signature", 'Locataire / gardien — date et signature'], rows: [['\n\n\n', '\n\n\n']] }]);
 }
 
 /* ---------- Planning & pointages ---------- */
