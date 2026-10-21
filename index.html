@@ -424,6 +424,7 @@ summary.win-head>.win-ctl{float:right}
 .grid-2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--gap)}
 .grid-3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--gap)}
 /* Deux colonnes seulement quand chacune a la place de respirer */
+.dash-stack{display:grid;grid-template-columns:minmax(0,1fr);gap:var(--gap);margin-bottom:var(--gap)}
 .grid-auto{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,520px),1fr));gap:var(--gap);align-items:start}
 .stat-line{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:9px 0;border-bottom:1px solid var(--border);font-size:13.5px}
 .stat-line:last-child{border-bottom:0}
@@ -3033,17 +3034,10 @@ function renderDashboard(v) {
       <div class="kpi-value">${unitSmall(value)}</div>${bar}<div class="kpi-sub">${sub}</div></div>`;
   };
 
-  // L'essentiel d'abord (chiffres clés, puis ce qui demande une action) ; le reste dans « Détail ».
+  // Empilé, dans l'ordre : to-do, actions prioritaires, chiffres clés ; le reste dans « Détail ».
   v.innerHTML = `
-    <div class="kpi-grid">
-      ${kpi('CA annuel réalisé', eur(caAnnuel), `Objectif ${eur(o.caAnnuel)} · ${caProg}%`, 'euro', '', { val: caAnnuel, max: o.caAnnuel }, 'ca')}
-      ${kpi('Marge brute moyenne', pct(margePct), `Cible indicative ${pct(o.margeCible)}`, 'trend', 'green', { val: margePct, max: o.margeCible }, 'ca')}
-      ${kpi('Devis du mois', devisMois + ' / ' + o.devisMois, MOIS[mo] + ' ' + yr, 'file', '', { val: devisMois, max: o.devisMois }, 'devis')}
-      ${kpi('RDV nouveaux clients', rdvMois + ' / ' + o.rdvMois, MOIS[mo] + ' — prospection', 'phone', rdvMois >= o.rdvMois ? 'green' : 'amber', { val: rdvMois, max: o.rdvMois }, 'prospection')}
-      ${kpi('Carnet de commandes', eur(carnet), 'Commandes + chantiers en cours', 'book', '', null, 'chantiers')}
-      ${kpi('Encours facturé', eur(impayes), impRetard ? impRetard + ' facture(s) en retard' : 'À jour', 'receipt', impRetard ? 'red' : 'green', null, 'factures')}
-    </div>
-    <div class="grid-auto">
+    <div class="dash-stack">
+      <div class="card card-pad" id="todo-card"></div>
       <div class="card card-pad">
         <div class="section-head">${icon('bell')}<h2>Actions prioritaires</h2>${actions.length ? `<span class="spacer"></span><span class="chip">${actions.length}</span>` : ''}</div>
         ${actions.length ? `<div class="alert-list">${actions.slice(0, 9).map(a => `<div class="alert ${a.tone}" data-goto="${a.route}" style="cursor:pointer">
@@ -3052,7 +3046,14 @@ function renderDashboard(v) {
           ${actions.length > 9 ? `<div class="t-muted" style="text-align:center;padding-top:4px">+ ${actions.length - 9} autre(s)</div>` : ''}</div>`
           : `<div class="alert"><span class="a-ico">${icon('check')}</span><div class="a-body">Aucune action en retard. Tout est à jour.</div></div>`}
       </div>
-      <div class="card card-pad" id="todo-card"></div>
+    </div>
+    <div class="kpi-grid">
+      ${kpi('CA annuel réalisé', eur(caAnnuel), `Objectif ${eur(o.caAnnuel)} · ${caProg}%`, 'euro', '', { val: caAnnuel, max: o.caAnnuel }, 'ca')}
+      ${kpi('Marge brute moyenne', pct(margePct), `Cible indicative ${pct(o.margeCible)}`, 'trend', 'green', { val: margePct, max: o.margeCible }, 'ca')}
+      ${kpi('Devis du mois', devisMois + ' / ' + o.devisMois, MOIS[mo] + ' ' + yr, 'file', '', { val: devisMois, max: o.devisMois }, 'devis')}
+      ${kpi('RDV nouveaux clients', rdvMois + ' / ' + o.rdvMois, MOIS[mo] + ' — prospection', 'phone', rdvMois >= o.rdvMois ? 'green' : 'amber', { val: rdvMois, max: o.rdvMois }, 'prospection')}
+      ${kpi('Carnet de commandes', eur(carnet), 'Commandes + chantiers en cours', 'book', '', null, 'chantiers')}
+      ${kpi('Encours facturé', eur(impayes), impRetard ? impRetard + ' facture(s) en retard' : 'À jour', 'receipt', impRetard ? 'red' : 'green', null, 'factures')}
     </div>
     <details class="detail" data-keep="dash-detail">
       <summary>${icon('chevron')} Détail — objectifs, CA mensuel, chantiers en cours</summary>
