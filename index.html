@@ -362,9 +362,46 @@ input[type=checkbox],input[type=radio]{accent-color:var(--brand-2)}
 @keyframes modal-in{from{transform:translateY(10px) scale(.98);opacity:0}}
 .modal-head{display:flex;align-items:center;gap:12px;padding:18px 22px;border-bottom:1px solid var(--border)}
 .modal-head h3{font-size:16px}
-.modal-head .icon-btn{margin-left:auto}
+.modal-head>.icon-btn,.modal-head>.win-ctl{margin-left:auto}
+.modal.win-min .modal-body,.modal.win-min .modal-foot{display:none}
+.modal.win-min .modal-head{border-bottom:0}
+.modal-back.max{padding:8px}
+.modal.win-max{max-width:none;height:calc(100vh - 16px);display:flex;flex-direction:column}
+.modal.win-max .modal-body{max-height:none;flex:1;min-height:0}
 .modal-body{padding:20px 22px;max-height:72vh;overflow:auto}
 .modal-foot{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;padding:14px 22px;border-top:1px solid var(--border);background:var(--surface-2);border-radius:0 0 16px 16px}
+
+/* ============================== Fenêtres ================================
+   Barre — ▢ ✕ de chaque partie : réduire, agrandir en plein écran, fermer. */
+.win-ctl{display:inline-flex;align-items:center;gap:1px;margin-left:auto;flex-shrink:0;font-weight:400}
+.win-ctl .icon-btn{padding:5px;border-radius:6px}
+.win-ctl .ic{width:15px;height:15px}
+.win-ctl [data-wa="close"]:hover,.win-ctl [data-close]:hover{background:#e81123;color:#fff}
+.card-title.win-head{display:flex;align-items:center;gap:10px}
+summary.win-head>.win-ctl{float:right}
+.win-p.win-min>:not(.win-head):not(.win-ctl){display:none!important}
+.win-p.win-min>.win-head{margin-bottom:0!important}
+.card-pad.win-min>.section-head.win-head{margin-bottom:-18px!important;border-bottom:0}
+.win-float{position:relative}
+.win-float>.win-ctl{position:absolute;top:6px;right:6px;z-index:3;background:var(--surface);border:1px solid var(--border);border-radius:8px;
+  box-shadow:var(--shadow-xs);opacity:0;transition:opacity .15s}
+.win-float:hover>.win-ctl,.win-float:focus-within>.win-ctl,.win-float.win-min>.win-ctl{opacity:1}
+@media (hover:none){.win-float>.win-ctl{opacity:1}}
+.win-float.win-min{min-height:44px;padding:12px 120px 12px 16px;border:1px solid var(--border);border-radius:var(--radius-lg);background:var(--surface);margin-bottom:14px}
+.win-float.win-min::before{content:attr(data-win-title);font-size:13px;font-weight:650;color:var(--text-2)}
+.win-closed{display:none!important}
+.win-ghost{display:flex;align-items:center;gap:8px;width:100%;margin:0 0 14px;padding:7px 12px;border:1px dashed var(--border-strong);border-radius:var(--radius-lg);
+  background:transparent;color:var(--text-3);font:inherit;font-size:12.5px;cursor:pointer;text-align:left}
+.win-ghost:hover{color:var(--text);background:var(--surface-2)}
+.win-ghost:has(+ [hidden]){display:none}
+.win-scrim{position:fixed;inset:0;background:var(--scrim);z-index:51}
+.win-p.win-max{position:fixed!important;inset:16px;z-index:52;margin:0!important;overflow:auto;background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--radius-lg);box-shadow:var(--shadow-lg);padding:0 20px 18px}
+.win-max>.win-head{position:sticky;top:0;z-index:4;background:var(--surface);margin:0 -20px 14px!important;padding:14px 20px!important;border-bottom:1px solid var(--border)}
+.win-float.win-max{padding-top:52px}
+.win-float.win-max>.win-ctl{position:fixed;top:24px;right:24px;opacity:1}
+.win-wrap.win-max>.table-wrap{margin:0!important;box-shadow:none}
+@media (max-width:720px){.win-p.win-max{inset:6px;padding:0 12px 12px}.win-max>.win-head{margin:0 -12px 12px!important;padding:12px!important}}
 
 /* ============================== Notifications ========================== */
 #toast-root{position:fixed;right:20px;bottom:20px;z-index:80;display:grid;gap:8px}
@@ -536,6 +573,7 @@ button.link{border:0;background:none;padding:0;font:inherit;font-weight:600}
 .xls .xls-colhead td{background:var(--surface-3);font-weight:600;text-transform:uppercase;font-size:11px;letter-spacing:.05em;padding:6px 8px;color:var(--text-3)}
 .xls .bte-sec td{background:var(--brand-soft);font-weight:650;padding:5px 9px;color:var(--text)}
 .xls .bte-sub td{background:var(--surface-2);font-weight:650}
+.xls .bte-moh{display:block;padding:0 9px;white-space:nowrap;color:var(--brand-2)}
 .xls .tot,.xls .sub{padding:0 8px;font-variant-numeric:tabular-nums}
 .xls .xls-act{text-align:center}
 .xls .xls-act .icon-btn{padding:3px}
@@ -1141,6 +1179,9 @@ const ICONS = {
   chevLeft: '<path d="m15 18-6-6 6-6"/>',
   chevRight: '<path d="m9 18 6-6-6-6"/>',
   gamepad: '<line x1="6" y1="11" x2="10" y2="11"/><line x1="8" y1="9" x2="8" y2="13"/><line x1="15" y1="12" x2="15.01" y2="12"/><line x1="18" y1="10" x2="18.01" y2="10"/><path d="M17.32 5H6.68a4 4 0 0 0-3.98 3.59l-.9 8.07A3 3 0 0 0 4.78 20c.92 0 1.78-.42 2.35-1.14L8.6 17h6.8l1.47 1.86A3 3 0 0 0 19.22 20a3 3 0 0 0 2.98-3.34l-.9-8.07A4 4 0 0 0 17.32 5z"/>',
+  winMin: '<line x1="5" y1="12" x2="19" y2="12"/>',
+  winMax: '<rect x="5" y="5" width="14" height="14" rx="1.5"/>',
+  winRestore: '<rect x="4" y="8" width="12" height="12" rx="1.5"/><path d="M8 8V5.5A1.5 1.5 0 0 1 9.5 4h9A1.5 1.5 0 0 1 20 5.5v9a1.5 1.5 0 0 1-1.5 1.5H16"/>',
   grip: '<circle cx="9" cy="6" r="1"/><circle cx="15" cy="6" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="9" cy="18" r="1"/><circle cx="15" cy="18" r="1"/>',
 };
 function icon(name, cls = '') {
@@ -2468,11 +2509,17 @@ function toast(msg, kind = 'ok') {
 function modal({ title, body, wide, xwide, footer }) {
   const root = $('#modal-root');
   root.innerHTML = `<div class="modal-back"><div class="modal ${xwide ? 'xwide' : wide ? 'wide' : ''}">
-    <div class="modal-head"><h3>${esc(title)}</h3><button class="icon-btn" data-close>${icon('x')}</button></div>
+    <div class="modal-head"><h3>${esc(title)}</h3><span class="win-ctl"><button class="icon-btn" data-mw="min" title="Réduire">${icon('winMin')}</button><button class="icon-btn" data-mw="max" title="Agrandir">${icon('winMax')}</button><button class="icon-btn" data-close title="Fermer">${icon('x')}</button></span></div>
     <div class="modal-body">${body}</div>${footer ? `<div class="modal-foot">${footer}</div>` : ''}</div></div>`;
   const close = () => { root.innerHTML = ''; };
   root.querySelector('[data-close]').onclick = close;
   root.querySelector('.modal-back').onclick = e => { if (e.target.classList.contains('modal-back')) close(); };
+  const mo = root.querySelector('.modal'), bMin = root.querySelector('[data-mw="min"]'), bMax = root.querySelector('[data-mw="max"]');
+  bMin.onclick = () => { const on = mo.classList.toggle('win-min'); bMin.title = on ? 'Restaurer' : 'Réduire'; };
+  bMax.onclick = () => { const on = mo.classList.toggle('win-max'); root.querySelector('.modal-back').classList.toggle('max', on);
+    if (on) { mo.classList.remove('win-min'); bMin.title = 'Réduire'; }
+    bMax.title = on ? 'Restaurer' : 'Agrandir'; bMax.innerHTML = icon(on ? 'winRestore' : 'winMax'); };
+  initWinPanels(root.querySelector('.modal-body'), 'modal');
   return { root, close };
 }
 function confirmDialog(msg, onYes, label = 'Supprimer') {
@@ -2652,7 +2699,7 @@ function setupResizable(t, key) {
   });
 }
 let colsRaf = 0;
-function initResizableTables() { $$('#view .table-wrap > table').forEach((t, i) => { if (!t.dataset.rsz) setupResizable(t, colKey(t, i)); }); initKeptDetails(); }
+function initResizableTables() { $$('#view .table-wrap > table').forEach((t, i) => { if (!t.dataset.rsz) setupResizable(t, colKey(t, i)); }); initKeptDetails(); initWinPanels($('#view'), current, true); }
 // Sections repliables : ouvertes ou fermées comme la dernière fois (par poste)
 const DETAILS_KEY = 'chargepro.details';
 function initKeptDetails() {
@@ -2663,6 +2710,78 @@ function initKeptDetails() {
     d.addEventListener('toggle', () => { st[d.dataset.keep] = d.open; try { localStorage.setItem(DETAILS_KEY, JSON.stringify(st)); } catch {} });
   });
 }
+/* Fenêtres : chaque partie (carte, tableau principal d'un écran, section [data-win] d'une fiche)
+   porte une barre — ▢ ✕ : réduire (le titre reste), agrandir en plein écran (Échap ou clic à côté
+   pour revenir), fermer (une ligne « Réafficher » la remet). Réduit / fermé : mémorisés par poste. */
+const WIN_KEY = 'chargepro.win';
+const Win = {
+  st: null,
+  load() { if (!this.st) { try { this.st = JSON.parse(localStorage.getItem(WIN_KEY)) || {}; } catch { this.st = {}; } } return this.st; },
+  set(k, v) { const st = this.load(); if (v) st[k] = v; else delete st[k]; try { localStorage.setItem(WIN_KEY, JSON.stringify(st)); } catch {} },
+};
+const WIN_HEAD = ':scope > .card-title:first-child, :scope > .section-head:first-child, :scope > summary:first-child';
+const winTexte = el => (el ? el.textContent : '').replace(/\(\d+\)/g, '').replace(/\s+/g, ' ').trim().slice(0, 70);
+const winTitreAuto = p => $$('th', p).slice(0, 3).map(winTexte).filter(Boolean).join(' · ') || winTexte($('h2, h3, .cm-label', p)) || 'Partie';
+function winMaj(p) {
+  const c = p._winCtl; if (!c) return;
+  const mx = p.classList.contains('win-max'), mn = p.classList.contains('win-min'), bx = c.querySelector('[data-wa="max"]');
+  c.querySelector('[data-wa="min"]').title = mn ? 'Restaurer' : 'Réduire';
+  bx.title = mx ? 'Restaurer' : 'Agrandir'; bx.innerHTML = icon(mx ? 'winRestore' : 'winMax');
+}
+function winMax(p, on) {
+  if (on === p.classList.contains('win-max')) return;
+  if (on) {
+    if (p.classList.contains('win-min')) { p.classList.remove('win-min'); Win.set(p.dataset.winKey, ''); }
+    const sc = document.createElement('div'); sc.className = 'win-scrim'; sc.onclick = () => winMax(p, false); p.before(sc); p._winScrim = sc;
+  } else if (p._winScrim) { p._winScrim.remove(); p._winScrim = null; }
+  p.classList.toggle('win-max', on); winMaj(p);
+}
+function winFermer(p) {
+  const g = document.createElement('button'); g.type = 'button'; g.className = 'win-ghost';
+  g.innerHTML = `${icon('plus', 'ic-sm')} Réafficher « ${esc(p.dataset.winTitle)} »`;
+  g.onclick = () => { g.remove(); p.classList.remove('win-closed'); Win.set(p.dataset.winKey, ''); };
+  p.classList.add('win-closed'); p.before(g);
+}
+function initWinPanels(scope, prefix, loose) {
+  if (!scope) return;
+  // Tableau posé à même l'écran : on l'enveloppe, avec son titre (et sa note) s'il en a un juste au-dessus.
+  if (loose) $$(':scope > .table-wrap', scope).forEach(tw => {
+    const w = document.createElement('div'); w.className = 'win-wrap'; tw.before(w);
+    let pr = w.previousElementSibling; const avant = [];
+    if (pr && pr.matches('p')) { avant.unshift(pr); pr = pr.previousElementSibling; }
+    if (pr && pr.matches('.card-title')) { avant.unshift(pr); w.append(...avant); }
+    w.appendChild(tw);
+  });
+  const st = Win.load();
+  $$('.card, [data-win], .win-wrap', scope).forEach((p, idx) => {
+    if (p._winCtl && p.contains(p._winCtl)) return;
+    if (p.parentElement.closest('.win-p')) return; // une partie dans une partie : la barre de la partie suffit
+    const neuf = !p.dataset.winKey, head = p.querySelector(WIN_HEAD);
+    if (neuf) {
+      const titre = winTexte(head) || winTitreAuto(p);
+      p.classList.add('win-p'); p.dataset.winTitle = titre;
+      p.dataset.winKey = p.dataset.win || prefix + ':' + (head ? titre : '#' + idx);
+    }
+    const c = document.createElement('span'); c.className = 'win-ctl';
+    c.innerHTML = `<button type="button" class="icon-btn" data-wa="min">${icon('winMin')}</button><button type="button" class="icon-btn" data-wa="max"></button><button type="button" class="icon-btn" data-wa="close" title="Fermer (réaffichable)">${icon('x')}</button>`;
+    c.addEventListener('click', e => {
+      const b = e.target.closest('[data-wa]'); if (!b) return;
+      e.preventDefault(); e.stopPropagation();
+      const a = b.dataset.wa, k = p.dataset.winKey;
+      if (a === 'min') { winMax(p, false); const on = p.classList.toggle('win-min'); Win.set(k, on ? 'min' : ''); winMaj(p); }
+      else if (a === 'max') winMax(p, !p.classList.contains('win-max'));
+      else { winMax(p, false); winFermer(p); Win.set(k, 'close'); }
+    });
+    if (head) { head.classList.add('win-head'); head.appendChild(c); } else { p.classList.add('win-float'); p.prepend(c); }
+    p._winCtl = c;
+    if (neuf) { const s = st[p.dataset.winKey]; if (s === 'min') p.classList.add('win-min'); else if (s === 'close') winFermer(p); }
+    winMaj(p);
+  });
+}
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Escape') return;
+  const p = $$('.win-p.win-max').pop(); if (p) { e.preventDefault(); e.stopPropagation(); winMax(p, false); }
+}, true);
 function scheduleCols() { cancelAnimationFrame(colsRaf); colsRaf = requestAnimationFrame(initResizableTables); }
 function resetAllCols() { Cols.clear(); $$('#view .table-wrap > table').forEach(clearCols); toast('Largeurs de colonnes réinitialisées'); }
 
@@ -2820,7 +2939,7 @@ function firstRun() {
       <div class="field inline full"><input type="checkbox" id="p-demo"><label for="p-demo" style="cursor:pointer">Découvrir avec des données de démonstration</label></div>
     </div>`,
     footer: `<button class="btn primary" id="p-go">Commencer</button>` });
-  m.root.querySelector('.modal-head .icon-btn').style.display = 'none';
+  m.root.querySelector('.modal-head .win-ctl').style.display = 'none';
   m.root.querySelector('.modal-back').onclick = null;
   $('#p-go').onclick = () => {
     const nom = $('#p-nom').value.trim() || 'Mon profil';
@@ -4227,6 +4346,13 @@ function bteHeuresMo(l) {
   if (/^(j|jrs?|jours?)$/.test(u)) return q * CAD_PARAMS.heuresJour;
   return null;
 }
+/* Total des heures de main d'œuvre du BTE et leur équivalent en journées (heures/jour des paramètres). */
+function bteTotalHeuresMo(b) {
+  const mo = (b.lignes || []).filter(l => l.cat === BTE_CATS[1]);
+  const h = mo.reduce((s, l) => s + (bteHeuresMo(l) || 0), 0);
+  const nonConv = mo.filter(l => bteHeuresMo(l) === null && (+l.qte || 0) * (+l.pu || 0) > 0).length;
+  return { h, jours: h / CAD_PARAMS.heuresJour, nonConv };
+}
 /* Cadences par poste : heures MO affectées au poste → cadence = quantité ÷ jours-compagnon (u/j),
    cadence et durée pour l'équipe. Repère : cadence standard du référentiel quand le poste reprend
    un seul ouvrage de la base Cadences (désignation « REF — … ») dans la même unité. */
@@ -4368,7 +4494,7 @@ function bteEditor(id) {
   const secBody = (cat, idx) => `<tbody data-sec="${idx}">
       <tr class="bte-sec"><td colspan="4">${esc(cat)}</td><td class="num"></td><td></td><td class="xls-act"><button class="icon-btn" data-add="${idx}" title="Ajouter une ligne">${icon('plus')}</button></td></tr>
       ${b.lignes.filter(l => l.cat === cat).map(lineRow).join('')}
-      <tr class="bte-sub"><td></td><td colspan="3" class="num">Total ${esc(bteCatShort(cat))} :</td><td class="num sub" data-sub="${idx}">${eur(0)}</td><td></td><td></td></tr>
+      <tr class="bte-sub"><td>${cat === BTE_CATS[1] ? '<span class="bte-moh" id="b-moh"></span>' : ''}</td><td colspan="3" class="num">Total ${esc(bteCatShort(cat))} :</td><td class="num sub" data-sub="${idx}">${eur(0)}</td><td></td><td></td></tr>
     </tbody>`;
   const posteRow = o => `<tr class="bte-poste" data-pid="${o.id}">
     <td class="pnum"></td>
@@ -4380,7 +4506,8 @@ function bteEditor(id) {
     <td class="num tot" data-ptot></td>
     <td class="xls-act"><button class="icon-btn drag-h" title="Glisser pour déplacer le poste (ou ↑ / ↓ au clavier)">${icon('grip')}</button><button class="icon-btn danger" data-prm title="Retirer le poste">${icon('trash')}</button></td></tr>`;
   const m = modal({ title: isNew ? 'Nouveau BTE' : 'BTE — ' + (b.nom || ''), xwide: true,
-    body: `<div class="table-wrap" style="box-shadow:none"><table class="xls" id="b-lignes">
+    body: `<div data-win="bte.depenses"><div class="card-title" style="margin:0 0 6px">Dépenses — budget du chantier</div>
+    <div class="table-wrap" style="box-shadow:none"><table class="xls" id="b-lignes">
       <colgroup><col style="width:auto"><col style="width:92px"><col style="width:70px"><col style="width:92px"><col style="width:124px"><col style="width:150px"><col style="width:64px"></colgroup>
       <tbody>
         <tr class="xls-head"><td colspan="2"><input id="b-adr" value="${esc(b.adresse)}" placeholder="Adresse du chantier"></td><td class="xls-lbl" colspan="2">Date d'édition :</td><td colspan="3"><input id="b-date" type="date" value="${b.dateEdition || todayISO()}"></td></tr>
@@ -4391,8 +4518,8 @@ function bteEditor(id) {
         <tr class="xls-colhead"><td>DÉSIGNATIONS</td><td class="num">Quantités</td><td>Uni.</td><td class="num">PU</td><td class="num">TOTAL BTE</td><td>Poste devis</td><td></td></tr>
       </tbody>
       ${BTE_CATS.map(secBody).join('')}
-    </table></div>
-    <div class="card-title" style="margin:18px 0 4px">Postes d'ouvrage élémentaires — détail du devis</div>
+    </table></div></div>
+    <div data-win="bte.postes" style="margin-top:18px"><div class="card-title" style="margin:0 0 4px">Postes d'ouvrage élémentaires — détail du devis</div>
     <p class="t-muted" style="margin:0 0 8px;font-size:12px">Listez les ouvrages tels qu'ils figureront au devis, puis affectez chaque dépense à son poste (colonne « Poste devis »).
       Les dépenses non affectées (installation de chantier, études, frais connexes…) sont <b>réparties au prorata</b>. PU de vente = déboursé sec × coef. ÷ quantité — saisissez un PU pour le forcer.</p>
     <div class="table-wrap" style="box-shadow:none"><table class="xls" id="b-postes">
@@ -4400,9 +4527,9 @@ function bteEditor(id) {
       <tbody><tr class="xls-colhead"><td>N°</td><td>Ouvrage élémentaire</td><td class="num">Qté</td><td>Uni.</td><td class="num">Déb. sec</td><td class="num">PU vente HT</td><td class="num">Total HT</td><td class="xls-act"><button class="icon-btn" id="b-padd" title="Ajouter un poste">${icon('plus')}</button></td></tr></tbody>
       <tbody id="b-plist">${b.ouvrages.map(posteRow).join('')}</tbody>
       <tbody><tr class="bte-sub"><td></td><td class="num" id="b-pinfo" style="font-weight:400;font-size:11.5px;padding:0 8px;white-space:normal"></td><td colspan="4" class="num">TOTAL DEVIS HT :</td><td class="num sub" id="b-ptot"></td><td></td></tr></tbody>
-    </table></div>
-    <div id="b-cadwrap" hidden>
-    <div class="card-title" style="margin:18px 0 4px">Cadences par poste — objectifs chantier</div>
+    </table></div></div>
+    <div id="b-cadwrap" data-win="bte.cadences" style="margin-top:18px" hidden>
+    <div class="card-title" style="margin:0 0 4px">Cadences par poste — objectifs chantier</div>
     <p class="t-muted" style="margin:0 0 8px;font-size:12px">BTE validé : la main d'œuvre affectée à chaque poste fixe sa cadence (quantité ÷ jours-compagnon, journée de ${CAD_PARAMS.heuresJour} h).
       Équipe de <input id="b-equipe" type="number" min="1" step="1" value="${+b.equipe > 0 ? +b.equipe : 2}" style="width:56px;display:inline-block;padding:2px 6px"> compagnon(s).</p>
     <div class="table-wrap" style="box-shadow:none"><table class="xls" id="b-cad">
@@ -4442,6 +4569,10 @@ function bteEditor(id) {
     BTE_CATS.forEach((cat, idx) => { const el = m.root.querySelector(`.sub[data-sub="${idx}"]`); if (el) el.textContent = eur(t.parCat[cat] || 0); });
     $$('.bte-line', m.root).forEach(tr => { const g = f => tr.querySelector(`[data-f="${f}"]`).value; tr.querySelector('.tot').textContent = eur((+g('qte') || 0) * (+g('pu') || 0)); });
     $('#b-total').textContent = eur(t.dep); $('#b-pv').textContent = eur(t.pv);
+    const moH = bteTotalHeuresMo(b), moEl = $('#b-moh');
+    if (moEl) { moEl.innerHTML = moH.h ? `${num(moH.h)} h <span class="t-muted">≈</span> ${num(moH.jours)} j` : '<span class="t-muted">0 h</span>';
+      moEl.title = `Total des heures de main d'œuvre (lignes en h, ou en j × ${CAD_PARAMS.heuresJour} h) — équivalent en journées de ${CAD_PARAMS.heuresJour} h`
+        + (moH.nonConv ? `\n${moH.nonConv} ligne(s) dans une autre unité (forfait…) non comptée(s)` : ''); }
     $('#b-coef').textContent = t.margePct < 1 ? 'coef. × ' + (1 / (1 - t.margePct)).toFixed(2).replace('.', ',') : '';
     $$('.bte-poste', m.root).forEach((tr, i) => { const p = dec.lignes[i];
       tr.querySelector('.pnum').textContent = i + 1;
