@@ -424,7 +424,6 @@ summary.win-head>.win-ctl{float:right}
 .grid-2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--gap)}
 .grid-3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--gap)}
 /* Deux colonnes seulement quand chacune a la place de respirer */
-.prepa-st{font-weight:600}.prepa-fait{color:var(--pos)}.prepa-en_cours{color:var(--warn)}.prepa-na{color:var(--text-3)}
 .dash-stack{display:grid;grid-template-columns:minmax(0,1fr);gap:var(--gap);margin-bottom:var(--gap)}
 .grid-auto{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,520px),1fr));gap:var(--gap);align-items:start}
 .stat-line{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:9px 0;border-bottom:1px solid var(--border);font-size:13.5px}
@@ -3007,11 +3006,7 @@ function collectActions() {
   });
   DB.data.contrats.filter(contratAProgrammer).forEach(c => acts.push({ tone: 'warn', ico: 'wrench', route: 'entretien', urg: 1, title: `Visite à programmer — ${esc(clientNom(c.clientId))} (${esc(c.nom)})`, badge: 'À programmer' }));
   rapportsEnRetard().forEach(vz => { const c = DB.data.contrats.find(x => x.id === vz.contratId); acts.push({ tone: 'bad', ico: 'file', route: 'entretien', urg: -daysBetween(vz.dateRealisee, t), title: `Rapport d'intervention en retard — ${c ? esc(clientNom(c.clientId)) : ''}`, badge: 'Sous 7 j' }); });
-  DB.data.chantiers.filter(c => !['receptionne', 'facture', 'perdu'].includes(c.statut)).forEach(c => {
-    const r = prepaEnRetard(c), p = prepaAvancement(c), j = c.dateDemarrage ? daysBetween(t, c.dateDemarrage) : null;
-    if (j !== null && j >= 0 && j <= 7 && p !== 100) acts.push({ tone: 'bad', ico: 'checkSquare', route: 'chantiers', urg: j - 10, title: `Préparation incomplète (${p ?? 0} %) — ${esc(c.nom)}`, badge: j === 0 ? "Démarre aujourd'hui" : `Démarre dans ${j} j` });
-    else if (r.length) acts.push({ tone: 'warn', ico: 'checkSquare', route: 'chantiers', urg: -daysBetween(r[0].echeance, t), title: `Préparation : ${esc(r[0].label)}${r.length > 1 ? ` (+${r.length - 1})` : ''} — ${esc(c.nom)}`, badge: `Prévu ${fmtDate(r[0].echeance)}` });
-  });
+
   DB.data.bcs.filter(bcEnRetard).forEach(b => acts.push({ tone: 'bad', ico: 'wrench', route: 'marches', urg: -daysBetween(b.dateLimite, t), title: `BC hors délai — ${esc(b.num || '')} ${esc(b.nature || '')} · ${esc([b.residence, b.logement].filter(Boolean).join(' '))}`, badge: `Avant ${fmtDate(b.dateLimite)}` }));
   DB.data.bcs.filter(bcAFacturer).forEach(b => { const j = daysBetween(b.dateIntervention || t, t); if (j > o.delaiFacture) acts.push({ tone: 'warn', ico: 'receipt', route: 'marches', urg: -j, title: `BC réalisé à facturer — ${esc(b.num || '')} ${esc(b.residence || '')}`, badge: `Réalisé ${fmtDate(b.dateIntervention)}` }); });
   DB.data.prospection.filter(p => p.prochaine && p.prochaine <= t && !['gagne', 'sans_suite'].includes(p.statut)).forEach(p => acts.push({ tone: 'warn', ico: 'phone', route: 'prospection', urg: 0, title: `Relance prospect — ${esc(p.nom)}`, badge: fmtDate(p.prochaine) }));
@@ -3307,11 +3302,11 @@ function renderChantiers(v) {
       <select id="fs"><option value="">Tous les statuts</option>${Object.entries(STATUTS_CHANTIER).map(([k, l]) => `<option value="${k}" ${chantierFilter.statut === k ? 'selected' : ''}>${l}</option>`).join('')}</select>
       <select id="ff"><option value="">Mise en facturation : tous</option><option value="oui" ${chantierFilter.factu === 'oui' ? 'selected' : ''}>Autorisés</option><option value="non" ${chantierFilter.factu === 'non' ? 'selected' : ''}>Bloqués</option></select>
       <span class="chip">${list.length} chantier(s)</span></div>
-    ${list.length ? `<div class="table-wrap"><table><thead><tr><th>OTP</th><th class="wrap">Chantier</th><th>Client</th><th>Statut</th><th title="Avancement de la préparation (check-list avant démarrage)">Préparation</th><th title="Coché : le chantier peut être mis en facturation (proposé à la clôture de fin de mois du CA)">Mise en factu.</th><th class="num">Montant HT</th><th></th></tr></thead>
+    ${list.length ? `<div class="table-wrap"><table><thead><tr><th>OTP</th><th class="wrap">Chantier</th><th>Client</th><th>Statut</th><th title="Notes de préparation (datées)">Préparation</th><th title="Coché : le chantier peut être mis en facturation (proposé à la clôture de fin de mois du CA)">Mise en factu.</th><th class="num">Montant HT</th><th></th></tr></thead>
       <tbody>${list.map(c => `<tr><td class="t-strong">${esc(c.otp || '—')}</td>
         <td class="wrap"><span class="link" data-view="${c.id}">${esc(c.nom)}</span>${c.adresse ? `<div class="t-muted" style="font-size:12px">${esc(c.adresse)}</div>` : ''}</td><td>${esc(clientNom(c.clientId))}</td>
-        <td>${statutBadge(c.statut)}${c.dateDemarrage ? `<div class="t-muted" style="font-size:12px">Démarrage ${fmtDate(c.dateDemarrage)}</div>` : ''}</td>
-        <td>${prepaASuivre(c) ? prepaJauge(c) : '<span class="t-muted">—</span>'}</td>
+        <td>${statutBadge(c.statut)}</td>
+        <td>${prepaResume(c)}</td>
         <td>${chantierEnCa(c) ? '<span class="badge b-facture" title="Déjà repris dans le CA">Mis en factu.</span>' : `<label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer"><input type="checkbox" data-factu="${c.id}" ${chantierFacturable(c) ? 'checked' : ''}>${chantierFacturable(c) ? 'Autorisé' : '<span class="t-muted">Bloqué</span>'}</label>`}</td>
         <td class="num">${eur(c.montantHT)}</td>
         <td class="actions-cell"><button class="icon-btn" data-edit="${c.id}" title="Modifier">${icon('edit')}</button><button class="icon-btn danger" data-del="${c.id}" title="Supprimer">${icon('trash')}</button></td></tr>`).join('')}</tbody>
@@ -3322,103 +3317,43 @@ function renderChantiers(v) {
   $('#fs').onchange = e => { chantierFilter.statut = e.target.value; renderChantiers(v); };
   $('#ff').onchange = e => { chantierFilter.factu = e.target.value; renderChantiers(v); };
   $$('[data-factu]', v).forEach(i => i.onchange = () => { const c = chantierById(i.dataset.factu); if (!c) return; c.facturable = i.checked; DB.save(); toast(i.checked ? 'Mise en facturation autorisée' : 'Mise en facturation bloquée'); renderChantiers(v); });
-  $('#csv').onclick = () => exportXlsx('chantiers', ['otp', 'nom', 'client', 'adresse', 'statut', 'demarrage_prevu', 'preparation_pct', 'mise_en_facturation', 'montantHT'], list.map(c => [c.otp, c.nom, clientNom(c.clientId), c.adresse, STATUTS_CHANTIER[c.statut], c.dateDemarrage || '', prepaAvancement(c) ?? '', chantierEnCa(c) ? 'Mis en facturation' : chantierFacturable(c) ? 'Autorisée' : 'Bloquée', c.montantHT]), { sheet: 'Chantiers' });
+  $('#csv').onclick = () => exportXlsx('chantiers', ['otp', 'nom', 'client', 'adresse', 'statut', 'notes_preparation', 'mise_en_facturation', 'montantHT'], list.map(c => [c.otp, c.nom, clientNom(c.clientId), c.adresse, STATUTS_CHANTIER[c.statut], prepaNotes(c).length, chantierEnCa(c) ? 'Mis en facturation' : chantierFacturable(c) ? 'Autorisée' : 'Bloquée', c.montantHT]), { sheet: 'Chantiers' });
   $$('[data-edit]', v).forEach(b => b.onclick = () => chantierForm(b.dataset.edit));
   $$('[data-view]', v).forEach(b => b.onclick = () => chantierDetail(b.dataset.view));
   $$('[data-prepa]', v).forEach(b => b.onclick = () => prepaModal(b.dataset.prepa));
   $$('[data-del]', v).forEach(b => b.onclick = () => confirmDialog('Supprimer ce chantier ?', () => { DB.data.chantiers = DB.data.chantiers.filter(x => x.id !== b.dataset.del); DB.save(); toast('Chantier supprimé'); renderChantiers(v); }));
 }
-/* Préparation de chantier : check-list d'étapes à suivre entre la commande et le démarrage.
-   Liste type proposée à la première ouverture, puis librement modifiable chantier par chantier. */
-const PREPA_ETAPES = [
-  'Commande / bon pour accord du client reçu',
-  'Visite de préparation — métrés et accès vérifiés',
-  'Budget (BTE) validé',
-  'Plan de prévention / PPSPS',
-  'DICT, autorisation de voirie, arrêté de stationnement',
-  'Commande des matériaux',
-  'Location matériel (levage, nacelle, benne)',
-  'Sécurité collective (garde-corps, échafaudage)',
-  'Équipe planifiée',
-  'Date de démarrage confirmée au client',
-];
-const STATUTS_PREPA = { a_faire: 'À faire', en_cours: 'En cours', fait: 'Fait', na: 'Sans objet' };
-const prepaListe = c => { if (!Array.isArray(c.prepa)) c.prepa = PREPA_ETAPES.map(label => ({ id: uid(), label, statut: 'a_faire', echeance: '', note: '' })); return c.prepa; };
-/* Avancement en % : les étapes « sans objet » ne comptent pas */
-function prepaAvancement(c) {
-  if (!Array.isArray(c.prepa)) return null;
-  const utiles = c.prepa.filter(e => e.statut !== 'na');
-  if (!utiles.length) return 100;
-  return Math.round(utiles.filter(e => e.statut === 'fait').length / utiles.length * 100);
-}
-const prepaEnRetard = c => (Array.isArray(c.prepa) ? c.prepa : []).filter(e => e.echeance && e.echeance < todayISO() && !['fait', 'na'].includes(e.statut));
-const prepaASuivre = c => ['commande', 'en_cours'].includes(c.statut) || Array.isArray(c.prepa);
-function prepaJauge(c) {
-  const p = prepaAvancement(c);
-  if (p === null) return `<button class="btn small" data-prepa="${c.id}">${icon('checkSquare')} Préparer</button>`;
-  const r = prepaEnRetard(c).length;
-  return `<span class="link" data-prepa="${c.id}" style="display:block;min-width:110px" title="Ouvrir la préparation">${p} %${r ? ` <span class="deadline-late" style="font-size:12px">· ${r} en retard</span>` : ''}
-    <span class="progress ${p >= 100 ? 'green' : r ? 'red' : p >= 50 ? '' : 'amber'}" style="display:block;margin-top:4px"><i style="width:${p}%"></i></span></span>`;
-}
-/* Indices tirés des autres rubriques (n'avancent rien tout seuls) */
-function prepaIndices(c) {
-  const out = {};
-  if (c.otp) {
-    const cmd = DB.data.commandes.filter(x => x.otp === c.otp);
-    if (cmd.length) out['Commande des matériaux'] = cmd.length + ' commande(s) fournisseur sur l\'OTP';
-    const pl = DB.data.agenda.filter(a => a.type === 'chantier' && a.otp === c.otp).sort((a, b) => (a.dateDebut || '').localeCompare(b.dateDebut || ''));
-    if (pl.length) out['Équipe planifiée'] = 'Au planning à partir du ' + fmtDate(pl[0].dateDebut);
-  }
-  if (c.sourceDevisId) { const d = DB.data.devis.find(x => x.id === c.sourceDevisId); if (d && d.statut === 'accepte') out['Commande / bon pour accord du client reçu'] = 'Devis ' + d.ref + ' accepté'; }
-  return out;
-}
-function prepaRow(e, indice) {
-  return `<tr class="prepa-l" data-id="${e.id}">
-    <td><select data-p="statut" class="prepa-st prepa-${e.statut}">${Object.entries(STATUTS_PREPA).map(([k, l]) => `<option value="${k}" ${e.statut === k ? 'selected' : ''}>${l}</option>`).join('')}</select></td>
-    <td><input data-p="label" value="${esc(e.label)}" placeholder="Étape"${e.statut === 'fait' || e.statut === 'na' ? ' style="text-decoration:line-through;color:var(--text-3)"' : ''}>${indice ? `<div class="t-muted" style="font-size:11.5px;padding:2px 6px">${icon('check')} ${esc(indice)}</div>` : ''}</td>
-    <td><input data-p="echeance" type="date" value="${e.echeance || ''}" class="${e.echeance && e.echeance < todayISO() && !['fait', 'na'].includes(e.statut) ? 'deadline-late' : ''}"></td>
-    <td><input data-p="note" value="${esc(e.note || '')}" placeholder="Note, interlocuteur, n° de commande…"></td>
-    <td class="xls-act"><button class="icon-btn danger" data-prm title="Retirer l'étape">${icon('trash')}</button></td></tr>`;
+/* Préparation de chantier : simple journal de notes, chaque note datée à la saisie (plus récente en haut). */
+const prepaNotes = c => Array.isArray(c.prepaNotes) ? c.prepaNotes : [];
+const fmtDateHeure = iso => iso ? new Date(iso).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' }) : '—';
+function prepaResume(c) {
+  const n = prepaNotes(c);
+  if (!n.length) return `<button class="btn small" data-prepa="${c.id}">${icon('edit')} Écrire</button>`;
+  return `<span class="link" data-prepa="${c.id}" title="Ouvrir la préparation">${n.length} note(s)</span><div class="t-muted" style="font-size:12px">Dernière le ${fmtDateHeure(n[0].date)}</div>`;
 }
 function prepaModal(id) {
   const c = chantierById(id); if (!c) return;
-  const neuf = !Array.isArray(c.prepa);
-  prepaListe(c); if (neuf) DB.save();
-  const indices = prepaIndices(c);
+  const liste = () => prepaNotes(c).map(n => `<div class="stat-line" style="align-items:flex-start;display:block">
+      <div style="display:flex;justify-content:space-between;gap:8px"><span class="t-muted" style="font-size:12px">${fmtDateHeure(n.date)}</span><button class="icon-btn danger" data-prm="${n.id}" title="Supprimer la note">${icon('trash')}</button></div>
+      <div style="white-space:pre-wrap">${esc(n.texte)}</div></div>`).join('') || '<div class="t-muted">Aucune note pour le moment.</div>';
   const m = modal({ title: 'Préparation — ' + c.nom, wide: true,
-    body: `<div class="form-grid" style="margin-bottom:12px">
-        <div class="field"><label>Démarrage prévu</label><input id="pp-dem" type="date" value="${c.dateDemarrage || ''}"></div>
-        <div class="field"><label>Avancement</label><div id="pp-av" style="padding-top:6px"></div></div>
-      </div>
-      <div class="table-wrap" style="box-shadow:none"><table class="xls">
-        <colgroup><col style="width:120px"><col style="width:auto"><col style="width:138px"><col style="width:30%"><col style="width:38px"></colgroup>
-        <tbody><tr class="xls-colhead"><td>Statut</td><td>Étape</td><td>Échéance</td><td>Note</td><td class="xls-act"><button class="icon-btn" id="pp-add" title="Ajouter une étape">${icon('plus')}</button></td></tr></tbody>
-        <tbody id="pp-list">${c.prepa.map(e => prepaRow(e, indices[e.label])).join('')}</tbody></table></div>
-      <p class="t-muted" style="font-size:12px;margin:8px 0 0">Enregistrement automatique. Les étapes « sans objet » ne comptent pas dans l'avancement. Les mentions ✓ viennent des autres rubriques (devis, achats, planning) : à vous de valider l'étape.</p>`,
-    footer: `<button class="btn" id="pp-print">${icon('file')} Imprimer</button><button class="btn" id="pp-reset" title="Remettre la liste type (les étapes actuelles sont remplacées)">Liste type</button><span class="spacer"></span><button class="btn primary" data-c>Fermer</button>` });
-  const lire = () => { c.prepa = $$('.prepa-l', m.root).map(tr => { const g = k => tr.querySelector(`[data-p="${k}"]`).value;
-    return { id: tr.dataset.id, label: g('label').trim(), statut: g('statut'), echeance: g('echeance'), note: g('note').trim() }; }).filter(e => e.label || e.note); };
-  const majAv = () => { const p = prepaAvancement(c), r = prepaEnRetard(c).length;
-    $('#pp-av').innerHTML = `<b>${p} %</b> — ${c.prepa.filter(e => e.statut === 'fait').length} / ${c.prepa.filter(e => e.statut !== 'na').length} étape(s) faite(s)${r ? ` · <span class="deadline-late">${r} en retard</span>` : ''}<div class="progress ${p >= 100 ? 'green' : r ? 'red' : ''}" style="margin-top:6px"><i style="width:${p}%"></i></div>`; };
-  const sauver = () => { lire(); c.dateDemarrage = $('#pp-dem').value; DB.save(); majAv(); };
-  const bind = tr => {
-    tr.querySelectorAll('input, select').forEach(i => i.onchange = () => {
-      if (i.dataset.p === 'statut') { i.className = 'prepa-st prepa-' + i.value; const l = tr.querySelector('[data-p="label"]'); l.style.textDecoration = ['fait', 'na'].includes(i.value) ? 'line-through' : ''; l.style.color = ['fait', 'na'].includes(i.value) ? 'var(--text-3)' : ''; }
-      sauver();
-    });
-    tr.querySelector('[data-prm]').onclick = () => { tr.remove(); sauver(); };
+    body: `<div class="field"><label>Nouvelle note</label><textarea id="pp-txt" placeholder="Ce qui a été fait, prévu, dit au client…"></textarea></div>
+      <div style="margin:8px 0 16px"><button class="btn primary" id="pp-add">${icon('plus')} Ajouter (datée d'aujourd'hui)</button></div>
+      <div class="card-title">Historique</div><div id="pp-list">${liste()}</div>`,
+    footer: `<button class="btn" id="pp-print">${icon('file')} Imprimer</button><span class="spacer"></span><button class="btn" data-c>Fermer</button>` });
+  const maj = () => { $('#pp-list').innerHTML = liste(); $$('[data-prm]', m.root).forEach(b => b.onclick = () => confirmDialog('Supprimer cette note ?', () => { c.prepaNotes = prepaNotes(c).filter(n => n.id !== b.dataset.prm); DB.save(); maj(); })); };
+  $('#pp-add').onclick = () => {
+    const t = $('#pp-txt').value.trim(); if (!t) { toast('Écrivez une note', 'err'); return; }
+    c.prepaNotes = [{ id: uid(), date: new Date().toISOString(), texte: t }, ...prepaNotes(c)];
+    DB.save(); $('#pp-txt').value = ''; maj();
   };
-  $$('.prepa-l', m.root).forEach(bind);
-  $('#pp-dem').onchange = sauver;
-  $('#pp-add').onclick = () => { const tmp = document.createElement('tbody'); tmp.innerHTML = prepaRow({ id: uid(), label: '', statut: 'a_faire', echeance: '', note: '' }); const tr = tmp.firstElementChild; $('#pp-list').appendChild(tr); bind(tr); tr.querySelector('[data-p="label"]').focus(); };
-  $('#pp-reset').onclick = () => confirmDialog('Remplacer les étapes par la liste type ?', () => { c.prepa = undefined; prepaListe(c); DB.save(); prepaModal(id); }, 'Remplacer');
-  $('#pp-print').onclick = () => { sauver(); const cl = DB.data.clients.find(x => x.id === c.clientId);
+  $('#pp-print').onclick = () => { const cl = DB.data.clients.find(x => x.id === c.clientId);
     imprimerDoc('Préparation ' + c.nom, [
       { k: 'h1', t: 'Préparation de chantier — ' + c.nom },
-      { k: 'kv', rows: [['OTP', c.otp || '—'], ['Client', cl ? cl.nom : '—'], ['Adresse', c.adresse || '—'], ['Démarrage prévu', fmtDate(c.dateDemarrage)], ['Avancement', prepaAvancement(c) + ' %']] },
-      { k: 'tab', head: ['Statut', 'Étape', 'Échéance', 'Note'], rows: c.prepa.map(e => [STATUTS_PREPA[e.statut], e.label, fmtDate(e.echeance), e.note || '']) }]); };
-  m.root.querySelector('[data-c]').onclick = () => { sauver(); m.close(); if (current === 'chantiers' || current === 'dashboard') go(current); };
-  majAv();
+      { k: 'kv', rows: [['OTP', c.otp || '—'], ['Client', cl ? cl.nom : '—'], ['Adresse', c.adresse || '—']] },
+      { k: 'tab', head: ['Date', 'Note'], rows: prepaNotes(c).map(n => [fmtDateHeure(n.date), n.texte]) }]); };
+  m.root.querySelector('[data-c]').onclick = () => { m.close(); if (current === 'chantiers') go(current); };
+  maj(); $('#pp-txt').focus();
 }
 function chantierForm(id, devisId) {
   const c = id ? chantierById(id) : { otp: '', nom: '', clientId: '', adresse: '', statut: 'prospect', dateDemande: todayISO(), montantHT: 0, notes: '', facturable: false };
@@ -3464,7 +3399,7 @@ function chantierForm(id, devisId) {
     let cid = id;
     if (id) Object.assign(c, obj); else { cid = uid(); DB.data.chantiers.unshift({ id: cid, ...obj }); }
     const dv = srcDevisId && DB.data.devis.find(x => x.id === srcDevisId); if (dv && !dv.chantierId) dv.chantierId = cid;
-    DB.save(); m.close(); toast('Chantier enregistré' + (!id && prepaASuivre(obj) ? ' — suivez sa préparation (colonne Préparation)' : '')); go('chantiers');
+    DB.save(); m.close(); toast('Chantier enregistré'); go('chantiers');
   };
 }
 function chantierDetail(id) {
@@ -3480,11 +3415,9 @@ function chantierDetail(id) {
       <div><div class="card-title">Contact client</div>
         ${cl ? `<div class="stat-line"><span>Interlocuteur</span><b>${esc(cl.contact || '—')}</b></div><div class="stat-line"><span>Téléphone</span><b>${esc(cl.tel || '—')}</b></div><div class="stat-line"><span>Email</span><b>${esc(cl.email || '—')}</b></div>` : '<div class="t-muted">Aucun client associé.</div>'}
         ${c.notes ? `<div class="card-title" style="margin-top:14px">Notes</div><div class="t-muted">${esc(c.notes)}</div>` : ''}</div></div>
-      <div class="card-title" style="margin-top:18px">Préparation du chantier${c.dateDemarrage ? ' — démarrage prévu le ' + fmtDate(c.dateDemarrage) : ''}</div>
-      ${Array.isArray(c.prepa) ? `<div style="max-width:360px">${prepaJauge(c)}</div>
-        <div class="t-muted" style="font-size:12.5px;margin-top:6px">${c.prepa.filter(e => !['fait', 'na'].includes(e.statut)).slice(0, 4).map(e => '☐ ' + esc(e.label)).join('<br>') || 'Toutes les étapes sont faites.'}</div>`
-        : `<div class="t-muted">Préparation non démarrée.</div>`}
-      <div style="margin-top:8px"><button class="btn small" id="cd-prepa">${icon('checkSquare')} Ouvrir la préparation</button></div>
+      <div class="card-title" style="margin-top:18px">Préparation du chantier</div>
+      ${prepaNotes(c).length ? prepaNotes(c).slice(0, 3).map(n => `<div class="t-muted" style="font-size:12.5px;margin-top:4px"><b>${fmtDateHeure(n.date)}</b> — ${esc(n.texte.length > 140 ? n.texte.slice(0, 140) + '…' : n.texte)}</div>`).join('') : '<div class="t-muted">Aucune note.</div>'}
+      <div style="margin-top:8px"><button class="btn small" id="cd-prepa">${icon('edit')} Notes de préparation</button></div>
       <div class="card-title" style="margin-top:18px">Devis liés (${devis.length})</div>
       ${devis.length ? `<div class="table-wrap"><table><thead><tr><th>Réf.</th><th>Objet</th><th>Statut</th><th class="num">Montant</th></tr></thead><tbody>${devis.map(d => `<tr><td class="t-strong">${esc(d.ref)}</td><td>${esc(d.objet)}</td><td>${devisBadge(d.statut)}</td><td class="num">${eur(d.montantHT)}</td></tr>`).join('')}</tbody></table></div>` : '<div class="t-muted">Aucun devis lié.</div>'}
 `,
