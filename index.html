@@ -446,7 +446,14 @@ summary.win-head>.win-ctl{float:right}
 .todo-check input{width:18px;height:18px;accent-color:var(--pos);cursor:pointer}
 .todo-text{flex:1;font-size:14px;color:var(--text);word-break:break-word;cursor:text}
 .todo-item.done .todo-text{text-decoration:line-through;color:var(--text-3)}
-.todo-edit,.todo-del{opacity:0;transition:opacity .15s}
+.todo-edit,.todo-del,.todo-flag{opacity:0;transition:opacity .15s}
+.todo-item:hover .todo-flag,.todo-flag:focus-visible,.todo-flag.on{opacity:1}
+@media(hover:none){.todo-flag{opacity:1}}
+.todo-flag{color:var(--text-3);margin:0 -8px 0 -4px}
+.todo-flag.on{color:var(--neg)}
+.todo-flag.on svg{fill:currentColor}
+.todo-item.important:not(.done) .todo-text{font-weight:650}
+.todo-item.done .todo-flag.on{opacity:.5}
 .todo-item:hover .todo-edit,.todo-item:hover .todo-del{opacity:1}
 @media(hover:none){.todo-edit,.todo-del{opacity:1}}
 .todo-edit-input{flex:1;min-width:0;padding:6px 10px;border:1px solid var(--brand-2);border-radius:7px;font-size:14px;color:var(--text);background:var(--surface)}
@@ -1187,6 +1194,7 @@ const ICONS = {
   winMin: '<line x1="5" y1="12" x2="19" y2="12"/>',
   winMax: '<rect x="5" y="5" width="14" height="14" rx="1.5"/>',
   winRestore: '<rect x="4" y="8" width="12" height="12" rx="1.5"/><path d="M8 8V5.5A1.5 1.5 0 0 1 9.5 4h9A1.5 1.5 0 0 1 20 5.5v9a1.5 1.5 0 0 1-1.5 1.5H16"/>',
+  flag: '<path d="M4 22V4"/><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1"/>',
   copy: '<rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>',
   grip: '<circle cx="9" cy="6" r="1"/><circle cx="15" cy="6" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="9" cy="18" r="1"/><circle cx="15" cy="18" r="1"/>',
 };
@@ -3117,9 +3125,10 @@ function renderTodos() {
       const wait = (t.waiting && !t.done)
         ? `<button class="todo-wait on" data-wait title="En attente de retour depuis le ${fmtDate(t.waitingSince)} — cliquez pour reprendre la main">${icon('clock', 'ic-sm')} En attente<span class="todo-wait-date">· ${fmtDate(t.waitingSince)}</span></button>`
         : `<button class="todo-wait add" data-wait title="Marquer en attente de retour (la balle n'est plus dans votre camp)">${icon('clock', 'ic-sm')} En attente</button>`;
-      return `<div class="todo-item ${t.done ? 'done' : ''} ${t.waiting && !t.done ? 'waiting' : ''}" data-id="${t.id}" data-rank="${rank(t)}">
+      return `<div class="todo-item ${t.done ? 'done' : ''} ${t.waiting && !t.done ? 'waiting' : ''} ${t.important ? 'important' : ''}" data-id="${t.id}" data-rank="${rank(t)}">
         <button class="icon-btn drag-h todo-drag" title="Glisser pour réorganiser (ou ↑ / ↓ au clavier)">${icon('grip')}</button>
         <label class="todo-check"><input type="checkbox" class="todo-toggle" ${t.done ? 'checked' : ''}></label>
+        <button class="icon-btn todo-flag ${t.important ? 'on' : ''}" title="${t.important ? 'Important — cliquez pour retirer le drapeau' : 'Marquer comme important'}" aria-pressed="${t.important ? 'true' : 'false'}">${icon('flag')}</button>
         <div class="todo-main">
           <span class="todo-text" title="Double-cliquez pour modifier">${esc(t.text)}</span>
           ${status}
@@ -3142,6 +3151,7 @@ function renderTodos() {
   $('#todo-input', host).onkeydown = e => { if (e.key === 'Enter') { e.preventDefault(); addTodo(); } };
   $$('.todo-toggle', host).forEach(c => c.onchange = e => { const id = e.target.closest('.todo-item').dataset.id; const t = DB.data.todos.find(x => x.id === id); if (t) { t.done = e.target.checked; if (t.done) { t.waiting = false; t.waitingSince = ''; } DB.save(); renderTodos(); } });
   $$('.todo-wait', host).forEach(b => b.onclick = e => { const id = e.target.closest('.todo-item').dataset.id; const t = DB.data.todos.find(x => x.id === id); if (!t) return; t.waiting = !t.waiting; t.waitingSince = t.waiting ? todayISO() : ''; DB.save(); renderTodos(); });
+  $$('.todo-flag', host).forEach(b => b.onclick = e => { const id = e.target.closest('.todo-item').dataset.id; const t = DB.data.todos.find(x => x.id === id); if (!t) return; t.important = !t.important; DB.save(); renderTodos(); });
   $$('.todo-del', host).forEach(b => b.onclick = e => { const id = e.target.closest('.todo-item').dataset.id; DB.data.todos = DB.data.todos.filter(x => x.id !== id); DB.save(); renderTodos(); });
   $$('.todo-edit', host).forEach(b => b.onclick = e => beginEditTodo(e.target.closest('.todo-item')));
   $$('.todo-text', host).forEach(s => s.ondblclick = e => beginEditTodo(e.target.closest('.todo-item')));
