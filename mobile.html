@@ -354,7 +354,7 @@ function vAgenda(v) {
 function vTodo(v) {
   const t = todayISO();
   const rank = x => x.done ? 2 : x.waiting ? 1 : 0;
-  const list = D.todos.filter(x => showDone || !x.done).slice().sort((a, b) => rank(a) - rank(b) || (a.due || '9999').localeCompare(b.due || '9999'));
+  const list = D.todos.filter(x => showDone || !x.done).slice().sort((a, b) => rank(a) - rank(b)); // ordre réorganisé à la main sur le PC
   const nDone = D.todos.filter(x => x.done).length;
   v.innerHTML = `
     <h2>Ma to-do list · ${openTodos().length} à faire</h2>
