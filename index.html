@@ -438,6 +438,10 @@ summary.win-head>.win-ctl{float:right}
 .todo-list{display:flex;flex-direction:column}
 .todo-item{display:flex;align-items:center;gap:12px;padding:9px 4px;border-bottom:1px solid var(--border)}
 .todo-item:last-child{border-bottom:0}
+.todo-drag{margin-right:-6px;cursor:grab;touch-action:none;color:var(--text-3);opacity:0;transition:opacity .15s}
+.todo-item:hover .todo-drag,.todo-drag:focus-visible{opacity:1}
+@media(hover:none){.todo-drag{opacity:1}}
+.todo-item.dragging{background:var(--brand-soft);outline:2px solid var(--brand-2);outline-offset:-2px;border-radius:6px}
 .todo-check{display:inline-flex;cursor:pointer}
 .todo-check input{width:18px;height:18px;accent-color:var(--pos);cursor:pointer}
 .todo-text{flex:1;font-size:14px;color:var(--text);word-break:break-word;cursor:text}
@@ -3091,13 +3095,7 @@ function renderTodos() {
   const open = todos.filter(t => !t.done && !t.waiting).length;
   const waiting = todos.filter(t => !t.done && t.waiting).length;
   const rank = t => t.done ? 2 : (t.waiting ? 1 : 0); // actionnable · en attente · fait
-  const sorted = todos.slice().sort((a, b) => {
-    const ra = rank(a), rb = rank(b); if (ra !== rb) return ra - rb;
-    const ad = a.due || '', bd = b.due || '';
-    if (ad && bd) return ad < bd ? -1 : ad > bd ? 1 : 0;
-    if (ad) return -1; if (bd) return 1;
-    return 0;
-  });
+  const sorted = todos.slice().sort((a, b) => rank(a) - rank(b)); // tri stable : l'ordre glissé à la main est conservé dans chaque groupe
   const countChip = (open || waiting)
     ? `<span class="chip">${open ? open + ' à faire' : 'Rien à faire'}${waiting ? ' · ' + waiting + ' en attente' : ''}</span>`
     : `<span class="chip ok">${icon('tick', 'ic-sm')} Tout est fait</span>`;
@@ -3119,7 +3117,8 @@ function renderTodos() {
       const wait = (t.waiting && !t.done)
         ? `<button class="todo-wait on" data-wait title="En attente de retour depuis le ${fmtDate(t.waitingSince)} — cliquez pour reprendre la main">${icon('clock', 'ic-sm')} En attente<span class="todo-wait-date">· ${fmtDate(t.waitingSince)}</span></button>`
         : `<button class="todo-wait add" data-wait title="Marquer en attente de retour (la balle n'est plus dans votre camp)">${icon('clock', 'ic-sm')} En attente</button>`;
-      return `<div class="todo-item ${t.done ? 'done' : ''} ${t.waiting && !t.done ? 'waiting' : ''}" data-id="${t.id}">
+      return `<div class="todo-item ${t.done ? 'done' : ''} ${t.waiting && !t.done ? 'waiting' : ''}" data-id="${t.id}" data-rank="${rank(t)}">
+        <button class="icon-btn drag-h todo-drag" title="Glisser pour réorganiser (ou ↑ / ↓ au clavier)">${icon('grip')}</button>
         <label class="todo-check"><input type="checkbox" class="todo-toggle" ${t.done ? 'checked' : ''}></label>
         <div class="todo-main">
           <span class="todo-text" title="Double-cliquez pour modifier">${esc(t.text)}</span>
@@ -3148,6 +3147,12 @@ function renderTodos() {
   $$('.todo-text', host).forEach(s => s.ondblclick = e => beginEditTodo(e.target.closest('.todo-item')));
   $$('.todo-due', host).forEach(b => b.onclick = e => beginEditDue(e.target.closest('.todo-item')));
   $$('.todo-status', host).forEach(b => b.onclick = e => beginEditStatus(e.target.closest('.todo-item')));
+  const list = $('.todo-list', host);
+  if (list) dragRows(list, { row: '.todo-item', target: '.todo-item',
+    place: (it, cible, apres) => { if (cible.matches('.todo-item') && cible.dataset.rank === it.dataset.rank) cible[apres ? 'after' : 'before'](it); },
+    onDrop: it => { const ordre = $$('.todo-item', list).map(el => el.dataset.id);
+      DB.data.todos = ordre.map(id => DB.data.todos.find(x => x.id === id)).filter(Boolean).concat(DB.data.todos.filter(x => !ordre.includes(x.id)));
+      DB.save(); renderTodos(); const h = $(`.todo-item[data-id="${it.dataset.id}"] .todo-drag`); if (h && document.activeElement === document.body) h.focus(); } });
 }
 function todoDueMeta(t) {
   if (!t.due) return null;
@@ -4536,7 +4541,7 @@ function bteAutocomplete(inp, catIdx, onPick) {
   const scroller = inp.closest('.modal-body'); if (scroller) scroller.addEventListener('scroll', close);
 }
 /* Déplacement de lignes de tableau par la poignée .drag-h : glisser (souris ou doigt) ou ↑ / ↓ au clavier.
-   opts.place(tr, cible, apres) décide où la ligne peut aller ; opts.onDrop(tr) est appelé après. */
+   opts.target : sélecteur des éléments cibles (par défaut 'tr'). opts.place(tr, cible, apres) décide où la ligne peut aller ; opts.onDrop(tr) est appelé après. */
 function dragRows(table, opts) {
   const scroller = table.closest('.modal-body');
   table.addEventListener('pointerdown', e => {
@@ -4545,7 +4550,7 @@ function dragRows(table, opts) {
     const move = ev => {
       if (scroller) { const r = scroller.getBoundingClientRect();
         if (ev.clientY < r.top + 40) scroller.scrollTop -= 14; else if (ev.clientY > r.bottom - 40) scroller.scrollTop += 14; }
-      const el = document.elementFromPoint(ev.clientX, ev.clientY), cible = el && el.closest('tr');
+      const el = document.elementFromPoint(ev.clientX, ev.clientY), cible = el && el.closest(opts.target || 'tr');
       if (!cible || cible === tr || !table.contains(cible)) return;
       const r = cible.getBoundingClientRect(); opts.place(tr, cible, ev.clientY > r.top + r.height / 2);
     };
