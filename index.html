@@ -1183,6 +1183,7 @@ const ICONS = {
   winMin: '<line x1="5" y1="12" x2="19" y2="12"/>',
   winMax: '<rect x="5" y="5" width="14" height="14" rx="1.5"/>',
   winRestore: '<rect x="4" y="8" width="12" height="12" rx="1.5"/><path d="M8 8V5.5A1.5 1.5 0 0 1 9.5 4h9A1.5 1.5 0 0 1 20 5.5v9a1.5 1.5 0 0 1-1.5 1.5H16"/>',
+  copy: '<rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>',
   grip: '<circle cx="9" cy="6" r="1"/><circle cx="15" cy="6" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="9" cy="18" r="1"/><circle cx="15" cy="18" r="1"/>',
 };
 function icon(name, cls = '') {
@@ -4456,13 +4457,24 @@ function renderBTE(v) {
     <div class="page-actions"><button class="btn primary" id="add">${icon('plus')} Nouveau BTE</button><span class="spacer"></span><span class="chip">${list.length} budget(s)</span></div>
     ${list.length ? `<div class="table-wrap"><table><thead><tr><th>Date</th><th>Chantier</th><th>État</th><th class="num">Total dépenses</th><th class="num">Marge %</th><th class="num">Prix de vente</th><th class="num">Marge brute €</th><th></th></tr></thead>
       <tbody>${list.map(b => { const t = bteTotals(b); return `<tr><td class="t-muted">${fmtDate(b.dateEdition)}</td><td><span class="link" data-open="${b.id}">${esc(b.nom)}</span></td><td>${bteValide(b) ? `<span class="chip ok" title="${b.dateValidation ? 'Validé le ' + fmtDate(b.dateValidation) : ''}">Validé</span>` : '<span class="chip">En étude</span>'}</td><td class="num">${eur(t.dep)}</td><td class="num">${pct(t.margePct)}</td><td class="num t-strong">${eur(t.pv)}</td><td class="num ${t.margeEuro >= 0 ? 'margin-good' : 'margin-bad'}">${eur(t.margeEuro)}</td>
-        <td class="actions-cell"><button class="icon-btn" data-todevis="${b.id}" title="Passer en devis">${icon('file')}</button><button class="icon-btn" data-open="${b.id}" title="Ouvrir">${icon('edit')}</button><button class="icon-btn danger" data-del="${b.id}" title="Supprimer">${icon('trash')}</button></td></tr>`; }).join('')}</tbody></table></div>`
+        <td class="actions-cell"><button class="icon-btn" data-todevis="${b.id}" title="Passer en devis">${icon('file')}</button><button class="icon-btn" data-dup="${b.id}" title="Dupliquer">${icon('copy')}</button><button class="icon-btn" data-open="${b.id}" title="Ouvrir">${icon('edit')}</button><button class="icon-btn danger" data-del="${b.id}" title="Supprimer">${icon('trash')}</button></td></tr>`; }).join('')}</tbody></table></div>`
       : emptyState('calculator', 'Aucun budget BTE', 'Créez un BTE pour chiffrer les dépenses et fixer votre marge.')}
     <p class="t-muted" style="margin-top:12px">Le BTE est un <b>repère de chiffrage</b> : il n'alimente ni les chantiers, ni le CA, ni le RAF. Une fois <b>validé</b>, il donne les <b>cadences par poste</b> (objectifs de production de l'équipe). « Passer en devis » crée un devis au prix de vente du BTE, avec le <b>détail des postes d'ouvrage élémentaires</b> (quantité, unité, PU de vente) s'ils sont renseignés.</p>`;
   $('#add').onclick = () => bteEditor();
   $$('[data-todevis]', v).forEach(btn => btn.onclick = () => { const b = DB.data.bte.find(x => x.id === btn.dataset.todevis); if (b) bteVersDevis(b); });
+  $$('[data-dup]', v).forEach(btn => btn.onclick = () => { const b = DB.data.bte.find(x => x.id === btn.dataset.dup); if (b) bteDupliquer(b); });
   $$('[data-open]', v).forEach(b => b.onclick = () => bteEditor(b.dataset.open));
   $$('[data-del]', v).forEach(b => b.onclick = () => confirmDialog('Supprimer ce BTE ?', () => { DB.data.bte = DB.data.bte.filter(x => x.id !== b.dataset.del); DB.save(); toast('BTE supprimé'); renderBTE(v); }));
+}
+/* Dupliquer un BTE : copie complète (lignes, postes, marge, équipe), repassée « en étude »
+   et datée du jour. Les postes reçoivent de nouveaux identifiants, les lignes suivent. */
+function bteDupliquer(b) {
+  const c = JSON.parse(JSON.stringify(b)), ids = {};
+  c.id = uid(); c.nom = (b.nom || 'BTE') + ' (copie)'; c.dateEdition = todayISO(); c.statut = 'etude'; delete c.dateValidation;
+  c.ouvrages = (c.ouvrages || []).map(o => { ids[o.id] = uid(); return { ...o, id: ids[o.id] }; });
+  c.lignes = (c.lignes || []).map(l => { if (l.ouv) { if (ids[l.ouv]) l.ouv = ids[l.ouv]; else delete l.ouv; } return l; });
+  const i = DB.data.bte.findIndex(x => x.id === b.id);
+  DB.data.bte.splice(i < 0 ? 0 : i, 0, c); DB.save(); toast('BTE dupliqué'); go('bte'); bteEditor(c.id);
 }
 /* Passer un BTE en devis : copie son objet et son prix de vente dans un nouveau devis, sans
    garder de lien (le BTE reste un simple repère). La fiche devis s'ouvre pour saisir OTP / client. */
@@ -4619,6 +4631,7 @@ function bteEditor(id) {
     footer: `<button class="btn" data-c>Annuler</button><span class="spacer"></span>
       <button class="btn small" id="b-xlsx">${icon('download')} Excel</button>
       <button class="btn small" id="b-csv">${icon('download')} CSV</button>
+      ${isNew ? '' : `<button class="btn small" id="b-dup">${icon('copy')} Dupliquer</button>`}
       <button class="btn" id="b-devis">${icon('file')} Passer en devis</button>
       <button class="btn primary" id="b-save">Enregistrer</button>` });
   m.root.querySelector('.modal-foot').style.flexWrap = 'wrap';
@@ -4712,6 +4725,7 @@ function bteEditor(id) {
   m.root.querySelector('[data-c]').onclick = m.close;
   $('#b-csv').onclick = () => { collect(); const nomPoste = ouv => { const i = b.ouvrages.findIndex(o => o.id === ouv); return i < 0 ? '' : (i + 1) + '. ' + b.ouvrages[i].designation; };
     exportXlsx('BTE_' + (b.nom || 'chantier'), ['poste', 'designation', 'unite', 'qte', 'pu', 'total', 'poste_devis'], b.lignes.map(l => [l.cat, l.designation, l.unite, l.qte, l.pu, l.qte * l.pu, nomPoste(l.ouv)]), { sheet: 'BTE', money: ['pu', 'total'] }); };
+  const dup = $('#b-dup'); if (dup) dup.onclick = () => { collect(); if (!b.nom) { toast('Renseignez le nom du chantier', 'err'); return; } DB.save(); m.close(); bteDupliquer(b); };
   $('#b-xlsx').onclick = () => { collect(); if (!b.nom) { toast('Renseignez le nom du chantier', 'err'); return; } exportBteXlsx(b); };
   $('#b-devis').onclick = () => {
     collect(); if (!b.nom) { toast('Renseignez le nom du chantier', 'err'); return; }
