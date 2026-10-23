@@ -96,6 +96,7 @@ h2:first-child{margin-top:4px}
 .dot{width:10px;height:10px;border-radius:50%;flex:none}
 .tag{font-size:12px;font-weight:600;padding:3px 8px;border-radius:999px;white-space:nowrap;flex:none}
 .tag.bad{background:var(--neg-soft);color:var(--neg)}
+.row .t .flag{color:var(--neg)}
 .tag.warn{background:var(--warn-soft);color:var(--warn)}
 .tag.ok{background:var(--pos-soft);color:var(--pos)}
 .tag.mute{background:var(--surface-3);color:var(--text-2)}
@@ -364,7 +365,7 @@ function vTodo(v) {
         const late = !x.done && x.due && x.due < t, soon = !x.done && x.due && !late && daysBetween(t, x.due) <= 3;
         const meta = [x.waiting && !x.done ? 'En attente de retour' : '', x.status || ''].filter(Boolean).join(' · ');
         return `<div class="row ${x.done ? 'done' : ''}" data-id="${esc(x.id)}"><button class="check" aria-label="Fait">${icon('tick')}</button>
-          <div class="main"><div class="t">${esc(x.text)}</div>${meta ? `<div class="m">${esc(meta)}</div>` : ''}</div>
+          <div class="main"><div class="t">${x.important ? '<span class="flag" title="Important">⚑</span> ' : ''}${esc(x.text)}</div>${meta ? `<div class="m">${esc(meta)}</div>` : ''}</div>
           ${x.due ? `<span class="tag ${late ? 'bad' : soon ? 'warn' : 'mute'}">${fmtDate(x.due)}</span>` : ''}</div>`;
       }).join('') || '<div class="empty">Aucune tâche.</div>'}
       ${nDone ? `<button class="toggle" id="show-done">${showDone ? 'Masquer' : 'Afficher'} les tâches faites (${nDone})</button>` : ''}
