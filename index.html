@@ -3325,7 +3325,7 @@ function renderChantiers(v) {
         <td>${prepaResume(c)}</td>
         <td>${chantierEnCa(c) ? '<span class="badge b-facture" title="Déjà repris dans le CA">Mis en factu.</span>' : `<label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer"><input type="checkbox" data-factu="${c.id}" ${chantierFacturable(c) ? 'checked' : ''}>${chantierFacturable(c) ? 'Autorisé' : '<span class="t-muted">Bloqué</span>'}</label>`}</td>
         <td class="num">${eur(c.montantHT)}</td>
-        <td class="actions-cell"><button class="icon-btn" data-edit="${c.id}" title="Modifier">${icon('edit')}</button><button class="icon-btn danger" data-del="${c.id}" title="Supprimer">${icon('trash')}</button></td></tr>`).join('')}</tbody>
+        <td class="actions-cell"><button class="icon-btn" data-plan="${c.id}" title="Planifier dans le planning">${icon('calendar')}</button><button class="icon-btn" data-edit="${c.id}" title="Modifier">${icon('edit')}</button><button class="icon-btn danger" data-del="${c.id}" title="Supprimer">${icon('trash')}</button></td></tr>`).join('')}</tbody>
       <tfoot><tr><td colspan="6">Total</td><td class="num">${eur(list.reduce((s, c) => s + (+c.montantHT || 0), 0))}</td><td></td></tr></tfoot></table></div>`
       : emptyState('building', 'Aucun chantier', 'Créez votre premier chantier pour suivre vos affaires.')}`;
   $('#add').onclick = () => chantierForm();
@@ -3335,6 +3335,7 @@ function renderChantiers(v) {
   $$('[data-factu]', v).forEach(i => i.onchange = () => { const c = chantierById(i.dataset.factu); if (!c) return; c.facturable = i.checked; DB.save(); toast(i.checked ? 'Mise en facturation autorisée' : 'Mise en facturation bloquée'); renderChantiers(v); });
   $('#csv').onclick = () => exportXlsx('chantiers', ['otp', 'nom', 'client', 'adresse', 'statut', 'notes_preparation', 'mise_en_facturation', 'montantHT'], list.map(c => [c.otp, c.nom, clientNom(c.clientId), c.adresse, STATUTS_CHANTIER[c.statut], prepaNotes(c).length, chantierEnCa(c) ? 'Mis en facturation' : chantierFacturable(c) ? 'Autorisée' : 'Bloquée', c.montantHT]), { sheet: 'Chantiers' });
   $$('[data-edit]', v).forEach(b => b.onclick = () => chantierForm(b.dataset.edit));
+  $$('[data-plan]', v).forEach(b => b.onclick = () => { planTab = 'mois'; go('planning'); agendaForm(null, null, { chantierId: b.dataset.plan }); });
   $$('[data-view]', v).forEach(b => b.onclick = () => chantierDetail(b.dataset.view));
   $$('[data-prepa]', v).forEach(b => b.onclick = () => prepaModal(b.dataset.prepa));
   $$('[data-del]', v).forEach(b => b.onclick = () => confirmDialog('Supprimer ce chantier ?', () => { DB.data.chantiers = DB.data.chantiers.filter(x => x.id !== b.dataset.del); DB.save(); toast('Chantier supprimé'); renderChantiers(v); }));
@@ -6210,7 +6211,7 @@ function dayEvents(iso, dateObj) {
     DB.data.visites.filter(x => x.datePrevue === iso).forEach(x => { const c = DB.data.contrats.find(y => y.id === x.contratId); evs.push({ color: 'var(--cat-3)', label: 'Visite · ' + (c ? clientNom(c.clientId) : ''), route: 'entretien' }); });
   }
   if (planFilter.equipes) {
-    DB.data.agenda.filter(a => a.type === 'chantier' && a.dateDebut && iso >= a.dateDebut && iso <= (a.dateFin || a.dateDebut)).forEach(a => { const eq = DB.data.equipes.find(e => e.id === a.equipeId); const base = (eq ? eq.nom + ' · ' : '') + a.title; evs.push({ color: teamColor(a.equipeId), label: agEventLabel(a, base), tip: agEventLabel(a, base) + agCompTip(a), agendaId: a.id }); });
+    DB.data.agenda.filter(a => a.type === 'chantier' && a.dateDebut && iso >= a.dateDebut && iso <= (a.dateFin || a.dateDebut)).forEach(a => { const eq = DB.data.equipes.find(e => e.id === a.equipeId); const base = (eq ? eq.nom + ' · ' : '') + a.title, ch = a.chantierId && chantierById(a.chantierId); evs.push({ color: teamColor(a.equipeId), label: agEventLabel(a, base), tip: agEventLabel(a, base) + (ch && ch.adresse ? '\n' + ch.adresse : '') + agCompTip(a), agendaId: a.id }); });
     DB.data.pointages.forEach(r => { if (!r.h) return; const di = daysBetween(r.semaine, iso); if (di >= 0 && di < 7 && r.h[di]) evs.push({ color: teamColor(r.equipeId), label: r.workerNom + ' · ' + (r.chantierNom || r.otp || ''), route: 'planning-sem' }); });
   }
   return evs;
@@ -6234,6 +6235,7 @@ function renderCalendar(v) {
   v.innerHTML = `
     <div class="page-actions">
       <button class="btn primary" id="c-add">${icon('plus')} Événement</button>
+      <button class="btn" id="c-addch">${icon('building')} Planifier un chantier</button>
       <button class="btn" id="c-teams">${icon('users')} Équipes</button>
       <span class="spacer"></span>
       <button class="btn small icon" id="c-prev" aria-label="Mois précédent">${icon('chevLeft')}</button>
@@ -6251,6 +6253,7 @@ function renderCalendar(v) {
       <div class="cal-grid">${cells.map(cellHtml).join('')}</div>
     </div></div>`;
   $('#c-add').onclick = () => agendaForm();
+  $('#c-addch').onclick = () => agendaForm(null, null, { type: 'chantier' });
   $('#c-teams').onclick = () => equipesModal();
   $('#c-prev').onclick = () => { planMonth--; if (planMonth < 0) { planMonth = 11; planYear--; } renderPlanning($('#view')); };
   $('#c-next').onclick = () => { planMonth++; if (planMonth > 11) { planMonth = 0; planYear++; } renderPlanning($('#view')); };
@@ -6261,8 +6264,13 @@ function renderCalendar(v) {
   $$('[data-ev]', v).forEach(el => el.onclick = e => { e.stopPropagation(); agendaForm(el.dataset.ev); });
   $$('[data-route]', v).forEach(el => el.onclick = e => { e.stopPropagation(); const r = el.dataset.route; if (r === 'planning-sem') { planTab = 'semaine'; renderPlanning($('#view')); } else go(r); });
 }
-function agendaForm(id, presetDate) {
-  const a = id ? DB.data.agenda.find(x => x.id === id) : { title: '', type: 'perso', dateDebut: presetDate || todayISO(), dateFin: '', heureDebut: '', heureFin: '', equipeId: (DB.data.equipes[0] || {}).id || '', companions: [], otp: '', note: '' };
+/* preset.chantierId : ouvre le formulaire en « Équipe sur chantier » sur ce chantier (intitulé + OTP repris). */
+function agendaForm(id, presetDate, preset = {}) {
+  const pch = preset.chantierId ? chantierById(preset.chantierId) : null;
+  const a = id ? DB.data.agenda.find(x => x.id === id) : { title: pch ? pch.nom : '', type: preset.type || (pch ? 'chantier' : 'perso'), chantierId: pch ? pch.id : '', dateDebut: presetDate || todayISO(), dateFin: '', heureDebut: '', heureFin: '', equipeId: (DB.data.equipes[0] || {}).id || '', companions: [], otp: pch ? pch.otp || '' : '', note: '' };
+  // Chantiers proposés : ceux encore à réaliser, plus celui déjà rattaché à l'événement
+  const chOpts = DB.data.chantiers.filter(c => !['facture', 'perdu'].includes(c.statut) || c.id === a.chantierId)
+    .map(c => `<option value="${c.id}" ${a.chantierId === c.id ? 'selected' : ''}>${esc((c.otp ? c.otp + ' · ' : '') + c.nom)}${c.statut ? ' — ' + esc(STATUTS_CHANTIER[c.statut] || '') : ''}</option>`).join('');
   const eqOpts = DB.data.equipes.map(e => `<option value="${e.id}" ${a.equipeId === e.id ? 'selected' : ''}>${esc(e.nom)} (${esc(e.chef)})</option>`).join('');
   // Compagnons connus (chefs + compagnons de toutes les équipes), dédoublonnés par nom
   const knownNames = [...new Set(planWorkers().map(w => w.nom).filter(Boolean))];
@@ -6275,6 +6283,7 @@ function agendaForm(id, presetDate) {
     body: `<div class="form-grid">
       <div class="field"><label>Type</label><select id="a-type">${Object.entries(AGENDA_TYPES).map(([k, l]) => `<option value="${k}" ${a.type === k ? 'selected' : ''}>${l}</option>`).join('')}</select></div>
       <div class="field" id="a-eqwrap"><label>Équipe de référence (optionnel)</label><select id="a-eq"><option value="">—</option>${eqOpts}</select></div>
+      <div class="field full" id="a-chwrap"><label>Chantier</label><select id="a-ch"><option value="">— Choisir un chantier —</option>${chOpts}</select><div class="hint">L'intitulé et l'OTP sont repris du chantier.</div></div>
       <div class="field full"><label>Intitulé</label><input id="a-title" value="${esc(a.title)}" placeholder="RDV client, chantier, congés…"></div>
       <div class="field"><label>Du</label><input id="a-deb" type="date" value="${a.dateDebut || todayISO()}"></div>
       <div class="field"><label>Au (optionnel)</label><input id="a-fin" type="date" value="${a.dateFin || ''}"></div>
@@ -6291,6 +6300,12 @@ function agendaForm(id, presetDate) {
     footer: `${id ? `<button class="btn danger" id="a-del">${icon('trash')} Supprimer</button>` : ''}<span class="spacer"></span><button class="btn" data-c>Annuler</button><button class="btn primary" id="a-save">Enregistrer</button>` });
   m.root.querySelector('.modal-foot').style.justifyContent = 'flex-start';
   m.root.querySelector('[data-c]').onclick = m.close;
+  const majType = () => { $('#a-chwrap').style.display = $('#a-type').value === 'chantier' ? '' : 'none'; };
+  $('#a-type').onchange = majType; majType();
+  let chNom = (chantierById(a.chantierId) || {}).nom || '';
+  $('#a-ch').onchange = () => { const c = chantierById($('#a-ch').value); if (!c) return;
+    const t = $('#a-title'); if (!t.value.trim() || t.value.trim() === chNom) t.value = c.nom; // on ne remplace pas un intitulé saisi à la main
+    $('#a-otp').value = c.otp || ''; chNom = c.nom; };
   if (id) $('#a-del').onclick = () => { DB.data.agenda = DB.data.agenda.filter(x => x.id !== id); DB.save(); m.close(); toast('Événement supprimé'); renderPlanning($('#view')); };
   const collectCompanions = () => {
     const checked = $$('.a-comp', m.root).filter(c => c.checked).map(c => c.value);
@@ -6299,7 +6314,7 @@ function agendaForm(id, presetDate) {
   };
   $('#a-save').onclick = () => {
     const type = $('#a-type').value;
-    const obj = { title: $('#a-title').value.trim(), type, equipeId: $('#a-eq').value, companions: collectCompanions(), dateDebut: $('#a-deb').value, dateFin: $('#a-fin').value, heureDebut: $('#a-hdeb').value, heureFin: $('#a-hfin').value, otp: $('#a-otp').value.trim(), note: $('#a-note').value.trim() };
+    const obj = { title: $('#a-title').value.trim(), type, chantierId: type === 'chantier' ? $('#a-ch').value : '', equipeId: $('#a-eq').value, companions: collectCompanions(), dateDebut: $('#a-deb').value, dateFin: $('#a-fin').value, heureDebut: $('#a-hdeb').value, heureFin: $('#a-hfin').value, otp: $('#a-otp').value.trim(), note: $('#a-note').value.trim() };
     if (!obj.title) { toast("L'intitulé est obligatoire", 'err'); return; }
     if (!obj.dateDebut) { toast('La date est obligatoire', 'err'); return; }
     if (obj.heureFin && obj.heureDebut && obj.heureFin < obj.heureDebut) { toast("L'heure de fin est avant l'heure de début", 'err'); return; }
