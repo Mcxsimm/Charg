@@ -608,6 +608,7 @@ body.row-dragging,body.row-dragging *{cursor:grabbing!important;user-select:none
 .ts-prog-lbl{font-size:12.5px;font-weight:600;color:var(--text-2);margin-bottom:4px}
 .ts-grid td,.ts-grid th{padding:6px 8px}
 .ts-grid thead th{text-align:center}
+.ts-grid tr.ts-plan>td:first-child{box-shadow:inset 3px 0 0 var(--brand-2)}
 .ts-grid thead th:nth-child(-n+3){text-align:left}
 .ts-grid input,.ts-grid select{border:1px solid var(--border-strong);border-radius:6px;padding:5px 6px;font-size:12.5px;background:var(--surface);color:var(--text)}
 .ts-grid .ts-h{width:50px;text-align:right;font-variant-numeric:tabular-nums}
@@ -6120,7 +6121,7 @@ function renderPointages(v) {
   const prog = Math.min(100, Math.round(persoTot / HEBDO_H * 100));
   const chList = DB.data.chantiers.map(c => `<option value="${esc(c.otp)}">${esc(c.otp || '')} · ${esc(c.nom)}</option>`).join('');
   const typeOpts = sel => Object.entries(TYPE_HEURE).map(([k, l]) => `<option value="${k}" ${sel === k ? 'selected' : ''}>${l}</option>`).join('');
-  const rowHtml = r => `<tr data-id="${r.id}">
+  const rowHtml = r => `<tr data-id="${r.id}"${r.agendaId ? ' class="ts-plan" title="Générée depuis le planning : recalculée si vous modifiez l\'événement"' : ''}>
     <td><input class="ts-f" data-k="categorie" value="${esc(r.categorie || '3000111')}" list="ts-cats" style="width:88px"></td>
     <td><select class="ts-f" data-k="typeHeure" style="width:170px">${typeOpts(r.typeHeure || 'HT')}</select></td>
     <td><input class="ts-f" data-k="otp" value="${esc(r.otp)}" list="ts-otp" placeholder="Imputation" style="width:118px"></td>
@@ -6212,7 +6213,7 @@ function dayEvents(iso, dateObj) {
   }
   if (planFilter.equipes) {
     DB.data.agenda.filter(a => a.type === 'chantier' && a.dateDebut && iso >= a.dateDebut && iso <= (a.dateFin || a.dateDebut)).forEach(a => { const eq = DB.data.equipes.find(e => e.id === a.equipeId); const base = (eq ? eq.nom + ' · ' : '') + a.title, ch = a.chantierId && chantierById(a.chantierId); evs.push({ color: teamColor(a.equipeId), label: agEventLabel(a, base), tip: agEventLabel(a, base) + (ch && ch.adresse ? '\n' + ch.adresse : '') + agCompTip(a), agendaId: a.id }); });
-    DB.data.pointages.forEach(r => { if (!r.h) return; const di = daysBetween(r.semaine, iso); if (di >= 0 && di < 7 && r.h[di]) evs.push({ color: teamColor(r.equipeId), label: r.workerNom + ' · ' + (r.chantierNom || r.otp || ''), route: 'planning-sem' }); });
+    DB.data.pointages.forEach(r => { if (!r.h || r.agendaId) return; const di = daysBetween(r.semaine, iso); if (di >= 0 && di < 7 && r.h[di]) evs.push({ color: teamColor(r.equipeId), label: r.workerNom + ' · ' + (r.chantierNom || r.otp || ''), route: 'planning-sem' }); });
   }
   return evs;
 }
@@ -6264,6 +6265,33 @@ function renderCalendar(v) {
   $$('[data-ev]', v).forEach(el => el.onclick = e => { e.stopPropagation(); agendaForm(el.dataset.ev); });
   $$('[data-route]', v).forEach(el => el.onclick = e => { e.stopPropagation(); const r = el.dataset.route; if (r === 'planning-sem') { planTab = 'semaine'; renderPlanning($('#view')); } else go(r); });
 }
+/* Planning → pointages : un chantier planifié génère des heures prévisionnelles (HT) pour
+   chaque compagnon, du lundi au jeudi 8 h, le vendredi 7 h, rien le week-end ni les jours
+   d'intempérie. Les lignes portent agendaId : elles sont recalculées à chaque enregistrement
+   de l'événement et supprimées avec lui. Elles alimentent le RAF comme un pointage saisi. */
+const PLAN_HEURES_JOUR = [8, 8, 8, 8, 7, 0, 0];
+const agendaJoursOuvres = (deb, fin) => { const out = []; if (!deb) return out; const f = fin && fin >= deb ? fin : deb;
+  for (let d = deb, n = 0; d <= f && n < 400; d = addDays(d, 1), n++) if (PLAN_HEURES_JOUR[(new Date(d + 'T00:00:00').getDay() + 6) % 7]) out.push(d);
+  return out; };
+function planningVersPointages(a) {
+  DB.data.pointages = DB.data.pointages.filter(r => r.agendaId !== a.id);
+  if (a.type !== 'chantier' || a.imputer === false || !a.otp) return { lignes: 0, ignores: [] };
+  const workers = planWorkers(), noms = Array.isArray(a.companions) ? a.companions : [];
+  // Compagnons cochés ; à défaut, chef + compagnon de l'équipe de référence
+  let qui = noms.length ? noms.map(n => workers.find(w => w.nom === n)).filter(Boolean) : workers.filter(w => w.equipeId === a.equipeId);
+  qui = qui.filter((w, i) => qui.findIndex(x => x.key === w.key) === i);
+  const ignores = noms.filter(n => !workers.some(w => w.nom === n));
+  const ch = chantierById(a.chantierId), intemp = new Set(a.intemperies || []), rows = {};
+  agendaJoursOuvres(a.dateDebut, a.dateFin).forEach(d => {
+    if (intemp.has(d)) return;
+    const sem = mondayISO(new Date(d + 'T00:00:00')), di = daysBetween(sem, d);
+    qui.forEach(w => { const k = w.key + '|' + sem;
+      const r = rows[k] = rows[k] || { id: uid(), agendaId: a.id, workerKey: w.key, workerNom: w.nom, equipeId: w.equipeId, semaine: sem, categorie: '3000111', typeHeure: 'HT', otp: a.otp, chantierNom: ch ? ch.nom : a.title, h: [0, 0, 0, 0, 0, 0, 0], panier: 0, trajet: 0, zone: '' };
+      r.h[di] = PLAN_HEURES_JOUR[di]; });
+  });
+  DB.data.pointages.push(...Object.values(rows));
+  return { lignes: Object.keys(rows).length, ignores };
+}
 /* preset.chantierId : ouvre le formulaire en « Équipe sur chantier » sur ce chantier (intitulé + OTP repris). */
 function agendaForm(id, presetDate, preset = {}) {
   const pch = preset.chantierId ? chantierById(preset.chantierId) : null;
@@ -6283,7 +6311,9 @@ function agendaForm(id, presetDate, preset = {}) {
     body: `<div class="form-grid">
       <div class="field"><label>Type</label><select id="a-type">${Object.entries(AGENDA_TYPES).map(([k, l]) => `<option value="${k}" ${a.type === k ? 'selected' : ''}>${l}</option>`).join('')}</select></div>
       <div class="field" id="a-eqwrap"><label>Équipe de référence (optionnel)</label><select id="a-eq"><option value="">—</option>${eqOpts}</select></div>
-      <div class="field full" id="a-chwrap"><label>Chantier</label><select id="a-ch"><option value="">— Choisir un chantier —</option>${chOpts}</select><div class="hint">L'intitulé et l'OTP sont repris du chantier.</div></div>
+      <div class="field full" id="a-chwrap"><label>Chantier</label><select id="a-ch"><option value="">— Choisir un chantier —</option>${chOpts}</select><div class="hint">L'intitulé et l'OTP sont repris du chantier.</div>
+        <label style="display:flex;align-items:center;gap:8px;margin-top:10px;cursor:pointer"><input type="checkbox" id="a-imput" ${a.imputer === false ? '' : 'checked'} style="width:auto"> Imputer aux pointages (lun.–jeu. 8 h, ven. 7 h) — budget main d'œuvre dans le RAF</label>
+        <div id="a-intwrap" style="margin-top:8px"><div class="hint" style="margin:0 0 6px">Jours d'intempérie (cliquez pour exclure le jour des heures) :</div><div id="a-intemp" style="display:flex;flex-wrap:wrap;gap:6px"></div></div></div>
       <div class="field full"><label>Intitulé</label><input id="a-title" value="${esc(a.title)}" placeholder="RDV client, chantier, congés…"></div>
       <div class="field"><label>Du</label><input id="a-deb" type="date" value="${a.dateDebut || todayISO()}"></div>
       <div class="field"><label>Au (optionnel)</label><input id="a-fin" type="date" value="${a.dateFin || ''}"></div>
@@ -6302,11 +6332,20 @@ function agendaForm(id, presetDate, preset = {}) {
   m.root.querySelector('[data-c]').onclick = m.close;
   const majType = () => { $('#a-chwrap').style.display = $('#a-type').value === 'chantier' ? '' : 'none'; };
   $('#a-type').onchange = majType; majType();
+  const intemp = new Set(a.intemperies || []);
+  const majIntemp = () => {
+    const jours = agendaJoursOuvres($('#a-deb').value, $('#a-fin').value);
+    $('#a-intwrap').style.display = $('#a-imput').checked && jours.length ? '' : 'none';
+    $('#a-intemp').innerHTML = jours.map(d => { const on = intemp.has(d), j = JSEM[(new Date(d + 'T00:00:00').getDay() + 6) % 7];
+      return `<button type="button" class="chip" data-int="${d}" aria-pressed="${on}" title="${on ? 'Intempérie — 0 h' : PLAN_HEURES_JOUR[(new Date(d + 'T00:00:00').getDay() + 6) % 7] + ' h'}" style="cursor:pointer;${on ? 'background:var(--warn-soft);color:var(--warn);border-color:var(--warn-line);text-decoration:line-through' : ''}">${j} ${fmtDate(d).slice(0, 5)}</button>`; }).join('');
+    $$('[data-int]', m.root).forEach(b => b.onclick = () => { const d = b.dataset.int; intemp.has(d) ? intemp.delete(d) : intemp.add(d); majIntemp(); });
+  };
+  ['#a-deb', '#a-fin'].forEach(sel => $(sel).addEventListener('change', majIntemp)); $('#a-imput').onchange = majIntemp; majIntemp();
   let chNom = (chantierById(a.chantierId) || {}).nom || '';
   $('#a-ch').onchange = () => { const c = chantierById($('#a-ch').value); if (!c) return;
     const t = $('#a-title'); if (!t.value.trim() || t.value.trim() === chNom) t.value = c.nom; // on ne remplace pas un intitulé saisi à la main
     $('#a-otp').value = c.otp || ''; chNom = c.nom; };
-  if (id) $('#a-del').onclick = () => { DB.data.agenda = DB.data.agenda.filter(x => x.id !== id); DB.save(); m.close(); toast('Événement supprimé'); renderPlanning($('#view')); };
+  if (id) $('#a-del').onclick = () => { DB.data.agenda = DB.data.agenda.filter(x => x.id !== id); DB.data.pointages = DB.data.pointages.filter(r => r.agendaId !== id); DB.save(); m.close(); toast('Événement supprimé'); renderPlanning($('#view')); };
   const collectCompanions = () => {
     const checked = $$('.a-comp', m.root).filter(c => c.checked).map(c => c.value);
     const extra = ($('#a-compextra').value || '').split(',').map(s => s.trim()).filter(Boolean);
@@ -6318,8 +6357,13 @@ function agendaForm(id, presetDate, preset = {}) {
     if (!obj.title) { toast("L'intitulé est obligatoire", 'err'); return; }
     if (!obj.dateDebut) { toast('La date est obligatoire', 'err'); return; }
     if (obj.heureFin && obj.heureDebut && obj.heureFin < obj.heureDebut) { toast("L'heure de fin est avant l'heure de début", 'err'); return; }
-    if (id) Object.assign(a, obj); else DB.data.agenda.unshift({ id: uid(), ...obj });
-    DB.save(); m.close(); toast('Événement enregistré'); planTab = 'mois'; renderPlanning($('#view'));
+    if (type === 'chantier') { obj.imputer = $('#a-imput').checked; const jours = agendaJoursOuvres(obj.dateDebut, obj.dateFin); obj.intemperies = [...intemp].filter(d => jours.includes(d)).sort(); }
+    if (obj.imputer && !obj.otp) { toast("Renseignez l'OTP pour imputer les heures aux pointages", 'err'); return; }
+    let ev = a; if (id) Object.assign(a, obj); else DB.data.agenda.unshift(ev = { id: uid(), ...obj });
+    const imp = planningVersPointages(ev);
+    DB.save(); m.close();
+    toast(imp.lignes ? `Événement enregistré — heures imputées aux pointages (${imp.lignes} ligne(s))${imp.ignores.length ? ' ; sans équipe, non pointés : ' + imp.ignores.join(', ') : ''}` : 'Événement enregistré');
+    planTab = 'mois'; renderPlanning($('#view'));
   };
 }
 function equipesModal() {
