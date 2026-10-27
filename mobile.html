@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <meta name="theme-color" content="#12335c">
+  <meta name="theme-color" content="#142a3a">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="ChargéPro">
   <title>ChargéPro mobile</title>
@@ -17,14 +17,14 @@
    ========================================================================== */
 :root{
   color-scheme:light;
-  --bg:#f4f6f9; --surface:#ffffff; --surface-2:#f8f9fb; --surface-3:#eef1f5;
-  --border:#e4e8ee; --border-strong:#cdd4de;
-  --text:#101828; --text-2:#475467; --text-3:#667085;
-  --brand:#12335c; --brand-2:#1d4f8f; --brand-soft:#e9eff8;
-  --accent:#e8590c;
-  --pos:#067647; --pos-soft:#ecfdf3;
-  --neg:#b42318; --neg-soft:#fef3f2;
-  --warn:#b54708; --warn-soft:#fffaeb;
+  --bg:#f6f8fa; --surface:#ffffff; --surface-2:#f9fafb; --surface-3:#eef2f6;
+  --border:#e4e9ef; --border-strong:#d2dae3;
+  --text:#172b3a; --text-2:#3e5263; --text-3:#64748b;
+  --brand:#142a3a; --brand-2:#1f5a80; --brand-soft:#eaf1f6;
+  --accent:#c6f36b;
+  --pos:#16845b; --pos-soft:#ebf7f1;
+  --neg:#c43a3a; --neg-soft:#fdf0f0;
+  --warn:#b45f06; --warn-soft:#fef6ea;
   --cat-0:#5d6b82; --cat-1:#2a6fc4; --cat-4:#6941c6; --cat-5:#c4320a; --cat-6:#0e7490;
   --radius:12px;
   --shadow-sm:0 1px 3px rgba(16,24,40,.08),0 1px 2px rgba(16,24,40,.04);
@@ -33,27 +33,27 @@
 @media (prefers-color-scheme: dark){
   :root:where(:not([data-theme="light"])){
     color-scheme:dark;
-    --bg:#0b0f15; --surface:#131922; --surface-2:#18202b; --surface-3:#1f2834;
-    --border:#263040; --border-strong:#354255;
-    --text:#e8edf3; --text-2:#b4bfcc; --text-3:#8b97a7;
-    --brand:#3b78d8; --brand-2:#5a91e6; --brand-soft:#182a44;
-    --accent:#f07a35;
-    --pos:#47cd89; --pos-soft:#0f2a1d;
-    --neg:#f97066; --neg-soft:#33171a;
-    --warn:#fdb022; --warn-soft:#2f2410;
+    --bg:#0c1720; --surface:#122230; --surface-2:#162838; --surface-3:#1c3142;
+    --border:#233a4c; --border-strong:#2f4a5f;
+    --text:#e6edf3; --text-2:#b3c2cf; --text-3:#8a9cad;
+    --brand:#3d86b8; --brand-2:#6aaedb; --brand-soft:#16324a;
+    --accent:#c6f36b;
+    --pos:#4fc893; --pos-soft:#0f2b20;
+    --neg:#f37a7a; --neg-soft:#331a1d;
+    --warn:#f2a948; --warn-soft:#2f2412;
     --shadow-sm:0 1px 3px rgba(0,0,0,.4);
   }
 }
 :root[data-theme="dark"]{
   color-scheme:dark;
-  --bg:#0b0f15; --surface:#131922; --surface-2:#18202b; --surface-3:#1f2834;
-  --border:#263040; --border-strong:#354255;
-  --text:#e8edf3; --text-2:#b4bfcc; --text-3:#8b97a7;
-  --brand:#3b78d8; --brand-2:#5a91e6; --brand-soft:#182a44;
-  --accent:#f07a35;
-  --pos:#47cd89; --pos-soft:#0f2a1d;
-  --neg:#f97066; --neg-soft:#33171a;
-  --warn:#fdb022; --warn-soft:#2f2410;
+  --bg:#0c1720; --surface:#122230; --surface-2:#162838; --surface-3:#1c3142;
+  --border:#233a4c; --border-strong:#2f4a5f;
+  --text:#e6edf3; --text-2:#b3c2cf; --text-3:#8a9cad;
+  --brand:#3d86b8; --brand-2:#6aaedb; --brand-soft:#16324a;
+  --accent:#c6f36b;
+  --pos:#4fc893; --pos-soft:#0f2b20;
+  --neg:#f37a7a; --neg-soft:#331a1d;
+  --warn:#f2a948; --warn-soft:#2f2412;
   --shadow-sm:0 1px 3px rgba(0,0,0,.4);
 }
 *{box-sizing:border-box}
@@ -66,7 +66,7 @@ header{position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:10px;
   padding:calc(10px + env(safe-area-inset-top)) 16px 10px;background:var(--brand);color:#fff}
 @media (prefers-color-scheme: dark){:root:where(:not([data-theme="light"])) header{background:var(--surface);border-bottom:1px solid var(--border)}}
 :root[data-theme="dark"] header{background:var(--surface);border-bottom:1px solid var(--border)}
-.logo{width:30px;height:30px;border-radius:8px;background:var(--accent);display:grid;place-items:center;font-weight:800;font-size:13px;color:#fff;flex:none}
+.logo{width:30px;height:30px;border-radius:8px;background:var(--accent);display:grid;place-items:center;font-weight:800;font-size:13px;color:#142a3a;flex:none}
 .h-txt{flex:1;min-width:0}
 .h-txt b{display:block;font-size:16px}
 .h-txt span{display:block;font-size:12px;opacity:.75;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -317,7 +317,7 @@ function vHome(v) {
     <h2>Aujourd'hui</h2>
     <div class="card list">
       ${today.map(evRow).join('')}
-      ${dueTodos.map(x => `<div class="row"><span class="dot" style="background:var(--accent)"></span><div class="main"><div class="t">${esc(x.text)}</div><div class="m">Tâche${x.due < t ? ' · prévue le ' + fmtDate(x.due) : ''}</div></div>${x.due < t ? '<span class="tag bad">Retard</span>' : ''}</div>`).join('')}
+      ${dueTodos.map(x => `<div class="row"><span class="dot" style="background:var(--brand-2)"></span><div class="main"><div class="t">${esc(x.text)}</div><div class="m">Tâche${x.due < t ? ' · prévue le ' + fmtDate(x.due) : ''}</div></div>${x.due < t ? '<span class="tag bad">Retard</span>' : ''}</div>`).join('')}
       ${today.length || dueTodos.length ? '' : '<div class="empty">Rien de prévu aujourd\'hui.</div>'}
     </div>
 
@@ -346,7 +346,7 @@ function vAgenda(v) {
     const lab = i === 0 ? "Aujourd'hui" : i === 1 ? 'Demain' : fmtDay(d);
     html += `<h2 class="day-h"><span>${esc(lab)}</span>${i < 2 ? `<small>${esc(fmtDay(d))}</small>` : ''}</h2><div class="card list">
       ${evs.map(evRow).join('')}
-      ${todos.map(x => `<div class="row"><span class="dot" style="background:var(--accent)"></span><div class="main"><div class="t">${esc(x.text)}</div><div class="m">Échéance tâche</div></div></div>`).join('')}
+      ${todos.map(x => `<div class="row"><span class="dot" style="background:var(--brand-2)"></span><div class="main"><div class="t">${esc(x.text)}</div><div class="m">Échéance tâche</div></div></div>`).join('')}
       ${evs.length || todos.length ? '' : '<div class="empty">Rien de prévu.</div>'}</div>`;
   }
   v.innerHTML = html + (any ? '' : '<p class="note">Aucun événement sur les 14 prochains jours.</p>') + '<p class="note">14 prochains jours. Pour ajouter ou modifier un événement, utilisez la version complète.</p>';
