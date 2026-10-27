@@ -343,12 +343,12 @@ tfoot td{padding:var(--th-py) var(--row-px);font-weight:700;background:var(--sur
 .field label{font-size:12.5px;font-weight:600;color:var(--text-2)}
 .input,
 .field input:not([type=checkbox]):not([type=radio]),.field select,.field textarea,
-.filters input:not([type=checkbox]):not([type=radio]),.filters select,.todo-add input{
+.filters input:not([type=checkbox]):not([type=radio]),.filters select,.todo-add input,.todo-folder-add input{
   width:100%;height:38px;padding:0 12px;border:1px solid var(--border-strong);border-radius:8px;background:var(--surface);color:var(--text);
   box-shadow:var(--shadow-xs);transition:border-color .12s,box-shadow .12s}
 .field textarea,textarea.input{height:auto;min-height:84px;padding:9px 12px;resize:vertical;line-height:1.5}
-.input:focus,.field input:focus,.field select:focus,.field textarea:focus,.filters input:focus,.filters select:focus,.todo-add input:focus,
-.wz-input input:focus,.wz-input textarea:focus,.wz-input select:focus,.wz-liste input:focus,.todo-edit-input,.todo-due-input,.todo-status-input,
+.input:focus,.field input:focus,.field select:focus,.field textarea:focus,.filters input:focus,.filters select:focus,.todo-add input:focus,.todo-folder-add input:focus,
+.wz-input input:focus,.wz-input textarea:focus,.wz-input select:focus,.wz-liste input:focus,.todo-edit-input,.todo-due-input,.todo-status-input,.todo-folder-input,
 .ts-grid input:focus,.ts-grid select:focus,.pcell .ph:focus,.pcell .po:focus,.ts-workersel:focus{
   outline:0;border-color:var(--brand-2);box-shadow:0 0 0 3px color-mix(in srgb,var(--brand-2) 22%,transparent)}
 .field .hint{font-size:12px;color:var(--text-3)}
@@ -440,6 +440,7 @@ summary.win-head>.win-ctl{float:right}
 /* To-do */
 .todo-add{display:flex;gap:8px;margin-top:6px;margin-bottom:12px;flex-wrap:wrap}
 .todo-add input{flex:1;min-width:180px;width:auto}
+.todo-folder-add input{width:auto}
 .todo-add input[type=date]{flex:0 0 auto;min-width:0;width:auto;color:var(--text-2)}
 .todo-list{display:flex;flex-direction:column}
 .todo-item{display:flex;align-items:flex-start;gap:12px;padding:9px 4px;border-bottom:1px solid var(--border)}
@@ -465,7 +466,7 @@ summary.win-head>.win-ctl{float:right}
 .todo-item.done .todo-flag.on{opacity:.5}
 .todo-item:hover .todo-edit,.todo-item:hover .todo-del{opacity:1}
 @media(hover:none){.todo-edit,.todo-del{opacity:1}}
-.todo-edit-input{flex:1;min-width:0;padding:6px 10px;border:1px solid var(--brand-2);border-radius:7px;font-size:14px;color:var(--text);background:var(--surface)}
+.todo-edit-input,.todo-folder-input{flex:1;min-width:0;padding:6px 10px;border:1px solid var(--brand-2);border-radius:7px;font-size:14px;color:var(--text);background:var(--surface)}
 .todo-due,.todo-wait,.todo-status{display:inline-flex;align-items:center;gap:5px;height:22px;padding:0 8px;border-radius:999px;font-size:11.5px;font-weight:600;
   border:1px solid var(--border);background:var(--surface-3);color:var(--text-2);white-space:nowrap;flex:none;cursor:pointer;transition:background .12s,border-color .12s}
 .todo-due .ic,.todo-wait .ic,.todo-status .ic{width:13px;height:13px;flex:none}
@@ -491,6 +492,30 @@ summary.win-head>.win-ctl{float:right}
   .todo-item>.todo-due,.todo-item>.todo-wait,.todo-item>.todo-edit,.todo-item>.todo-del{margin-top:0;align-self:center}
   .todo-status-input{min-width:0;width:100%}
 }
+.todo-folder{border-bottom:1px solid var(--border)}
+.todo-folder:last-child{border-bottom:0}
+.todo-list>.todo-group:not(.empty)+.todo-folder{border-top:1px solid var(--border)}
+.todo-folder-head{display:flex;align-items:center;gap:8px;padding:8px 4px;min-height:40px}
+.todo-folder-head>.ic{color:var(--brand-2);flex:none}
+.todo-folder-name{font-size:14px;font-weight:650;color:var(--text);word-break:break-word;cursor:text;min-width:0}
+.todo-folder-head .spacer{flex:1}
+.todo-fold svg{transition:transform .15s}
+.todo-folder.collapsed .todo-fold svg{transform:rotate(-90deg)}
+.todo-folder.collapsed .todo-group,.todo-folder.collapsed .todo-folder-add{display:none}
+.todo-folder-edit,.todo-folder-del{opacity:0;transition:opacity .15s}
+.todo-folder-head:hover .todo-folder-edit,.todo-folder-head:hover .todo-folder-del,.todo-folder-edit:focus-visible,.todo-folder-del:focus-visible{opacity:1}
+@media(hover:none){.todo-folder-edit,.todo-folder-del{opacity:1}}
+.todo-folder .todo-group{margin-left:26px;border-left:2px solid var(--border);padding-left:6px}
+.todo-folder .todo-group .todo-item:last-child{border-bottom:1px solid var(--border)}
+.todo-folder-add{display:flex;gap:6px;margin:6px 0 10px 34px}
+.todo-folder-add input{flex:1;min-width:0;height:32px;font-size:13px}
+.todo-group.empty{display:none}
+body.row-dragging .todo-group.empty{display:block;min-height:38px;margin:4px 0;border:1px dashed var(--border-strong);border-radius:7px}
+body.row-dragging .todo-group.empty::after{content:'Déposer ici pour sortir la tâche du dossier';display:block;padding:9px 12px;font-size:12.5px;color:var(--text-3)}
+body.row-dragging .todo-folder-head{border-radius:7px}
+body.row-dragging .todo-folder-head:hover{background:var(--brand-soft)}
+.todo-showdone{display:block;width:100%;margin-top:6px;padding:8px;border:0;background:none;color:var(--text-3);font-size:13px;cursor:pointer;border-radius:7px}
+.todo-showdone:hover{background:var(--surface-3);color:var(--text-2)}
 .todo-wait.on{background:var(--warn-soft);color:var(--warn);border-color:var(--warn-line)}
 .todo-wait .todo-wait-date{opacity:.85}
 .todo-item.waiting{background:var(--warn-soft)}
@@ -1213,6 +1238,7 @@ const ICONS = {
   winRestore: '<rect x="4" y="8" width="12" height="12" rx="1.5"/><path d="M8 8V5.5A1.5 1.5 0 0 1 9.5 4h9A1.5 1.5 0 0 1 20 5.5v9a1.5 1.5 0 0 1-1.5 1.5H16"/>',
   flag: '<path d="M4 22V4"/><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1"/>',
   copy: '<rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>',
+  folder: '<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>',
   grip: '<circle cx="9" cy="6" r="1"/><circle cx="15" cy="6" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="9" cy="18" r="1"/><circle cx="15" cy="18" r="1"/>',
 };
 function icon(name, cls = '') {
@@ -2541,6 +2567,9 @@ function demoData() {
       { id: uid(), text: 'Relancer le client pour le devis parking couvert', done: false, date: todayISO() },
       { id: uid(), text: 'Commander les membranes IKO pour le bâtiment A', done: false, date: todayISO() },
       { id: uid(), text: 'Envoyer le rapport de visite Collège Jean Moulin', done: true, date: addDays(todayISO(), -2) },
+      { id: 'demo-dos-1', kind: 'dossier', text: 'Clinique du Parc — devis', collapsed: false, date: todayISO() },
+      { id: uid(), text: 'Devis réfection toiture bâtiment B', done: false, date: todayISO(), dossierId: 'demo-dos-1' },
+      { id: uid(), text: 'Devis remplacement lanterneaux', done: false, date: todayISO(), dossierId: 'demo-dos-1' },
     ],
   });
 }
@@ -3113,25 +3142,26 @@ function renderDashboard(v) {
   $$('[data-goto]', v).forEach(b => b.onclick = () => go(b.dataset.goto));
   renderTodos();
 }
+// Dossiers de tâches : rangés dans le même tableau « todos » (kind: 'dossier'), les tâches pointent dessus via dossierId.
+let todoShowDone = false; // tâches cochées masquées par défaut
+const isDossier = t => t.kind === 'dossier';
 function renderTodos() {
   const host = $('#todo-card');
   if (!host) return;
-  const todos = DB.data.todos || (DB.data.todos = []);
+  const all = DB.data.todos || (DB.data.todos = []);
+  const dossiers = all.filter(isDossier);
+  const todos = all.filter(t => !isDossier(t));
   const open = todos.filter(t => !t.done && !t.waiting).length;
   const waiting = todos.filter(t => !t.done && t.waiting).length;
+  const nDone = todos.filter(t => t.done).length;
   const rank = t => t.done ? 2 : (t.waiting ? 1 : 0); // actionnable · en attente · fait
-  const sorted = todos.slice().sort((a, b) => rank(a) - rank(b)); // tri stable : l'ordre glissé à la main est conservé dans chaque groupe
+  const visibles = list => list.filter(t => todoShowDone || !t.done).sort((a, b) => rank(a) - rank(b)); // tri stable : l'ordre glissé à la main est conservé dans chaque groupe
+  const dansDossier = (t, d) => t.dossierId === d.id;
+  const loose = visibles(todos.filter(t => !t.dossierId || !dossiers.some(d => dansDossier(t, d))));
   const countChip = (open || waiting)
     ? `<span class="chip">${open ? open + ' à faire' : 'Rien à faire'}${waiting ? ' · ' + waiting + ' en attente' : ''}</span>`
     : `<span class="chip ok">${icon('tick', 'ic-sm')} Tout est fait</span>`;
-  host.innerHTML = `
-    <div class="section-head">${icon('checkSquare')}<h2>Ma to-do list</h2><span class="spacer"></span>${countChip}</div>
-    <div class="todo-add">
-      <input id="todo-input" placeholder="Ajouter une tâche (Entrée pour valider)…" maxlength="200">
-      <input id="todo-due" type="date" title="Échéance (optionnel)">
-      <button class="btn primary small" id="todo-addbtn">${icon('plus')} Ajouter</button>
-    </div>
-    ${sorted.length ? `<div class="todo-list">${sorted.map(t => {
+  const itemHtml = t => {
       const m = todoDueMeta(t);
       const due = m
         ? `<button class="todo-due ${m.cls}" data-due title="${m.title}">${icon('calendar', 'ic-sm')} ${fmtDate(t.due)}</button>`
@@ -3143,7 +3173,7 @@ function renderTodos() {
         ? `<button class="todo-wait on" data-wait title="En attente de retour depuis le ${fmtDate(t.waitingSince)} — cliquez pour reprendre la main">${icon('clock', 'ic-sm')} En attente<span class="todo-wait-date">· ${fmtDate(t.waitingSince)}</span></button>`
         : `<button class="todo-wait add" data-wait title="Marquer en attente de retour (la balle n'est plus dans votre camp)">${icon('clock', 'ic-sm')} En attente</button>`;
       return `<div class="todo-item ${t.done ? 'done' : ''} ${t.waiting && !t.done ? 'waiting' : ''} ${t.important ? 'important' : ''}" data-id="${t.id}" data-rank="${rank(t)}">
-        <button class="icon-btn drag-h todo-drag" title="Glisser pour réorganiser (ou ↑ / ↓ au clavier)">${icon('grip')}</button>
+        <button class="icon-btn drag-h todo-drag" title="Glisser pour réorganiser ou ranger dans un dossier (ou ↑ / ↓ au clavier)">${icon('grip')}</button>
         <label class="todo-check"><input type="checkbox" class="todo-toggle" ${t.done ? 'checked' : ''}></label>
         <button class="icon-btn todo-flag ${t.important ? 'on' : ''}" title="${t.important ? 'Important — cliquez pour retirer le drapeau' : 'Marquer comme important'}" aria-pressed="${t.important ? 'true' : 'false'}">${icon('flag')}</button>
         <div class="todo-main">
@@ -3155,8 +3185,46 @@ function renderTodos() {
         <button class="icon-btn todo-edit" title="Modifier">${icon('edit')}</button>
         <button class="icon-btn danger todo-del" title="Supprimer">${icon('trash')}</button>
       </div>`;
-    }).join('')}</div>`
-      : `<div class="t-muted" style="margin-top:8px">Aucune tâche pour le moment. Ajoutez ce que vous ne voulez pas oublier.</div>`}`;
+  };
+  const folderHtml = d => {
+    const taches = todos.filter(t => dansDossier(t, d));
+    const reste = taches.filter(t => !t.done).length;
+    if (taches.length && !reste && !todoShowDone) return ''; // dossier terminé : masqué avec ses tâches
+    const items = visibles(taches);
+    const chip = !taches.length ? `<span class="chip">Vide</span>`
+      : reste ? `<span class="chip">${reste} à faire</span>` : `<span class="chip ok">${icon('tick', 'ic-sm')} Terminé</span>`;
+    return `<div class="todo-folder ${d.collapsed ? 'collapsed' : ''}" data-dossier="${d.id}">
+      <div class="todo-folder-head">
+        <button class="icon-btn todo-fold" title="${d.collapsed ? 'Déplier' : 'Replier'} le dossier" aria-expanded="${d.collapsed ? 'false' : 'true'}">${icon('chevron')}</button>
+        ${icon('folder')}
+        <span class="todo-folder-name" title="Double-cliquez pour renommer">${esc(d.text)}</span>
+        ${chip}
+        <span class="spacer"></span>
+        <button class="icon-btn todo-folder-edit" title="Renommer le dossier">${icon('edit')}</button>
+        <button class="icon-btn danger todo-folder-del" title="Supprimer le dossier">${icon('trash')}</button>
+      </div>
+      <div class="todo-group ${items.length ? '' : 'empty'}" data-dossier="${d.id}">${items.map(itemHtml).join('')}</div>
+      <div class="todo-folder-add">
+        <input class="todo-folder-input-add" placeholder="Ajouter une tâche dans « ${esc(d.text)} »…" maxlength="200">
+        <button class="btn small todo-folder-addbtn" title="Ajouter la tâche au dossier">${icon('plus')}</button>
+      </div>
+    </div>`;
+  };
+  const foldersHtml = dossiers.map(folderHtml).join('');
+  const vide = !loose.length && !foldersHtml;
+  host.innerHTML = `
+    <div class="section-head">${icon('checkSquare')}<h2>Ma to-do list</h2><span class="spacer"></span>${countChip}</div>
+    <div class="todo-add">
+      <input id="todo-input" placeholder="Ajouter une tâche (Entrée pour valider)…" maxlength="200">
+      <input id="todo-due" type="date" title="Échéance (optionnel)">
+      <button class="btn primary small" id="todo-addbtn">${icon('plus')} Ajouter</button>
+      <button class="btn small" id="todo-addfolder" title="Créer un dossier pour regrouper des tâches (ex. plusieurs devis pour un même client). Le texte saisi sert de nom.">${icon('folder')} Dossier</button>
+    </div>
+    ${vide
+      ? `<div class="t-muted" style="margin-top:8px">${all.length ? 'Toutes les tâches sont faites.' : 'Aucune tâche pour le moment. Ajoutez ce que vous ne voulez pas oublier.'}</div>`
+      : `<div class="todo-list"><div class="todo-group ${loose.length ? '' : 'empty'}" data-dossier="">${loose.map(itemHtml).join('')}</div>${foldersHtml}</div>`}
+    ${nDone ? `<button class="todo-showdone" id="todo-showdone">${todoShowDone ? 'Masquer' : 'Afficher'} les tâches faites (${nDone})</button>` : ''}`;
+  const todoById = id => DB.data.todos.find(x => x.id === id);
   const addTodo = () => {
     const inp = $('#todo-input', host); const txt = (inp.value || '').trim();
     if (!txt) return;
@@ -3166,20 +3234,75 @@ function renderTodos() {
   };
   $('#todo-addbtn', host).onclick = addTodo;
   $('#todo-input', host).onkeydown = e => { if (e.key === 'Enter') { e.preventDefault(); addTodo(); } };
-  $$('.todo-toggle', host).forEach(c => c.onchange = e => { const id = e.target.closest('.todo-item').dataset.id; const t = DB.data.todos.find(x => x.id === id); if (t) { t.done = e.target.checked; if (t.done) { t.waiting = false; t.waitingSince = ''; } DB.save(); renderTodos(); } });
-  $$('.todo-wait', host).forEach(b => b.onclick = e => { const id = e.target.closest('.todo-item').dataset.id; const t = DB.data.todos.find(x => x.id === id); if (!t) return; t.waiting = !t.waiting; t.waitingSince = t.waiting ? todayISO() : ''; DB.save(); renderTodos(); });
-  $$('.todo-flag', host).forEach(b => b.onclick = e => { const id = e.target.closest('.todo-item').dataset.id; const t = DB.data.todos.find(x => x.id === id); if (!t) return; t.important = !t.important; DB.save(); renderTodos(); });
+  $('#todo-addfolder', host).onclick = () => {
+    const inp = $('#todo-input', host); const nom = (inp.value || '').trim();
+    const d = { id: uid(), kind: 'dossier', text: nom || 'Nouveau dossier', collapsed: false, date: todayISO() };
+    DB.data.todos.push(d); DB.save(); renderTodos();
+    const el = $(`.todo-folder[data-dossier="${d.id}"]`);
+    if (!el) return;
+    if (nom) { const fi = $('.todo-folder-input-add', el); if (fi) fi.focus(); } else beginEditFolder(el);
+  };
+  const sd = $('#todo-showdone', host); if (sd) sd.onclick = () => { todoShowDone = !todoShowDone; renderTodos(); };
+  $$('.todo-toggle', host).forEach(c => c.onchange = e => { const id = e.target.closest('.todo-item').dataset.id; const t = todoById(id); if (t) { t.done = e.target.checked; if (t.done) { t.waiting = false; t.waitingSince = ''; } DB.save(); renderTodos(); if (t.done && !todoShowDone) toast('Tâche faite — masquée'); } });
+  $$('.todo-wait', host).forEach(b => b.onclick = e => { const id = e.target.closest('.todo-item').dataset.id; const t = todoById(id); if (!t) return; t.waiting = !t.waiting; t.waitingSince = t.waiting ? todayISO() : ''; DB.save(); renderTodos(); });
+  $$('.todo-flag', host).forEach(b => b.onclick = e => { const id = e.target.closest('.todo-item').dataset.id; const t = todoById(id); if (!t) return; t.important = !t.important; DB.save(); renderTodos(); });
   $$('.todo-del', host).forEach(b => b.onclick = e => { const id = e.target.closest('.todo-item').dataset.id; DB.data.todos = DB.data.todos.filter(x => x.id !== id); DB.save(); renderTodos(); });
   $$('.todo-edit', host).forEach(b => b.onclick = e => beginEditTodo(e.target.closest('.todo-item')));
   $$('.todo-text', host).forEach(s => s.ondblclick = e => beginEditTodo(e.target.closest('.todo-item')));
   $$('.todo-due', host).forEach(b => b.onclick = e => beginEditDue(e.target.closest('.todo-item')));
   $$('.todo-status', host).forEach(b => b.onclick = e => beginEditStatus(e.target.closest('.todo-item')));
+  $$('.todo-folder', host).forEach(el => {
+    const d = todoById(el.dataset.dossier); if (!d) return;
+    $('.todo-fold', el).onclick = () => { d.collapsed = !d.collapsed; DB.save(); renderTodos(); };
+    $('.todo-folder-edit', el).onclick = () => beginEditFolder(el);
+    $('.todo-folder-name', el).ondblclick = () => beginEditFolder(el);
+    $('.todo-folder-del', el).onclick = () => {
+      const n = DB.data.todos.filter(x => x.dossierId === d.id).length;
+      const suppr = () => { DB.data.todos = DB.data.todos.filter(x => x.id !== d.id && x.dossierId !== d.id); DB.save(); renderTodos(); };
+      if (n) confirmDialog(`Supprimer le dossier « ${d.text} » et ses ${n} tâche(s) ?`, suppr); else suppr();
+    };
+    const fi = $('.todo-folder-input-add', el);
+    const addIn = () => {
+      const txt = (fi.value || '').trim(); if (!txt) return;
+      DB.data.todos.push({ id: uid(), text: txt, due: '', done: false, date: todayISO(), dossierId: d.id });
+      DB.save(); renderTodos(); const ni = $(`.todo-folder[data-dossier="${d.id}"] .todo-folder-input-add`); if (ni) ni.focus();
+    };
+    fi.onkeydown = e => { if (e.key === 'Enter') { e.preventDefault(); addIn(); } };
+    $('.todo-folder-addbtn', el).onclick = addIn;
+  });
   const list = $('.todo-list', host);
-  if (list) dragRows(list, { row: '.todo-item', target: '.todo-item',
-    place: (it, cible, apres) => { if (cible.matches('.todo-item') && cible.dataset.rank === it.dataset.rank) cible[apres ? 'after' : 'before'](it); },
-    onDrop: it => { const ordre = $$('.todo-item', list).map(el => el.dataset.id);
-      DB.data.todos = ordre.map(id => DB.data.todos.find(x => x.id === id)).filter(Boolean).concat(DB.data.todos.filter(x => !ordre.includes(x.id)));
+  if (list) dragRows(list, { row: '.todo-item', target: '.todo-item, .todo-folder-head, .todo-group.empty',
+    place: (it, cible, apres) => {
+      if (cible.matches('.todo-folder-head')) cible.parentElement.querySelector('.todo-group').append(it); // déposé sur un dossier : rangé dedans
+      else if (cible.matches('.todo-group')) cible.append(it);
+      else if (cible.matches('.todo-item') && cible.dataset.rank === it.dataset.rank) cible[apres ? 'after' : 'before'](it);
+    },
+    onDrop: it => { const els = $$('.todo-item', list), ordre = els.map(el => el.dataset.id);
+      els.forEach(el => { const t = todoById(el.dataset.id), dos = el.closest('.todo-group').dataset.dossier;
+        if (t) t.dossierId = dos || ''; const d = dos && todoById(dos); if (d && el === it) d.collapsed = false; });
+      DB.data.todos = ordre.map(todoById).filter(Boolean).concat(DB.data.todos.filter(x => !ordre.includes(x.id)));
       DB.save(); renderTodos(); const h = $(`.todo-item[data-id="${it.dataset.id}"] .todo-drag`); if (h && document.activeElement === document.body) h.focus(); } });
+}
+function beginEditFolder(el) {
+  if (!el || el.querySelector('.todo-folder-input')) return;
+  const d = DB.data.todos.find(x => x.id === el.dataset.dossier);
+  if (!d) return;
+  const span = el.querySelector('.todo-folder-name');
+  const input = document.createElement('input');
+  input.className = 'todo-folder-input'; input.value = d.text; input.maxLength = 120;
+  span.replaceWith(input);
+  input.focus(); input.select();
+  let settled = false;
+  const commit = save => {
+    if (settled) return; settled = true;
+    if (save) { const val = (input.value || '').trim(); if (val) { d.text = val; DB.save(); } }
+    renderTodos();
+  };
+  input.onkeydown = e => {
+    if (e.key === 'Enter') { e.preventDefault(); commit(true); }
+    else if (e.key === 'Escape') { e.preventDefault(); commit(false); }
+  };
+  input.onblur = () => commit(true);
 }
 function todoDueMeta(t) {
   if (!t.due) return null;
