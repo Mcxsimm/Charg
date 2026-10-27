@@ -121,6 +121,11 @@ h2:first-child{margin-top:4px}
 .done .check{background:var(--pos);border-color:var(--pos);color:#fff}
 .done .check svg{opacity:1}
 .done .t{text-decoration:line-through;color:var(--text-3);font-weight:500}
+.add select{flex:1;min-width:0;border:1px solid var(--border-strong);background:var(--surface-2);border-radius:10px;padding:0 10px;min-height:44px;color:var(--text)}
+.row.folder{background:var(--surface-2);min-height:44px;padding:10px 14px;cursor:pointer}
+.row.folder svg{width:18px;height:18px;color:var(--brand-2);flex:none}
+.row.folder .t{font-size:14px}
+.row.sub{padding-left:28px}
 .toggle{display:block;width:100%;background:none;border:0;padding:12px;color:var(--text-3);font-size:14px;cursor:pointer}
 
 .search{width:100%;border:1px solid var(--border-strong);background:var(--surface);border-radius:10px;padding:12px 14px;margin-bottom:10px}
@@ -199,6 +204,7 @@ const IC = {
   desktop: '<rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/>',
   swap: '<path d="M7 7h13l-4-4M17 17H4l4 4"/>',
   cloud: '<path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/>',
+  folder: '<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>',
   info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/>',
 };
 const icon = n => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${IC[n]}</svg>`;
@@ -262,7 +268,10 @@ function agendaOn(iso) {
     .sort((a, b) => (a.heureDebut || '99').localeCompare(b.heureDebut || '99'));
 }
 const TYPE_COLOR = { perso: 'var(--cat-0)', reunion: 'var(--cat-4)', conges: 'var(--cat-5)', autre: 'var(--cat-6)', chantier: 'var(--cat-1)' };
-const openTodos = () => D.todos.filter(t => !t.done);
+// Les dossiers de tâches (kind: 'dossier') sont rangés dans « todos » avec les tâches, qui pointent dessus via dossierId.
+const isDossier = t => t.kind === 'dossier';
+const openTodos = () => D.todos.filter(t => !t.done && !isDossier(t));
+const dossierNom = t => { const d = t.dossierId && D.todos.find(x => x.id === t.dossierId && isDossier(x)); return d ? d.text : ''; };
 
 /* ---------- Vues ---------- */
 let tab = 'home', showDone = false, query = '';
@@ -317,7 +326,7 @@ function vHome(v) {
     <h2>Aujourd'hui</h2>
     <div class="card list">
       ${today.map(evRow).join('')}
-      ${dueTodos.map(x => `<div class="row"><span class="dot" style="background:var(--accent)"></span><div class="main"><div class="t">${esc(x.text)}</div><div class="m">Tâche${x.due < t ? ' · prévue le ' + fmtDate(x.due) : ''}</div></div>${x.due < t ? '<span class="tag bad">Retard</span>' : ''}</div>`).join('')}
+      ${dueTodos.map(x => `<div class="row"><span class="dot" style="background:var(--accent)"></span><div class="main"><div class="t">${esc(x.text)}</div><div class="m">Tâche${dossierNom(x) ? ' · ' + esc(dossierNom(x)) : ''}${x.due < t ? ' · prévue le ' + fmtDate(x.due) : ''}</div></div>${x.due < t ? '<span class="tag bad">Retard</span>' : ''}</div>`).join('')}
       ${today.length || dueTodos.length ? '' : '<div class="empty">Rien de prévu aujourd\'hui.</div>'}
     </div>
 
@@ -346,7 +355,7 @@ function vAgenda(v) {
     const lab = i === 0 ? "Aujourd'hui" : i === 1 ? 'Demain' : fmtDay(d);
     html += `<h2 class="day-h"><span>${esc(lab)}</span>${i < 2 ? `<small>${esc(fmtDay(d))}</small>` : ''}</h2><div class="card list">
       ${evs.map(evRow).join('')}
-      ${todos.map(x => `<div class="row"><span class="dot" style="background:var(--accent)"></span><div class="main"><div class="t">${esc(x.text)}</div><div class="m">Échéance tâche</div></div></div>`).join('')}
+      ${todos.map(x => `<div class="row"><span class="dot" style="background:var(--accent)"></span><div class="main"><div class="t">${esc(x.text)}</div><div class="m">Échéance tâche${dossierNom(x) ? ' · ' + esc(dossierNom(x)) : ''}</div></div></div>`).join('')}
       ${evs.length || todos.length ? '' : '<div class="empty">Rien de prévu.</div>'}</div>`;
   }
   v.innerHTML = html + (any ? '' : '<p class="note">Aucun événement sur les 14 prochains jours.</p>') + '<p class="note">14 prochains jours. Pour ajouter ou modifier un événement, utilisez la version complète.</p>';
@@ -355,32 +364,50 @@ function vAgenda(v) {
 function vTodo(v) {
   const t = todayISO();
   const rank = x => x.done ? 2 : x.waiting ? 1 : 0;
-  const list = D.todos.filter(x => showDone || !x.done).slice().sort((a, b) => rank(a) - rank(b)); // ordre réorganisé à la main sur le PC
-  const nDone = D.todos.filter(x => x.done).length;
+  const dossiers = D.todos.filter(isDossier);
+  const taches = D.todos.filter(x => !isDossier(x));
+  const visibles = l => l.filter(x => showDone || !x.done).slice().sort((a, b) => rank(a) - rank(b)); // ordre réorganisé à la main sur le PC
+  const nDone = taches.filter(x => x.done).length;
+  const rowHtml = (x, sub) => {
+    const late = !x.done && x.due && x.due < t, soon = !x.done && x.due && !late && daysBetween(t, x.due) <= 3;
+    const meta = [x.waiting && !x.done ? 'En attente de retour' : '', x.status || ''].filter(Boolean).join(' · ');
+    return `<div class="row ${sub ? 'sub' : ''} ${x.done ? 'done' : ''}" data-id="${esc(x.id)}"><button class="check" aria-label="Fait">${icon('tick')}</button>
+      <div class="main"><div class="t">${x.important ? '<span class="flag" title="Important">⚑</span> ' : ''}${esc(x.text)}</div>${meta ? `<div class="m">${esc(meta)}</div>` : ''}</div>
+      ${x.due ? `<span class="tag ${late ? 'bad' : soon ? 'warn' : 'mute'}">${fmtDate(x.due)}</span>` : ''}</div>`;
+  };
+  const libres = visibles(taches.filter(x => !x.dossierId || !dossiers.some(d => d.id === x.dossierId)));
+  const blocs = dossiers.map(d => {
+    const items = taches.filter(x => x.dossierId === d.id), reste = items.filter(x => !x.done).length;
+    if (items.length && !reste && !showDone) return ''; // dossier terminé : masqué
+    return `<div class="row folder" data-dossier="${esc(d.id)}" aria-expanded="${d.collapsed ? 'false' : 'true'}">${icon('folder')}<div class="main"><div class="t">${esc(d.text)}</div></div>
+      <span class="tag ${reste ? 'mute' : 'ok'}">${items.length ? (reste ? reste + ' à faire' : 'Terminé') : 'Vide'}</span></div>
+      ${d.collapsed ? '' : visibles(items).map(x => rowHtml(x, true)).join('')}`;
+  }).join('');
   v.innerHTML = `
     <h2>Ma to-do list · ${openTodos().length} à faire</h2>
     <div class="card list">
-      <form class="add" id="add"><input id="txt" placeholder="Nouvelle tâche…" maxlength="200" autocomplete="off"><input type="date" id="due" aria-label="Échéance" title="Échéance (optionnel)"><button class="btn">OK</button></form>
-      ${list.map(x => {
-        const late = !x.done && x.due && x.due < t, soon = !x.done && x.due && !late && daysBetween(t, x.due) <= 3;
-        const meta = [x.waiting && !x.done ? 'En attente de retour' : '', x.status || ''].filter(Boolean).join(' · ');
-        return `<div class="row ${x.done ? 'done' : ''}" data-id="${esc(x.id)}"><button class="check" aria-label="Fait">${icon('tick')}</button>
-          <div class="main"><div class="t">${x.important ? '<span class="flag" title="Important">⚑</span> ' : ''}${esc(x.text)}</div>${meta ? `<div class="m">${esc(meta)}</div>` : ''}</div>
-          ${x.due ? `<span class="tag ${late ? 'bad' : soon ? 'warn' : 'mute'}">${fmtDate(x.due)}</span>` : ''}</div>`;
-      }).join('') || '<div class="empty">Aucune tâche.</div>'}
+      <form class="add" id="add"><input id="txt" placeholder="Nouvelle tâche…" maxlength="200" autocomplete="off"><input type="date" id="due" aria-label="Échéance" title="Échéance (optionnel)">${dossiers.length ? `<select id="dos" aria-label="Dossier"><option value="">Sans dossier</option>${dossiers.map(d => `<option value="${esc(d.id)}">${esc(d.text)}</option>`).join('')}</select>` : ''}<button class="btn">OK</button></form>
+      ${(libres.map(x => rowHtml(x, false)).join('') + blocs) || `<div class="empty">${taches.length ? 'Toutes les tâches sont faites.' : 'Aucune tâche.'}</div>`}
       ${nDone ? `<button class="toggle" id="show-done">${showDone ? 'Masquer' : 'Afficher'} les tâches faites (${nDone})</button>` : ''}
-    </div>`;
+    </div>
+    ${dossiers.length ? '' : '<p class="note">Pour regrouper des tâches (ex. plusieurs devis pour un même client), créez un dossier depuis la version complète.</p>'}`;
   const due = $('#due');
   due.onchange = () => due.classList.toggle('set', !!due.value);
   $('#add').onsubmit = e => {
     e.preventDefault(); const txt = $('#txt').value.trim(); if (!txt) return;
-    D.todos.push({ id: uid(), text: txt, due: due.value || '', done: false, date: todayISO() });
+    const dos = $('#dos') ? $('#dos').value : '';
+    D.todos.push(Object.assign({ id: uid(), text: txt, due: due.value || '', done: false, date: todayISO() }, dos ? { dossierId: dos } : {}));
     saveTodos(); vTodo(v); toast('Tâche ajoutée');
   };
   $$('.check', v).forEach(b => b.onclick = () => {
     const x = D.todos.find(y => y.id === b.closest('.row').dataset.id); if (!x) return;
     x.done = !x.done; if (x.done) { x.waiting = false; x.waitingSince = ''; }
     saveTodos(); vTodo(v); renderTabs();
+    if (x.done && !showDone) toast('Tâche faite — masquée');
+  });
+  $$('.row.folder', v).forEach(r => r.onclick = () => {
+    const d = D.todos.find(y => y.id === r.dataset.dossier); if (!d) return;
+    d.collapsed = !d.collapsed; saveTodos(); vTodo(v);
   });
   const sd = $('#show-done'); if (sd) sd.onclick = () => { showDone = !showDone; vTodo(v); };
 }
