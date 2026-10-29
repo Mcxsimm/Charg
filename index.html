@@ -584,6 +584,9 @@ button.link{border:0;background:none;padding:0;font:inherit;font-weight:600}
 .cad-metric .cm-value{font-size:28px;font-weight:700;letter-spacing:-.02em;margin:6px 0 2px;font-variant-numeric:tabular-nums}
 .cad-metric .cm-sub{font-size:12.5px;color:var(--text-3)}
 .cad-steps td{white-space:normal}
+.cad-desc{font-size:12px;line-height:1.45;color:var(--text-2);font-weight:400;margin-top:4px;max-width:720px}
+.cad-desc.clamp{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;cursor:pointer}
+.cad-desc.clamp.open{display:block}
 
 /* Calendrier */
 .cal-wrap{overflow-x:auto}
@@ -1338,6 +1341,7 @@ const CAD_SECTIONS = [
   "FAÇADES & BARDAGE — Ossatures & isolation",
   "FAÇADES & BARDAGE — Peau extérieure, encadrements & finitions",
   "PRESTATIONS SAS — Études, gestion & frais de chantier",
+  "EPDM",
 ];
 const CAD_FAMILLES = [
   "Dépose protection",
@@ -1423,6 +1427,10 @@ const CAD_FAMILLES = [
   "Encadrements",
   "Finitions bardage",
   "Prestations SAS",
+  "Mise en œuvre trop‑pleins",
+  "Points singuliers EP",
+  "Entretien végétalisé",
+  "SAS – Étanchéité EPDM",
 ];
 
 /* Ouvrages : [réf, section, famille, désignation, descriptif, support, unité, temps h/u] */
@@ -1484,6 +1492,7 @@ const CAD_OUVRAGES = [
   ["ET2-013", 5, 15, "Couvertine zinc 33/45 cm", "Fourniture et pose d'une couvertine zinc façonnée, joints debout ou agrafés, pattes et bandes de pontage comprises.", "béton", "ml", 0.4],
   ["ET2-014", 5, 15, "Couvertine zinc prépatiné 33/44 cm", "Couvertine zinc prépatiné façonnée sur mesure, pose sur pattes avec traitement des dilatations et des angles.", "béton", "ml", 0.4],
   ["ET2-015", 5, 15, "Rive alu brut 50/100 + bande de pontage", "Pose d'une rive aluminium avec bande de pontage assurant la continuité de l'étanchéité en tête d'acrotère.", "béton", "ml", 0.22],
+  ["ET2-026", 5, 15, "Pose seule de couvertine (fourniture hors lot)", "Pose d'une couvertine fournie (acier, alu ou zinc) sur acrotère : traçage, pattes de fixation, éclisses, réglage de pente, traitement des angles et calfeutrement. Fourniture non comprise.", "béton/acier", "ml", 0.197],
   ["ET2-016", 5, 16, "Costière 1 pli acier ht ≤ 450 mm", "Fourniture et pose d'une costière métallique 1 pli isolée ou non, fixation sur support et mise à niveau.", "béton/acier", "ml", 0.04],
   ["ET2-017", 5, 16, "Costière 1 pli acier ht 500–600 mm", "Costière métallique de grande hauteur pour lanterneau ou équipement technique. Fixation renforcée et calage.", "béton/acier", "ml", 0.06],
   ["ET2-018", 5, 16, "Costière voûtes filantes ép. 20/10", "Costière continue pour voûte filante, assemblage par éclisses, réglage de l'alignement et de la planéité.", "béton/acier", "ml", 0.3],
@@ -1502,6 +1511,7 @@ const CAD_OUVRAGES = [
   ["EMG-006", 6, 19, "Étanchéité sur pénétration circulaire Ø 50–200 mm", "Traitement d'une pénétration circulaire (gaine, tube, antenne) : découpe, manchette bitumineuse, soudure périphérique et renforts d'angles.", "béton/acier", "u", 0.5],
   ["EMG-007", 6, 19, "Étanchéité sur plot / massif technique (CVC, PV)", "Traitement d'un plot support d'équipement : équerre, relevé soudé et protection en tête. Comprend la reprise de l'étanchéité horizontale en périphérie.", "béton", "u", 0.7],
   ["EMG-008", 6, 19, "Joint de dilatation plat sur toiture", "Réalisation d'un joint de dilatation en toiture : costières, soufflet d'étanchéité, relevés de part et d'autre et couvre-joint métallique.", "béton", "ml", 0.55],
+  ["EMG-009", 6, 19, "Relevés d’étanchéité : bande d’équerre + relevé aluminium", "Mise en œuvre du relevé d’étanchéité : pose et soudure de la bande d’équerre sur support vertical, traitement des angles, mise en place du relevé aluminium (profilé de solin) fixé sous l’arase, compression mécanique du relevé, application du mastic PU en finition, contrôle de la continuité et conformité DTU 43.1.", "béton", "ml", 0.42],
   ["CXA-001", 7, 20, "Bicouche autoprotégé sur béton – sans isolant", "Complexe complet en partie courante : vernis d'imprégnation, 1re couche soudée en plein, 2e couche autoprotégée ardoisée soudée en plein. Toiture inaccessible sur local non chauffé ou isolation sous dalle.", "béton", "m²", 0.086],
   ["CXA-002", 7, 20, "Bicouche autoprotégé en rénovation sur ancien complexe", "Réfection par recouvrement d'un complexe existant sain après préparation : 1re couche semi-indépendante soudée aux joints puis autoprotégée soudée en plein.", "béton", "m²", 0.069],
   ["CXA-003", 7, 20, "Bicouche autoprotégé sur béton – support sensible (auto-adhésif)", "Complexe réalisé sans flamme sur la 1re couche : vernis, 1re couche auto-adhésive, autoprotégée soudée aux joints uniquement.", "béton", "m²", 0.087],
@@ -1534,6 +1544,9 @@ const CAD_OUVRAGES = [
   ["EEP-013", 11, 27, "Chéneau zinc dév. 500 mm", "Façonnage et pose d'un chéneau zinc : agrafures, dilatations, soudures à l'étain et raccordement aux naissances.", "", "ml", 0.6],
   ["EEP-014", 11, 27, "Gouttière pendante zinc dév. 33", "Fourniture et pose d'une gouttière pendante sur crochets, pente réglée, soudures et talons d'extrémité.", "", "ml", 0.45],
   ["EEP-015", 11, 27, "Étanchéité de chéneau par membrane bitumineuse", "Reprise d'étanchéité d'un chéneau existant : préparation du fond, équerres, membrane bicouche et traitement des naissances.", "béton/acier", "ml", 0.65],
+  ["EEP-016", 11, 83, "Mise en œuvre d’un trop‑plein (pose + étanchéité)", "Installation d’un trop‑plein : découpe locale du complexe, mise en place de la pièce (PVC, inox ou acier), fixation mécanique, traitement d’étanchéité périphérique (relevés + angles), raccordement au complexe horizontal, contrôle de l’écoulement et validation de la continuité d’étanchéité.", "béton/acier", "u", 1.2],
+  ["EEP-017", 11, 83, "Carottage du complexe + installation d’une évacuation EP supplémentaire (pièce d’étanchéité + raccordement)", "Réalisation d’un carottage contrôlé du complexe (protection, percement, évacuation des déchets), mise en place de la sortie EP adaptée au diamètre, fixation et soudure de la pièce d’étanchéité, traitement des relevés et angles, raccordement au réseau existant, contrôle de l’écoulement et validation de la continuité d’étanchéité.", "béton/acier", "u", 0.72],
+  ["EEP-018", 11, 84, "Dégagement gravillons + équerre métal + crapaudine", "Dégagement manuel des gravillons autour des évacuations, nettoyage du pourtour, remise en place ou remplacement de l’équerre métallique assurant la continuité de la bande stérile, pose et fixation d’une crapaudine de protection, contrôle de l’écoulement et de la tenue mécanique.", "béton/acier", "u", 0.48],
   ["EQT-001", 12, 28, "Dépose lanterneau ponctuel existant", "Démontage du lanterneau en place, dépose du capot et de ses fixations, mise en sécurité de la trémie et évacuation des matériaux.", "béton/acier", "u", 1.0],
   ["EQT-002", 12, 28, "Lanterneau ponctuel fixe 100×100 – F&P sur costière existante", "Fourniture et pose d'un lanterneau ponctuel fixe en polycarbonate ou PMMA sur costière existante : joint d'étanchéité, fixations périphériques et contrôle de la pluviométrie.", "béton/acier", "u", 1.5],
   ["EQT-003", 12, 28, "Lanterneau ponctuel 100×100 + costière isolée – F&P complète", "Fourniture et pose de l'ensemble lanterneau et costière isolée : fixation sur support, calfeutrement, relevé d'étanchéité périphérique et finition en tête.", "béton/acier", "u", 3.0],
@@ -1585,6 +1598,7 @@ const CAD_OUVRAGES = [
   ["POL-021", 14, 39, "Reprise d'étanchéité des fixations (joints vieillis)", "Remplacement des rondelles et joints dégradés, resserrage contrôlé des fixations et reprise des points de fuite.", "acier", "m²", 0.1],
   ["POL-022", 14, 39, "Diagnostic de fragilité des plaques translucides", "Contrôle de l'état et de l'âge des plaques translucides, repérage des zones fragiles présentant un risque de chute à travers la toiture, rapport photo et préconisations.", "acier", "u", 1.5],
   ["POL-023", 14, 39, "Filet ou grille de protection sous plaque translucide", "Pose d'un dispositif anti-chute sous les bandes translucides fragiles, fixé sur pannes, permettant la circulation en sécurité sur la toiture.", "acier", "m²", 0.2],
+  ["POL-024", 14, 39, "Dépose / repose de polycarbonate sur lanterneau", "Dépose soignée du dôme ou de la plaque polycarbonate du lanterneau, nettoyage de la costière, remplacement des joints et de la visserie, repose et contrôle d'étanchéité.", "—", "u (1m x 1m)", 1.5],
   ["TRA-001", 15, 40, "Dépose de couverture tuile terre cuite", "Dépose des tuiles et des accessoires de faîtage et de rive, tri pour réemploi éventuel, descente au sol et évacuation.", "", "m²", 0.12],
   ["TRA-002", 15, 40, "Dépose de couverture ardoise naturelle", "Dépose des ardoises et de leurs crochets ou clous, tri des éléments réutilisables, descente et évacuation des gravats.", "", "m²", 0.14],
   ["TRA-003", 15, 40, "Dépose de couverture fibrociment non amiantée", "Démontage des plaques fibrociment récentes et de leurs fixations, descente au sol et évacuation en filière inerte.", "", "m²", 0.13],
@@ -1656,6 +1670,7 @@ const CAD_OUVRAGES = [
   ["DMO-012", 17, 53, "Réfection de faîtage scellé au mortier", "Dépose du faîtage existant, nettoyage, rescellement au mortier bâtard et reprise des rives de faîtage.", "", "ml", 0.55],
   ["DMO-013", 17, 53, "Réfection de faîtage à sec (closoir ventilé)", "Dépose du faîtage, pose d'un closoir ventilé souple et fixation mécanique des faîtières, sans mortier.", "", "ml", 0.4],
   ["DMO-014", 17, 53, "Contrôle de couverture + rapport photographique", "Visite de contrôle de la couverture et de ses accessoires, relevé des désordres, reportage photo et préconisations écrites.", "", "u", 2.0],
+  ["DMO-015", 17, 85, "Entretien de bande stérile sur toiture végétalisée", "Désherbage manuel de la zone stérile gravillonnée en périphérie, autour des EP et des émergences, regarnissage en gravillons et évacuation des déchets verts.", "—", "ml", 0.04],
   ["SEC-001", 18, 54, "Garde-corps autoportant lesté sur terrasse", "Fourniture et pose d'un garde-corps autoportant avec lests béton, main courante et lisse intermédiaire, sans percement de l'étanchéité.", "béton/acier", "ml", 0.22],
   ["SEC-002", 18, 54, "Garde-corps fixé sur acrotère", "Fourniture et pose d'un garde-corps sur platines fixées mécaniquement en tête ou en face d'acrotère, avec reprise d'étanchéité des points de percement.", "béton", "ml", 0.3],
   ["SEC-003", 18, 54, "Garde-corps repliable / escamotable", "Fourniture et pose d'un garde-corps repliable pour zones à contrainte esthétique, avec relevage et verrouillage en position haute.", "béton/acier", "ml", 0.35],
@@ -1770,6 +1785,11 @@ const CAD_OUVRAGES = [
   ["BAR-016", 26, 77, "Isolant rigide sur béton – perçage/vissage", "Pose de panneaux isolants rigides fixés mécaniquement, calepinage à joints décalés et calage.", "béton", "m²", 0.11],
   ["BAR-017", 26, 77, "Isolant souple sur béton – pistolet", "Pose de l'isolant souple avec fixation au pistolet à gaz, rendement accru sur grandes surfaces.", "béton", "m²", 0.04],
   ["BAR-018", 26, 78, "Pare-air sur isolant – perçage/vissage", "Déroulage et fixation de la membrane pare-air/pare-pluie, recouvrements adhésivés et traitement des points singuliers.", "béton/acier", "m²", 0.1],
+  ["BPE-022", 27, 79, "Dépose de bardage vertical + isolant (panneaux + fixations)", "Dépose contrôlée du bardage vertical : démontage des panneaux, retrait des fixations, dépose de l’isolant et du pare‑pluie, tri des matériaux, nettoyage du support, inspection des ossatures et préparation à la repose ou au nouveau complexe.", "—", "m²", 0.125],
+  ["BPE-023", 27, 79, "Reprise partielle du support (réparation localisée + remise en état)", "Réparation localisée du support : élimination des zones dégradées, rebouchage ou ragréage ponctuel, correction des défauts de planéité, consolidation des zones fragilisées, nettoyage final et validation de la compatibilité avec le complexe d’étanchéité à mettre en œuvre.", "—", "m²", 0.22],
+  ["BPE-024", 27, 79, "Pose d’isolant en façade (panneaux + fixations)", "Mise en œuvre de l’isolant en façade : découpe et ajustement des panneaux, fixation mécanique ou collage selon support, calage des jonctions, traitement des points singuliers, contrôle de la planéité et de la continuité thermique avant pose du pare‑pluie ou du bardage.", "—", "m²", 0.42],
+  ["BPE-025", 27, 79, "Pose de bardage type Haiplane 300 Arcelor – hauteur 4 m (panneaux + fixations)", "Mise en œuvre du bardage Haiplane 300 : réglage de l’ossature, pose verticale des panneaux, fixation mécanique conforme prescriptions Arcelor, traitement des jonctions et abouts, contrôle de l’alignement et de la planéité sur 4 m de hauteur.", "—", "m²", 0.125],
+  ["BPE-026", 27, 79, "Finitions bardage : bavettes, rives, angles, ajustements", "Pose et ajustement des accessoires de finition : bavettes hautes et basses, rives latérales, angles sortants/entrants, application de mastic en jonctions sensibles, contrôle final de l’alignement, de la planéité et de l’esthétique générale.", "—", "m²", 0.225],
   ["BPE-001", 27, 79, "Cassettes < 3 m² – pose verticale", "Fourniture et pose de cassettes métalliques de petit format sur ossature, agrafage, réglage des joints creux.", "", "m²", 0.45],
   ["BPE-002", 27, 79, "Cassettes > 3 m² – pose verticale", "Fourniture et pose de cassettes de grand format, manutention adaptée, alignement et calepinage des joints.", "", "m²", 0.55],
   ["BPE-003", 27, 79, "Clins < 4 ml – pose verticale", "Fourniture et pose de clins métalliques emboîtables de faible longueur, fixations cachées et coupes d'ajustement.", "", "m²", 0.25],
@@ -1798,6 +1818,36 @@ const CAD_OUVRAGES = [
   ["SAS-005", 28, 82, "Repliement et restitution du chantier", "Repli complet du matériel, nettoyage final, restitution des lieux et levée des réserves éventuelles.", "", "Forf.", 8.0],
   ["SAS-007", 28, 82, "Rédaction du PPSPS / plan de prévention", "Rédaction du PPSPS ou du plan de prévention, analyse des risques et diffusion aux intervenants.", "", "u", 4.0],
   ["SAS-008", 28, 82, "Réunion de chantier / visite hebdomadaire", "Participation à la réunion de chantier, rédaction du compte rendu et diffusion aux parties prenantes.", "", "u", 2.0],
+  ["SAS-006", 28, 82, "Préparation du support avant résine (nettoyage + dégraissage)", "Nettoyage complet du support : dépoussiérage, dégraissage, élimination des particules non adhérentes, contrôle de l’humidité et vérification de la compatibilité du support avec le système résine.", "—", "m²", 0.18],
+  ["SAS-009", 28, 82, "Application du primaire d’adhérence pour résine d’étanchéité", "Mise en œuvre du primaire adapté au système résine : application uniforme, respect des temps de séchage, contrôle de l’absorption du support et préparation à la couche principale.", "—", "m²", 0.12],
+  ["SAS-010", 28, 82, "Application de la résine d’étanchéité (1ère couche)", "Application de la première couche de résine liquide : étalement régulier, respect des épaisseurs, traitement des zones sensibles, contrôle de la continuité du film.", "—", "m²", 0.25],
+  ["SAS-011", 28, 82, "Application de la résine d’étanchéité (2ème couche)", "Application de la seconde couche pour obtenir l’épaisseur finale : renforts éventuels, traitement des relevés, uniformisation du film, contrôle visuel et absence de bulles.", "—", "m²", 0.3],
+  ["SAS-012", 28, 82, "Renforts résine sur points singuliers (angles, relevés, émergences)", "Pose de bandes de renfort ou surcharge résine sur les zones sensibles : relevés, acrotères, évacuations EP, émergences techniques, jonctions verticales/horizontales.", "—", "ml", 0.18],
+  ["SAS-013", 28, 82, "Contrôle de conformité après mise en œuvre (épaisseur + continuité)", "Vérification de l’épaisseur finale, contrôle de la continuité du film, inspection des relevés, validation de l’absence de défauts, rédaction d’un PV de conformité avec photos.", "—", "u", 0.35],
+  ["SAS-014", 28, 82, "Mise en œuvre de résine d’étanchéité dans chéneau", "Nettoyage et préparation du chéneau, application du primaire, mise en œuvre de la résine d’étanchéité en fond et relevés, renforts sur jonctions et angles, contrôle de la continuité du film et de l’écoulement vers les évacuations EP.", "—", "ml", 0.26],
+  ["SAS-015", 28, 82, "Ouverture du complexe PVC pour installation de potelet de garde‑corps + reprise d’étanchéité complète", "Découpe contrôlée du complexe PVC, dégagement de la zone d’ancrage, pose du potelet (platine + fixation), mise en œuvre d’une pièce PVC compatible avec soudure à air chaud, renforts périphériques, traitement des angles et relevés, contrôle de la continuité du film et validation de l’étanchéité autour de la platine.", "—", "u", 0.88],
+  ["SAS-016", 28, 82, "Reprise ponctuelle d’étanchéité PVC (patch soudé)", "Reprise locale du complexe PVC : découpe de la zone défaillante, nettoyage du support, mise en place d’une pièce PVC compatible, soudure à air chaud avec débord de sécurité ≥ 10 cm, traitement des jonctions sensibles, contrôle de l’adhérence et de la continuité de la membrane.", "—", "m²", 0.32],
+  ["EPDM-001", 29, 86, "Membrane EPDM 1,5 mm – pose collée (partie courante)", "Encollage du support, déroulage des lés, marouflage, traitement des jonctions, contrôle de la continuité et absence de plis.", "", "m²", 0.62],
+  ["EPDM-002", 29, 86, "Membrane EPDM 1,5 mm en indépendance sous lestage (gravillons/dalles)", "Pose en indépendance, ajustement des lés, traitement des jonctions, pose du géotextile de protection avant lestage.", "", "m²", 0.54],
+  ["EPDM-003", 29, 86, "Relevés EPDM : bande d’équerre + membrane collée", "Pose de la bande d’équerre, collage du relevé, traitement des angles, compression mécanique sous solin, contrôle de la continuité.", "", "ml", 0.38],
+  ["EPDM-004", 29, 86, "Solin aluminium + compression du relevé EPDM (bavette, rive, angle)", "Pose du solin alu, compression du relevé, vissage, mastic PU en finition, contrôle des jonctions.", "", "ml", 0.31],
+  ["EPDM-005", 29, 86, "Pose d’une évacuation EP sur membrane EPDM (pièce + collage)", "Découpe de la membrane, pose de la pièce EPDM, collage, renfort périphérique, contrôle de l’écoulement.", "", "u", 0.72],
+  ["EPDM-006", 29, 86, "Carottage + installation EP supplémentaire (pièce EPDM + raccordement)", "Carottage du complexe, pose de la sortie EP, collage de la pièce EPDM, renforts, traitement des angles, contrôle de l’écoulement.", "", "u", 0.76],
+  ["EPDM-007", 29, 86, "Reprise ponctuelle EPDM (patch collé)", "Découpe de la zone défaillante, nettoyage, pose d’un patch EPDM, marouflage, contrôle de l’adhérence.", "", "m²", 0.32],
+  ["EPDM-008", 29, 86, "Pose isolant PIR + membrane EPDM collée (toiture chaude)", "Pose de l’isolant PIR, collage de la membrane EPDM, traitement des jonctions, contrôle thermique et étanchéité.", "", "m²", 0.88],
+  ["EPDM-009", 29, 86, "Pose géotextile de protection (sous lestage)", "Déroulage du géotextile, ajustement, recouvrements, préparation au lestage.", "", "m²", 0.18],
+  ["EPDM-010", 29, 86, "Finitions EPDM : mastic, reprises ponctuelles, nettoyage", "Application de mastic PU, reprises ponctuelles, contrôle visuel final, nettoyage des zones d’intervention.", "", "u", 0.24],
+  ["EPDM-011", 29, 86, "Contrôle du support du chéneau avant mise en œuvre EPDM", "Inspection du fond de chéneau : planéité, état de l’ancienne étanchéité, relevés, évacuations, compatibilité du support.", "", "u", 0.28],
+  ["EPDM-012", 29, 86, "Nettoyage + grattage + assèchement du chéneau", "Nettoyage complet, grattage des zones friables, assèchement, élimination des polluants pour garantir l’adhérence EPDM.", "", "ml", 0.26],
+  ["EPDM-013", 29, 86, "Reprise partielle du support du chéneau (réparation localisée)", "Rebouchage, ragréage ponctuel, suppression des défauts de planéité, consolidation avant membrane EPDM.", "", "ml", 0.36],
+  ["EPDM-014", 29, 86, "Mise à plat des anciennes étanchéités dans chéneau", "Suppression des surépaisseurs, création d’un fond homogène, préparation à la pose EPDM.", "", "ml", 0.31],
+  ["EPDM-015", 29, 86, "Pose membrane EPDM 1,5 mm collée dans chéneau", "Encollage du fond, pose de la membrane EPDM, marouflage, traitement des jonctions, continuité du film d’étanchéité.", "", "ml", 0.52],
+  ["EPDM-016", 29, 86, "Relevés EPDM du chéneau : bande d’équerre + membrane collée", "Pose bande d’équerre, collage du relevé vertical, traitement des angles, compression sous solin.", "", "ml", 0.38],
+  ["EPDM-017", 29, 86, "Solin aluminium + compression du relevé EPDM (bavette, rive, angle)", "Pose solin alu, vissage, compression du relevé EPDM, mastic PU en finition, étanchéité des jonctions.", "", "ml", 0.31],
+  ["EPDM-018", 29, 86, "Pose d’une évacuation EP dans chéneau EPDM", "Découpe de la membrane, pose de l'EP EPDM, collage, renfort périphérique, contrôle de l’écoulement.", "", "u", 0.72],
+  ["EPDM-019", 29, 86, "Carottage + installation d’une évacuation EP supplémentaire", "Carottage du complexe, pose de la naissance EP, pièce EPDM, renforts, raccordement, contrôle écoulement.", "", "u", 0.76],
+  ["EPDM-020", 29, 86, "Finitions chéneau EPDM : mastic, reprises ponctuelles, nettoyage", "Application mastic PU, reprises ponctuelles, contrôle final, nettoyage du chéneau et des évacuations.", "", "ml", 0.24],
+  ["EPDM-021", 29, 86, "Dépose de membrane EPDM (découpe, retrait, évacuation)", "Découpe de la membrane EPDM, retrait contrôlé des lés, élimination des adhésifs, tri et évacuation des déchets, nettoyage du support avant reprise ou nouvelle étanchéité.", "", "m²", 0.31],
 ];
 
 /* Unités déjà exprimées en temps : le coefficient chantier ne s'y applique pas. */
@@ -4932,6 +4982,15 @@ function cadCompo(ref) {
 }
 const cadSection = o => CAD_SECTIONS[o[CAD_I.SEC]];
 const cadFamille = o => CAD_FAMILLES[o[CAD_I.FAM]];
+/* Descriptif de l'intervention, affiché sous l'intitulé (clamp = 2 lignes, clic pour déplier). */
+const cadDescHtml = (o, clamp) => o[CAD_I.DESC] ? `<div class="cad-desc${clamp ? ' clamp' : ''}"${clamp ? ' title="Cliquer pour afficher tout le descriptif"' : ''}>${esc(o[CAD_I.DESC])}</div>` : '';
+document.addEventListener('click', e => { const d = e.target.closest('.cad-desc.clamp'); if (d) d.classList.toggle('open'); });
+/* Poste écrit : réf. + intitulé + descriptif, prêt à coller dans un devis. */
+const cadPosteTexte = o => o[CAD_I.REF] + ' — ' + o[CAD_I.DES] + (o[CAD_I.DESC] ? '\n' + o[CAD_I.DESC] : '');
+function cadCopierPostes(os) {
+  const txt = os.map(cadPosteTexte).join('\n\n');
+  (navigator.clipboard ? navigator.clipboard.writeText(txt) : Promise.reject()).then(() => toast(os.length > 1 ? os.length + ' postes copiés (réf., intitulé, descriptif)' : 'Poste copié (réf., intitulé, descriptif)'), () => toast('Copie impossible dans ce navigateur : utilisez l\'export Excel', 'err'));
+}
 const cadDomaine = o => cadSection(o).split('—')[0].trim();
 /* Les unités déjà exprimées en temps (h, j, forfait) ne sont pas pondérées. */
 const cadPondere = o => !CAD_U_TEMPS.includes(o[CAD_I.U]);
@@ -5061,7 +5120,7 @@ function renderCadences(v) {
 const cadFiltresHtml = () => `<div class="form-grid" style="grid-template-columns:repeat(3,1fr)">
     <div class="field"><label>Domaine</label><select data-f="dom"><option value="">Tous les domaines</option>${CAD_DOMAINES.map(d => `<option value="${esc(d)}" ${CAD.f.dom === d ? 'selected' : ''}>${esc(d)}</option>`).join('')}</select></div>
     <div class="field"><label>Famille</label><select data-f="fam"></select></div>
-    <div class="field"><label>Recherche (réf., désignation, matériau)</label><input data-f="q" type="search" placeholder="ex. relevé, DUO STICK, bac acier…" value="${esc(CAD.f.q)}"></div>
+    <div class="field"><label>Recherche (réf., intitulé, descriptif, matériau)</label><input data-f="q" type="search" placeholder="ex. relevé, DUO STICK, bac acier…" value="${esc(CAD.f.q)}"></div>
   </div>`;
 function cadBindFiltres(v, onChange) {
   const fam = v.querySelector('[data-f="fam"]');
@@ -5323,7 +5382,7 @@ function cadRefreshCat() {
       <tbody>${shown.map(o => {
         const r = o[CAD_I.REF], retenu = CAD.lignes.some(l => l.ref === r), compo = cadCompo(r), fu = cadFournU(r);
         return `<tr><td class="t-muted">${esc(r)}</td>
-          <td style="white-space:normal;min-width:240px"><span class="t-strong" title="${esc(o[CAD_I.DESC])}">${esc(o[CAD_I.DES])}</span><br><span class="t-muted" style="font-size:11.5px">${esc(cadFamille(o))}${o[CAD_I.SUP] ? ' · ' + esc(o[CAD_I.SUP]) : ''}${cadModifie(r) ? ' · <b>modifié</b>' : ''}${cadPerso(r) ? ' · <b>ajouté</b>' : ''}</span></td>
+          <td style="white-space:normal;min-width:240px"><span class="t-strong">${esc(o[CAD_I.DES])}</span><br><span class="t-muted" style="font-size:11.5px">${esc(cadFamille(o))}${o[CAD_I.SUP] ? ' · ' + esc(o[CAD_I.SUP]) : ''}${cadModifie(r) ? ' · <b>modifié</b>' : ''}${cadPerso(r) ? ' · <b>ajouté</b>' : ''}</span>${cadDescHtml(o, true)}</td>
           <td>${esc(o[CAD_I.U])}</td><td class="num">${cadNum3(o[CAD_I.H])} h</td><td class="num">${o[CAD_I.H] ? num(hj / o[CAD_I.H]) + ' ' + esc(o[CAD_I.U]) + '/j' : '—'}</td>
           <td class="num">${compo.length ? eur2(fu) + '/' + esc(o[CAD_I.U]) + (cadFourn(r, 1).some(l => l.sansPrix) ? '<br><span class="chip">prix à compléter</span>' : '') : '<span class="t-muted">—</span>'}</td>
           <td class="num" style="white-space:nowrap"><button class="icon-btn" data-edit="${esc(r)}" title="Modifier temps / composition">${icon('edit')}</button>${retenu ? '<span class="chip">retenu</span>' : `<button class="btn small" data-add="${esc(r)}">${icon('plus')}</button>`}</td></tr>`;
@@ -5336,7 +5395,7 @@ function cadRefreshPanier() {
     `<div class="table-wrap"><table>
       <thead><tr><th>Réf.</th><th>Ouvrage</th><th>Fournitures (pour le BTE)</th><th class="num">Quantité</th><th>U</th><th class="num">Hauteur relevé</th><th></th></tr></thead>
       <tbody>${CAD.lignes.map(l => { const o = cadOuvrage(l.ref); if (!o) return ''; const vs = CAD_VARIANTES[l.ref]; return `<tr>
-        <td class="t-muted">${esc(l.ref)}</td><td class="t-strong" style="white-space:normal" title="${esc(o[CAD_I.DESC])}">${esc(o[CAD_I.DES])}<br><span class="t-muted" style="font-size:11.5px;font-weight:400">${esc(cadFamille(o))}${CAD.asstPourquoi && CAD.asstPourquoi[l.ref] ? ' · ' + esc(CAD.asstPourquoi[l.ref]) : ''}</span></td>
+        <td class="t-muted">${esc(l.ref)}</td><td class="t-strong" style="white-space:normal">${esc(o[CAD_I.DES])}<br><span class="t-muted" style="font-size:11.5px;font-weight:400">${esc(cadFamille(o))}${CAD.asstPourquoi && CAD.asstPourquoi[l.ref] ? ' · ' + esc(CAD.asstPourquoi[l.ref]) : ''}</span>${cadDescHtml(o, true)}</td>
         <td>${vs ? (vs.length ? `<select data-v="${esc(l.ref)}" style="max-width:260px;font-size:12px">${vs.map((x, i) => `<option value="${i}" ${l.v === i ? 'selected' : ''}>${esc(x.lib)}</option>`).join('')}<option value="-1" ${l.v === -1 ? 'selected' : ''}>— main d'œuvre seule —</option></select>` : '<span class="t-muted" style="font-size:12px">main d\'œuvre seule</span>')
           : `<span class="t-muted" style="font-size:12px">${cadCompo(l.ref).length ? 'composition de l\'ouvrage' : '—'}</span>`}</td>
         <td class="num"><input data-q="${esc(l.ref)}" type="number" min="0" step="any" value="${l.qte}" style="max-width:110px;text-align:right"></td>
@@ -5448,6 +5507,7 @@ function exportCadences() {
 function cadVueBase(v) {
   v.innerHTML = `<div class="card card-pad">
       <div class="page-actions" style="margin-bottom:12px"><button class="btn primary" id="cad-new">${icon('plus')} Nouvel ouvrage</button><span class="spacer"></span>
+        <button class="btn small" id="cad-bcopy">${icon('copy')} Copier les postes filtrés</button>
         <button class="btn small" id="cad-bxlsx">${icon('download')} Exporter la base</button></div>
       ${cadFiltresHtml()}
       <div id="cad-base" style="margin-top:14px"></div>
@@ -5459,24 +5519,26 @@ function cadVueBase(v) {
         <thead><tr><th>Réf.</th><th>Ouvrage</th><th>U</th><th class="num">Temps h/u</th><th class="num">MO €/u</th><th class="num">Fournitures €/u</th><th class="num">Déboursé €/u</th><th></th></tr></thead>
         <tbody>${list.slice(0, 200).map(o => { const r = o[CAD_I.REF], fl = cadFourn(r, 1), fu = fl.reduce((s, l) => s + l.total, 0), mu = o[CAD_I.H] * taux; return `<tr>
           <td class="t-muted">${esc(r)}</td>
-          <td style="white-space:normal;min-width:260px"><span class="t-strong" title="${esc(o[CAD_I.DESC])}">${esc(o[CAD_I.DES])}</span><br><span class="t-muted" style="font-size:11.5px">${esc(cadFamille(o))}${fl.length ? ' · ' + fl.map(l => esc(l.des)).join(' + ') : ' · pas de composition'}${cadModifie(r) ? ' · <b>modifié</b>' : ''}${cadPerso(r) ? ' · <b>ajouté</b>' : ''}</span></td>
+          <td style="white-space:normal;min-width:260px"><span class="t-strong">${esc(o[CAD_I.DES])}</span><br><span class="t-muted" style="font-size:11.5px">${esc(cadFamille(o))}${fl.length ? ' · ' + fl.map(l => esc(l.des)).join(' + ') : ' · pas de composition'}${cadModifie(r) ? ' · <b>modifié</b>' : ''}${cadPerso(r) ? ' · <b>ajouté</b>' : ''}</span>${cadDescHtml(o)}</td>
           <td>${esc(o[CAD_I.U])}</td><td class="num">${cadNum3(o[CAD_I.H])}</td><td class="num">${eur2(mu)}</td>
           <td class="num">${fl.length ? eur2(fu) + (fl.some(l => l.sansPrix) ? '<br><span class="chip">prix à compléter</span>' : '') : '<span class="t-muted">—</span>'}</td>
           <td class="num t-strong">${eur2(mu + fu)}</td>
-          <td class="num"><button class="btn small" data-edit="${esc(r)}">${icon('edit')} Modifier</button></td></tr>`; }).join('')}</tbody></table></div>
+          <td class="num" style="white-space:nowrap"><button class="icon-btn" data-copy="${esc(r)}" title="Copier réf., intitulé et descriptif">${icon('copy')}</button><button class="icon-btn" data-edit="${esc(r)}" title="Modifier temps / composition">${icon('edit')}</button></td></tr>`; }).join('')}</tbody></table></div>
       <p class="t-muted" style="margin:8px 0 0;font-size:12px">${list.length} ouvrage(s)${list.length > 200 ? ' — 200 affichés, affinez la recherche' : ''}. MO au taux de ${eur(taux)}/h, sans coefficient chantier.</p>`;
     $$('[data-edit]', $('#cad-base')).forEach(b => b.onclick = () => cadOuvrageForm(b.dataset.edit, refresh));
+    $$('[data-copy]', $('#cad-base')).forEach(b => b.onclick = () => cadCopierPostes([cadOuvrage(b.dataset.copy)]));
   };
   cadBindFiltres(v, refresh);
   $('#cad-new').onclick = () => cadOuvrageForm(null, () => renderCadences($('#view')));
   $('#cad-bxlsx').onclick = cadExportBase;
+  $('#cad-bcopy').onclick = () => { const list = cadCatalogue(); if (!list.length) { toast('Aucun poste à copier', 'err'); return; } cadCopierPostes(list); };
   refresh();
 }
 function cadExportBase() {
   const rows = [];
   cadTous().forEach(o => { const r = o[CAD_I.REF], fl = cadFourn(r, 1);
-    rows.push([r, cadSection(o), cadFamille(o), o[CAD_I.DES], o[CAD_I.U], o[CAD_I.H], fl.map(l => l.des + ' × ' + cadNum3(l.conso) + ' ' + l.unite).join(' ; '), Math.round(fl.reduce((s, l) => s + l.total, 0) * 100) / 100]); });
-  exportXlsx('base_cadences', ['ref', 'section', 'famille', 'ouvrage', 'unite', 'temps_h_u', 'composition', 'fournitures_eur_u'], rows, { sheet: 'Base', money: ['fournitures_eur_u'], totals: false });
+    rows.push([r, cadSection(o), cadFamille(o), o[CAD_I.DES], o[CAD_I.DESC] || '', o[CAD_I.U], o[CAD_I.H], fl.map(l => l.des + ' × ' + cadNum3(l.conso) + ' ' + l.unite).join(' ; '), Math.round(fl.reduce((s, l) => s + l.total, 0) * 100) / 100]); });
+  exportXlsx('base_cadences', ['ref', 'section', 'famille', 'ouvrage', 'descriptif', 'unite', 'temps_h_u', 'composition', 'fournitures_eur_u'], rows, { sheet: 'Base', money: ['fournitures_eur_u'], totals: false });
 }
 /* Édition d'un ouvrage : temps + composition (ouvrage du référentiel = surcharge ; ouvrage ajouté = complet). */
 function cadOuvrageForm(ref, onSave) {
