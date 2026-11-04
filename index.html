@@ -1321,6 +1321,7 @@ const DB = {
   loadProfile(id) {
     let d; try { d = JSON.parse(localStorage.getItem(dataKey(id))); } catch { d = null; }
     this.data = this.normalize(d || {});
+    ikoAppliquerGrille(this.data.grilleIko);
     return this.data;
   },
   save() { if (this.currentProfile()) { localStorage.setItem(dataKey(this.meta.currentId), JSON.stringify(this.data)); driveSoon(); } },
@@ -1834,7 +1835,7 @@ function bindProfileMenu(root, close) {
   root.querySelector('[data-edit]').onclick = () => { close(); profileForm(DB.meta.currentId); };
   root.querySelector('[data-demo]').onclick = () => { close(); confirmDialog(
     'Charger un jeu de données de démonstration dans ce profil ? Les données actuelles de ce profil seront remplacées.',
-    () => { DB.data = demoData(); DB.save(); toast('Données de démonstration chargées'); go(current); }, 'Charger'); };
+    () => { const g = DB.data.grilleIko; DB.data = demoData(); if (g) DB.data.grilleIko = g; ikoAppliquerGrille(DB.data.grilleIko); DB.save(); toast('Données de démonstration chargées'); go(current); }, 'Charger'); };
   root.querySelector('[data-del]').onclick = () => { close();
     if (DB.meta.profiles.length <= 1) { toast('Impossible de supprimer le dernier profil', 'err'); return; }
     confirmDialog(`Supprimer définitivement le profil « ${DB.currentProfile().nom} » et toutes ses données ?`,
@@ -3869,6 +3870,22 @@ const cadCompoLigne = (ref, v) => cadEstType(ref) && v !== undefined ? (v < 0 ? 
 const matPerso = () => DB.data.materiaux.map(m => [m.ref, +m.fam || IKO_FAMILLES.length - 1, m.des, m.desc || '', m.u, m.cond || '', m.fournisseur || '']);
 const matTous = () => IKO_PRODUITS.concat(matPerso());
 const matProduit = ref => IKO_PRODUITS.find(p => p[IKO_I.REF] === ref) || matPerso().find(p => p[IKO_I.REF] === ref);
+/* Grille IKO privée : stockée dans le profil (DB.data.grilleIko), jamais dans le code. */
+function ikoAppliquerGrille(gr) {
+  const ok = gr && Array.isArray(gr.rows);
+  IKO_GRILLE_ROWS.length = 0; if (ok) IKO_GRILLE_ROWS.push(...gr.rows);
+  Object.assign(IKO_GRILLE, { titre: ok && gr.titre || 'Grille tarifaire IKO', du: ok && gr.du || '', au: ok && gr.au || '', maj: ok && gr.maj || '' });
+  if (typeof cadInvalider === 'function') cadInvalider();
+}
+function ikoLireGrille(texte) {
+  const j = JSON.parse(texte);
+  if (!j || j.format !== 'chargepro-grille-iko' || !Array.isArray(j.rows)) throw new Error('format');
+  const rows = j.rows.filter(r => Array.isArray(r) && r.length >= 10 && (r[0] || r[1])).map(r => [String(r[0] || ''), String(r[1] || ''), String(r[2] || ''), r[3] ? 1 : 0, String(r[4] || ''),
+    r[5] == null || r[5] === '' ? null : +r[5], r[6] == null || r[6] === '' ? null : +r[6], String(r[7] || ''), +r[8] || 0, +r[9] || 0]);
+  if (!rows.length) throw new Error('vide');
+  return { titre: String(j.titre || 'Grille tarifaire IKO'), du: String(j.du || ''), au: String(j.au || ''), maj: String(j.maj || ''), rows };
+}
+const ikoGrillePeriode = () => IKO_GRILLE.du && IKO_GRILLE.au ? ` (du ${fmtDate(IKO_GRILLE.du)} au ${fmtDate(IKO_GRILLE.au)}${IKO_GRILLE.maj ? ', màj ' + fmtDate(IKO_GRILLE.maj) : ''})` : '';
 const ikoLigneGrille = code => IKO_GRILLE_ROWS.find(g => g[IKO_G.CODE] === code || g[IKO_G.PHX] === code);
 const ikoPuGrille = g => g[IKO_G.PU] + g[IKO_G.EC]; // prix € HT éco-contribution incluse
 function ikoGrille(ref) {
@@ -3969,12 +3986,12 @@ function cadFamillesDispo() {
 
 function renderCadences(v) {
   cadRestaurer();
-  const vues = { chiffrage: ['calculator', 'Chiffrage'], base: ['layers', `Base ouvrages (${cadTous().length})`], materiaux: ['book', `Matériaux & prix (${matTous().length})`], grille: ['receipt', `Grille IKO 2026 (${IKO_GRILLE_ROWS.length})`] };
+  const vues = { chiffrage: ['calculator', 'Chiffrage'], base: ['layers', `Base ouvrages (${cadTous().length})`], materiaux: ['book', `Matériaux & prix (${matTous().length})`], grille: ['receipt', `Grille IKO (${IKO_GRILLE_ROWS.length})`] };
   v.innerHTML = `
     <p class="t-muted" style="margin:0 0 12px;max-width:980px">Base de chiffrage SMAC : <b>${cadTous().length} ouvrages</b> (référentiel « cadence.xlsx » + complexes IKO${DB.data.cadBase.perso.length ? ' + ' + DB.data.cadBase.perso.length + ' ouvrage(s) ajouté(s)' : ''})
-      avec leur <b>temps de pose</b> et leur <b>composition matériaux</b>, chiffrée au prix de la <b>${esc(IKO_GRILLE.titre)}</b> (EC incluse, du ${fmtDate(IKO_GRILLE.du)} au ${fmtDate(IKO_GRILLE.au)}) ou à vos prix saisis.
+      avec leur <b>temps de pose</b> et leur <b>composition matériaux</b>, chiffrée ${IKO_GRILLE_ROWS.length ? `au prix de la <b>${esc(IKO_GRILLE.titre)}</b> (EC incluse${IKO_GRILLE.du && IKO_GRILLE.au ? `, du ${fmtDate(IKO_GRILLE.du)} au ${fmtDate(IKO_GRILLE.au)}` : ''})` : 'au prix de la grille IKO <b>importée dans votre profil</b> (aucune pour l\'instant : onglet « Grille IKO »)'} ou à vos prix saisis.
       Temps, compositions, prix, ouvrages et matériaux sont modifiables et enregistrés dans votre profil.
-      ${todayISO() > IKO_GRILLE.au ? `<br><b class="neg">${icon('alert', 'ic-sm')} La grille IKO a expiré le ${fmtDate(IKO_GRILLE.au)} : vérifiez les prix auprès de la Direction Achats.</b>` : ''}</p>
+      ${IKO_GRILLE.au && todayISO() > IKO_GRILLE.au ? `<br><b class="neg">${icon('alert', 'ic-sm')} La grille IKO a expiré le ${fmtDate(IKO_GRILLE.au)} : vérifiez les prix auprès de la Direction Achats.</b>` : ''}</p>
     <div class="page-actions" style="margin-bottom:14px">${Object.entries(vues).map(([k, [ic, l]]) => `<button class="btn small ${CAD.vue === k ? 'primary' : ''}" data-vue="${k}">${icon(ic)} ${esc(l)}</button>`).join('')}</div>
     <div id="cad-vue"></div>`;
   $$('[data-vue]', v).forEach(b => b.onclick = () => { CAD.vue = b.dataset.vue; renderCadences(v); });
@@ -4552,8 +4569,11 @@ function matForm(ref, onSave) {
 /* ===== Vue 4 : Grille tarifaire IKO ===== */
 function cadVueGrille(v) {
   v.innerHTML = `<div class="card card-pad">
-      <div class="page-actions" style="margin-bottom:12px"><span class="t-muted">${esc(IKO_GRILLE.titre)} — du ${fmtDate(IKO_GRILLE.du)} au ${fmtDate(IKO_GRILLE.au)} (màj ${fmtDate(IKO_GRILLE.maj)})</span><span class="spacer"></span>
-        <button class="btn small" id="g-xlsx">${icon('download')} Exporter</button></div>
+      <div class="page-actions" style="margin-bottom:12px"><span class="t-muted">${IKO_GRILLE_ROWS.length ? esc(IKO_GRILLE.titre) + ikoGrillePeriode() : 'Aucune grille importée'}</span><span class="spacer"></span>
+        <button class="btn small ${IKO_GRILLE_ROWS.length ? '' : 'primary'}" id="g-import">${icon('upload')} ${IKO_GRILLE_ROWS.length ? 'Remplacer la grille' : 'Importer la grille'}</button>
+        ${IKO_GRILLE_ROWS.length ? `<button class="btn small" id="g-xlsx">${icon('download')} Exporter</button><button class="btn small" id="g-del">${icon('trash')} Retirer</button>` : ''}
+        <input type="file" id="g-file" accept=".json,application/json" hidden></div>
+      <p class="t-muted" style="margin:0 0 12px;font-size:12px">La grille tarifaire IKO SMAC est un document <b>privé</b> : elle n'est pas incluse dans l'application. Importez votre fichier de grille (.json) : elle reste <b>uniquement dans votre profil</b> sur ce poste (et dans votre sauvegarde / Drive).</p>
       <div class="form-grid" style="grid-template-columns:repeat(2,1fr)">
         <div class="field"><label>Disponibilité</label><select data-g="stock"><option value="">Toutes les références</option><option value="1" ${CAD.m.stock === '1' ? 'selected' : ''}>Tenues en stock (vert)</option><option value="0" ${CAD.m.stock === '0' ? 'selected' : ''}>Délai ≈ 2 semaines (rouge)</option></select></div>
         <div class="field"><label>Recherche</label><input data-g="q" type="search" placeholder="ex. ET02206, FUSION, BLANC…" value="${esc(CAD.m.q)}"></div>
@@ -4563,7 +4583,8 @@ function cadVueGrille(v) {
   const refresh = () => {
     const q = CAD.m.q.trim().toLowerCase();
     const list = IKO_GRILLE_ROWS.filter(g => (CAD.m.stock === '' || g[IKO_G.STOCK] === +CAD.m.stock) && (!q || g.slice(0, 5).join(' ').toLowerCase().includes(q)));
-    $('#g-list').innerHTML = !list.length ? '<p class="t-muted">Aucune référence ne correspond à ces filtres.</p>' :
+    $('#g-list').innerHTML = !IKO_GRILLE_ROWS.length ? '<p class="t-muted">Aucune grille importée : les matériaux sont chiffrés à vos prix saisis (onglet « Matériaux & prix »). Cliquez sur « Importer la grille » pour charger votre fichier de grille IKO.</p>'
+      : !list.length ? '<p class="t-muted">Aucune référence ne correspond à ces filtres.</p>' :
       `<div class="table-wrap"><table>
         <thead><tr><th>Code IKO</th><th>Phoenix</th><th>Désignation</th><th>Stock</th><th>Cond.</th><th class="num">Poids</th><th class="num">Long.</th><th>U prix</th><th class="num">Prix HT</th><th class="num">Éco-contr.</th><th class="num">Prix EC incl.</th><th></th></tr></thead>
         <tbody>${list.map(g => { const used = ikoGrilleUtilisee(g[IKO_G.CODE] || g[IKO_G.PHX]); return `<tr>
@@ -4578,7 +4599,15 @@ function cadVueGrille(v) {
   };
   v.querySelector('[data-g="stock"]').onchange = e => { CAD.m.stock = e.target.value; refresh(); };
   v.querySelector('[data-g="q"]').oninput = e => { CAD.m.q = e.target.value; refresh(); };
-  $('#g-xlsx').onclick = () => exportXlsx('grille_IKO_2026', ['code_iko', 'code_phoenix', 'designation', 'stock', 'conditionnement', 'poids_kg', 'longueur_ml', 'unite_prix', 'prix_ht', 'eco_contribution', 'prix_ec_inclus'],
+  const fi = $('#g-file');
+  $('#g-import').onclick = () => fi.click();
+  fi.onchange = () => { const f = fi.files[0]; fi.value = ''; if (!f) return; const r = new FileReader();
+    r.onload = () => { let g; try { g = ikoLireGrille(r.result); } catch (_e) { toast('Fichier non reconnu : choisissez un fichier de grille IKO (.json) ChargéPro'); return; }
+      DB.data.grilleIko = g; ikoAppliquerGrille(g); DB.save(); toast('Grille importée : ' + g.rows.length + ' références'); renderCadences($('#view')); };
+    r.readAsText(f); };
+  const gd = $('#g-del'); if (gd) gd.onclick = () => confirmDialog('Retirer la grille IKO de ce profil ? Les matériaux seront chiffrés à vos seuls prix saisis.',
+    () => { delete DB.data.grilleIko; ikoAppliquerGrille(null); DB.save(); toast('Grille retirée'); renderCadences($('#view')); }, 'Retirer');
+  const gx = $('#g-xlsx'); if (gx) gx.onclick = () => exportXlsx('grille_IKO_2026', ['code_iko', 'code_phoenix', 'designation', 'stock', 'conditionnement', 'poids_kg', 'longueur_ml', 'unite_prix', 'prix_ht', 'eco_contribution', 'prix_ec_inclus'],
     IKO_GRILLE_ROWS.map(g => [g[IKO_G.CODE], g[IKO_G.PHX], g[IKO_G.DES], g[IKO_G.STOCK] ? 'VERT' : 'ROUGE', g[IKO_G.COND], g[IKO_G.POIDS], g[IKO_G.LONG], g[IKO_G.U], g[IKO_G.PU], g[IKO_G.EC], ikoPuGrille(g)]),
     { sheet: 'Grille IKO 2026', money: ['prix_ht', 'eco_contribution', 'prix_ec_inclus'], totals: false });
   refresh();
@@ -5777,7 +5806,7 @@ function importAll(file) {
     const parsed = JSON.parse(r.result);
     const data = parsed && parsed.data ? parsed.data : parsed; // compat ancien format
     if (!data || typeof data !== 'object') throw 0;
-    DB.data = DB.normalize(data); DB.save(); toast('Sauvegarde restaurée dans le profil courant'); go(current);
+    DB.data = DB.normalize(data); ikoAppliquerGrille(DB.data.grilleIko); DB.save(); toast('Sauvegarde restaurée dans le profil courant'); go(current);
   } catch { toast('Fichier invalide', 'err'); } };
   r.readAsText(file);
 }
