@@ -2781,7 +2781,27 @@ const STATUTS_DEVIS = { attente: "En attente d'envoi", envoye: 'Envoyé', relanc
 function devisBadge(s) { const map = { attente: 'b-attente', envoye: 'b-envoye', relance: 'b-relance', accepte: 'b-accepte', refuse: 'b-refuse' }; return `<span class="badge ${map[s] || 'b-attente'}">${STATUTS_DEVIS[s] || s}</span>`; }
 
 /* ---------- Chantiers ---------- */
-let chantierFilter = { q: '', statut: '', factu: '' };
+let chantierFilter = { q: '', statut: '', factu: '', plan: '' };
+/* Planning d'un chantier : événements « Équipe sur chantier » qui lui sont rattachés et heures
+   imputées aux pointages par ces événements (lignes portant agendaId). */
+function chantierPlanning(c) {
+  const evs = DB.data.agenda.filter(a => a.type === 'chantier' && a.chantierId === c.id && a.dateDebut)
+    .sort((a, b) => a.dateDebut.localeCompare(b.dateDebut));
+  if (!evs.length) return null;
+  const ids = new Set(evs.map(a => a.id)), hEv = {};
+  DB.data.pointages.forEach(r => { if (ids.has(r.agendaId) && r.h) hEv[r.agendaId] = (hEv[r.agendaId] || 0) + r.h.reduce((s, h) => s + (+h || 0), 0); });
+  const debut = evs[0].dateDebut, fin = evs.reduce((m, a) => { const f = a.dateFin && a.dateFin >= a.dateDebut ? a.dateFin : a.dateDebut; return f > m ? f : m; }, debut);
+  const t = todayISO(), etat = fin < t ? 'termine' : debut > t ? 'prevu' : 'en_cours';
+  return { evs, hEv, debut, fin, etat, heures: Object.values(hEv).reduce((s, h) => s + h, 0) };
+}
+const PLAN_ETATS = { prevu: 'Prévu', en_cours: 'En cours', termine: 'Terminé' };
+const fmtHeures = h => (Math.round(h * 10) / 10).toLocaleString('fr-FR') + ' h';
+function planningCell(c) {
+  const p = chantierPlanning(c);
+  if (!p) return `<button class="btn small" data-plan="${c.id}">${icon('calendar')} Planifier</button>`;
+  const per = p.debut === p.fin ? 'Le ' + fmtDate(p.debut) : fmtDate(p.debut) + ' → ' + fmtDate(p.fin);
+  return `<button class="link" data-view="${c.id}" title="Voir le planning du chantier">${PLAN_ETATS[p.etat]} · ${per}</button><div class="t-muted" style="font-size:12px;font-variant-numeric:tabular-nums">${fmtHeures(p.heures)} imputées${p.evs.length > 1 ? ' · ' + p.evs.length + ' périodes' : ''}</div>`;
+}
 // « Autoriser la mise en facturation » : seul un chantier coché est proposé à la clôture du CA
 const chantierEnCa = c => caIsConsumed('chantier', c.id);
 const chantierFacturable = c => c.facturable ?? c.statut === 'facture'; // chantiers créés avant la case : comme avant
@@ -2790,6 +2810,7 @@ function renderChantiers(v) {
     if (chantierFilter.statut && c.statut !== chantierFilter.statut) return false;
     if (chantierFilter.factu === 'oui' && !chantierFacturable(c)) return false;
     if (chantierFilter.factu === 'non' && chantierFacturable(c)) return false;
+    if (chantierFilter.plan && (chantierFilter.plan === 'oui') !== !!chantierPlanning(c)) return false;
     if (chantierFilter.q) { const s = (c.otp + ' ' + c.nom + ' ' + clientNom(c.clientId) + ' ' + c.adresse).toLowerCase(); if (!s.includes(chantierFilter.q.toLowerCase())) return false; }
     return true;
   });
@@ -2800,23 +2821,26 @@ function renderChantiers(v) {
       <span class="search-wrap">${icon('search')}<input id="q" placeholder="Rechercher (OTP, nom, client…)" value="${esc(chantierFilter.q)}"></span>
       <select id="fs"><option value="">Tous les statuts</option>${Object.entries(STATUTS_CHANTIER).map(([k, l]) => `<option value="${k}" ${chantierFilter.statut === k ? 'selected' : ''}>${l}</option>`).join('')}</select>
       <select id="ff"><option value="">Mise en facturation : tous</option><option value="oui" ${chantierFilter.factu === 'oui' ? 'selected' : ''}>Autorisés</option><option value="non" ${chantierFilter.factu === 'non' ? 'selected' : ''}>Bloqués</option></select>
+      <select id="fp" aria-label="Filtrer par planning"><option value="">Planning : tous</option><option value="oui" ${chantierFilter.plan === 'oui' ? 'selected' : ''}>Planifiés</option><option value="non" ${chantierFilter.plan === 'non' ? 'selected' : ''}>Non planifiés</option></select>
       <span class="chip">${list.length} chantier(s)</span></div>
-    ${list.length ? `<div class="table-wrap"><table><thead><tr><th>OTP</th><th class="wrap">Chantier</th><th>Client</th><th>Statut</th><th title="Notes de préparation (datées)">Préparation</th><th title="Coché : le chantier peut être mis en facturation (proposé à la clôture de fin de mois du CA)">Mise en factu.</th><th class="num">Montant HT</th><th></th></tr></thead>
+    ${list.length ? `<div class="table-wrap"><table><thead><tr><th>OTP</th><th class="wrap">Chantier</th><th>Client</th><th>Statut</th><th title="Période planifiée et heures imputées aux pointages (Planning &amp; pointages)">Planning</th><th title="Notes de préparation (datées)">Préparation</th><th title="Coché : le chantier peut être mis en facturation (proposé à la clôture de fin de mois du CA)">Mise en factu.</th><th class="num">Montant HT</th><th></th></tr></thead>
       <tbody>${list.map(c => `<tr><td class="t-strong">${esc(c.otp || '—')}</td>
         <td class="wrap"><span class="link" data-view="${c.id}">${esc(c.nom)}</span>${c.adresse ? `<div class="t-muted" style="font-size:12px">${esc(c.adresse)}</div>` : ''}</td><td>${esc(clientNom(c.clientId))}</td>
         <td>${statutBadge(c.statut)}</td>
+        <td>${planningCell(c)}</td>
         <td>${prepaResume(c)}</td>
         <td>${chantierEnCa(c) ? '<span class="badge b-facture" title="Déjà repris dans le CA">Mis en factu.</span>' : `<label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer"><input type="checkbox" data-factu="${c.id}" ${chantierFacturable(c) ? 'checked' : ''}>${chantierFacturable(c) ? 'Autorisé' : '<span class="t-muted">Bloqué</span>'}</label>`}</td>
         <td class="num">${eur(c.montantHT)}</td>
         <td class="actions-cell"><button class="icon-btn" data-plan="${c.id}" title="Planifier dans le planning">${icon('calendar')}</button><button class="icon-btn" data-edit="${c.id}" title="Modifier">${icon('edit')}</button><button class="icon-btn danger" data-del="${c.id}" title="Supprimer">${icon('trash')}</button></td></tr>`).join('')}</tbody>
-      <tfoot><tr><td colspan="6">Total</td><td class="num">${eur(list.reduce((s, c) => s + (+c.montantHT || 0), 0))}</td><td></td></tr></tfoot></table></div>`
+      <tfoot><tr><td colspan="7">Total</td><td class="num">${eur(list.reduce((s, c) => s + (+c.montantHT || 0), 0))}</td><td></td></tr></tfoot></table></div>`
       : emptyState('building', 'Aucun chantier', 'Créez votre premier chantier pour suivre vos affaires.')}`;
   $('#add').onclick = () => chantierForm();
   $('#q').oninput = e => { chantierFilter.q = e.target.value; renderChantiers(v); const i = $('#q'); i.focus(); i.setSelectionRange(i.value.length, i.value.length); };
   $('#fs').onchange = e => { chantierFilter.statut = e.target.value; renderChantiers(v); };
   $('#ff').onchange = e => { chantierFilter.factu = e.target.value; renderChantiers(v); };
+  $('#fp').onchange = e => { chantierFilter.plan = e.target.value; renderChantiers(v); };
   $$('[data-factu]', v).forEach(i => i.onchange = () => { const c = chantierById(i.dataset.factu); if (!c) return; c.facturable = i.checked; DB.save(); toast(i.checked ? 'Mise en facturation autorisée' : 'Mise en facturation bloquée'); renderChantiers(v); });
-  $('#csv').onclick = () => exportXlsx('chantiers', ['otp', 'nom', 'client', 'adresse', 'statut', 'notes_preparation', 'mise_en_facturation', 'montantHT'], list.map(c => [c.otp, c.nom, clientNom(c.clientId), c.adresse, STATUTS_CHANTIER[c.statut], prepaNotes(c).length, chantierEnCa(c) ? 'Mis en facturation' : chantierFacturable(c) ? 'Autorisée' : 'Bloquée', c.montantHT]), { sheet: 'Chantiers' });
+  $('#csv').onclick = () => exportXlsx('chantiers', ['otp', 'nom', 'client', 'adresse', 'statut', 'planning_debut', 'planning_fin', 'heures_imputees', 'notes_preparation', 'mise_en_facturation', 'montantHT'], list.map(c => [c.otp, c.nom, clientNom(c.clientId), c.adresse, STATUTS_CHANTIER[c.statut], ...(p => p ? [p.debut, p.fin, p.heures] : ['', '', 0])(chantierPlanning(c)), prepaNotes(c).length, chantierEnCa(c) ? 'Mis en facturation' : chantierFacturable(c) ? 'Autorisée' : 'Bloquée', c.montantHT]), { sheet: 'Chantiers' });
   $$('[data-edit]', v).forEach(b => b.onclick = () => chantierForm(b.dataset.edit));
   $$('[data-plan]', v).forEach(b => b.onclick = () => { planTab = 'mois'; go('planning'); agendaForm(null, null, { chantierId: b.dataset.plan }); });
   $$('[data-view]', v).forEach(b => b.onclick = () => chantierDetail(b.dataset.view));
@@ -2906,6 +2930,7 @@ function chantierDetail(id) {
   const c = chantierById(id); if (!c) return;
   const cl = DB.data.clients.find(x => x.id === c.clientId);
   const devis = DB.data.devis.filter(d => d.chantierId === id);
+  const pl = chantierPlanning(c);
   const m = modal({ title: c.nom, wide: true,
     body: `<div class="grid-2">
       <div><div class="stat-line"><span>OTP</span><b>${esc(c.otp || '—')}</b></div><div class="stat-line"><span>Statut</span><b>${statutBadge(c.statut)}</b></div>
@@ -2918,6 +2943,13 @@ function chantierDetail(id) {
       <div class="card-title" style="margin-top:18px">Préparation du chantier</div>
       ${prepaNotes(c).length ? prepaNotes(c).slice(0, 3).map(n => `<div class="t-muted" style="font-size:12.5px;margin-top:4px"><b>${fmtDateHeure(n.date)}</b> — ${esc(n.texte.length > 140 ? n.texte.slice(0, 140) + '…' : n.texte)}</div>`).join('') : '<div class="t-muted">Aucune note.</div>'}
       <div style="margin-top:8px"><button class="btn small" id="cd-prepa">${icon('edit')} Notes de préparation</button></div>
+      <div class="card-title" style="margin-top:18px">Planning &amp; heures imputées</div>
+      ${pl ? `<div class="table-wrap"><table><thead><tr><th>Période</th><th class="wrap">Compagnons</th><th>État</th><th class="num">Heures imputées</th></tr></thead>
+        <tbody>${pl.evs.map(a => { const f = a.dateFin && a.dateFin > a.dateDebut ? a.dateFin : a.dateDebut, t = todayISO(), comp = Array.isArray(a.companions) && a.companions.length ? a.companions.join(', ') : ((DB.data.equipes.find(e => e.id === a.equipeId) || {}).nom || '—');
+          return `<tr><td><button class="link" data-ag="${a.id}" title="Ouvrir l'événement dans le planning">${f === a.dateDebut ? fmtDate(a.dateDebut) : fmtDate(a.dateDebut) + ' → ' + fmtDate(f)}</button></td><td class="wrap">${esc(comp)}</td><td>${PLAN_ETATS[f < t ? 'termine' : a.dateDebut > t ? 'prevu' : 'en_cours']}</td><td class="num">${a.imputer === false ? '<span class="t-muted">Non imputé</span>' : fmtHeures(pl.hEv[a.id] || 0)}</td></tr>`; }).join('')}</tbody>
+        <tfoot><tr><td colspan="3">Total</td><td class="num">${fmtHeures(pl.heures)}</td></tr></tfoot></table></div>`
+        : '<div class="t-muted">Pas encore planifié.</div>'}
+      <div style="margin-top:8px"><button class="btn small" id="cd-plan">${icon('calendar')} ${pl ? 'Ajouter une période' : 'Planifier le chantier'}</button></div>
       <div class="card-title" style="margin-top:18px">Devis liés (${devis.length})</div>
       ${devis.length ? `<div class="table-wrap"><table><thead><tr><th>Réf.</th><th>Objet</th><th>Statut</th><th class="num">Montant</th></tr></thead><tbody>${devis.map(d => `<tr><td class="t-strong">${esc(d.ref)}</td><td>${esc(d.objet)}</td><td>${devisBadge(d.statut)}</td><td class="num">${eur(d.montantHT)}</td></tr>`).join('')}</tbody></table></div>` : '<div class="t-muted">Aucun devis lié.</div>'}
 `,
@@ -2925,6 +2957,8 @@ function chantierDetail(id) {
   m.root.querySelector('[data-c]').onclick = m.close;
   const op = () => { m.close(); prepaModal(id); };
   $('#cd-prepa').onclick = op; $$('[data-prepa]', m.root).forEach(b => b.onclick = op);
+  $('#cd-plan').onclick = () => { m.close(); planTab = 'mois'; go('planning'); agendaForm(null, null, { chantierId: id }); };
+  $$('[data-ag]', m.root).forEach(b => b.onclick = () => { m.close(); planTab = 'mois'; go('planning'); agendaForm(b.dataset.ag); });
 }
 
 /* ---------- Comptes OTP (un OTP regroupe plusieurs sites / devis) ---------- */
@@ -3706,9 +3740,27 @@ function devisForm(id) {
     const obj = { ref: $('#f-ref').value.trim(), otp: $('#f-otp').value.trim(), clientId: $('#f-client').value, chantierId: d.chantierId || '', objet: $('#f-objet').value.trim(), dateDemande: $('#f-dd').value, dateEnvoi, montantHT: +$('#f-montant').value || 0, statut, relance: $('#f-rel').value, derniereRelance: $('#f-drel').value, nbRelances: +d.nbRelances || 0, horsComptes: $('#f-hc').checked, lignes: postes() };
     if (obj.lignes.length) obj.montantHT = Math.round(obj.lignes.reduce((s, x) => s + x.qte * x.pu, 0) * 100) / 100;
     if (!obj.objet) { toast("L'objet est obligatoire", 'err'); return; }
-    if (id) Object.assign(d, obj); else DB.data.devis.unshift({ id: uid(), ...obj });
-    DB.save(); m.close(); toast('Devis enregistré'); go('devis');
+    const etaitAccepte = !!id && d.statut === 'accepte';
+    let dv = d; if (id) Object.assign(d, obj); else DB.data.devis.unshift(dv = { id: uid(), ...obj });
+    const ch = obj.statut === 'accepte' && !etaitAccepte ? devisVersChantier(dv) : null;
+    DB.save(); m.close();
+    toast(!ch ? 'Devis enregistré' : ch.cree ? `Devis accepté — chantier « ${ch.chantier.nom} » créé en Commande` : `Devis accepté — chantier « ${ch.chantier.nom} » passé en Commande`);
+    go('devis');
   };
+}
+/* Devis accepté → chantier « Commande ». Reprend le chantier déjà lié au devis s'il existe
+   (il passe en Commande s'il était encore Prospect ou Devis émis), sinon en crée un. */
+function devisVersChantier(d) {
+  let c = (d.chantierId && chantierById(d.chantierId)) || DB.data.chantiers.find(x => x.sourceDevisId === d.id);
+  if (c) {
+    if (['prospect', 'devis'].includes(c.statut)) c.statut = 'commande';
+    if (!d.chantierId) d.chantierId = c.id;
+    return { chantier: c, cree: false };
+  }
+  const cl = DB.data.clients.find(x => x.id === d.clientId);
+  c = { id: uid(), otp: d.otp || '', nom: d.objet || d.ref, clientId: d.clientId || '', adresse: (cl && cl.adresse) || '', statut: 'commande', dateDemande: d.dateDemande || todayISO(), montantHT: +d.montantHT || 0, notes: '', sourceDevisId: d.id, facturable: false };
+  DB.data.chantiers.unshift(c); d.chantierId = c.id;
+  return { chantier: c, cree: true };
 }
 function relanceDevis(id) {
   const d = DB.data.devis.find(x => x.id === id); if (!d) return;
