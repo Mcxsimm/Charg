@@ -1226,6 +1226,43 @@ thead th{background:var(--surface);font-size:11px;font-weight:600;letter-spacing
   .card-pad>.section-head.win-head:first-child{position:relative}
   .card-pad>.section-head.win-head>.win-ctl{position:absolute;right:14px;top:50%;transform:translateY(-50%);background:var(--surface);padding-left:6px}
 }
+
+/* --- Pilotage stratégique (analyse annuelle) --- */
+.pil-bar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:var(--gap)}
+.pil-bar .field.inline label{margin:0}
+.pil-bar select{width:auto;min-width:96px}
+.kpi-grid.kpi-5{grid-template-columns:repeat(5,minmax(0,1fr))}
+@media(max-width:1360px){.kpi-grid.kpi-5{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:720px){.kpi-grid.kpi-5{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.kpi-sub.pos{color:var(--pos)} .kpi-sub.neg{color:var(--neg)}
+.pil-top{display:grid;grid-template-columns:minmax(0,3fr) minmax(0,2fr);gap:var(--gap);margin-bottom:var(--gap);align-items:start}
+@media(max-width:1100px){.pil-top{grid-template-columns:minmax(0,1fr)}}
+.pil-grid{margin-bottom:var(--gap);align-items:start}
+@media(max-width:1100px){.pil-grid{grid-template-columns:minmax(0,1fr)}}
+.pil-chart{width:100%;height:auto;display:block;margin:4px 0 8px}
+.pil-chart .pc-base{stroke:var(--border-strong);stroke-width:1}
+.pil-chart .pc-obj{stroke:var(--text-3);stroke-width:1.5;stroke-dasharray:5 4}
+.pil-chart .pc-area{fill:color-mix(in srgb,var(--serie-1) 14%,transparent)}
+.pil-chart .pc-line{fill:none;stroke:var(--serie-1);stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.pil-chart .pc-dot{fill:var(--serie-1);stroke:var(--surface);stroke-width:2}
+.pil-chart .pc-axis{font-size:11px;fill:var(--text-3)}
+.pil-chart .pc-val{font-size:12px;font-weight:600;fill:var(--text)}
+.pil-chart rect:hover{fill:color-mix(in srgb,var(--text) 4%,transparent)}
+.stat-line b.pos{color:var(--pos)} .stat-line b.neg{color:var(--neg)}
+.pil-rec{list-style:none;margin:0;padding:0;counter-reset:rec}
+.pil-rec li{border-bottom:1px solid var(--border)} .pil-rec li:last-child{border-bottom:0}
+.pil-rec-item{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:start;gap:10px;width:100%;padding:12px 4px;border:0;background:none;text-align:left;color:var(--text);border-radius:8px;min-height:44px}
+.pil-rec-item:hover{background:var(--surface-2)}
+.pil-rec-item>.ic{color:var(--text-3);margin-top:3px}
+.pil-txt{font-size:13.5px;line-height:1.45}
+.pil-axe{display:inline-block;font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--text-3);min-width:78px;padding-top:2px}
+.pil-more{margin-top:8px;font-size:13px;color:var(--text-2)}
+.pil-more summary{cursor:pointer;color:var(--text-3);padding:6px 4px}
+.pil-more ul{margin:4px 0 0;padding-left:4px;list-style:none;display:grid;gap:8px}
+.pil-sub{font-size:13px;font-weight:600;color:var(--text-2);margin:18px 0 8px}
+.pil-facts{border-top:1px solid var(--border);padding-top:4px}
+@media(max-width:720px){.pil-rec-item{grid-template-columns:minmax(0,1fr) auto}.pil-axe{grid-column:1/-1;padding:0}}
+@media(max-width:720px){#view .pil-top .section-head .hint,#view .card>.section-head .hint{display:none}}
 </style>
 
 </head>
@@ -1660,6 +1697,7 @@ function confirmDialog(msg, onYes, label = 'Supprimer') {
 const NAV = [
   { group: 'Pilotage' },
   { route: 'dashboard', ico: 'grid', label: 'Tableau de bord', render: renderDashboard },
+  { route: 'pilotage', ico: 'trend', label: 'Pilotage stratégique', render: renderPilotage },
   { group: 'Commercial' },
   { route: 'prospection', ico: 'phone', label: 'Prospection & RDV', render: renderProspection },
   { route: 'devis', ico: 'file', label: 'Devis', render: renderDevis },
@@ -2114,6 +2152,233 @@ function collectActions() {
   return acts.sort((a, b) => a.urg - b.urg);
 }
 
+/* ---------- Pilotage stratégique ----------
+   Page d'analyse (une année à la fois) : où en est l'objectif annuel, où chercher le CA,
+   comment protéger la marge, comment sécuriser la trésorerie — puis trois orientations
+   classées par montant en jeu. Tout est recalculé à partir des données saisies ailleurs ;
+   rien n'est saisi ici. */
+let pilAnnee = null;
+const MOIS_COURT = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Aoû', 'Sep', 'Oct', 'Nov', 'Déc'];
+function pilotageCalc(yr) {
+  const o = DB.data.objectifs, t = todayISO(), now = new Date();
+  const enCours = yr === now.getFullYear();
+  const moisEcoules = enCours ? now.getMonth() + now.getDate() / new Date(yr, now.getMonth() + 1, 0).getDate() : (yr < now.getFullYear() ? 12 : 0);
+  const moisRestants = Math.max(0, 12 - moisEcoules);
+  const somme = (arr, f) => arr.reduce((s, x) => s + (+f(x) || 0), 0);
+
+  // --- Objectif annuel
+  const caLignes = DB.data.ca.filter(r => r.annee === yr && otpCompte(r.otp));
+  const caMois = Array(12).fill(0); caLignes.forEach(r => { caMois[r.mois ?? 0] += (+r.prixVente || 0); });
+  const caReal = somme(caLignes, r => r.prixVente);
+  const caParOtpTout = {}; DB.data.ca.forEach(r => { if (otpCompte(r.otp)) caParOtpTout[r.otp] = (caParOtpTout[r.otp] || 0) + (+r.prixVente || 0); });
+  const montantParOtp = {}; DB.data.chantiers.filter(c => ['commande', 'en_cours'].includes(c.statut) && otpCompte(c.otp))
+    .forEach(c => { montantParOtp[c.otp] = (montantParOtp[c.otp] || 0) + (+c.montantHT || 0); });
+  const carnet = Object.entries(montantParOtp).reduce((s, [otp, m]) => s + Math.max(0, m - (caParOtpTout[otp] || 0)), 0);
+  const tendance = moisEcoules > 0 ? caReal / moisEcoules * 12 : 0;
+  const manque = Math.max(0, o.caAnnuel - caReal - carnet);
+  const aSignerMois = moisRestants > 0.5 ? manque / moisRestants : manque;
+
+  // --- Commercial
+  const devisAn = DB.data.devis.filter(d => (d.dateDemande || '').startsWith(String(yr)));
+  const clos = devisAn.filter(d => ['accepte', 'refuse'].includes(d.statut));
+  const acc = clos.filter(d => d.statut === 'accepte');
+  const tauxNb = clos.length ? acc.length / clos.length : null;
+  const tauxVal = somme(clos, d => d.montantHT) ? somme(acc, d => d.montantHT) / somme(clos, d => d.montantHT) : null;
+  const tauxRetenu = tauxNb == null ? 0.3 : tauxNb;        // sans historique : hypothèse prudente de 30 %
+  const enAttente = DB.data.devis.filter(d => ['envoye', 'relance'].includes(d.statut));
+  const pipeline = somme(enAttente, d => d.montantHT);
+  const pipelinePondere = pipeline * tauxRetenu;
+  const relancesDues = enAttente.filter(d => d.relance && d.relance <= t);
+  const envoyes = devisAn.filter(d => d.dateEnvoi && d.dateDemande);
+  const delaiEnvoi = envoyes.length ? somme(envoyes, d => daysBetween(d.dateDemande, d.dateEnvoi)) / envoyes.length : null;
+  const prospects = DB.data.prospection.filter(p => !['gagne', 'sans_suite'].includes(p.statut));
+  const potentielProspection = somme(prospects, p => p.potentiel);
+
+  // Par client : CA de l'année, devis de l'année, transformation
+  const parClient = {};
+  const cli = id => (parClient[id || '—'] = parClient[id || '—'] || { id, ca: 0, devis: 0, acc: 0, clos: 0, attente: 0 });
+  caLignes.forEach(r => { cli(otpClientId(r.otp)).ca += (+r.prixVente || 0); });
+  devisAn.forEach(d => { const c = cli(d.clientId); c.devis++; if (['accepte', 'refuse'].includes(d.statut)) { c.clos++; if (d.statut === 'accepte') c.acc++; } });
+  enAttente.forEach(d => { cli(d.clientId).attente += (+d.montantHT || 0); });
+  const clients = Object.values(parClient).sort((a, b) => b.ca - a.ca || b.attente - a.attente);
+  const top1 = clients[0];
+  const partTop1 = caReal && top1 ? top1.ca / caReal : 0;
+  const partTop3 = caReal ? somme(clients.slice(0, 3), c => c.ca) / caReal : 0;
+
+  // --- Marge
+  const couts = coutsReels(yr);
+  const margeReal = caReal - couts.tot;
+  const margePct = caReal ? margeReal / caReal : null;
+  const achatsOtp = otp => DB.data.commandes.reduce((s, c) => c.otp === otp && c.dateReception ? s + (+c.montantHT || 0) : s, 0);
+  const budgetOtp = otp => { const b = DB.data.bte.filter(x => x.otp === otp); return b.length ? b.reduce((s, x) => s + (x.lignes || []).reduce((a, l) => a + (+l.qte || 0) * (+l.pu || 0), 0), 0) : null; };
+  const otps = [...new Set([...DB.data.ca.filter(r => r.annee === yr).map(r => r.otp), ...Object.keys(montantParOtp)])].filter(otpCompte);
+  const chantiers = otps.map(otp => {
+    const ca = caParOtpTout[otp] || 0, achats = achatsOtp(otp), mo = moAllOtp(otp), cout = achats + mo, budget = budgetOtp(otp);
+    const ch = DB.data.chantiers.filter(c => c.otp === otp);
+    return { otp, nom: ch.length ? ch.map(c => c.nom).join(' · ') : (DB.data.ca.find(r => r.otp === otp) || {}).chantier || otpLabel(otp) || otp,
+      client: clientNom(otpClientId(otp)), vendu: ch.reduce((s, c) => s + (+c.montantHT || 0), 0) || ca, ca, achats, mo, cout,
+      marge: ca ? (ca - cout) / ca : null, budget, consoBudget: budget ? cout / budget : null };
+  }).sort((a, b) => (a.marge ?? 9) - (b.marge ?? 9));
+  const sousCible = chantiers.filter(c => c.ca > 0 && c.marge != null && c.marge < o.margeCible);
+  const derives = chantiers.filter(c => c.consoBudget != null && c.consoBudget > 0.9);
+
+  // --- Trésorerie
+  const emises = DB.data.factures.filter(f => f.statut === 'emise');
+  const encours = somme(emises, f => f.montantHT);
+  const enRetard = emises.filter(f => factureFlags(f).retardPaiement);
+  const retard = somme(enRetard, f => f.montantHT);
+  const payees = DB.data.factures.filter(f => f.statut === 'payee' && f.dateEmission && f.datePaiement);
+  const delaiPaiement = payees.length ? somme(payees, f => daysBetween(f.dateEmission, f.datePaiement)) / payees.length : null;
+  const aEmettre = DB.data.factures.filter(f => f.statut === 'a_emettre');
+  const aEmettreRetard = aEmettre.filter(f => factureFlags(f).retardEmission);
+  const bcs = DB.data.bcs.filter(bcAFacturer);
+  const nonFacture = somme(aEmettre, f => f.montantHT) + somme(bcs, b => b.montantHT ?? bcTotal(b.lignes));
+
+  // --- Orientations : règles classées par montant en jeu
+  const rec = [];
+  const n = (k, s, p) => k + ' ' + (k > 1 ? p : s);
+  if (manque > 0 && moisRestants > 0) rec.push({ impact: manque, route: 'devis', axe: 'Objectif',
+    txt: `Signez ${eur(aSignerMois)} de commandes par mois d'ici décembre pour tenir l'objectif de ${eur(o.caAnnuel)}.`
+      + (enAttente.length ? ` ${n(enAttente.length, 'devis envoyé attend', 'devis envoyés attendent')} une réponse (${eur(pipeline)}).` : '') });
+  if (aEmettre.length || bcs.length) rec.push({ impact: nonFacture, route: aEmettre.length ? 'factures' : 'marches', axe: 'Trésorerie',
+    txt: `Facturez ce qui est fait : ${eur(nonFacture)} restent à émettre`
+      + (aEmettreRetard.length ? `, dont ${n(aEmettreRetard.length, 'facture', 'factures')} hors délai.` : '.') });
+  if (enRetard.length) rec.push({ impact: retard, route: 'factures', axe: 'Trésorerie',
+    txt: `Relancez ${n(enRetard.length, 'facture impayée', 'factures impayées')} après échéance (${eur(retard)}).` });
+  sousCible.forEach(c => rec.push({ impact: (o.margeCible - c.marge) * c.ca, route: 'ca', axe: 'Marge',
+    txt: `${c.nom} : marge réelle de ${pct(c.marge)} pour ${pct(o.margeCible)} visés, soit ${eur((o.margeCible - c.marge) * c.ca)} de manque à gagner. Vérifiez achats et heures.` }));
+  derives.filter(c => !sousCible.includes(c)).forEach(c => rec.push({ impact: c.cout - c.budget * 0.9, route: 'bte', axe: 'Marge',
+    txt: `${c.nom} a déjà consommé ${pct(c.consoBudget)} de son budget BTE. Surveillez la fin de chantier.` }));
+  if (relancesDues.length) rec.push({ impact: somme(relancesDues, d => d.montantHT) * tauxRetenu, route: 'devis', axe: 'Commercial',
+    txt: `${n(relancesDues.length, 'relance de devis est due', 'relances de devis sont dues')} (${eur(somme(relancesDues, d => d.montantHT))}).` });
+  if (partTop1 > 0.5 && top1) rec.push({ impact: caReal * 0.1, route: 'prospection', axe: 'Risque',
+    txt: `${pct(partTop1)} du CA dépend de ${clientNom(top1.id)}. Ouvrez de nouveaux comptes pour réduire ce risque.` });
+  if (delaiPaiement != null && delaiPaiement > o.delaiPaiement) rec.push({ impact: encours * 0.05, route: 'factures', axe: 'Trésorerie',
+    txt: `Vos clients paient en ${Math.round(delaiPaiement)} j en moyenne, contre ${o.delaiPaiement} j prévus.` });
+  if (tauxNb != null && clos.length >= 4 && tauxNb < 0.3) rec.push({ impact: pipeline * 0.1, route: 'devis', axe: 'Commercial',
+    txt: `Taux de transformation de ${pct(tauxNb)} : concentrez vos devis sur les clients qui signent.` });
+  rec.sort((a, b) => b.impact - a.impact);
+
+  return { yr, enCours, moisEcoules, moisRestants, caMois, caReal, carnet, tendance, manque, aSignerMois,
+    tauxNb, tauxVal, tauxRetenu, pipeline, pipelinePondere, enAttente, relancesDues, delaiEnvoi, potentielProspection, prospects,
+    clients, partTop3, couts, margeReal, margePct, chantiers, sousCible,
+    encours, retard, enRetard, delaiPaiement, aEmettre, nonFacture, bcs, rec };
+}
+
+/* Courbe du CA cumulé face à la trajectoire de l'objectif (une seule échelle). */
+function pilotageCumulChart(k, objectif) {
+  const W = 640, H = 220, L = 8, R = 8, T = 12, B = 26, w = W - L - R, h = H - T - B;
+  const cum = []; k.caMois.reduce((s, v, i) => (cum[i] = s + v), 0);
+  const dernier = k.enCours ? Math.min(11, Math.floor(k.moisEcoules)) : (k.moisEcoules ? 11 : -1);
+  const max = Math.max(1, objectif, ...cum) * 1.05;
+  const x = i => L + (i + 0.5) * w / 12, y = v => T + h - v / max * h;
+  const pts = cum.slice(0, dernier + 1).map((v, i) => `${x(i).toFixed(1)},${y(v).toFixed(1)}`);
+  const aire = pts.length ? `M${x(0).toFixed(1)},${y(0)} L${pts.join(' L')} L${x(dernier).toFixed(1)},${y(0)} Z` : '';
+  const hits = cum.map((v, i) => `<rect x="${(L + i * w / 12).toFixed(1)}" y="${T}" width="${(w / 12).toFixed(1)}" height="${h}" fill="transparent">
+      <title>${MOIS[i]} — cumulé ${i <= dernier ? eur(v) : '—'} · trajectoire ${eur(objectif * (i + 1) / 12)}</title></rect>`).join('');
+  const labels = MOIS.map((m, i) => `<text x="${x(i).toFixed(1)}" y="${H - 8}" text-anchor="middle" class="pc-axis">${MOIS_COURT[i]}</text>`).join('');
+  const fin = dernier >= 0 ? `<circle cx="${x(dernier).toFixed(1)}" cy="${y(cum[dernier]).toFixed(1)}" r="4" class="pc-dot"/>
+      <text x="${Math.min(x(dernier) + 8, W - 120).toFixed(1)}" y="${(y(cum[dernier]) - 8).toFixed(1)}" class="pc-val">${eur(cum[dernier])}</text>` : '';
+  return `<svg class="pil-chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="CA cumulé ${k.yr} : ${eur(k.caReal)} pour un objectif de ${eur(objectif)}">
+    <line x1="${L}" x2="${W - R}" y1="${y(0)}" y2="${y(0)}" class="pc-base"/>
+    <line x1="${x(0)}" y1="${y(objectif / 12)}" x2="${x(11)}" y2="${y(objectif)}" class="pc-obj"/>
+    <text x="${x(11) - 4}" y="${y(objectif) - 8}" text-anchor="end" class="pc-axis">Trajectoire objectif · ${eur(objectif)}</text>
+    ${aire ? `<path d="${aire}" class="pc-area"/><polyline points="${pts.join(' ')}" class="pc-line"/>` : ''}
+    ${fin}${labels}${hits}</svg>`;
+}
+
+function renderPilotage(v) {
+  const o = DB.data.objectifs, nowY = new Date().getFullYear();
+  const annees = [...new Set([nowY, ...DB.data.ca.map(r => r.annee).filter(Boolean)])].sort((a, b) => b - a);
+  if (!annees.includes(pilAnnee)) pilAnnee = nowY;
+  const k = pilotageCalc(pilAnnee);
+  const progObj = o.caAnnuel ? k.caReal / o.caAnnuel : 0;
+  const kpi = (label, value, sub, tone) => `<div class="kpi"><div class="kpi-top"><span class="kpi-label">${label}</span></div>
+    <div class="kpi-value">${unitSmall(value)}</div><div class="kpi-sub ${tone || ''}">${sub}</div></div>`;
+  const line = (lbl, val, cls) => `<div class="stat-line"><span>${lbl}</span><b class="${cls || ''}">${val}</b></div>`;
+  const pctOu = (x, vide = '—') => x == null ? vide : pct(x);
+  const tendanceTone = k.tendance >= o.caAnnuel ? 'pos' : 'neg';
+
+  v.innerHTML = `
+    <div class="pil-bar">
+      <div class="field inline"><label for="pil-annee">Année</label>
+        <select id="pil-annee" class="input">${annees.map(a => `<option value="${a}" ${a === pilAnnee ? 'selected' : ''}>${a}</option>`).join('')}</select></div>
+      <span class="t-muted">Calculé à partir de vos devis, chantiers, mises en facturation, achats, pointages et factures.</span>
+      <span class="spacer"></span>
+      <button class="btn small" id="pil-obj">${icon('sliders')} Modifier les objectifs</button>
+    </div>
+
+    <div class="kpi-grid kpi-5">
+      ${kpi('CA réalisé', eur(k.caReal), `${pct(progObj)} de l'objectif ${eur(o.caAnnuel)}`)}
+      ${kpi('Projection fin d\'année', k.enCours ? eur(k.tendance) : eur(k.caReal), k.enCours ? `Au rythme actuel · ${k.tendance >= o.caAnnuel ? 'objectif atteint' : 'manque ' + eur(o.caAnnuel - k.tendance)}` : 'Année close', k.enCours ? tendanceTone : '')}
+      ${kpi('Marge réelle', pctOu(k.margePct), `${eur(k.margeReal)} · cible ${pct(o.margeCible)}`, k.margePct == null ? '' : k.margePct >= o.margeCible ? 'pos' : 'neg')}
+      ${kpi('Pipeline pondéré', eur(k.pipelinePondere), `${eur(k.pipeline)} de devis envoyés × ${pct(k.tauxRetenu)}${k.tauxNb == null ? ' (hypothèse)' : ''}`)}
+      ${kpi('Encours client', eur(k.encours), k.retard ? `dont ${eur(k.retard)} en retard` : 'Aucun retard de paiement', k.retard ? 'neg' : 'pos')}
+    </div>
+
+    <div class="pil-top">
+      <div class="card card-pad">
+        <div class="section-head">${icon('trend')}<h2>Tenir l'objectif annuel</h2></div>
+        ${pilotageCumulChart(k, o.caAnnuel)}
+        <div class="pil-facts">
+          ${line('Carnet restant à produire', eur(k.carnet))}
+          ${line('Réalisé + carnet', eur(k.caReal + k.carnet), k.caReal + k.carnet >= o.caAnnuel ? 'pos' : '')}
+          ${line(k.moisRestants > 0.5 ? 'À signer par mois d\'ici décembre' : 'Reste à signer', k.manque ? eur(k.aSignerMois) : 'Objectif couvert', k.manque ? 'neg' : 'pos')}
+        </div>
+      </div>
+      <div class="card card-pad">
+        <div class="section-head">${icon('zap')}<h2>Orientations</h2><span class="hint">classées par montant en jeu</span></div>
+        ${k.rec.length ? `<ol class="pil-rec">${k.rec.slice(0, 3).map(r => `<li><button class="pil-rec-item" data-goto="${r.route}">
+            <span class="pil-axe">${r.axe}</span><span class="pil-txt">${esc(r.txt)}</span>${icon('chevRight', 'ic-sm')}</button></li>`).join('')}</ol>
+          ${k.rec.length > 3 ? `<details class="pil-more"><summary>${k.rec.length - 3} autre(s) point(s) d'attention</summary><ul>${k.rec.slice(3).map(r => `<li><span class="pil-axe">${r.axe}</span> ${esc(r.txt)}</li>`).join('')}</ul></details>` : ''}`
+          : `<p class="t-muted">Rien d'urgent : objectif, marge et trésorerie sont dans les clous.</p>`}
+      </div>
+    </div>
+
+    <div class="grid-2 pil-grid">
+      <div class="card card-pad">
+        <div class="section-head">${icon('phone')}<h2>Où chercher le CA</h2></div>
+        ${line('Transformation des devis (nombre)', pctOu(k.tauxNb, 'pas encore de devis clos'))}
+        ${line('Transformation des devis (valeur)', pctOu(k.tauxVal, '—'))}
+        ${line('Délai moyen d\'envoi des devis', k.delaiEnvoi == null ? '—' : `${Math.round(k.delaiEnvoi)} j`, k.delaiEnvoi != null && k.delaiEnvoi > o.delaiDevis ? 'neg' : '')}
+        ${line('Relances de devis dues', k.relancesDues.length ? `${k.relancesDues.length} · ${eur(k.relancesDues.reduce((s, d) => s + (+d.montantHT || 0), 0))}` : 'Aucune', k.relancesDues.length ? 'neg' : '')}
+        ${line('Potentiel prospection ouvert', `${eur(k.potentielProspection)} · ${k.prospects.length} piste(s)`)}
+        ${line('Part des 3 premiers clients', pctOu(k.caReal ? k.partTop3 : null), k.partTop3 > 0.7 ? 'neg' : '')}
+        <h3 class="pil-sub">Clients</h3>
+        <div class="table-wrap"><table><thead><tr><th>Client</th><th class="num">CA ${k.yr}</th><th class="num">Devis</th><th class="num">Transfo.</th><th class="num">En attente</th></tr></thead>
+          <tbody>${k.clients.slice(0, 6).map(c => `<tr><td>${esc(clientNom(c.id))}</td><td class="num">${eur(c.ca)}</td><td class="num">${c.devis}</td>
+            <td class="num">${c.clos ? pct(c.acc / c.clos) : '—'}</td><td class="num">${c.attente ? eur(c.attente) : '—'}</td></tr>`).join('')
+            || '<tr><td colspan="5" class="t-muted">Aucun client sur la période.</td></tr>'}</tbody></table></div>
+      </div>
+      <div class="card card-pad">
+        <div class="section-head">${icon('receipt')}<h2>Sécuriser la trésorerie</h2></div>
+        ${line('Encours facturé', eur(k.encours))}
+        ${line('Dont échu non payé', k.enRetard.length ? `${eur(k.retard)} · ${k.enRetard.length} facture(s)` : 'Aucun', k.enRetard.length ? 'neg' : 'pos')}
+        ${line('Délai moyen de paiement constaté', k.delaiPaiement == null ? '—' : `${Math.round(k.delaiPaiement)} j (prévu ${o.delaiPaiement} j)`, k.delaiPaiement != null && k.delaiPaiement > o.delaiPaiement ? 'neg' : '')}
+        ${line('Travaux faits, pas encore facturés', k.nonFacture ? eur(k.nonFacture) : 'Rien', k.nonFacture ? 'neg' : 'pos')}
+        ${line('Dont factures à émettre', `${k.aEmettre.length}`)}
+        ${line('Dont BC réalisés à facturer', `${k.bcs.length}`)}
+        <h3 class="pil-sub">Coûts réels ${k.yr}</h3>
+        ${line('Achats réceptionnés', eur(k.couts.achats))}
+        ${line('Main d\'œuvre pointée', `${eur(k.couts.mo)} · ${Math.round(k.couts.heures)} h`)}
+      </div>
+    </div>
+
+    <div class="card card-pad">
+      <div class="section-head">${icon('target')}<h2>Protéger la marge — par chantier</h2><span class="hint">cumul depuis le début du chantier, du plus fragile au plus sain</span></div>
+      <div class="table-wrap"><table><thead><tr><th>OTP</th><th>Chantier</th><th>Client</th><th class="num">Mis en facturation</th><th class="num">Coûts réels</th><th class="num">Marge</th><th class="num">Budget BTE consommé</th></tr></thead>
+        <tbody>${k.chantiers.map(c => `<tr><td class="t-strong">${esc(c.otp)}</td><td class="wrap">${esc(c.nom)}</td><td>${esc(c.client)}</td>
+          <td class="num">${eur(c.ca)}</td><td class="num">${eur(c.cout)}</td>
+          <td class="num ${c.marge == null ? '' : c.marge < o.margeCible ? 'margin-bad' : 'margin-good'}">${c.marge == null ? 'pas encore facturé' : pct(c.marge)}</td>
+          <td class="num ${c.consoBudget != null && c.consoBudget > 0.9 ? 'margin-warn' : ''}">${c.consoBudget == null ? 'sans BTE' : pct(c.consoBudget)}</td></tr>`).join('')
+          || '<tr><td colspan="7" class="t-muted">Aucun chantier actif ou facturé sur la période.</td></tr>'}</tbody></table></div>
+    </div>`;
+
+  $('#pil-annee').onchange = e => { pilAnnee = +e.target.value; renderPilotage(v); };
+  $('#pil-obj').onclick = editObjectifs;
+  $$('[data-goto]', v).forEach(b => b.onclick = () => go(b.dataset.goto));
+}
+
 /* ---------- Tableau de bord ---------- */
 function renderDashboard(v) {
   const o = DB.data.objectifs, now = new Date(), mo = now.getMonth(), yr = now.getFullYear();
@@ -2472,7 +2737,7 @@ function editObjectifs() {
     o.delaiDevis = +$('#o-dd').value || 7; o.delaiFacture = +$('#o-df').value || 7;
     o.delaiRapport = +$('#o-dr').value || 7; o.delaiPaiement = +$('#o-dp').value || 45;
     o.tauxHoraireMO = +$('#o-mo').value || 0;
-    DB.save(); m.close(); toast('Objectifs mis à jour'); go('dashboard');
+    DB.save(); m.close(); toast('Objectifs mis à jour'); go(current);
   };
 }
 
