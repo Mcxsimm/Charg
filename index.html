@@ -1296,6 +1296,24 @@ html:not([data-density="compact"]) .pil-rec-item{padding:9px 4px}
   html:not([data-density="compact"]) .todo-add input{height:35px}
   .nav-item{padding:6px 10px}
 }
+
+/* --- Accords détectés (Make → Outlook) --- */
+#accords-card{margin-bottom:var(--gap)}
+.acc-card{border-color:var(--brand-2)}
+.acc-list{display:flex;flex-direction:column}
+.acc-item{display:flex;gap:16px;align-items:flex-start;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--border)}
+.acc-item:last-child{border-bottom:0}
+.acc-main{min-width:0;display:grid;gap:4px}
+.acc-title{display:flex;flex-wrap:wrap;align-items:center;gap:8px;font-size:13.5px}
+.acc-sub{font-size:12.5px;color:var(--text-3);line-height:1.45}
+.acc-match{font-size:13px;color:var(--text-2);line-height:1.45}
+.acc-match .ic{vertical-align:-3px;margin-right:4px}
+.acc-match label{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.acc-foot{display:flex;justify-content:flex-end;border-top:1px solid var(--border);padding-top:8px;margin-top:4px}
+.acc-match .ic{color:var(--pos)}
+.acc-match select{height:32px;border:1px solid var(--border-strong);border-radius:8px;background:var(--surface);padding:0 8px;max-width:100%}
+.acc-actions{display:flex;gap:8px;flex:none}
+@media(max-width:720px){.acc-item{flex-direction:column}.acc-actions{width:100%}.acc-actions .btn{flex:1;height:44px}}
 </style>
 
 </head>
@@ -1498,6 +1516,8 @@ const DB = {
     d.chantiers.forEach(x => { if (x.sourceDevisId === undefined) x.sourceDevisId = ''; if (x.facturable === undefined) x.facturable = x.statut === 'facture'; });
     d.dossiers.forEach(x => { if (!x.rep || typeof x.rep !== 'object') x.rep = {}; });
     if (!Array.isArray(d.agenda)) d.agenda = [];
+    if (!d.make || typeof d.make !== 'object') d.make = { hook: '' };
+    if (!Array.isArray(d.accordsTraites)) d.accordsTraites = [];
     if (!Array.isArray(d.todos)) d.todos = [];
     if (!Array.isArray(d.otps)) d.otps = [];
     if (!d.ikoPrix || typeof d.ikoPrix !== 'object' || Array.isArray(d.ikoPrix)) d.ikoPrix = {};
@@ -2006,6 +2026,7 @@ function profileMenuHTML() {
     <button class="menu-item" data-new>${icon('userPlus')} Nouveau profil</button>
     <button class="menu-item" data-edit>${icon('edit')} Renommer ce profil</button>
     <button class="menu-item" data-demo>${icon('layers')} Charger des données de démonstration</button>
+    <button class="menu-item" data-make>${icon('zap')} Automatisations Make</button>
     <a class="menu-item" href="mobile.html" style="text-decoration:none;color:inherit">${icon('phone')} Version mobile (l'essentiel)</a>
     <div class="menu-sep"></div>
     <div class="menu-head">${icon('sliders', 'ic-sm')} Affichage — adapté à cet écran</div>
@@ -2029,6 +2050,7 @@ function bindProfileMenu(root, close) {
   const cr = root.querySelector('[data-colreset]');
   if (cr) cr.onclick = e => { e.stopPropagation(); resetAllCols(); refresh(); };
   root.querySelector('[data-new]').onclick = () => { close(); profileForm(); };
+  root.querySelector('[data-make]').onclick = () => { close(); makeDialog(); };
   root.querySelector('[data-edit]').onclick = () => { close(); profileForm(DB.meta.currentId); };
   root.querySelector('[data-demo]').onclick = () => { close(); confirmDialog(
     'Charger un jeu de données de démonstration dans ce profil ? Les données actuelles de ce profil seront remplacées.',
@@ -2183,6 +2205,112 @@ function collectActions() {
   DB.data.bcs.filter(bcAFacturer).forEach(b => { const j = daysBetween(b.dateIntervention || t, t); if (j > o.delaiFacture) acts.push({ tone: 'warn', ico: 'receipt', route: 'marches', urg: -j, title: `BC réalisé à facturer — ${esc(b.num || '')} ${esc(b.residence || '')}`, badge: `Réalisé ${fmtDate(b.dateIntervention)}` }); });
   DB.data.prospection.filter(p => p.prochaine && p.prochaine <= t && !['gagne', 'sans_suite'].includes(p.statut)).forEach(p => acts.push({ tone: 'warn', ico: 'phone', route: 'prospection', urg: 0, title: `Relance prospect — ${esc(p.nom)}`, badge: fmtDate(p.prochaine) }));
   return acts.sort((a, b) => a.urg - b.urg);
+}
+
+/* ---------- Automatisations Make : accords clients détectés dans Outlook ----------
+   Chaque matin, le scénario Make « 1. Détection des accords » lit les e-mails Outlook reçus et range
+   les devis signés / bons de commande détectés dans une base Make. Le scénario « 2. Lecture des
+   accords » les renvoie ici via un webhook (adresse saisie dans Profil → Automatisations Make).
+   ChargéPro rapproche chaque e-mail d'un devis ; l'utilisateur valide d'un clic (devis → Accepté,
+   puis création du chantier) ou ignore. Les décisions sont gardées dans DB.data.accordsTraites. */
+const MakeAccords = { liste: [], charge: 0, erreur: '', enCours: false };
+const normRef = s => String(s || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+const makeHook = () => String((DB.data.make && DB.data.make.hook) || '').trim();
+function accordsEnAttente() {
+  const vus = new Set((DB.data.accordsTraites || []).map(a => a.id));
+  return MakeAccords.liste.filter(a => a.key && a.data && !vus.has(a.key));
+}
+async function chargerAccords(force) {
+  const url = makeHook();
+  if (!url || MakeAccords.enCours) return;
+  if (!force && Date.now() - MakeAccords.charge < 10 * 60000) return;
+  MakeAccords.enCours = true;
+  try {
+    const r = await fetch(url, { method: 'GET', cache: 'no-store' });
+    const txt = await r.text();
+    let j = []; try { j = JSON.parse(txt); } catch (_e) { j = []; } // réponse vide (« Accepted ») = aucun accord
+    MakeAccords.liste = Array.isArray(j) ? j.filter(x => x && x.key && x.data) : [];
+    MakeAccords.erreur = r.ok ? '' : `Make a répondu ${r.status}`;
+    MakeAccords.charge = Date.now();
+  } catch (_e) { MakeAccords.erreur = 'Make est injoignable pour le moment'; }
+  MakeAccords.enCours = false;
+  renderAccordsCard();
+}
+const devisOuverts = () => DB.data.devis.filter(d => ['attente', 'envoye', 'relance'].includes(d.statut));
+const chantierDuDevis = dv => !!(dv && (dv.chantierId || DB.data.chantiers.some(c => c.sourceDevisId === dv.id)));
+function rapprocherAccord(a) {
+  const d = a.data || {};
+  const ref = normRef(d.refDevis);
+  if (ref.length >= 4) { const x = DB.data.devis.find(v => normRef(v.ref) === ref); if (x) return { devis: x, par: 'la référence' }; }
+  const cli = String(d.client || '').toLowerCase().trim(), m = +d.montantHT || 0;
+  const cand = devisOuverts().filter(v => { const n = clientNom(v.clientId).toLowerCase(); return cli.length > 2 && n !== '—' && (n.includes(cli) || cli.includes(n)); });
+  if (m) { const x = cand.find(v => Math.abs((+v.montantHT || 0) - m) <= Math.max(1, m * 0.02)); if (x) return { devis: x, par: 'le client et le montant' }; }
+  if (cand.length === 1) return { devis: cand[0], par: 'le client' };
+  return { devis: null, par: '' };
+}
+function renderAccordsCard() {
+  const host = $('#accords-card'); if (!host) return;
+  const list = makeHook() ? accordsEnAttente() : [];
+  host.hidden = !list.length;
+  if (!list.length) { host.innerHTML = ''; return; }
+  const dateRecu = d => d.recu ? fmtDate(String(d.recu).slice(0, 10)) : '—';
+  host.innerHTML = `<div class="card card-pad acc-card">
+    <div class="section-head">${icon('zap')}<h2>Accords détectés dans Outlook</h2><span class="chip">${list.length}</span><span class="hint">à valider avant de passer en chantier</span></div>
+    <div class="acc-list">${list.map(a => {
+      const d = a.data, r = rapprocherAccord(a), dv = r.devis, accepte = dv && dv.statut === 'accepte', aChantier = chantierDuDevis(dv);
+      const libOk = !dv ? 'Valider et créer le chantier' : aChantier ? 'Marquer comme traité' : accepte ? 'Créer le chantier' : 'Valider et créer le chantier';
+      return `<div class="acc-item" data-acc="${esc(a.key)}">
+        <div class="acc-main">
+          <div class="acc-title"><span class="badge ${d.type === 'bon_commande' ? 'b-commande' : 'b-accepte'}">${d.type === 'bon_commande' ? 'Bon de commande' : 'Devis signé'}</span>
+            <b>${esc(d.client || d.expediteur || 'Expéditeur inconnu')}</b>${d.montantHT ? ` · ${eur(+d.montantHT)}` : ''}${d.numCommande ? ` · commande ${esc(d.numCommande)}` : ''}</div>
+          <div class="acc-sub">${esc(d.sujet || '(sans objet)')} · reçu le ${dateRecu(d)}${d.resume ? `<br>${esc(d.resume)}` : ''}</div>
+          <div class="acc-match">${dv
+            ? `${icon('check', 'ic-sm')} Devis <b>${esc(dv.ref)}</b> — ${esc(dv.objet || '')} (${eur(dv.montantHT)}), reconnu par ${r.par}${aChantier ? ' · chantier déjà créé' : accepte ? ' · déjà accepté' : ''}`
+            : `<label>Devis concerné <select data-pick><option value="">Choisir le devis…</option>${devisOuverts().map(v => `<option value="${v.id}">${esc(v.ref)} — ${esc(clientNom(v.clientId))} — ${eur(v.montantHT)}</option>`).join('')}</select></label>`}</div>
+        </div>
+        <div class="acc-actions"><button class="btn small" data-ign>Ignorer</button>
+          <button class="btn small primary" data-ok data-devis="${dv ? dv.id : ''}" ${dv ? '' : 'disabled'}>${libOk}</button></div>
+      </div>`; }).join('')}</div>
+    <div class="acc-foot"><button class="btn small ghost" id="acc-refresh">${icon('swap')} Vérifier maintenant</button></div></div>`;
+  $('#acc-refresh', host).onclick = () => chargerAccords(true);
+  $$('.acc-item', host).forEach(it => {
+    const key = it.dataset.acc, ok = $('[data-ok]', it), pick = $('[data-pick]', it);
+    if (pick) pick.onchange = () => { ok.dataset.devis = pick.value; ok.disabled = !pick.value; };
+    $('[data-ign]', it).onclick = () => { DB.data.accordsTraites.push({ id: key, decision: 'ignore', date: todayISO() }); DB.save(); renderAccordsCard(); toast('Détection ignorée'); };
+    ok.onclick = () => validerAccord(key, ok.dataset.devis);
+  });
+}
+function validerAccord(key, devisId) {
+  const a = MakeAccords.liste.find(x => x.key === key), dv = DB.data.devis.find(x => x.id === devisId);
+  if (!a || !dv) return;
+  const d = a.data || {};
+  if (dv.statut !== 'accepte') { dv.statut = 'accepte'; dv.dateAccord = todayISO(); }
+  if (d.numCommande && !dv.numCommande) dv.numCommande = String(d.numCommande);
+  DB.data.accordsTraites.push({ id: key, decision: 'valide', devisId: dv.id, date: todayISO() });
+  DB.save();
+  if (chantierDuDevis(dv)) { toast(`Devis ${dv.ref} accepté`); go(current); return; }
+  go(current);
+  chantierForm(null, dv.id);
+  const n = $('#f-notes');
+  if (n) n.value = [n.value, `Accord client reçu par e-mail le ${d.recu ? fmtDate(String(d.recu).slice(0, 10)) : fmtDate(todayISO())}${d.numCommande ? ` — commande n° ${d.numCommande}` : ''}.`].filter(Boolean).join('\n');
+  toast(`Devis ${dv.ref} accepté. Vérifiez le chantier puis enregistrez-le.`);
+}
+function makeDialog() {
+  const m = modal({ title: 'Automatisations Make', body: `
+    <p style="margin-top:0">Chaque matin, Make lit vos e-mails Outlook et repère les <b>devis signés</b> et <b>bons de commande</b>. ChargéPro les affiche sur le tableau de bord : vous validez d'un clic, le devis passe en Accepté et le chantier est créé.</p>
+    <div class="field"><label for="mk-hook">Adresse du webhook « Lecture des accords »</label>
+      <input id="mk-hook" value="${esc(makeHook())}" placeholder="https://hook.eu1.make.com/…" inputmode="url" autocomplete="off">
+      <div class="hint">Copiez-la depuis Make (scénario « ChargéPro — 2. Lecture des accords »). Gardez-la pour vous : elle donne accès aux accords détectés.</div></div>
+    <div class="t-muted" id="mk-etat" style="margin-top:10px">${MakeAccords.charge ? `Dernière vérification : ${new Date(MakeAccords.charge).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })} · ${accordsEnAttente().length} accord(s) en attente` : ''}${MakeAccords.erreur ? ` · ${esc(MakeAccords.erreur)}` : ''}</div>`,
+    footer: `<button class="btn" data-c>Annuler</button><button class="btn" id="mk-test">${icon('swap')} Tester la connexion</button><button class="btn primary" id="mk-save">Enregistrer</button>` });
+  m.root.querySelector('[data-c]').onclick = m.close;
+  const lire = () => { const v = $('#mk-hook', m.root).value.trim();
+    if (v && !/^https:\/\/hook\.[a-z0-9]+\.make\.com\/[A-Za-z0-9]+$/.test(v)) { toast("Cette adresse ne ressemble pas à un webhook Make (https://hook.….make.com/…)", 'err'); return null; } return v; };
+  const enregistrer = v => { DB.data.make = Object.assign({}, DB.data.make, { hook: v }); DB.save(); };
+  $('#mk-test', m.root).onclick = async () => { const v = lire(); if (v === null) return; if (!v) { toast("Collez d'abord l'adresse du webhook", 'err'); return; }
+    enregistrer(v); $('#mk-etat', m.root).textContent = 'Vérification…'; await chargerAccords(true);
+    $('#mk-etat', m.root).textContent = MakeAccords.erreur ? MakeAccords.erreur : `Connexion réussie · ${accordsEnAttente().length} accord(s) en attente`; };
+  $('#mk-save', m.root).onclick = () => { const v = lire(); if (v === null) return; enregistrer(v); m.close(); toast(v ? 'Automatisations Make enregistrées' : 'Automatisations Make désactivées'); MakeAccords.charge = 0; chargerAccords(true); if (current === 'dashboard') go('dashboard'); };
 }
 
 /* ---------- Pilotage stratégique ----------
@@ -2436,6 +2564,7 @@ function renderDashboard(v) {
 
   // Chiffres clés, puis to-do et actions prioritaires côte à côte, puis le CA mensuel ; le reste dans « Détail ».
   v.innerHTML = `
+    <div id="accords-card" hidden></div>
     <div class="kpi-grid kpi-6">
       ${kpi('CA annuel réalisé', eur(caAnnuel), `Objectif ${eur(o.caAnnuel)} · ${caProg}%`, 'euro', '', { val: caAnnuel, max: o.caAnnuel }, 'ca')}
       ${kpi('Marge brute moyenne', pct(margePct), `Cible indicative ${pct(o.margeCible)}`, 'trend', 'green', { val: margePct, max: o.margeCible }, 'ca')}
@@ -2481,6 +2610,8 @@ function renderDashboard(v) {
   $('#edit-obj').onclick = editObjectifs;
   $$('[data-goto]', v).forEach(b => b.onclick = () => go(b.dataset.goto));
   renderTodos();
+  renderAccordsCard();
+  chargerAccords();
 }
 // Dossiers de tâches : rangés dans le même tableau « todos » (kind: 'dossier'), les tâches pointent dessus via dossierId.
 let todoShowDone = false; // tâches cochées masquées par défaut
