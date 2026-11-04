@@ -614,7 +614,7 @@ const CAD_DOMAINES = [...new Set(CAD_SECTIONS.map(s => s.split('—')[0].trim())
    Désignations et compositions reprises des fiches procédés / fiches produits
    IKO (iko.fr). Les consommations sont des repères de chiffrage (recouvrements
    et chutes inclus) à ajuster selon le DTA du procédé retenu. Les prix viennent
-   de la grille tarifaire SMAC (IKO_GRILLE_ROWS) ; un prix saisi dans l'onglet
+   de la grille tarifaire importée dans le profil (IKO_GRILLE_ROWS) ; un prix saisi dans l'onglet
    Produits (stocké dans le profil) reste prioritaire.
    ------------------------------------------------------------------------- */
 const IKO_FAMILLES = [
@@ -726,12 +726,14 @@ const IKO_PRODUITS = [
   ['HI-05', 12, 'Écran de désolidarisation non-tissé (hors IKO)', "Non-tissé polyester de séparation sous protection lourde.", 'm²', 'Rouleau'],
   ['HI-06', 12, 'Complexe végétalisation extensive (hors IKO)', "Couche drainante + filtre + substrat + sedum précultivé.", 'm²', 'Fournisseur végétalisation'],
 ];
-/* Grille tarifaire IKO-AXTER négociée par la Direction Achats SMAC (fichier « Grille_Tarifaire_IKO-Axter_01.07.26.xlsx »).
+/* Grille tarifaire IKO-AXTER SMAC : document PRIVÉ, absent du code et du dépôt.
+   Elle s'importe dans le profil (Cadences → Grille IKO → « Importer la grille », fichier .json)
+   et reste uniquement sur le poste de l'utilisateur (et sa sauvegarde Drive).
    Lignes : [code IKO-AXTER, code PHOENIX, désignation, stock garanti (1 = vert, 0 = rouge : délai ≈ 2 semaines),
              conditionnement, poids kg, longueur ml, unité de prix, prix € HT, éco-contribution € HT]. */
-const IKO_GRILLE = { titre: 'Grille tarifaire IKO-AXTER SMAC', du: '2026-07-01', au: '2026-12-31', maj: '2026-06-24' };
+const IKO_GRILLE = { titre: 'Grille tarifaire IKO', du: '', au: '', maj: '' };
 const IKO_G = { CODE: 0, PHX: 1, DES: 2, STOCK: 3, COND: 4, POIDS: 5, LONG: 6, U: 7, PU: 8, EC: 9 };
-const IKO_GRILLE_ROWS = []; // grille tarifaire privee retiree du depot
+const IKO_GRILLE_ROWS = []; // rempli depuis le profil (DB.data.grilleIko) au chargement
 /* Produit du catalogue → ligne de la grille : [code IKO (ou PHOENIX), nb d'unités de chiffrage par unité de prix].
    Coloris par défaut : GRIS. Produits absents de la grille : prix à saisir dans l'onglet Produits. */
 const IKO_LIEN_GRILLE = {
