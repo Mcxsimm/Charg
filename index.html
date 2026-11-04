@@ -1263,6 +1263,39 @@ thead th{background:var(--surface);font-size:11px;font-weight:600;letter-spacing
 .pil-facts{border-top:1px solid var(--border);padding-top:4px}
 @media(max-width:720px){.pil-rec-item{grid-template-columns:minmax(0,1fr) auto}.pil-axe{grid-column:1/-1;padding:0}}
 @media(max-width:720px){#view .pil-top .section-head .hint,#view .card>.section-head .hint{display:none}}
+
+/* ==========================================================================
+   Échelle resserrée (densité « Normale ») — texte, titres, chiffres et marges
+   un cran plus petits ; la densité « Compacte » reste plus serrée encore.
+   Les hauteurs de commandes ne baissent qu'à la souris (44 px conservés au doigt).
+   ========================================================================== */
+html:not([data-density="compact"]){
+  --view-pad-t:22px;--gap:14px;--card-pad:15px 18px;
+  --row-py:8px;--row-px:12px;--th-py:8px;--table-fs:13px}
+html:not([data-density="compact"]) body{font-size:13.5px}
+html:not([data-density="compact"]) .card-pad>.section-head:first-child{margin:-15px -18px 14px;padding:10px 18px;min-height:48px}
+html:not([data-density="compact"]) .section-head h2{font-size:14px}
+html:not([data-density="compact"]) .page-head{margin-bottom:16px}
+html:not([data-density="compact"]) .page-head h1{font-size:22px}
+html:not([data-density="compact"]) .kpi{padding:14px 16px 12px}
+html:not([data-density="compact"]) .kpi-value{font-size:23px;margin-top:8px}
+html:not([data-density="compact"]) .kpi-value small{font-size:13px}
+html:not([data-density="compact"]) .kpi-label{font-size:12px}
+html:not([data-density="compact"]) .stat-line{padding:7px 0;font-size:13px}
+html:not([data-density="compact"]) .alert{padding:8px 4px;font-size:13px}
+html:not([data-density="compact"]) .todo-text{font-size:13px}
+html:not([data-density="compact"]) .pil-txt{font-size:13px}
+html:not([data-density="compact"]) .pil-rec-item{padding:9px 4px}
+.nav-item{font-size:13px}
+@media (hover:hover) and (pointer:fine){
+  html:not([data-density="compact"]) .btn{height:34px;font-size:13px}
+  html:not([data-density="compact"]) .btn.small,html:not([data-density="compact"]) .btn.sm{height:28px;font-size:12.5px}
+  html:not([data-density="compact"]) .input,
+  html:not([data-density="compact"]) .field input:not([type=checkbox]):not([type=radio]),html:not([data-density="compact"]) .field select,
+  html:not([data-density="compact"]) .filters input:not([type=checkbox]):not([type=radio]),html:not([data-density="compact"]) .filters select,
+  html:not([data-density="compact"]) .todo-add input{height:35px}
+  .nav-item{padding:6px 10px}
+}
 </style>
 
 </head>
