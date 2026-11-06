@@ -377,6 +377,36 @@ input[type=checkbox],input[type=radio]{accent-color:var(--brand-2)}
 .modal-body{padding:20px 22px;max-height:72vh;overflow:auto}
 .modal-foot{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;padding:14px 22px;border-top:1px solid var(--border);background:var(--surface-2);border-radius:0 0 16px 16px}
 
+/* ===================== Formulaire en page (route #module/nouveau) =======
+   Saisie longue (≥ 10 s, plusieurs champs) : une page avec sa propre URL,
+   colonne étroite, libellés au-dessus des champs, Annuler / Enregistrer collants. */
+.form-page{max-width:680px}
+.form-page.wide{max-width:920px}
+.fp-top{display:flex;align-items:center;justify-content:space-between;gap:8px 16px;flex-wrap:wrap;margin-bottom:16px}
+.fp-top .btn .ic{width:16px;height:16px}
+.fp-req{margin:0;font-size:12px;color:var(--text-3)}
+.req{color:var(--neg);font-weight:600}
+.fp-panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:24px;box-shadow:var(--shadow-xs)}
+.fp-section{border-top:1px solid var(--border);margin-top:24px;padding-top:16px}
+.fp-section>h2{font-size:14px;font-weight:600;margin:0 0 4px}
+.fp-section>p{margin:0 0 10px;font-size:12px;color:var(--text-3)}
+.fp-tools{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.fp-checks{display:flex;flex-direction:column;gap:6px;margin-top:16px}
+.fp-checks label{cursor:pointer}
+.fp-foot{position:sticky;bottom:0;z-index:5;display:flex;justify-content:flex-end;gap:8px;margin-top:24px;
+  padding:12px 0 calc(12px + env(safe-area-inset-bottom));background:var(--bg);border-top:1px solid var(--border)}
+.field-err{margin:0;font-size:12px;line-height:1.4;color:var(--neg)}
+.form-page .field .hint{margin:0}
+/* Infobulle des boutons icône : au survol et au focus clavier (le title natif ne s'affiche pas au focus) */
+.tip{position:relative}
+.tip::after{content:attr(data-tip);position:absolute;right:0;bottom:calc(100% + 4px);z-index:6;white-space:nowrap;pointer-events:none;
+  padding:4px 8px;border-radius:6px;background:var(--text);color:var(--surface);font-size:12px;font-weight:500;line-height:1.4;opacity:0;transition:opacity .12s}
+.tip:hover::after,.tip:focus-visible::after{opacity:1}
+.field.has-err .hint{display:none} /* l'erreur remplace l'aide, elle ne s'empile pas */
+.field.has-err input,.field.has-err select,.field.has-err textarea{border-color:var(--neg)}
+.field.has-err input:focus,.field.has-err select:focus,.field.has-err textarea:focus{border-color:var(--neg);box-shadow:0 0 0 3px color-mix(in srgb,var(--neg) 20%,transparent)}
+.form-page .xls input[readonly],.field input[readonly]{background:var(--surface-2);color:var(--text-2)}
+
 /* ============================== Fenêtres ================================
    Barre — ▢ ✕ de chaque partie : réduire, agrandir en plein écran, fermer. */
 .win-ctl{display:inline-flex;align-items:center;gap:1px;margin-left:auto;flex-shrink:0;font-weight:400}
@@ -836,6 +866,12 @@ html[data-density="compact"] .filters input:not([type=checkbox]),html[data-densi
   .modal-body{max-height:none;flex:1;padding:16px}
   .modal-head{padding:14px 16px}
   .modal-foot{border-radius:0;padding:12px 16px calc(12px + env(safe-area-inset-bottom))}
+  .fp-panel{padding:16px}
+  .form-page .field input:not([type=checkbox]):not([type=radio]),.form-page .field select,.form-page .btn{min-height:44px}
+  .form-page .xls .icon-btn{width:44px;height:44px}
+  .form-page input[type=checkbox]{width:20px;height:20px}
+  .fp-checks .field.inline label{min-height:44px;display:flex;align-items:center}
+  .fp-foot .btn{flex:1 1 0}
   #toast-root{left:14px;right:14px;bottom:16px}
   .toast{max-width:none;min-width:0}
   .menu{left:12px;right:12px;width:auto}
@@ -1701,15 +1737,53 @@ function toast(msg, kind = 'ok') {
   setTimeout(() => { t.style.transition = 'opacity .25s var(--ease-out),transform .25s var(--ease-out)'; t.style.opacity = '0'; if (!reduce) t.style.transform = 'translateY(16px) scale(.96)'; }, 2200);
   setTimeout(() => t.remove(), 2600);
 }
+/* Sélecteur stable d'un élément (id ou premier attribut data-*), pour lui rendre le focus
+   même si la vue a été redessinée entre-temps. */
+function selectorFor(el) {
+  if (!el || !el.getAttribute || el === document.body) return '';
+  if (el.id) return '#' + CSS.escape(el.id);
+  for (const a of el.attributes) if (a.name.startsWith('data-') && a.value) return `[${a.name}="${CSS.escape(a.value)}"]`;
+  return '';
+}
+function restoreFocus(el, sel, fallback) {
+  const t = (el && el.isConnected && el) || (sel && $(sel)) || (fallback && $(fallback));
+  if (t && t.focus) t.focus();
+}
+const FOCUSABLE = 'a[href],button:not([disabled]),input:not([disabled]):not([type=hidden]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])';
+const focusables = scope => $$(FOCUSABLE, scope).filter(e => e.offsetParent !== null || e === document.activeElement);
+// Tab / Maj+Tab restent dans la surface
+function trapTab(scope, e) {
+  if (e.key !== 'Tab') return;
+  const f = focusables(scope); if (!f.length) return;
+  const first = f[0], last = f[f.length - 1];
+  if (e.shiftKey && (document.activeElement === first || !scope.contains(document.activeElement))) { e.preventDefault(); last.focus(); }
+  else if (!e.shiftKey && (document.activeElement === last || !scope.contains(document.activeElement))) { e.preventDefault(); first.focus(); }
+}
 function modal({ title, body, wide, xwide, footer }) {
   const root = $('#modal-root');
-  root.innerHTML = `<div class="modal-back"><div class="modal ${xwide ? 'xwide' : wide ? 'wide' : ''}">
-    <div class="modal-head"><h3>${esc(title)}</h3><span class="win-ctl"><button class="icon-btn" data-mw="min" title="Réduire">${icon('winMin')}</button><button class="icon-btn" data-mw="max" title="Agrandir">${icon('winMax')}</button><button class="icon-btn" data-close title="Fermer">${icon('x')}</button></span></div>
+  const trigger = document.activeElement && document.activeElement !== document.body ? document.activeElement : null;
+  const triggerSel = selectorFor(trigger);
+  root.innerHTML = `<div class="modal-back"><div class="modal ${xwide ? 'xwide' : wide ? 'wide' : ''}" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <div class="modal-head"><h3 id="modal-title">${esc(title)}</h3><span class="win-ctl"><button class="icon-btn" data-mw="min" title="Réduire">${icon('winMin')}</button><button class="icon-btn" data-mw="max" title="Agrandir">${icon('winMax')}</button><button class="icon-btn" data-close title="Fermer">${icon('x')}</button></span></div>
     <div class="modal-body">${body}</div>${footer ? `<div class="modal-foot">${footer}</div>` : ''}</div></div>`;
-  const close = () => { root.innerHTML = ''; };
+  const mo = root.querySelector('.modal');
+  const close = () => {
+    if (!mo.isConnected) return;
+    root.innerHTML = '';
+    // Après un éventuel rendu de la vue ; sauf si une autre fenêtre vient de s'ouvrir
+    setTimeout(() => { if (!root.children.length) restoreFocus(trigger, triggerSel); }, 0);
+  };
   root.querySelector('[data-close]').onclick = close;
   root.querySelector('.modal-back').onclick = e => { if (e.target.classList.contains('modal-back')) close(); };
-  const mo = root.querySelector('.modal'), bMin = root.querySelector('[data-mw="min"]'), bMax = root.querySelector('[data-mw="max"]');
+  mo.addEventListener('keydown', e => {
+    trapTab(mo, e);
+    // Échap ferme, sauf fenêtre sans bouton Fermer (ex. premier lancement) ou touche déjà traitée
+    if (e.key === 'Escape' && !e.defaultPrevented && root.querySelector('[data-close]').offsetParent !== null) { e.preventDefault(); close(); }
+  });
+  setTimeout(() => { if (!mo.isConnected || mo.contains(document.activeElement)) return;
+    const f = $$(FOCUSABLE, mo.querySelector('.modal-body')).find(e => e.offsetParent !== null) || mo.querySelector('.modal-foot [data-no], .modal-foot [data-c]') || mo.querySelector('[data-close]');
+    if (f) f.focus(); }, 0);
+  const bMin = root.querySelector('[data-mw="min"]'), bMax = root.querySelector('[data-mw="max"]');
   bMin.onclick = () => { const on = mo.classList.toggle('win-min'); bMin.title = on ? 'Restaurer' : 'Réduire'; };
   bMax.onclick = () => { const on = mo.classList.toggle('win-max'); root.querySelector('.modal-back').classList.toggle('max', on);
     if (on) { mo.classList.remove('win-min'); bMin.title = 'Réduire'; }
@@ -1722,6 +1796,129 @@ function confirmDialog(msg, onYes, label = 'Supprimer') {
     footer: `<button class="btn" data-no>Annuler</button><button class="btn danger" data-yes>${esc(label)}</button>` });
   m.root.querySelector('[data-no]').onclick = m.close;
   m.root.querySelector('[data-yes]').onclick = () => { m.close(); onYes(); };
+  setTimeout(() => { const n = m.root.querySelector('[data-no]'); if (n) n.focus(); }, 0); // Annuler par défaut
+}
+
+/* -------------------------------------------------------------------------
+   5 bis. Formulaires en page
+   Une saisie longue (≥ 10 s : plusieurs champs, tableau de postes) a sa propre
+   route (#devis/nouveau, #devis/<id>…) au lieu d'une grande modale : rafraîchir
+   ou partager le lien garde l'écran, et on ne perd pas la liste de vue.
+   ------------------------------------------------------------------------- */
+let formGuard = null;  // formulaire ouvert : { dirty, label }
+let formReturn = null; // { route, sel, alt } : où revenir et quel bouton re-focaliser
+// Brouillon de saisie : sessionStorage de l'onglet (survit au rafraîchissement), clé par route.
+// Les données du profil (localStorage) ne sont pas touchées tant qu'on n'enregistre pas.
+const draftKey = route => 'chargepro.brouillon:' + route;
+function dropDraft(key) { try { sessionStorage.removeItem(key); } catch {} }
+function openForm(route, trigger) {
+  formReturn = { route: current, sel: selectorFor(trigger || document.activeElement) };
+  go(route);
+}
+function confirmLeave(label, onYes) {
+  const m = modal({ title: `Quitter sans enregistrer ${label} ?`, body: '<p style="margin:0">Les modifications non enregistrées seront perdues.</p>',
+    footer: `<button class="btn" data-no>Continuer la saisie</button><button class="btn danger" data-yes>Quitter sans enregistrer</button>` });
+  m.root.querySelector('[data-no]').onclick = m.close;
+  m.root.querySelector('[data-yes]').onclick = () => { m.close(); onYes(); };
+  setTimeout(() => { const n = m.root.querySelector('[data-no]'); if (n) n.focus(); }, 0);
+}
+/* formPage : dessine le formulaire dans la vue et branche
+   - les libellés (for/id), aide et erreur reliées par aria-describedby ;
+   - la validation à la sortie du champ, effacée dès la première correction ;
+   - Échap = Annuler, Entrée = enregistrer, bouton d'envoi jamais désactivé ;
+   - l'alerte « quitter sans enregistrer ».
+   o : { module, title, back, label, submit, wide, body, rules, onSubmit } */
+function formPage(v, o) {
+  $('#page-title').textContent = o.title;
+  v.innerHTML = `<form class="form-page${o.wide ? ' wide' : ''}" novalidate aria-labelledby="page-title">
+    <div class="fp-top"><button type="button" class="btn ghost small" data-fp-cancel>${icon('chevLeft')} ${esc(o.back)}</button>
+      <p class="fp-req"><span class="req" aria-hidden="true">*</span> Champ obligatoire. Les autres champs sont facultatifs.</p></div>
+    <div class="fp-panel">${o.body}</div>
+    <div class="fp-foot"><button type="button" class="btn" data-fp-cancel>Annuler</button><button type="submit" class="btn primary">${esc(o.submit)}</button></div>
+  </form>`;
+  const root = v.querySelector('form');
+  const rules = o.rules || {};
+  // Libellés, aides et messages d'erreur reliés au champ
+  $$('.field', root).forEach(f => {
+    const lab = f.querySelector(':scope > label[for]'); if (!lab) return;
+    const ctl = root.querySelector('#' + CSS.escape(lab.htmlFor)); if (!ctl) return;
+    const ids = [];
+    const hint = f.querySelector(':scope > .hint'); if (hint) { hint.id = hint.id || ctl.id + '-hint'; ids.push(hint.id); }
+    if (lab.querySelector('.req')) ctl.required = true;
+    if (rules[ctl.id]) { const e = document.createElement('p'); e.className = 'field-err'; e.id = ctl.id + '-err'; e.hidden = true; e.setAttribute('role', 'alert'); f.appendChild(e); ids.push(e.id); }
+    if (ids.length) ctl.setAttribute('aria-describedby', ids.join(' '));
+  });
+  const show = (id, msg) => {
+    const ctl = root.querySelector('#' + id), err = root.querySelector('#' + id + '-err');
+    if (msg) ctl.setAttribute('aria-invalid', 'true'); else ctl.removeAttribute('aria-invalid');
+    err.textContent = msg || ''; err.hidden = !msg; ctl.closest('.field').classList.toggle('has-err', !!msg);
+  };
+  const clear = id => { const c = root.querySelector('#' + id); if (c && c.getAttribute('aria-invalid')) show(id, ''); };
+  // Clic sur un bouton du formulaire : le message d'erreur du champ quitté n'apparaît qu'après le clic,
+  // sinon il décale le bouton sous le pointeur et le clic est perdu.
+  let pressing = false, pending = [];
+  root.addEventListener('pointerdown', e => {
+    if (!e.target.closest('button')) return;
+    pressing = true;
+    window.addEventListener('pointerup', () => setTimeout(() => {
+      pressing = false; const p = pending; pending = [];
+      if (root.isConnected) p.forEach(f => f());
+    }, 0), { once: true });
+  }, true);
+  Object.keys(rules).forEach(id => {
+    const c = root.querySelector('#' + id); if (!c) return;
+    const check = () => show(id, rules[id]());
+    c.addEventListener('blur', () => { if (pressing) pending.push(check); else check(); }); // première sortie du champ : on vérifie
+    c.addEventListener('input', () => clear(id));               // l'utilisateur corrige : l'erreur part
+    c.addEventListener('change', () => clear(id));
+  });
+  const guard = formGuard = { dirty: false, label: o.label, key: draftKey(currentHash) };
+  const snapshot = () => { const f = {}; $$('input[id], select[id], textarea[id]', root).forEach(c => { f[c.id] = c.type === 'checkbox' ? c.checked : c.value; });
+    return { f, x: o.draft ? o.draft.get() : null }; };
+  const keep = () => { guard.dirty = true; try { sessionStorage.setItem(guard.key, JSON.stringify(snapshot())); } catch {} };
+  root.addEventListener('input', keep);
+  root.addEventListener('change', keep);
+  const cancel = () => go(formReturn && formReturn.route ? formReturn.route : o.module);
+  $$('[data-fp-cancel]', root).forEach(b => b.onclick = cancel);
+  root.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && !e.defaultPrevented && !$('#modal-root').children.length) { e.preventDefault(); cancel(); }
+    // Entrée dans le tableau des postes : pas d'envoi du formulaire
+    if (e.key === 'Enter' && e.target.tagName === 'INPUT' && e.target.closest('.xls')) e.preventDefault();
+  });
+  root.addEventListener('submit', e => {
+    e.preventDefault();
+    let first = null;
+    Object.keys(rules).forEach(id => { const msg = rules[id](); show(id, msg); if (msg && !first) first = root.querySelector('#' + id); });
+    if (first) { first.focus({ preventScroll: true }); first.scrollIntoView({ block: 'center' }); return; }
+    o.onSubmit();
+  });
+  // Focus dans le formulaire à l'ouverture : premier champ modifiable
+  window.scrollTo(0, 0);
+  const f0 = $$('.fp-panel input:not([type=hidden]):not([readonly]), .fp-panel select, .fp-panel textarea', root)[0];
+  if (f0) f0.focus({ preventScroll: true });
+  return {
+    root, clear,
+    clean() { guard.dirty = false; },
+    // Saisie non enregistrée de cet onglet (rafraîchissement, retour) : on la remet en place
+    restore() {
+      let d = null; try { d = JSON.parse(sessionStorage.getItem(guard.key)); } catch {}
+      if (!d || !d.f) return;
+      if (o.draft && d.x != null) o.draft.set(d.x);
+      Object.entries(d.f).forEach(([k, val]) => { const c = root.querySelector('#' + CSS.escape(k)); if (!c) return; if (c.type === 'checkbox') c.checked = !!val; else c.value = val; });
+      if (o.draft && o.draft.after) o.draft.after();
+      guard.dirty = true;
+      toast('Saisie non enregistrée restaurée');
+    },
+    // Enregistré : retour à la liste du module, focus sur la ligne enregistrée (ou le bouton d'origine)
+    done(msg, id) {
+      formGuard = null; dropDraft(guard.key);
+      const row = id ? `[data-edit="${CSS.escape(id)}"]` : '';
+      if (!formReturn || formReturn.route !== o.module) formReturn = { route: o.module, sel: row, alt: '#add' };
+      else if (id && !formReturn.sel) formReturn.sel = row;
+      if (msg) toast(msg);
+      go(o.module);
+    },
+  };
 }
 
 /* -------------------------------------------------------------------------
@@ -1753,10 +1950,18 @@ const NAV = [
   { route: 'raf', ico: 'target', label: 'RAF — Reste à facturer', render: renderRAF },
 ];
 const ROUTES = Object.fromEntries(NAV.filter(n => n.route).map(n => [n.route, n]));
+// Formulaires en page : #devis/nouveau, #devis/<id>, #chantiers/nouveau?devis=<id>…
+const FORM_ROUTES = {
+  devis: (v, id) => devisForm(v, id),
+  chantiers: (v, id, q) => chantierForm(v, id, q.get('devis')),
+  clients: (v, id) => clientForm(v, id),
+  factures: (v, id) => factForm(v, id),
+};
 // Chaque route appartient au groupe (« espace ») qui la précède dans NAV.
 const NAV_GROUPS = NAV.reduce((acc, n) => { if (n.group) acc.push({ label: n.group, routes: [] }); else acc[acc.length - 1].routes.push(n.route); return acc; }, []);
 const groupOf = route => NAV_GROUPS.find(g => g.routes.includes(route)) || NAV_GROUPS[0];
-let current = 'dashboard';
+let current = 'dashboard';   // module affiché (clé de ROUTES)
+let currentHash = 'dashboard'; // route complète, ex. devis/nouveau
 
 function buildNav() {
   $('#nav').innerHTML = NAV.map(n => n.group
@@ -1768,20 +1973,43 @@ function buildNav() {
 function updateChrome(route) {
   $('#page-eyebrow').textContent = groupOf(route).label;
 }
-function go(route) {
+function go(target) {
+  target = String(target || '');
+  // Formulaire modifié non enregistré : on demande avant de quitter
+  if (formGuard && formGuard.dirty && target !== currentHash) {
+    const g = formGuard;
+    history.replaceState(null, '', '#' + currentHash);
+    confirmLeave(g.label, () => { dropDraft(g.key); formGuard = null; go(target); });
+    return;
+  }
+  if (formGuard && !formGuard.dirty) dropDraft(formGuard.key); // formulaire quitté sans modification
+  formGuard = null;
+  const [path, qs] = target.split('?');
+  let [route, sub] = path.split('/');
   if (route === 'iko') route = 'cadences'; // ancien « Catalogue IKO », fusionné dans Cadences
-  if (!ROUTES[route]) route = 'dashboard';
+  if (!ROUTES[route]) { route = 'dashboard'; sub = ''; }
+  const form = sub && FORM_ROUTES[route];
+  const fromForm = currentHash.includes('/');
   current = route;
+  currentHash = form ? target : route;
   if (route === 'raf') rafOtp = ''; // entrer dans la section RAF ouvre toujours l'écran de sélection
   if (route !== 'docs') { docsEtape = null; docsInter = null; }
   $$('.nav-item').forEach(b => b.classList.toggle('active', b.dataset.route === route));
   $('#page-title').textContent = ROUTES[route].label;
   updateChrome(route);
-  location.hash = route;
+  if (location.hash.slice(1) !== currentHash) location.hash = currentHash;
   $('#sidebar').classList.remove('open');
   const v = $('#view');
-  ROUTES[route].render(v);
+  if (form) form(v, sub === 'nouveau' ? null : sub, new URLSearchParams(qs || ''));
+  else ROUTES[route].render(v);
   v.classList.remove('view-enter'); void v.offsetWidth; v.classList.add('view-enter');
+  // Retour d'un formulaire : le focus revient sur le bouton qui l'avait ouvert
+  if (!form && fromForm) {
+    const r = formReturn && formReturn.route === route ? formReturn : null;
+    initResizableTables(); // enveloppe les tableaux maintenant : déplacer le nœud plus tard ferait perdre le focus
+    restoreFocus(null, r && r.sel, r && r.alt || '#add');
+  }
+  if (!form) formReturn = null;
   if (window.CPJeu && CPJeu.ouverte) CPJeu.rafraichir(); // données rechargées pendant que la carte est affichée
 }
 
@@ -2048,7 +2276,7 @@ function renderDriveBtn() {
   b.title = CPDrive.connecte() ? (CPDrive.erreur || 'Sauvegarde commune Google Drive — ' + CPDrive.email()) : 'Sauvegarde commune sur Google Drive (PC + téléphone)';
 }
 function driveBusy() {
-  if ($('#modal-root').children.length) return true;
+  if ($('#modal-root').children.length || formGuard) return true;
   const a = document.activeElement;
   return !!(a && a.closest && a.closest('#view') && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName));
 }
@@ -2058,7 +2286,7 @@ function driveReload(recus, conflits) {
   if (!DB.currentProfile()) DB.meta.currentId = DB.meta.profiles[0].id;
   DB.loadProfile(DB.meta.currentId);
   renderProfileButton();
-  if (!$('#modal-root').children.length) go(current);
+  if (!$('#modal-root').children.length && !formGuard) go(current);
   if (recus) toast(conflits ? `Données mises à jour depuis Drive (${conflits} conflit(s) : version de ce poste conservée)` : 'Données mises à jour depuis Google Drive');
 }
 function driveDialog() {
@@ -2834,14 +3062,14 @@ function renderChantiers(v) {
         <td class="actions-cell"><button class="icon-btn" data-plan="${c.id}" title="Planifier dans le planning">${icon('calendar')}</button><button class="icon-btn" data-edit="${c.id}" title="Modifier">${icon('edit')}</button><button class="icon-btn danger" data-del="${c.id}" title="Supprimer">${icon('trash')}</button></td></tr>`).join('')}</tbody>
       <tfoot><tr><td colspan="7">Total</td><td class="num">${eur(list.reduce((s, c) => s + (+c.montantHT || 0), 0))}</td><td></td></tr></tfoot></table></div>`
       : emptyState('building', 'Aucun chantier', 'Créez votre premier chantier pour suivre vos affaires.')}`;
-  $('#add').onclick = () => chantierForm();
+  $('#add').onclick = e => openForm('chantiers/nouveau', e.currentTarget);
   $('#q').oninput = e => { chantierFilter.q = e.target.value; renderChantiers(v); const i = $('#q'); i.focus(); i.setSelectionRange(i.value.length, i.value.length); };
   $('#fs').onchange = e => { chantierFilter.statut = e.target.value; renderChantiers(v); };
   $('#ff').onchange = e => { chantierFilter.factu = e.target.value; renderChantiers(v); };
   $('#fp').onchange = e => { chantierFilter.plan = e.target.value; renderChantiers(v); };
   $$('[data-factu]', v).forEach(i => i.onchange = () => { const c = chantierById(i.dataset.factu); if (!c) return; c.facturable = i.checked; DB.save(); toast(i.checked ? 'Mise en facturation autorisée' : 'Mise en facturation bloquée'); renderChantiers(v); });
   $('#csv').onclick = () => exportXlsx('chantiers', ['otp', 'nom', 'client', 'adresse', 'statut', 'planning_debut', 'planning_fin', 'heures_imputees', 'notes_preparation', 'mise_en_facturation', 'montantHT'], list.map(c => [c.otp, c.nom, clientNom(c.clientId), c.adresse, STATUTS_CHANTIER[c.statut], ...(p => p ? [p.debut, p.fin, p.heures] : ['', '', 0])(chantierPlanning(c)), prepaNotes(c).length, chantierEnCa(c) ? 'Mis en facturation' : chantierFacturable(c) ? 'Autorisée' : 'Bloquée', c.montantHT]), { sheet: 'Chantiers' });
-  $$('[data-edit]', v).forEach(b => b.onclick = () => chantierForm(b.dataset.edit));
+  $$('[data-edit]', v).forEach(b => b.onclick = () => openForm('chantiers/' + b.dataset.edit, b));
   $$('[data-plan]', v).forEach(b => b.onclick = () => { planTab = 'mois'; go('planning'); agendaForm(null, null, { chantierId: b.dataset.plan }); });
   $$('[data-view]', v).forEach(b => b.onclick = () => chantierDetail(b.dataset.view));
   $$('[data-prepa]', v).forEach(b => b.onclick = () => prepaModal(b.dataset.prepa));
@@ -2879,33 +3107,42 @@ function prepaModal(id) {
   m.root.querySelector('[data-c]').onclick = () => { m.close(); if (current === 'chantiers') go(current); };
   maj(); $('#pp-txt').focus();
 }
-function chantierForm(id, devisId) {
-  const c = id ? chantierById(id) : { otp: '', nom: '', clientId: '', adresse: '', statut: 'prospect', dateDemande: todayISO(), montantHT: 0, notes: '', facturable: false };
+function chantierForm(v, id, devisId) {
+  const ex = id ? chantierById(id) : null;
+  if (id && !ex) { toast('Chantier introuvable : il a peut-être été supprimé', 'err'); go('chantiers'); return; }
+  const c = ex || { otp: '', nom: '', clientId: '', adresse: '', statut: 'prospect', dateDemande: todayISO(), montantHT: 0, notes: '', facturable: false };
   const opts = DB.data.clients.map(cl => `<option value="${cl.id}" ${c.clientId === cl.id ? 'selected' : ''}>${esc(cl.nom)}</option>`).join('');
   const devisOpts = DB.data.devis.slice().sort((a, b) => (b.dateDemande || '').localeCompare(a.dateDemande || ''))
     .map(d => `<option value="${d.id}">${esc(d.ref)}${d.otp ? ' · ' + esc(d.otp) : ''} — ${esc(d.objet)}</option>`).join('');
-  const m = modal({ title: id ? 'Modifier le chantier' : 'Nouveau chantier',
+  const api = formPage(v, {
+    module: 'chantiers',
+    title: id ? 'Modifier le chantier' : 'Nouveau chantier',
+    label: id ? 'le chantier « ' + c.nom + ' »' : 'le nouveau chantier',
+    back: 'Retour aux chantiers',
+    submit: id ? 'Enregistrer les modifications' : 'Créer le chantier',
+    rules: { 'f-nom': () => $('#f-nom').value.trim() ? '' : 'Saisissez le nom du chantier.' },
+    onSubmit: save,
     body: `<div class="form-grid">
-      <div class="field full"><label>Nom du chantier — reprendre un devis existant</label>
-        <select id="f-fromdevis"><option value="">Saisie manuelle…</option>${devisOpts}</select>
-        <div class="hint">Sélectionnez un devis pour reprendre automatiquement son objet, son OTP, le client et le montant.</div></div>
-      <div class="field full"><label>Nom du chantier</label><input id="f-nom" value="${esc(c.nom)}" placeholder="Réfection toiture…"></div>
-      <div class="field"><label>N° OTP</label><input id="f-otp" value="${esc(c.otp)}" list="c-otplist" placeholder="OTP-…"><datalist id="c-otplist">${otpDistinct().map(o => `<option value="${esc(o)}">`).join('')}</datalist></div>
-      <div class="field"><label>Statut</label><select id="f-statut">${Object.entries(STATUTS_CHANTIER).map(([k, l]) => `<option value="${k}" ${c.statut === k ? 'selected' : ''}>${l}</option>`).join('')}</select></div>
-      <div class="field"><label>Client</label><select id="f-client"><option value="">— Aucun —</option>${opts}</select></div>
-      <div class="field"><label>Adresse</label><input id="f-adr" value="${esc(c.adresse)}"></div>
-      <div class="field"><label>Date de la demande</label><input id="f-date" type="date" value="${c.dateDemande || todayISO()}"></div>
-      <div class="field"><label>Montant HT (€)</label><input id="f-montant" type="number" value="${c.montantHT || 0}"></div>
-      <div class="field full"><label>Notes</label><textarea id="f-notes" rows="2">${esc(c.notes)}</textarea></div>
+      <div class="field full"><label for="f-fromdevis">Reprendre un devis existant</label>
+        <select id="f-fromdevis"><option value="">Saisie manuelle</option>${devisOpts}</select>
+        <p class="hint">Reprend l'objet, l'OTP, le client et le montant du devis choisi.</p></div>
+      <div class="field full"><label for="f-nom">Nom du chantier <span class="req" aria-hidden="true">*</span></label><input id="f-nom" value="${esc(c.nom)}" placeholder="Ex. réfection toiture" autocomplete="off"></div>
+      <div class="field"><label for="f-otp">N° OTP</label><input id="f-otp" value="${esc(c.otp)}" list="c-otplist" placeholder="Ex. OTP-24003" autocomplete="off"><datalist id="c-otplist">${otpDistinct().map(o => `<option value="${esc(o)}">`).join('')}</datalist></div>
+      <div class="field"><label for="f-statut">Statut</label><select id="f-statut">${Object.entries(STATUTS_CHANTIER).map(([k, l]) => `<option value="${k}" ${c.statut === k ? 'selected' : ''}>${l}</option>`).join('')}</select></div>
+      <div class="field"><label for="f-client">Client</label><select id="f-client"><option value="">Aucun client</option>${opts}</select></div>
+      <div class="field"><label for="f-adr">Adresse</label><input id="f-adr" value="${esc(c.adresse)}" autocomplete="street-address"></div>
+      <div class="field"><label for="f-date">Date de la demande</label><input id="f-date" type="date" value="${c.dateDemande || todayISO()}"></div>
+      <div class="field"><label for="f-montant">Montant HT (€)</label><input id="f-montant" type="number" min="0" step="0.01" inputmode="decimal" value="${c.montantHT || ''}" placeholder="0,00"></div>
+      <div class="field full"><label for="f-notes">Notes</label><textarea id="f-notes" rows="2">${esc(c.notes)}</textarea></div>
     </div>
-    <div class="field inline" style="margin-top:8px"><input type="checkbox" id="f-factu" ${chantierFacturable(c) ? 'checked' : ''}><label for="f-factu" style="cursor:pointer"><b>Autoriser la mise en facturation</b> — le chantier sera proposé à la clôture de fin de mois (CA &amp; Marge)</label></div>`, footer: `<button class="btn" data-c>Annuler</button><button class="btn primary" id="save">Enregistrer</button>` });
+    <div class="fp-checks"><div class="field inline"><input type="checkbox" id="f-factu" ${chantierFacturable(c) ? 'checked' : ''}><label for="f-factu"><b>Autoriser la mise en facturation</b> — le chantier sera proposé à la clôture de fin de mois (CA &amp; Marge)</label></div></div>`,
+  });
   let srcDevisId = c.sourceDevisId || '';
-  m.root.querySelector('[data-c]').onclick = m.close;
   $('#f-fromdevis').onchange = e => {
     const d = DB.data.devis.find(x => x.id === e.target.value);
     if (!d) { srcDevisId = ''; return; }
     srcDevisId = d.id;
-    if (!$('#f-nom').value.trim()) $('#f-nom').value = d.objet || '';
+    if (!$('#f-nom').value.trim()) { $('#f-nom').value = d.objet || ''; api.clear('f-nom'); }
     $('#f-otp').value = d.otp || $('#f-otp').value;
     if (d.clientId) $('#f-client').value = d.clientId;
     if (d.montantHT) $('#f-montant').value = d.montantHT;
@@ -2914,17 +3151,19 @@ function chantierForm(id, devisId) {
     if ($('#f-statut').value === 'prospect') $('#f-statut').value = 'devis';
     toast('Infos du devis ' + d.ref + ' reprises');
   };
-  if (devisId) { $('#f-fromdevis').value = devisId; $('#f-fromdevis').dispatchEvent(new Event('change')); $('#f-statut').value = 'commande'; }
+  if (devisId && DB.data.devis.some(x => x.id === devisId)) { $('#f-fromdevis').value = devisId; $('#f-fromdevis').dispatchEvent(new Event('change')); $('#f-statut').value = 'commande'; api.clean(); }
   // passer le chantier en « Facturé » coche la case par commodité (on peut la décocher ensuite)
   $('#f-statut').addEventListener('change', e => { if (e.target.value === 'facture') $('#f-factu').checked = true; });
-  $('#save').onclick = () => {
+  api.restore();
+  function save() {
+    const cur = id ? chantierById(id) : null;
+    if (id && !cur) { toast('Chantier introuvable : il a peut-être été supprimé. Copiez vos saisies avant de quitter.', 'err'); return; }
     const obj = { otp: $('#f-otp').value.trim(), nom: $('#f-nom').value.trim(), clientId: $('#f-client').value, adresse: $('#f-adr').value.trim(), statut: $('#f-statut').value, dateDemande: $('#f-date').value, montantHT: +$('#f-montant').value || 0, notes: $('#f-notes').value.trim(), sourceDevisId: srcDevisId, facturable: $('#f-factu').checked };
-    if (!obj.nom) { toast('Le nom est obligatoire', 'err'); return; }
     let cid = id;
-    if (id) Object.assign(c, obj); else { cid = uid(); DB.data.chantiers.unshift({ id: cid, ...obj }); }
+    if (cur) Object.assign(cur, obj); else { cid = uid(); DB.data.chantiers.unshift({ id: cid, ...obj }); }
     const dv = srcDevisId && DB.data.devis.find(x => x.id === srcDevisId); if (dv && !dv.chantierId) dv.chantierId = cid;
-    DB.save(); m.close(); toast('Chantier enregistré'); go('chantiers');
-  };
+    DB.save(); api.done(cur ? 'Chantier enregistré' : 'Chantier « ' + obj.nom + ' » créé', cid);
+  }
 }
 function chantierDetail(id) {
   const c = chantierById(id); if (!c) return;
@@ -3650,82 +3889,118 @@ function renderDevis(v) {
         <td class="actions-cell">${['accepte', 'refuse'].includes(d.statut) ? '' : `<button class="icon-btn" data-relance="${d.id}" title="Relancer">${icon('bell')}</button>`}${d.statut === 'accepte' && !d.chantierId && !DB.data.chantiers.some(c => c.sourceDevisId === d.id) ? `<button class="icon-btn" data-tochantier="${d.id}" title="Créer le chantier (et suivre sa préparation)">${icon('building')}</button>` : ''}<button class="icon-btn" data-edit="${d.id}" title="Modifier">${icon('edit')}</button><button class="icon-btn danger" data-del="${d.id}" title="Supprimer">${icon('trash')}</button></td></tr>`).join('')}</tbody>
       <tfoot><tr><td colspan="8">Total${devisFilter.otp ? ' — OTP ' + esc(devisFilter.otp) : ''}</td><td class="num">${eur(list.reduce((s, d) => s + (+d.montantHT || 0), 0))}</td><td></td></tr></tfoot></table></div>`
       : emptyState('file', 'Aucun devis', 'Objectif : 45 devis / mois, envoi sous 7 jours.')}`;
-  $('#add').onclick = () => devisForm();
+  $('#add').onclick = e => openForm('devis/nouveau', e.currentTarget);
   $('#q').oninput = e => { devisFilter.q = e.target.value; renderDevis(v); const i = $('#q'); i.focus(); i.setSelectionRange(i.value.length, i.value.length); };
   $('#fs').onchange = e => { devisFilter.statut = e.target.value; renderDevis(v); };
   $('#fotp').onchange = e => { devisFilter.otp = e.target.value; renderDevis(v); };
   $('#csv').onclick = () => exportXlsx('devis', ['ref', 'otp', 'objet', 'client', 'dateDemande', 'dateEnvoi', 'statut', 'montantHT', 'nb_relances', 'derniere_relance', 'prochaine_relance', 'hors_comptes'], list.map(d => [d.ref, d.otp, d.objet, clientNom(d.clientId), d.dateDemande, d.dateEnvoi, STATUTS_DEVIS[d.statut], d.montantHT, d.nbRelances, d.derniereRelance, d.relance, d.horsComptes ? 'oui' : 'non']), { sheet: 'Devis', money: ['montantHT'] });
   $$('[data-relance]', v).forEach(b => b.onclick = () => relanceDevis(b.dataset.relance));
-  $$('[data-tochantier]', v).forEach(b => b.onclick = () => chantierForm(null, b.dataset.tochantier));
-  $$('[data-edit]', v).forEach(b => b.onclick = () => devisForm(b.dataset.edit));
+  $$('[data-tochantier]', v).forEach(b => b.onclick = () => openForm('chantiers/nouveau?devis=' + encodeURIComponent(b.dataset.tochantier), b));
+  $$('[data-edit]', v).forEach(b => b.onclick = () => openForm('devis/' + b.dataset.edit, b));
   $$('[data-del]', v).forEach(b => b.onclick = () => confirmDialog('Supprimer ce devis ?', () => { DB.data.devis = DB.data.devis.filter(x => x.id !== b.dataset.del); DB.save(); toast('Devis supprimé'); renderDevis(v); }));
 }
 function tauxAccept() { const d = DB.data.devis.filter(x => ['accepte', 'refuse'].includes(x.statut)); return d.length ? Math.round(d.filter(x => x.statut === 'accepte').length / d.length * 100) : 0; }
+// Les champs d'une ligne sont nommés par leur colonne et le n° du poste (aria-label, mis à jour par majPostes)
 const devisPosteRow = l => `<tr class="dv-poste">
     <td class="pnum"></td>
-    <td><input data-p="designation" value="${esc(l.designation)}" placeholder="Ouvrage élémentaire"><textarea class="pdesc" data-p="desc" rows="${(l.desc || "").length > 90 ? 2 : 1}" placeholder="Description technique (facultatif)">${esc(l.desc || '')}</textarea></td>
-    <td class="num"><input data-p="qte" type="number" step="any" value="${l.qte || ''}"></td>
+    <td><input data-p="designation" value="${esc(l.designation)}" placeholder="Ex. relevé d'étanchéité"><textarea class="pdesc" data-p="desc" rows="${(l.desc || "").length > 90 ? 2 : 1}" placeholder="Ex. membrane SBS 2 couches (facultatif)">${esc(l.desc || '')}</textarea></td>
+    <td class="num"><input data-p="qte" type="number" step="any" inputmode="decimal" value="${l.qte || ''}"></td>
     <td><input data-p="unite" value="${esc(l.unite || '')}" placeholder="u"></td>
-    <td class="num"><input data-p="pu" type="number" step="any" value="${l.pu || ''}"></td>
+    <td class="num"><input data-p="pu" type="number" step="any" inputmode="decimal" value="${l.pu || ''}"></td>
     <td class="num tot"></td>
-    <td class="xls-act"><button class="icon-btn danger" data-prm title="Retirer">${icon('trash')}</button></td></tr>`;
-function devisForm(id) {
-  const d = id ? DB.data.devis.find(x => x.id === id) : { ref: 'DEV-' + isoDate(new Date()).slice(2, 7).replace('-', '') + '-' + String(DB.data.devis.length + 1).padStart(2, '0'), otp: '', clientId: '', chantierId: '', objet: '', dateDemande: todayISO(), dateEnvoi: '', montantHT: 0, statut: 'attente', relance: '', derniereRelance: '', nbRelances: 0, horsComptes: false };
+    <td class="xls-act"><button type="button" class="icon-btn danger tip" data-prm data-tip="Retirer le poste">${icon('trash')}</button></td></tr>`;
+const POSTE_NOMS = { designation: 'Désignation', desc: 'Description technique', qte: 'Quantité', unite: 'Unité', pu: 'Prix unitaire HT' };
+// Référence par défaut : format existant DEV-AAMM-NN, numéro suivant du mois (sans doublon)
+function nextDevisRef() {
+  const pre = 'DEV-' + isoDate(new Date()).slice(2, 7).replace('-', '') + '-';
+  const n = DB.data.devis.reduce((mx, d) => { const r = String(d.ref || ''); return r.startsWith(pre) ? Math.max(mx, parseInt(r.slice(pre.length), 10) || 0) : mx; }, 0);
+  return pre + String(n + 1).padStart(2, '0');
+}
+function devisForm(v, id) {
+  const ex = id ? DB.data.devis.find(x => x.id === id) : null;
+  if (id && !ex) { toast('Devis introuvable : il a peut-être été supprimé', 'err'); go('devis'); return; }
+  const d = ex || { ref: nextDevisRef(), otp: '', clientId: '', chantierId: '', objet: '', dateDemande: todayISO(), dateEnvoi: '', montantHT: 0, statut: 'attente', relance: '', derniereRelance: '', nbRelances: 0, horsComptes: false };
   const clOpts = DB.data.clients.map(c => `<option value="${c.id}" ${d.clientId === c.id ? 'selected' : ''}>${esc(c.nom)}</option>`).join('');
-  const m = modal({ title: id ? 'Modifier le devis' : 'Nouveau devis', wide: true,
-    body: `<div class="form-grid">
-      <div class="field"><label>Référence</label><input id="f-ref" value="${esc(d.ref)}"></div>
-      <div class="field"><label>N° OTP</label><input id="f-otp" value="${esc(d.otp)}" list="d-otplist" placeholder="OTP…"><datalist id="d-otplist">${otpDistinct().map(o => `<option value="${esc(o)}">`).join('')}</datalist></div>
-      <div class="field full"><label>Objet</label><input id="f-objet" value="${esc(d.objet)}" placeholder="Réfection terrasse…"></div>
-      <div class="field"><label>Client</label><select id="f-client"><option value="">— Aucun —</option>${clOpts}</select></div>
-      <div class="field"><label>Statut</label><select id="f-statut">${Object.entries(STATUTS_DEVIS).map(([k, l]) => `<option value="${k}" ${d.statut === k ? 'selected' : ''}>${l}</option>`).join('')}</select></div>
-      <div class="field"><label>Date demande client</label><input id="f-dd" type="date" value="${d.dateDemande || todayISO()}"></div>
-      <div class="field"><label>Date d'envoi</label><input id="f-de" type="date" value="${d.dateEnvoi || ''}"></div>
-      <div class="field"><label>Montant HT (€)</label><input id="f-montant" type="number" value="${d.montantHT || 0}"></div>
-      <div class="field"><label>Dernière relance effectuée${d.nbRelances ? ' (' + d.nbRelances + ')' : ''}</label><input id="f-drel" type="date" value="${d.derniereRelance || ''}"></div>
-      <div class="field"><label>Prochaine relance à prévoir</label><input id="f-rel" type="date" value="${d.relance || ''}"></div>
-    </div>
-    <div class="card-title" style="margin:16px 0 4px">Détail des postes d'ouvrage</div>
-    <p class="t-muted" style="margin:0 0 8px;font-size:12px">Repris du BTE lors du « Passer en devis ». Dès qu'un poste est saisi, le montant HT est la somme des postes.</p>
-    <div class="table-wrap" style="box-shadow:none"><table class="xls" id="f-postes">
-      <colgroup><col style="width:38px"><col style="width:auto"><col style="width:84px"><col style="width:62px"><col style="width:104px"><col style="width:118px"><col style="width:38px"></colgroup>
-      <tbody><tr class="xls-colhead"><td>N°</td><td>Désignation</td><td class="num">Qté</td><td>Uni.</td><td class="num">PU HT</td><td class="num">Total HT</td><td class="xls-act"><button class="icon-btn" id="f-padd" title="Ajouter un poste">${icon('plus')}</button></td></tr></tbody>
-      <tbody id="f-plist">${(d.lignes || []).map(devisPosteRow).join('')}</tbody>
-      <tbody><tr class="bte-sub"><td></td><td></td><td colspan="3" class="num">TOTAL HT :</td><td class="num sub" id="f-ptot"></td><td></td></tr></tbody>
-    </table></div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
-      <button class="btn small" id="f-pcopy" title="Copie le détail en tableau (tabulations) : à coller dans Excel ou dans votre logiciel de devis">${icon('file')} Copier le détail</button>
-      <button class="btn small" id="f-pxlsx">${icon('download')} Excel</button>
-      <button class="btn small" id="f-pprint">${icon('file')} Imprimer / PDF</button>
-    </div>
-    <div class="field inline" style="margin-top:8px"><input type="checkbox" id="f-hc" ${d.horsComptes ? 'checked' : ''}><label for="f-hc" style="cursor:pointer">Devis <b>hors comptes</b> (n'entre pas dans le CA ni les comptes OTP)</label></div>
-    <div class="field inline" style="margin-top:6px"><input type="checkbox" id="f-now"><label for="f-now" style="cursor:pointer">Marquer comme envoyé aujourd'hui (${fmtDate(todayISO())})</label></div>`,
-    footer: `<button class="btn" data-c>Annuler</button><button class="btn primary" id="save">Enregistrer</button>` });
-  m.root.querySelector('[data-c]').onclick = m.close;
-  const postes = () => $$('.dv-poste', m.root).map(tr => { const g = f => tr.querySelector(`[data-p="${f}"]`).value;
+  const postes = () => $$('.dv-poste').map(tr => { const g = f => tr.querySelector(`[data-p="${f}"]`).value;
     return { designation: g('designation').trim(), desc: g('desc').trim(), unite: g('unite').trim(), qte: +g('qte') || 0, pu: +g('pu') || 0 }; }).filter(l => l.designation || l.qte || l.pu);
+  const api = formPage(v, {
+    module: 'devis', wide: true,
+    title: id ? 'Modifier le devis ' + d.ref : 'Nouveau devis',
+    label: id ? 'le devis ' + d.ref : 'le nouveau devis',
+    back: 'Retour aux devis',
+    submit: id ? 'Enregistrer les modifications' : 'Créer le devis',
+    rules: {
+      'f-objet': () => $('#f-objet').value.trim() ? '' : "Saisissez l'objet du devis.",
+      'f-client': () => $('#f-client').value ? '' : "Choisissez le client. S'il n'existe pas encore, créez-le dans Clients.",
+      'f-montant': () => postes().length || +$('#f-montant').value > 0 ? '' : 'Saisissez un montant HT supérieur à 0, ou détaillez les postes plus bas.',
+    },
+    onSubmit: save,
+    draft: {
+      get: () => postes(),
+      set: l => { $('#f-plist').innerHTML = l.map(devisPosteRow).join(''); $$('.dv-poste').forEach(tr => bindPoste(tr)); },
+      after: () => majPostes(),
+    },
+    body: `<div class="form-grid">
+      <div class="field full"><label for="f-objet">Objet <span class="req" aria-hidden="true">*</span></label><input id="f-objet" value="${esc(d.objet)}" placeholder="Ex. réfection terrasse" autocomplete="off"></div>
+      <div class="field"><label for="f-client">Client <span class="req" aria-hidden="true">*</span></label><select id="f-client"><option value="">Choisir un client</option>${clOpts}</select></div>
+      <div class="field"><label for="f-ref">Référence</label><input id="f-ref" value="${esc(d.ref)}" autocomplete="off"><p class="hint">Format DEV-AAMM-NN, numéro suivant proposé.</p></div>
+      <div class="field"><label for="f-otp">N° OTP</label><input id="f-otp" value="${esc(d.otp)}" list="d-otplist" placeholder="Ex. OTP-24003" autocomplete="off"><datalist id="d-otplist">${otpDistinct().map(o => `<option value="${esc(o)}">`).join('')}</datalist></div>
+      <div class="field"><label for="f-statut">Statut</label><select id="f-statut">${Object.entries(STATUTS_DEVIS).map(([k, l]) => `<option value="${k}" ${d.statut === k ? 'selected' : ''}>${l}</option>`).join('')}</select></div>
+      <div class="field"><label for="f-dd">Date de la demande client</label><input id="f-dd" type="date" value="${d.dateDemande || todayISO()}"></div>
+      <div class="field"><label for="f-de">Date d'envoi</label><input id="f-de" type="date" value="${d.dateEnvoi || ''}"></div>
+      <div class="field"><label for="f-montant">Montant HT (€) <span class="req" aria-hidden="true">*</span></label><input id="f-montant" type="number" min="0" step="0.01" inputmode="decimal" value="${d.montantHT || ''}" placeholder="0,00"><p class="hint">Calculé automatiquement dès qu'un poste est saisi.</p></div>
+      <div class="field"><label for="f-drel">Dernière relance effectuée${d.nbRelances ? ' (' + d.nbRelances + ')' : ''}</label><input id="f-drel" type="date" value="${d.derniereRelance || ''}"></div>
+      <div class="field"><label for="f-rel">Prochaine relance à prévoir</label><input id="f-rel" type="date" value="${d.relance || ''}"></div>
+    </div>
+    <div class="fp-checks">
+      <div class="field inline"><input type="checkbox" id="f-hc" ${d.horsComptes ? 'checked' : ''}><label for="f-hc">Devis <b>hors comptes</b> (n'entre pas dans le CA ni les comptes OTP)</label></div>
+      <div class="field inline"><input type="checkbox" id="f-now"><label for="f-now">Marquer comme envoyé aujourd'hui (${fmtDate(todayISO())})</label></div>
+    </div>
+    <section class="fp-section" aria-labelledby="f-postes-t">
+      <h2 id="f-postes-t">Détail des postes d'ouvrage</h2>
+      <p>Repris du BTE lors du « Passer en devis ». Dès qu'un poste est saisi, le montant HT est la somme des postes.</p>
+      <div class="table-wrap" style="box-shadow:none"><table class="xls" id="f-postes" data-rsz="off" aria-labelledby="f-postes-t">
+        <colgroup><col style="width:38px"><col style="width:auto"><col style="width:84px"><col style="width:62px"><col style="width:104px"><col style="width:118px"><col style="width:46px"></colgroup>
+        <tbody><tr class="xls-colhead"><td>N°</td><td>Désignation</td><td class="num">Qté</td><td>Uni.</td><td class="num">PU HT</td><td class="num">Total HT</td><td class="xls-act"></td></tr></tbody>
+        <tbody id="f-plist">${(d.lignes || []).map(devisPosteRow).join('')}</tbody>
+        <tbody><tr class="bte-sub"><td></td><td></td><td colspan="3" class="num">TOTAL HT :</td><td class="num sub" id="f-ptot"></td><td></td></tr></tbody>
+      </table></div>
+      <div class="fp-tools">
+        <button type="button" class="btn small" id="f-padd">${icon('plus')} Ajouter un poste</button>
+        <button type="button" class="btn small" id="f-pcopy" title="Copie le détail en tableau (tabulations) : à coller dans Excel ou dans votre logiciel de devis">${icon('copy')} Copier le détail</button>
+        <button type="button" class="btn small" id="f-pxlsx">${icon('download')} Exporter en Excel</button>
+        <button type="button" class="btn small" id="f-pprint">${icon('file')} Imprimer / PDF</button>
+      </div>
+    </section>`,
+  });
+  const m = api;
   const majPostes = () => {
-    $$('.dv-poste', m.root).forEach((tr, i) => { const g = f => +tr.querySelector(`[data-p="${f}"]`).value || 0; tr.querySelector('.pnum').textContent = i + 1; tr.querySelector('.tot').textContent = eur2(g('qte') * g('pu')); });
+    $$('.dv-poste', m.root).forEach((tr, i) => { const g = f => +tr.querySelector(`[data-p="${f}"]`).value || 0; tr.querySelector('.pnum').textContent = i + 1; tr.querySelector('.tot').textContent = eur2(g('qte') * g('pu'));
+      tr.querySelectorAll('[data-p]').forEach(inp => inp.setAttribute('aria-label', POSTE_NOMS[inp.dataset.p] + ' du poste ' + (i + 1)));
+      tr.querySelector('[data-prm]').setAttribute('aria-label', 'Retirer le poste ' + (i + 1)); });
     const l = postes(), tot = Math.round(l.reduce((s, x) => s + x.qte * x.pu, 0) * 100) / 100;
     $('#f-ptot').textContent = l.length ? eur2(tot) : '—';
-    const mt = $('#f-montant'); mt.readOnly = !!l.length; if (l.length) mt.value = tot;
+    const mt = $('#f-montant'); mt.readOnly = !!l.length; if (l.length) { mt.value = tot; api.clear('f-montant'); }
     mt.title = l.length ? 'Calculé depuis le détail des postes' : '';
   };
   const bindPoste = tr => {
     tr.querySelectorAll('input, textarea').forEach(inp => inp.oninput = majPostes);
-    tr.querySelector('[data-prm]').onclick = () => { tr.remove(); majPostes(); };
+    tr.querySelector('[data-prm]').onclick = () => {
+      const next = tr.nextElementSibling || tr.previousElementSibling; tr.remove(); majPostes(); api.root.dispatchEvent(new Event('input'));
+      (next && next.isConnected ? next.querySelector('[data-prm]') : $('#f-padd')).focus(); // le focus ne se perd pas
+    };
   };
   $$('.dv-poste', m.root).forEach(bindPoste);
   $('#f-padd').onclick = () => { const tmp = document.createElement('tbody'); tmp.innerHTML = devisPosteRow({ designation: '', desc: '', unite: '', qte: 0, pu: 0 });
     const tr = tmp.firstElementChild; $('#f-plist').appendChild(tr); bindPoste(tr); majPostes(); tr.querySelector('input').focus(); };
   const titre = () => ($('#f-ref').value.trim() + ' — ' + $('#f-objet').value.trim()).replace(/^ — | — $/g, '');
-  $('#f-pcopy').onclick = () => { const l = postes(); if (!l.length) { toast('Aucun poste à copier', 'err'); return; }
+  $('#f-pcopy').onclick = () => { const l = postes(); if (!l.length) { toast('Aucun poste à copier : ajoutez un poste au tableau', 'err'); return; }
     const n = x => String(Math.round(x * 100) / 100).replace('.', ',');
     const txt = ['N°\tDésignation\tQuantité\tUnité\tPU HT\tTotal HT', ...l.map((x, i) => [i + 1, (x.designation + (x.desc ? ' — ' + x.desc : '')).replace(/[\t\n]+/g, ' '), n(x.qte), x.unite, n(x.pu), n(x.qte * x.pu)].join('\t'))].join('\n');
     (navigator.clipboard ? navigator.clipboard.writeText(txt) : Promise.reject()).then(() => toast(l.length + ' poste(s) copié(s) — collez dans Excel ou votre logiciel de devis'), () => toast('Copie impossible dans ce navigateur : utilisez l\'export Excel', 'err')); };
-  $('#f-pxlsx').onclick = () => { const l = postes(); if (!l.length) { toast('Aucun poste à exporter', 'err'); return; }
+  $('#f-pxlsx').onclick = () => { const l = postes(); if (!l.length) { toast('Aucun poste à exporter : ajoutez un poste au tableau', 'err'); return; }
     writeXlsxBook('Devis_' + ($('#f-ref').value.trim() || 'detail') + '.xlsx', [{ name: 'Détail devis', rows: devisRowsXlsx(titre(), l), widths: [6, 60, 10, 8, 14, 15] }]); toast('Export Excel généré'); };
-  $('#f-pprint').onclick = () => { const l = postes(); if (!l.length) { toast('Aucun poste à imprimer', 'err'); return; }
+  $('#f-pprint').onclick = () => { const l = postes(); if (!l.length) { toast('Aucun poste à imprimer : ajoutez un poste au tableau', 'err'); return; }
     const tot = l.reduce((s, x) => s + x.qte * x.pu, 0), cl = DB.data.clients.find(c => c.id === $('#f-client').value);
     imprimerDoc('Devis ' + $('#f-ref').value.trim(), [
       { k: 'h1', t: 'Devis ' + $('#f-ref').value.trim() },
@@ -3734,19 +4009,21 @@ function devisForm(id) {
       { k: 'tab', head: ['N°', 'Désignation', 'Qté', 'Unité', 'PU HT', 'Total HT'],
         rows: [...l.map((x, i) => [String(i + 1), x.designation + (x.desc ? '\n' + x.desc : ''), num(x.qte), x.unite, eur2(x.pu), eur2(x.qte * x.pu)]), ['', 'TOTAL HT', '', '', '', eur2(tot)]] }]); };
   majPostes();
-  $('#save').onclick = () => {
+  api.restore();
+  function save() {
+    // Données relues au moment d'enregistrer (une synchro Drive a pu recharger le profil)
+    const cur = id ? DB.data.devis.find(x => x.id === id) : null;
+    if (id && !cur) { toast('Devis introuvable : il a peut-être été supprimé. Copiez vos saisies avant de quitter.', 'err'); return; }
     let dateEnvoi = $('#f-de').value, statut = $('#f-statut').value;
     if ($('#f-now').checked) { dateEnvoi = todayISO(); if (statut === 'attente') statut = 'envoye'; }
-    const obj = { ref: $('#f-ref').value.trim(), otp: $('#f-otp').value.trim(), clientId: $('#f-client').value, chantierId: d.chantierId || '', objet: $('#f-objet').value.trim(), dateDemande: $('#f-dd').value, dateEnvoi, montantHT: +$('#f-montant').value || 0, statut, relance: $('#f-rel').value, derniereRelance: $('#f-drel').value, nbRelances: +d.nbRelances || 0, horsComptes: $('#f-hc').checked, lignes: postes() };
+    const obj = { ref: $('#f-ref').value.trim(), otp: $('#f-otp').value.trim(), clientId: $('#f-client').value, chantierId: (cur && cur.chantierId) || '', objet: $('#f-objet').value.trim(), dateDemande: $('#f-dd').value, dateEnvoi, montantHT: +$('#f-montant').value || 0, statut, relance: $('#f-rel').value, derniereRelance: $('#f-drel').value, nbRelances: cur ? +cur.nbRelances || 0 : 0, horsComptes: $('#f-hc').checked, lignes: postes() };
     if (obj.lignes.length) obj.montantHT = Math.round(obj.lignes.reduce((s, x) => s + x.qte * x.pu, 0) * 100) / 100;
-    if (!obj.objet) { toast("L'objet est obligatoire", 'err'); return; }
-    const etaitAccepte = !!id && d.statut === 'accepte';
-    let dv = d; if (id) Object.assign(d, obj); else DB.data.devis.unshift(dv = { id: uid(), ...obj });
+    const etaitAccepte = !!cur && cur.statut === 'accepte';
+    let dv = cur; if (cur) Object.assign(cur, obj); else DB.data.devis.unshift(dv = { id: uid(), ...obj });
     const ch = obj.statut === 'accepte' && !etaitAccepte ? devisVersChantier(dv) : null;
-    DB.save(); m.close();
-    toast(!ch ? 'Devis enregistré' : ch.cree ? `Devis accepté — chantier « ${ch.chantier.nom} » créé en Commande` : `Devis accepté — chantier « ${ch.chantier.nom} » passé en Commande`);
-    go('devis');
-  };
+    DB.save();
+    api.done(!ch ? (cur ? 'Devis enregistré' : 'Devis ' + dv.ref + ' créé') : ch.cree ? `Devis accepté — chantier « ${ch.chantier.nom} » créé en Commande` : `Devis accepté — chantier « ${ch.chantier.nom} » passé en Commande`, dv.id);
+  }
 }
 /* Devis accepté → chantier « Commande ». Reprend le chantier déjà lié au devis s'il existe
    (il passe en Commande s'il était encore Prospect ou Devis émis), sinon en crée un. */
@@ -4033,7 +4310,7 @@ function bteVersDevis(b) {
   const t = bteTotals(b), lignes = bteLignesDevis(b);
   const montant = lignes.length ? Math.round(lignes.reduce((s, l) => s + l.qte * l.pu, 0) * 100) / 100 : Math.round(t.pv);
   const dv = { id: uid(), ref: 'DEV-' + isoDate(new Date()).slice(2, 7).replace('-', '') + '-' + String(DB.data.devis.length + 1).padStart(2, '0'), otp: b.otp || '', clientId: '', chantierId: '', objet: b.nom, adresse: b.adresse || '', dateDemande: todayISO(), dateEnvoi: '', montantHT: montant, lignes, statut: 'attente', relance: '', derniereRelance: '', nbRelances: 0, horsComptes: false };
-  DB.data.devis.unshift(dv); DB.save(); toast('Devis créé depuis le BTE (' + eur(montant) + (lignes.length ? ', ' + lignes.length + ' poste(s)' : '') + ') — complétez l\'OTP et le client'); go('devis'); devisForm(dv.id);
+  DB.data.devis.unshift(dv); DB.save(); toast('Devis créé depuis le BTE (' + eur(montant) + (lignes.length ? ', ' + lignes.length + ' poste(s)' : '') + ') — complétez l\'OTP et le client'); openForm('devis/' + dv.id);
 }
 const bteCatShort = cat => cat.replace(/^\d+\s*\.\s*/, '');
 /* Suggestions de désignation dans le BTE (3 max) : ouvrages Cadences pour la main d'œuvre,
@@ -5101,30 +5378,45 @@ function renderClients(v) {
       <tbody>${list.map(c => `<tr><td class="t-strong">${esc(c.nom)}</td><td><span class="chip">${esc(c.type || '—')}</span></td><td>${esc(c.contact || '—')}</td><td>${esc(c.tel || '—')}</td><td class="t-muted">${esc(c.email || '—')}</td><td>${esc(c.adresse || '—')}</td><td class="num">${DB.data.chantiers.filter(ch => ch.clientId === c.id).length}</td>
         <td class="actions-cell"><button class="icon-btn" data-edit="${c.id}" title="Modifier">${icon('edit')}</button><button class="icon-btn danger" data-del="${c.id}" title="Supprimer">${icon('trash')}</button></td></tr>`).join('')}</tbody></table></div>`
       : emptyState('users', 'Aucun client', 'Ajoutez vos clients et interlocuteurs.')}`;
-  $('#add').onclick = () => clientForm();
-  $$('[data-edit]', v).forEach(b => b.onclick = () => clientForm(b.dataset.edit));
+  $('#add').onclick = e => openForm('clients/nouveau', e.currentTarget);
+  $$('[data-edit]', v).forEach(b => b.onclick = () => openForm('clients/' + b.dataset.edit, b));
   $$('[data-del]', v).forEach(b => b.onclick = () => confirmDialog('Supprimer ce client ?', () => { DB.data.clients = DB.data.clients.filter(x => x.id !== b.dataset.del); DB.save(); toast('Client supprimé'); renderClients(v); }));
 }
-function clientForm(id) {
-  const c = id ? DB.data.clients.find(x => x.id === id) : { nom: '', type: 'Privé', contact: '', tel: '', email: '', adresse: '', notes: '' };
+function clientForm(v, id) {
+  const ex = id ? DB.data.clients.find(x => x.id === id) : null;
+  if (id && !ex) { toast('Client introuvable : il a peut-être été supprimé', 'err'); go('clients'); return; }
+  const c = ex || { nom: '', type: 'Privé', contact: '', tel: '', email: '', adresse: '', notes: '' };
   const types = ['Privé', 'Syndic', 'Bailleur social', 'Public', 'Grand compte', 'Industriel', 'Promoteur'];
-  const m = modal({ title: id ? 'Modifier le client' : 'Nouveau client',
+  const api = formPage(v, {
+    module: 'clients',
+    title: id ? 'Modifier le client' : 'Nouveau client',
+    label: id ? 'le client « ' + c.nom + ' »' : 'le nouveau client',
+    back: 'Retour aux clients',
+    submit: id ? 'Enregistrer les modifications' : 'Créer le client',
+    rules: {
+      'f-nom': () => $('#f-nom').value.trim() ? '' : 'Saisissez la raison sociale ou le nom du client.',
+      'f-email': () => { const e = $('#f-email').value.trim(); return !e || /^[^\s@]+@[^\s@]+$/.test(e) ? '' : 'Saisissez un e-mail au format nom@domaine.fr, ou laissez le champ vide.'; },
+    },
+    onSubmit: save,
     body: `<div class="form-grid">
-      <div class="field full"><label>Raison sociale / Nom</label><input id="f-nom" value="${esc(c.nom)}"></div>
-      <div class="field"><label>Type</label><select id="f-type">${types.map(t => `<option ${c.type === t ? 'selected' : ''}>${t}</option>`).join('')}</select></div>
-      <div class="field"><label>Interlocuteur</label><input id="f-contact" value="${esc(c.contact)}"></div>
-      <div class="field"><label>Téléphone</label><input id="f-tel" value="${esc(c.tel)}"></div>
-      <div class="field"><label>Email</label><input id="f-email" value="${esc(c.email)}"></div>
-      <div class="field full"><label>Ville / Adresse</label><input id="f-adr" value="${esc(c.adresse)}"></div>
-      <div class="field full"><label>Notes</label><textarea id="f-notes" rows="2">${esc(c.notes)}</textarea></div>
-    </div>`, footer: `<button class="btn" data-c>Annuler</button><button class="btn primary" id="save">Enregistrer</button>` });
-  m.root.querySelector('[data-c]').onclick = m.close;
-  $('#save').onclick = () => {
+      <div class="field full"><label for="f-nom">Raison sociale / Nom <span class="req" aria-hidden="true">*</span></label><input id="f-nom" value="${esc(c.nom)}" autocomplete="organization"></div>
+      <div class="field"><label for="f-type">Type</label><select id="f-type">${types.map(t => `<option ${c.type === t ? 'selected' : ''}>${t}</option>`).join('')}</select></div>
+      <div class="field"><label for="f-contact">Interlocuteur</label><input id="f-contact" value="${esc(c.contact)}" autocomplete="name"></div>
+      <div class="field"><label for="f-tel">Téléphone</label><input id="f-tel" type="tel" value="${esc(c.tel)}" autocomplete="tel" placeholder="Ex. 02 35 00 00 00"></div>
+      <div class="field"><label for="f-email">E-mail</label><input id="f-email" type="email" value="${esc(c.email)}" autocomplete="email" placeholder="nom@domaine.fr"></div>
+      <div class="field full"><label for="f-adr">Ville / Adresse</label><input id="f-adr" value="${esc(c.adresse)}" autocomplete="street-address"></div>
+      <div class="field full"><label for="f-notes">Notes</label><textarea id="f-notes" rows="2">${esc(c.notes)}</textarea></div>
+    </div>`,
+  });
+  api.restore();
+  function save() {
+    const cur = id ? DB.data.clients.find(x => x.id === id) : null;
+    if (id && !cur) { toast('Client introuvable : il a peut-être été supprimé. Copiez vos saisies avant de quitter.', 'err'); return; }
     const obj = { nom: $('#f-nom').value.trim(), type: $('#f-type').value, contact: $('#f-contact').value.trim(), tel: $('#f-tel').value.trim(), email: $('#f-email').value.trim(), adresse: $('#f-adr').value.trim(), notes: $('#f-notes').value.trim() };
-    if (!obj.nom) { toast('Le nom est obligatoire', 'err'); return; }
-    if (id) Object.assign(c, obj); else DB.data.clients.unshift({ id: uid(), ...obj });
-    DB.save(); m.close(); toast('Client enregistré'); go('clients');
-  };
+    let cid = id;
+    if (cur) Object.assign(cur, obj); else { cid = uid(); DB.data.clients.unshift({ id: cid, ...obj }); }
+    DB.save(); api.done(cur ? 'Client enregistré' : 'Client « ' + obj.nom + ' » créé', cid);
+  }
 }
 
 /* ---------- Prospection & RDV ---------- */
@@ -5233,7 +5525,7 @@ function renderFactures(v) {
         <td class="actions-cell">${f.statut !== 'payee' ? `<button class="icon-btn" data-pay="${f.id}" title="Marquer payée">${icon('check')}</button>` : ''}<button class="icon-btn" data-edit="${f.id}" title="Modifier">${icon('edit')}</button><button class="icon-btn danger" data-del="${f.id}" title="Supprimer">${icon('trash')}</button></td></tr>`; }).join('')}</tbody>
       <tfoot><tr><td colspan="7">Total affiché${factFilter.otp ? ' — OTP ' + esc(factFilter.otp) : ''}</td><td class="num">${eur(list.reduce((s, f) => s + (+f.montantHT || 0), 0))}</td><td colspan="2"></td></tr></tfoot></table></div>`
       : emptyState('receipt', 'Aucune facture', 'Facturez chaque intervention sous 7 jours et suivez les paiements.')}`;
-  $('#add').onclick = () => factForm();
+  $('#add').onclick = e => openForm('factures/nouveau', e.currentTarget);
   $('#q').oninput = e => { factFilter.q = e.target.value; renderFactures(v); const i = $('#q'); i.focus(); i.setSelectionRange(i.value.length, i.value.length); };
   $('#fs').onchange = e => { factFilter.statut = e.target.value; renderFactures(v); };
   $('#fotp').onchange = e => { factFilter.otp = e.target.value; renderFactures(v); };
@@ -5241,41 +5533,52 @@ function renderFactures(v) {
   // Un clic sur un chiffre clé filtre la liste sur ce statut (second clic : retire le filtre)
   $$('[data-fstat]', v).forEach(k => k.onclick = () => { factFilter.statut = factFilter.statut === k.dataset.fstat ? '' : k.dataset.fstat; renderFactures(v); $('#q').scrollIntoView({ block: 'center', behavior: 'smooth' }); });
   $('#csv').onclick = () => exportXlsx('factures', ['num', 'otp', 'client', 'objet', 'dateFG', 'dateEmission', 'echeance', 'montantHT', 'statut'], list.map(f => [f.num, f.otp, f.client, f.objet, f.dateFG, f.dateEmission, factureEcheance(f), f.montantHT, STATUTS_FACT[f.statut]]), { sheet: 'Factures', money: ['montantHT'] });
-  $$('[data-edit]', v).forEach(b => b.onclick = () => factForm(b.dataset.edit));
+  $$('[data-edit]', v).forEach(b => b.onclick = () => openForm('factures/' + b.dataset.edit, b));
   $$('[data-pay]', v).forEach(b => b.onclick = () => { const f = DB.data.factures.find(x => x.id === b.dataset.pay); f.statut = 'payee'; f.datePaiement = todayISO(); if (!f.dateEmission) f.dateEmission = todayISO(); DB.save(); toast('Facture réglée'); renderFactures(v); });
   $$('[data-del]', v).forEach(b => b.onclick = () => confirmDialog('Supprimer cette facture ?', () => { DB.data.factures = DB.data.factures.filter(x => x.id !== b.dataset.del); DB.save(); toast('Facture supprimée'); renderFactures(v); }));
 }
-function factForm(id) {
-  const f = id ? DB.data.factures.find(x => x.id === id) : { num: '', otp: '', clientId: '', client: '', chantierId: '', objet: '', dateFG: todayISO(), dateEmission: '', montantHT: 0, echeanceJours: DB.data.objectifs.delaiPaiement, datePaiement: '', statut: 'a_emettre' };
+function factForm(v, id) {
+  const ex = id ? DB.data.factures.find(x => x.id === id) : null;
+  if (id && !ex) { toast('Facture introuvable : elle a peut-être été supprimée', 'err'); go('factures'); return; }
+  const f = ex || { num: '', otp: '', clientId: '', client: '', chantierId: '', objet: '', dateFG: todayISO(), dateEmission: '', montantHT: 0, echeanceJours: DB.data.objectifs.delaiPaiement, datePaiement: '', statut: 'a_emettre' };
   const clOpts = DB.data.clients.map(c => `<option value="${c.id}" ${f.clientId === c.id ? 'selected' : ''}>${esc(c.nom)}</option>`).join('');
   const chOpts = DB.data.chantiers.map(c => `<option value="${c.id}" ${f.chantierId === c.id ? 'selected' : ''}>${esc(c.otp || '')} ${esc(c.nom)}</option>`).join('');
-  const m = modal({ title: id ? 'Modifier la facture' : 'Nouvelle facture',
+  const api = formPage(v, {
+    module: 'factures',
+    title: id ? 'Modifier la facture' + (f.num ? ' ' + f.num : '') : 'Nouvelle facture',
+    label: id ? 'la facture' + (f.num ? ' ' + f.num : '') : 'la nouvelle facture',
+    back: 'Retour à la facturation',
+    submit: id ? 'Enregistrer les modifications' : 'Créer la facture',
+    onSubmit: save,
     body: `<div class="form-grid">
-      <div class="field"><label>N° de facture</label><input id="f-num" value="${esc(f.num)}" placeholder="FA-…"></div>
-      <div class="field"><label>N° OTP</label><input id="f-otp" value="${esc(f.otp)}" list="fa-otplist" placeholder="OTP…"><datalist id="fa-otplist">${otpDistinct().map(o => `<option value="${esc(o)}">`).join('')}</datalist></div>
-      <div class="field"><label>Chantier lié</label><select id="f-ch"><option value="">— Aucun —</option>${chOpts}</select></div>
-      <div class="field"><label>Client</label><select id="f-client"><option value="">— Aucun —</option>${clOpts}</select></div>
-      <div class="field full"><label>Objet</label><input id="f-objet" value="${esc(f.objet)}" placeholder="Situation / prestation…"></div>
-      <div class="field"><label>Statut</label><select id="f-statut">${Object.entries(STATUTS_FACT).map(([k, l]) => `<option value="${k}" ${f.statut === k ? 'selected' : ''}>${l}</option>`).join('')}</select></div>
-      <div class="field"><label>Fait générateur (réception)</label><input id="f-fg" type="date" value="${f.dateFG || ''}"></div>
-      <div class="field"><label>Date d'émission</label><input id="f-em" type="date" value="${f.dateEmission || ''}"></div>
-      <div class="field"><label>Montant HT (€)</label><input id="f-montant" type="number" value="${f.montantHT || 0}"></div>
-      <div class="field"><label>Échéance de paiement (jours)</label><input id="f-ech" type="number" value="${f.echeanceJours || DB.data.objectifs.delaiPaiement}"></div>
-      <div class="field"><label>Date de paiement</label><input id="f-pay" type="date" value="${f.datePaiement || ''}"></div>
+      <div class="field"><label for="f-num">N° de facture</label><input id="f-num" value="${esc(f.num)}" placeholder="Ex. FA-2611-01" autocomplete="off"></div>
+      <div class="field"><label for="f-otp">N° OTP</label><input id="f-otp" value="${esc(f.otp)}" list="fa-otplist" placeholder="Ex. OTP-24003" autocomplete="off"><datalist id="fa-otplist">${otpDistinct().map(o => `<option value="${esc(o)}">`).join('')}</datalist></div>
+      <div class="field"><label for="f-ch">Chantier lié</label><select id="f-ch"><option value="">Aucun chantier</option>${chOpts}</select><p class="hint">Reprend l'OTP et le client du chantier.</p></div>
+      <div class="field"><label for="f-client">Client</label><select id="f-client"><option value="">Aucun client</option>${clOpts}</select></div>
+      <div class="field full"><label for="f-objet">Objet</label><input id="f-objet" value="${esc(f.objet)}" placeholder="Ex. situation n°2" autocomplete="off"></div>
+      <div class="field"><label for="f-statut">Statut</label><select id="f-statut">${Object.entries(STATUTS_FACT).map(([k, l]) => `<option value="${k}" ${f.statut === k ? 'selected' : ''}>${l}</option>`).join('')}</select></div>
+      <div class="field"><label for="f-fg">Fait générateur (réception)</label><input id="f-fg" type="date" value="${f.dateFG || ''}"></div>
+      <div class="field"><label for="f-em">Date d'émission</label><input id="f-em" type="date" value="${f.dateEmission || ''}"></div>
+      <div class="field"><label for="f-montant">Montant HT (€)</label><input id="f-montant" type="number" min="0" step="0.01" inputmode="decimal" value="${f.montantHT || ''}" placeholder="0,00"></div>
+      <div class="field"><label for="f-ech">Échéance de paiement (jours)</label><input id="f-ech" type="number" min="0" step="1" inputmode="numeric" value="${f.echeanceJours || DB.data.objectifs.delaiPaiement}"></div>
+      <div class="field"><label for="f-pay">Date de paiement</label><input id="f-pay" type="date" value="${f.datePaiement || ''}"><p class="hint">Une date de paiement passe la facture en « Payée ».</p></div>
     </div>
-    <div class="field inline" style="margin-top:8px"><input type="checkbox" id="f-nowem"><label for="f-nowem" style="cursor:pointer">Marquer comme émise aujourd'hui</label></div>`,
-    footer: `<button class="btn" data-c>Annuler</button><button class="btn primary" id="save">Enregistrer</button>` });
-  m.root.querySelector('[data-c]').onclick = m.close;
+    <div class="fp-checks"><div class="field inline"><input type="checkbox" id="f-nowem"><label for="f-nowem">Marquer comme émise aujourd'hui</label></div></div>`,
+  });
   $('#f-ch').onchange = e => { const ch = chantierById(e.target.value); if (!ch) return; if (ch.otp) $('#f-otp').value = ch.otp; if (ch.clientId) $('#f-client').value = ch.clientId; };
-  $('#save').onclick = () => {
+  api.restore();
+  function save() {
+    const cur = id ? DB.data.factures.find(x => x.id === id) : null;
+    if (id && !cur) { toast('Facture introuvable : elle a peut-être été supprimée. Copiez vos saisies avant de quitter.', 'err'); return; }
     let statut = $('#f-statut').value, dateEmission = $('#f-em').value, datePaiement = $('#f-pay').value;
     if ($('#f-nowem').checked) { dateEmission = todayISO(); if (statut === 'a_emettre') statut = 'emise'; }
     if (datePaiement) statut = 'payee';
     const clientId = $('#f-client').value, cn = clientNom(clientId);
     const obj = { num: $('#f-num').value.trim(), otp: $('#f-otp').value.trim(), clientId, client: cn === '—' ? '' : cn, chantierId: $('#f-ch').value, objet: $('#f-objet').value.trim(), dateFG: $('#f-fg').value, dateEmission, montantHT: +$('#f-montant').value || 0, echeanceJours: +$('#f-ech').value || DB.data.objectifs.delaiPaiement, datePaiement, statut };
-    if (id) Object.assign(f, obj); else DB.data.factures.unshift({ id: uid(), ...obj });
-    DB.save(); m.close(); toast('Facture enregistrée'); go('factures');
-  };
+    let fid = id;
+    if (cur) Object.assign(cur, obj); else { fid = uid(); DB.data.factures.unshift({ id: fid, ...obj }); }
+    DB.save(); api.done(cur ? 'Facture enregistrée' : 'Facture créée', fid);
+  }
 }
 
 /* ---------- Contrats d'entretien & visites ---------- */
@@ -7522,7 +7825,8 @@ function boot() {
     const btn = tr.querySelector('[data-edit],[data-editv],[data-open],[data-view]');
     if (btn) { const sel = window.getSelection && window.getSelection(); if (sel) sel.removeAllRanges(); btn.click(); }
   });
-  window.addEventListener('hashchange', () => { const r = location.hash.slice(1); if (r && r !== current) go(r); });
+  window.addEventListener('hashchange', () => { const r = location.hash.slice(1); if (r && r !== currentHash) go(r); });
+  window.addEventListener('beforeunload', e => { if (formGuard && formGuard.dirty) { e.preventDefault(); e.returnValue = ''; } });
   // Les vues se redessinent seules (filtres, onglets…) : on réarme les poignées à chaque rendu.
   new MutationObserver(scheduleCols).observe($('#view'), { childList: true, subtree: true });
 
