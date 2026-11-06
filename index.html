@@ -463,6 +463,9 @@ summary.win-head>.win-ctl{float:right}
 .win-p.win-min>.win-head{margin-bottom:0!important}
 .card-pad.win-min>.section-head.win-head{margin-bottom:-18px!important;border-bottom:0}
 .win-float{position:relative}
+/* Tableau posé à même l'écran : la barre ─ □ ✕ se range au-dessus, à droite, sans recouvrir l'en-tête */
+.win-float:not(.win-min):not(.win-max)>.win-ctl{position:static;float:right;margin:0 0 6px 8px}
+.win-float:not(.win-min):not(.win-max)>.table-wrap{clear:both}
 .win-float>.win-ctl{position:absolute;top:6px;right:6px;z-index:3;background:var(--surface);border:1px solid var(--border);border-radius:8px;
   box-shadow:var(--shadow-xs);opacity:0;transition:opacity .15s}
 .win-float:hover>.win-ctl,.win-float:focus-within>.win-ctl,.win-float.win-min>.win-ctl{opacity:1}
@@ -512,7 +515,11 @@ summary.win-head>.win-ctl{float:right}
 .stat-line b{font-variant-numeric:tabular-nums;font-weight:600;text-align:right}
 
 /* To-do */
-.todo-add{display:flex;gap:8px;margin-top:6px;margin-bottom:12px;flex-wrap:wrap}
+.todo-add{display:flex;gap:8px;margin-top:6px;margin-bottom:12px;flex-wrap:wrap;align-items:flex-end}
+.todo-f{display:flex;flex-direction:column;gap:4px;min-width:0}
+.todo-f-txt{flex:1 1 240px}
+.todo-f label{font-size:12px;font-weight:600;color:var(--text-2)}
+.todo-f input{width:100%}
 .todo-add input{flex:1;min-width:180px;width:auto}
 .todo-folder-add input{width:auto}
 .todo-add input[type=date]{flex:0 0 auto;min-width:0;width:auto;color:var(--text-2)}
@@ -942,7 +949,13 @@ html[data-density="compact"] .filters input:not([type=checkbox]),html[data-densi
   #sidebar,#main{transition:none}
 }
 .drive-dot{width:8px;height:8px;border-radius:50%;background:var(--text-3);flex:none}
-.drive-dot.ok{background:var(--pos)} .drive-dot.encours{background:var(--info)} .drive-dot.erreur,.drive-dot.reconnexion{background:var(--warn)}
+.drive-dot.ok{background:var(--pos)} .drive-dot.encours{background:var(--info)} .drive-dot.erreur{background:var(--warn)}
+.drive-dot.reconnexion{display:none} /* remplacé par le bandeau #drive-banner */
+.drive-banner{display:flex;align-items:center;gap:8px 16px;flex-wrap:wrap;margin-bottom:16px;padding:12px 16px;border:1px solid var(--warn-line);border-radius:var(--radius);background:var(--warn-soft);color:var(--text)}
+.drive-banner[hidden]{display:none}
+.drive-banner .ic{width:20px;height:20px;color:var(--warn);flex:none}
+.drive-banner p{margin:0;flex:1 1 240px;font-size:14px}
+.drive-banner p b{font-weight:600}
 #drive-btn{gap:6px;position:relative}
 @media(max-width:1340px){.top-actions #drive-btn .drive-dot{position:absolute;right:6px;top:6px}}
 /* ==========================================================================
@@ -1393,25 +1406,26 @@ html:not([data-density="compact"]) .pil-rec-item{padding:9px 4px}
 
     <main id="main">
       <header id="topbar">
-        <button id="menu-toggle" aria-label="Ouvrir le menu" title="Ouvrir le menu"></button>
-        <button class="brand" id="brand-home" title="Tableau de bord">
+        <button id="menu-toggle" aria-label="Ouvrir le menu" aria-controls="sidebar"></button>
+        <button class="brand" id="brand-home" aria-label="Aller au tableau de bord">
           <span class="logo-mark" aria-hidden="true">CP</span>
           <span class="logo-text">ChargéPro</span>
         </button>
-        <button id="nav-collapse" class="btn ghost icon" aria-label="Réduire ou déployer le menu" title="Réduire / déployer le menu latéral"></button>
+        <button id="nav-collapse" class="btn ghost icon" aria-label="Réduire ou déployer le menu latéral"></button>
         <div class="top-actions">
           <button id="width-btn" class="btn ghost" aria-label="Largeur d'affichage"></button>
-          <button id="drive-btn" class="btn ghost" title="Sauvegarde commune sur Google Drive (PC + téléphone)"></button>
-          <button id="btn-export" class="btn ghost" title="Exporter les données du profil (sauvegarde locale)">Sauvegarde</button>
-          <button id="btn-import" class="btn ghost" title="Importer une sauvegarde">Restaurer</button>
+          <button id="drive-btn" class="btn ghost" aria-label="Ouvrir la sauvegarde Google Drive"></button>
+          <button id="btn-export" class="btn ghost" aria-label="Sauvegarder les données du profil">Sauvegarde</button>
+          <button id="btn-import" class="btn ghost" aria-label="Restaurer une sauvegarde">Restaurer</button>
           <input type="file" id="import-file" accept="application/json" hidden>
-          <button id="game-btn" class="btn ghost" aria-pressed="false" title="Activer le mode carte (vue 3D de l’agence)"></button>
-          <button id="theme-btn" class="btn ghost icon" aria-label="Changer de thème" title="Changer de thème"></button>
-          <button id="more-btn" class="btn ghost icon" aria-label="Plus d'actions" title="Plus d'actions" aria-haspopup="menu" aria-expanded="false" aria-controls="menu-root"></button>
-          <button id="profile-btn" class="profile-btn"></button>
+          <button id="game-btn" class="btn ghost" aria-pressed="false" aria-label="Activer le mode carte (vue 3D de l’agence)"></button>
+          <button id="theme-btn" class="btn ghost icon" aria-label="Changer de thème"></button>
+          <button id="more-btn" class="btn ghost icon" aria-label="Plus d'actions" aria-haspopup="menu" aria-expanded="false" aria-controls="menu-root"></button>
+          <button id="profile-btn" class="profile-btn" aria-haspopup="menu" aria-expanded="false"></button>
         </div>
       </header>
       <div class="content">
+        <div id="drive-banner" class="drive-banner" role="status" aria-live="polite" hidden></div>
         <div class="page-head">
           <div class="ph-txt">
             <div class="eyebrow" id="page-eyebrow"></div>
@@ -1837,12 +1851,19 @@ function modal({ title, body, wide, xwide, footer }) {
   initWinPanels(root.querySelector('.modal-body'), 'modal');
   return { root, close };
 }
-function confirmDialog(msg, onYes, label = 'Supprimer') {
-  const m = modal({ title: 'Confirmation', body: `<p style="margin:0">${esc(msg)}</p>`,
+function confirmDialog(msg, onYes, label = 'Supprimer', title = 'Confirmation') {
+  const m = modal({ title, body: `<p style="margin:0">${esc(msg)}</p>`,
     footer: `<button class="btn" data-no>Annuler</button><button class="btn danger" data-yes>${esc(label)}</button>` });
   m.root.querySelector('[data-no]').onclick = m.close;
   m.root.querySelector('[data-yes]').onclick = () => { m.close(); onYes(); };
   setTimeout(() => { const n = m.root.querySelector('[data-no]'); if (n) n.focus(); }, 0); // Annuler par défaut
+}
+
+/* Suppression : le titre nomme l'élément (« Supprimer le chantier « X » ? »), le bouton porte
+   le verbe destructif, Annuler a le focus par défaut, Échap annule. */
+function confirmDelete(quoi, nom, onYes, detail) {
+  const n = String(nom == null ? '' : nom).trim();
+  confirmDialog(detail || 'Cette action est définitive.', onYes, 'Supprimer ' + quoi, `Supprimer ${quoi}${n ? ' « ' + n + ' »' : ''} ?`);
 }
 
 /* -------------------------------------------------------------------------
@@ -2036,6 +2057,7 @@ function go(target) {
   if (!ROUTES[route]) { route = 'dashboard'; sub = ''; }
   const form = sub && FORM_ROUTES[route];
   const fromForm = currentHash.includes('/');
+  const changeRoute = (form ? target : route) !== currentHash;
   current = route;
   currentHash = form ? target : route;
   if (route === 'raf') rafOtp = ''; // entrer dans la section RAF ouvre toujours l'écran de sélection
@@ -2046,6 +2068,8 @@ function go(target) {
   if (location.hash.slice(1) !== currentHash) location.hash = currentHash;
   $('#sidebar').classList.remove('open');
   const v = $('#view');
+  // Nouvelle route : la page repart du haut (un simple rafraîchissement de la même vue garde la position)
+  if (changeRoute) { window.scrollTo(0, 0); const mn = $('#main'); if (mn) mn.scrollTop = 0; }
   if (form) form(v, sub === 'nouveau' ? null : sub, new URLSearchParams(qs || ''));
   else ROUTES[route].render(v);
   v.classList.remove('view-enter'); void v.offsetWidth; v.classList.add('view-enter');
@@ -2095,7 +2119,7 @@ const UI = {
     r.dataset.game = this.prefs.game; // mode carte (jeu vidéo) — voir jeu.js
     if (this.prefs.theme === 'auto') delete r.dataset.theme; else r.dataset.theme = this.prefs.theme;
     const wb = document.getElementById('width-btn');
-    if (wb) { wb.innerHTML = icon('widthIc') + '<span class="lbl">' + UI_WIDTHS[this.prefs.width] + '</span>'; wb.title = 'Largeur d\'affichage : ' + UI_WIDTHS[this.prefs.width] + ' — cliquer pour changer'; }
+    if (wb) { wb.innerHTML = icon('widthIc') + '<span class="lbl">' + UI_WIDTHS[this.prefs.width] + '</span>'; const wl = 'Changer la largeur d\'affichage (actuelle : ' + UI_WIDTHS[this.prefs.width] + ')'; wb.removeAttribute('title'); wb.setAttribute('aria-label', wl); wb.dataset.tip = wl; }
     const tb = document.getElementById('theme-btn');
     if (tb) tb.innerHTML = icon(this.isDark() ? 'sun' : 'moon');
   }
@@ -2196,8 +2220,11 @@ const winTitreAuto = p => $$('th', p).slice(0, 3).map(winTexte).filter(Boolean).
 function winMaj(p) {
   const c = p._winCtl; if (!c) return;
   const mx = p.classList.contains('win-max'), mn = p.classList.contains('win-min'), bx = c.querySelector('[data-wa="max"]');
-  c.querySelector('[data-wa="min"]').title = mn ? 'Restaurer' : 'Réduire';
-  bx.title = mx ? 'Restaurer' : 'Agrandir'; bx.innerHTML = icon(mx ? 'winRestore' : 'winMax');
+  const t = p.dataset.winTitle ? ' le bloc « ' + p.dataset.winTitle + ' »' : ' le bloc';
+  const nomme = (b, l) => { b.removeAttribute('title'); b.setAttribute('aria-label', l + t); b.dataset.tip = l + t; };
+  nomme(c.querySelector('[data-wa="min"]'), mn ? 'Restaurer' : 'Réduire');
+  nomme(bx, mx ? 'Restaurer' : 'Agrandir'); bx.innerHTML = icon(mx ? 'winRestore' : 'winMax');
+  nomme(c.querySelector('[data-wa="close"]'), 'Fermer');
 }
 function winMax(p, on) {
   if (on === p.classList.contains('win-max')) return;
@@ -2234,7 +2261,7 @@ function initWinPanels(scope, prefix, loose) {
       p.dataset.winKey = p.dataset.win || prefix + ':' + (head ? titre : '#' + idx);
     }
     const c = document.createElement('span'); c.className = 'win-ctl';
-    c.innerHTML = `<button type="button" class="icon-btn" data-wa="min">${icon('winMin')}</button><button type="button" class="icon-btn" data-wa="max"></button><button type="button" class="icon-btn" data-wa="close" title="Fermer (réaffichable)">${icon('x')}</button>`;
+    c.innerHTML = `<button type="button" class="icon-btn" data-wa="min">${icon('winMin')}</button><button type="button" class="icon-btn" data-wa="max"></button><button type="button" class="icon-btn" data-wa="close">${icon('x')}</button>`;
     c.addEventListener('click', e => {
       const b = e.target.closest('[data-wa]'); if (!b) return;
       e.preventDefault(); e.stopPropagation();
@@ -2309,17 +2336,32 @@ function bindProfileMenu(root, close) {
     () => { const g = DB.data.grilleIko; DB.data = demoData(); if (g) DB.data.grilleIko = g; ikoAppliquerGrille(DB.data.grilleIko); DB.save(); toast('Données de démonstration chargées'); go(current); }, 'Charger'); };
   root.querySelector('[data-del]').onclick = () => { close();
     if (DB.meta.profiles.length <= 1) { toast('Impossible de supprimer le dernier profil', 'err'); return; }
-    confirmDialog(`Supprimer définitivement le profil « ${DB.currentProfile().nom} » et toutes ses données ?`,
-      () => { DB.deleteProfile(DB.meta.currentId); afterProfileChange(); toast('Profil supprimé'); }); };
+    confirmDelete('le profil', DB.currentProfile().nom,
+      () => { DB.deleteProfile(DB.meta.currentId); afterProfileChange(); toast('Profil supprimé'); }, 'Toutes les données de ce profil seront supprimées définitivement de ce poste.'); };
 }
 /* ---------- Sauvegarde commune Google Drive (drive.js, même principe qu'OmSmK) ---------- */
 const hasDrive = () => typeof CPDrive !== 'undefined';
 function driveSoon() { if (hasDrive()) CPDrive.planifier(5000); }
+// Session Google expirée : bandeau visible en haut de chaque écran, avec l'action de reconnexion
+function renderDriveBanner() {
+  const el = $('#drive-banner'); if (!el) return;
+  const on = hasDrive() && CPDrive.connecte() && CPDrive.etat === 'reconnexion';
+  if (!on) { if (!el.hidden) { el.hidden = true; el.innerHTML = ''; } return; }
+  if (!el.hidden) return; // déjà affiché : pas de nouvelle annonce
+  el.innerHTML = `${icon('alert')}<p><b>Session Google expirée.</b> Vos modifications restent enregistrées sur ce poste mais ne sont plus envoyées sur Google Drive.</p><button type="button" class="btn primary small" id="drive-reco">Se reconnecter</button>`;
+  el.hidden = false;
+  $('#drive-reco').onclick = async () => {
+    try { await CPDrive.connecter(); toast(CPDrive.etat === 'erreur' ? CPDrive.erreur : 'Google Drive reconnecté', CPDrive.etat === 'erreur' ? 'err' : 'ok'); }
+    catch (e) { toast('Reconnexion impossible : ' + ((e && e.message) || 'réessayez dans un instant'), 'err'); }
+  };
+}
 function renderDriveBtn() {
   const b = $('#drive-btn'); if (!b) return;
   if (!hasDrive()) { b.style.display = 'none'; return; }
   b.innerHTML = `${icon('cloud')}<span class="lbl">${esc(CPDrive.connecte() ? CPDrive.libelle() : 'Drive')}</span><span class="drive-dot ${CPDrive.connecte() ? CPDrive.etat : ''}"></span>`;
-  b.title = CPDrive.connecte() ? (CPDrive.erreur || 'Sauvegarde commune Google Drive — ' + CPDrive.email()) : 'Sauvegarde commune sur Google Drive (PC + téléphone)';
+  const lab = CPDrive.connecte() ? (CPDrive.etat === 'reconnexion' ? 'Google Drive : session expirée, ouvrir pour se reconnecter' : CPDrive.erreur ? 'Google Drive : ' + CPDrive.erreur : 'Ouvrir la sauvegarde Google Drive (' + CPDrive.email() + ')') : 'Ouvrir la sauvegarde Google Drive (PC + téléphone)';
+  b.removeAttribute('title'); b.setAttribute('aria-label', lab); b.dataset.tip = lab;
+  renderDriveBanner();
 }
 function driveBusy() {
   if ($('#modal-root').children.length || formGuard) return true;
@@ -2372,10 +2414,11 @@ function driveDialog() {
 }
 
 function toggleProfileMenu() {
-  const root = $('#menu-root');
-  if (root.innerHTML) { root.innerHTML = ''; return; }
+  const root = $('#menu-root'), pb = $('#profile-btn');
+  if (root.innerHTML) { root.innerHTML = ''; pb.setAttribute('aria-expanded', 'false'); return; }
   root.innerHTML = profileMenuHTML();
-  const close = () => { root.innerHTML = ''; };
+  pb.setAttribute('aria-expanded', 'true');
+  const close = () => { root.innerHTML = ''; pb.setAttribute('aria-expanded', 'false'); };
   bindProfileMenu(root, close);
   // fermeture au clic extérieur
   setTimeout(() => document.addEventListener('click', function h(e) {
@@ -2415,10 +2458,35 @@ function toggleMoreMenu() {
   its[0].focus();
 }
 
+/* Noms accessibles posés dès le rendu :
+   - champ de recherche (.search-wrap) : « Rechercher dans <écran> » (l'icône loupe reste le repère visible) ;
+   - filtre (.filters select) : « Filtrer par … » (l'option choisie reste affichée) ;
+   - bouton icône seul avec title : le title devient aria-label + infobulle. */
+const FILTRE_NOMS = { fotp: 'Filtrer par OTP', fs: 'Filtrer par statut', ff: 'Filtrer par mise en facturation', fp: 'Filtrer par planning', fm: 'Filtrer par marché' };
+function nameControls(scope = document) {
+  $$('.search-wrap input:not([aria-label])', scope).forEach(i => i.setAttribute('aria-label', 'Rechercher dans ' + (ROUTES[current] ? ROUTES[current].label : 'la liste')));
+  $$('.filters select:not([aria-label])', scope).forEach(sl => {
+    if (sl.labels && sl.labels.length) return;
+    const o = sl.options[0] ? sl.options[0].textContent.trim() : '';
+    sl.setAttribute('aria-label', FILTRE_NOMS[sl.id] || ('Filtrer : ' + o.replace(/^(Tous|Toutes) les /i, '').replace(/\s*:\s*tous$/i, '')));
+  });
+  $$('button[title]', scope).forEach(b => { if (!b.textContent.trim()) tipText(b); });
+  // Libellé visible posé au-dessus du champ (<div class="field"><label>…</label><input>) mais non relié : on le relie
+  $$('.field > label:not([for])', scope).forEach(l => {
+    const c = l.parentElement.querySelector(':scope > input:not([type=hidden]), :scope > select, :scope > textarea');
+    if (!c || (c.labels && c.labels.length) || c.getAttribute('aria-label')) return;
+    if (!c.id) c.id = 'fld-' + (++fldSeq);
+    l.htmlFor = c.id;
+  });
+}
+let fldSeq = 0;
+let nameRaf = 0;
+new MutationObserver(() => { cancelAnimationFrame(nameRaf); nameRaf = requestAnimationFrame(() => nameControls()); }).observe(document.documentElement, { childList: true, subtree: true });
+
 /* Infobulles des boutons icône : au survol ET au focus clavier (le title natif ne s'affiche pas au
    focus et n'a pas de délai réglable). Texte = nom accessible (aria-label) ou, à défaut, le title,
    qui devient alors aria-label. Position fixe : jamais rognée par un tableau qui défile. */
-const TIP_SEL = '[data-tip], .icon-btn[title], #topbar .btn[title], #menu-toggle[title]';
+const TIP_SEL = '[data-tip], .icon-btn[title], .icon-btn[aria-label], #topbar .btn[title], #topbar .btn[aria-label], #menu-toggle';
 function tipText(el) {
   if (el.hasAttribute('title')) {
     const t = el.getAttribute('title'); el.removeAttribute('title');
@@ -2887,7 +2955,7 @@ function renderTodos() {
       </div>
       <div class="todo-group ${items.length ? '' : 'empty'}" data-dossier="${d.id}">${items.map(itemHtml).join('')}</div>
       <div class="todo-folder-add">
-        <input class="todo-folder-input-add" placeholder="Ajouter une tâche dans « ${esc(d.text)} »…" maxlength="200">
+        <input class="todo-folder-input-add" aria-label="Nouvelle tâche dans le dossier « ${esc(d.text)} »" placeholder="Ex. devis n°2 — Entrée pour ajouter" maxlength="200">
         <button class="btn small todo-folder-addbtn" title="Ajouter la tâche au dossier">${icon('plus')}</button>
       </div>
     </div>`;
@@ -2897,8 +2965,8 @@ function renderTodos() {
   host.innerHTML = `
     <div class="section-head">${icon('checkSquare')}<h2>Ma to-do list</h2><span class="spacer"></span>${countChip}</div>
     <div class="todo-add">
-      <input id="todo-input" placeholder="Ajouter une tâche (Entrée pour valider)…" maxlength="200">
-      <input id="todo-due" type="date" title="Échéance (optionnel)">
+      <div class="todo-f todo-f-txt"><label for="todo-input">Nouvelle tâche</label><input id="todo-input" placeholder="Ex. relancer le syndic — Entrée pour ajouter" maxlength="200"></div>
+      <div class="todo-f"><label for="todo-due">Échéance (facultatif)</label><input id="todo-due" type="date"></div>
       <button class="btn primary small" id="todo-addbtn">${icon('plus')} Ajouter</button>
       <button class="btn small" id="todo-addfolder" title="Créer un dossier pour regrouper des tâches (ex. plusieurs devis pour un même client). Le texte saisi sert de nom.">${icon('folder')} Dossier</button>
     </div>
@@ -2928,7 +2996,8 @@ function renderTodos() {
   $$('.todo-toggle', host).forEach(c => c.onchange = e => { const id = e.target.closest('.todo-item').dataset.id; const t = todoById(id); if (t) { t.done = e.target.checked; if (t.done) { t.waiting = false; t.waitingSince = ''; } DB.save(); renderTodos(); if (t.done && !todoShowDone) toast('Tâche faite — masquée'); } });
   $$('.todo-wait', host).forEach(b => b.onclick = e => { const id = e.target.closest('.todo-item').dataset.id; const t = todoById(id); if (!t) return; t.waiting = !t.waiting; t.waitingSince = t.waiting ? todayISO() : ''; DB.save(); renderTodos(); });
   $$('.todo-flag', host).forEach(b => b.onclick = e => { const id = e.target.closest('.todo-item').dataset.id; const t = todoById(id); if (!t) return; t.important = !t.important; DB.save(); renderTodos(); });
-  $$('.todo-del', host).forEach(b => b.onclick = e => { const id = e.target.closest('.todo-item').dataset.id; DB.data.todos = DB.data.todos.filter(x => x.id !== id); DB.save(); renderTodos(); });
+  $$('.todo-del', host).forEach(b => b.onclick = e => { const id = e.target.closest('.todo-item').dataset.id, t = DB.data.todos.find(x => x.id === id);
+    confirmDelete('la tâche', t && t.text, () => { DB.data.todos = DB.data.todos.filter(x => x.id !== id); DB.save(); renderTodos(); toast('Tâche supprimée'); }); });
   $$('.todo-edit', host).forEach(b => b.onclick = e => beginEditTodo(e.target.closest('.todo-item')));
   $$('.todo-text', host).forEach(s => s.ondblclick = e => beginEditTodo(e.target.closest('.todo-item')));
   $$('.todo-due', host).forEach(b => b.onclick = e => beginEditDue(e.target.closest('.todo-item')));
@@ -2941,7 +3010,7 @@ function renderTodos() {
     $('.todo-folder-del', el).onclick = () => {
       const n = DB.data.todos.filter(x => x.dossierId === d.id).length;
       const suppr = () => { DB.data.todos = DB.data.todos.filter(x => x.id !== d.id && x.dossierId !== d.id); DB.save(); renderTodos(); };
-      if (n) confirmDialog(`Supprimer le dossier « ${d.text} » et ses ${n} tâche(s) ?`, suppr); else suppr();
+      confirmDelete('le dossier', d.text, () => { suppr(); toast('Dossier supprimé'); }, n ? `Ses ${n} tâche(s) seront aussi supprimées.` : 'Le dossier est vide.');
     };
     const fi = $('.todo-folder-input-add', el);
     const addIn = () => {
@@ -3184,7 +3253,7 @@ function renderChantiers(v) {
   $$('[data-plan]', v).forEach(b => b.onclick = () => { planTab = 'mois'; go('planning'); agendaForm(null, null, { chantierId: b.dataset.plan }); });
   $$('[data-view]', v).forEach(b => b.onclick = () => chantierDetail(b.dataset.view));
   $$('[data-prepa]', v).forEach(b => b.onclick = () => prepaModal(b.dataset.prepa));
-  $$('[data-del]', v).forEach(b => b.onclick = () => confirmDialog('Supprimer ce chantier ?', () => { DB.data.chantiers = DB.data.chantiers.filter(x => x.id !== b.dataset.del); DB.save(); toast('Chantier supprimé'); renderChantiers(v); }));
+  $$('[data-del]', v).forEach(b => b.onclick = () => confirmDelete('le chantier', (chantierById(b.dataset.del) || {}).nom, () => { DB.data.chantiers = DB.data.chantiers.filter(x => x.id !== b.dataset.del); DB.save(); toast('Chantier supprimé'); renderChantiers(v); }));
 }
 /* Préparation de chantier : simple journal de notes, chaque note datée à la saisie (plus récente en haut). */
 const prepaNotes = c => Array.isArray(c.prepaNotes) ? c.prepaNotes : [];
@@ -3204,7 +3273,7 @@ function prepaModal(id) {
       <div style="margin:8px 0 16px"><button class="btn primary" id="pp-add">${icon('plus')} Ajouter (datée d'aujourd'hui)</button></div>
       <div class="card-title">Historique</div><div id="pp-list">${liste()}</div>`,
     footer: `<button class="btn" id="pp-print">${icon('file')} Imprimer</button><span class="spacer"></span><button class="btn" data-c>Fermer</button>` });
-  const maj = () => { $('#pp-list').innerHTML = liste(); $$('[data-prm]', m.root).forEach(b => b.onclick = () => confirmDialog('Supprimer cette note ?', () => { c.prepaNotes = prepaNotes(c).filter(n => n.id !== b.dataset.prm); DB.save(); maj(); })); };
+  const maj = () => { $('#pp-list').innerHTML = liste(); $$('[data-prm]', m.root).forEach(b => b.onclick = () => { const nt = prepaNotes(c).find(n => n.id === b.dataset.prm); confirmDelete('la note' + (nt ? ' du ' + fmtDateHeure(nt.date) : ''), '', () => { c.prepaNotes = prepaNotes(c).filter(n => n.id !== b.dataset.prm); DB.save(); maj(); }); }); };
   $('#pp-add').onclick = () => {
     const t = $('#pp-txt').value.trim(); if (!t) { toast('Écrivez une note', 'err'); return; }
     c.prepaNotes = [{ id: uid(), date: new Date().toISOString(), texte: t }, ...prepaNotes(c)];
@@ -4008,7 +4077,7 @@ function renderDevis(v) {
   $$('[data-relance]', v).forEach(b => b.onclick = () => relanceDevis(b.dataset.relance));
   $$('[data-tochantier]', v).forEach(b => b.onclick = () => openForm('chantiers/nouveau?devis=' + encodeURIComponent(b.dataset.tochantier), b));
   $$('[data-edit]', v).forEach(b => b.onclick = () => openForm('devis/' + b.dataset.edit, b));
-  $$('[data-del]', v).forEach(b => b.onclick = () => confirmDialog('Supprimer ce devis ?', () => { DB.data.devis = DB.data.devis.filter(x => x.id !== b.dataset.del); DB.save(); toast('Devis supprimé'); renderDevis(v); }));
+  $$('[data-del]', v).forEach(b => b.onclick = () => { const dv = DB.data.devis.find(x => x.id === b.dataset.del) || {}; confirmDelete('le devis', [dv.ref, dv.objet].filter(Boolean).join(' — '), () => { DB.data.devis = DB.data.devis.filter(x => x.id !== b.dataset.del); DB.save(); toast('Devis supprimé'); renderDevis(v); }); });
 }
 function tauxAccept() { const d = DB.data.devis.filter(x => ['accepte', 'refuse'].includes(x.statut)); return d.length ? Math.round(d.filter(x => x.statut === 'accepte').length / d.length * 100) : 0; }
 // Les champs d'une ligne sont nommés par leur colonne et le n° du poste (aria-label, mis à jour par majPostes)
@@ -4231,12 +4300,12 @@ function renderCA(v) {
   $('#fyear').onchange = e => { caYear = +e.target.value; syncPeriode('ca'); renderCA(v); };
   $('#csv').onclick = () => exportXlsx(`CA_${MOIS[caMonth]}_${caYear}`, ['otp', 'chantier', 'montant_ht'], rows.map(r => [r.otp, r.chantier, r.prixVente]), { sheet: `CA ${MOIS[caMonth]} ${caYear}`, money: ['montant_ht'] });
   $$('[data-edit]', v).forEach(b => b.onclick = () => caForm(b.dataset.edit));
-  $$('[data-del]', v).forEach(b => b.onclick = () => confirmDialog('Supprimer cette ligne ?', () => {
+  $$('[data-del]', v).forEach(b => b.onclick = () => { const ln = DB.data.ca.find(x => x.id === b.dataset.del) || {}; confirmDelete('la ligne de CA', [ln.otp, ln.chantier].filter(Boolean).join(' — '), () => {
     const id = b.dataset.del;
     DB.data.ca = DB.data.ca.filter(x => x.id !== id);
     // la facture « à émettre » créée avec cette ligne n'a plus lieu d'être
     DB.data.factures = DB.data.factures.filter(f => !(f.sourceCaId === id && f.statut === 'a_emettre'));
-    DB.save(); toast('Ligne supprimée'); renderCA(v); }));
+    DB.save(); toast('Ligne supprimée'); renderCA(v); }, "Sa facture « à émettre » éventuelle est aussi supprimée."); });
 }
 function yearsRange() { const cur = new Date().getFullYear(); return [...new Set([cur, cur - 1, cur + 1, ...DB.data.ca.map(r => r.annee)])].sort(); }
 function caForm(id) {
@@ -4403,7 +4472,7 @@ function renderBTE(v) {
   $$('[data-todevis]', v).forEach(btn => btn.onclick = () => { const b = DB.data.bte.find(x => x.id === btn.dataset.todevis); if (b) bteVersDevis(b); });
   $$('[data-dup]', v).forEach(btn => btn.onclick = () => { const b = DB.data.bte.find(x => x.id === btn.dataset.dup); if (b) bteDupliquer(b); });
   $$('[data-open]', v).forEach(b => b.onclick = () => bteEditor(b.dataset.open));
-  $$('[data-del]', v).forEach(b => b.onclick = () => confirmDialog('Supprimer ce BTE ?', () => { DB.data.bte = DB.data.bte.filter(x => x.id !== b.dataset.del); DB.save(); toast('BTE supprimé'); renderBTE(v); }));
+  $$('[data-del]', v).forEach(b => b.onclick = () => confirmDelete('le BTE', (DB.data.bte.find(x => x.id === b.dataset.del) || {}).nom, () => { DB.data.bte = DB.data.bte.filter(x => x.id !== b.dataset.del); DB.save(); toast('BTE supprimé'); renderBTE(v); }));
 }
 /* Dupliquer un BTE : copie complète (lignes, postes, marge, équipe), repassée « en étude »
    et datée du jour. Les postes reçoivent de nouveaux identifiants, les lignes suivent. */
@@ -5015,7 +5084,7 @@ function cadBindEtudes() {
       footer: `<button class="btn" data-c>Fermer</button>` });
     m.root.querySelector('[data-c]').onclick = m.close;
     $$('[data-e-open]', m.root).forEach(b => b.onclick = () => { const x = list.find(y => y.id === b.dataset.eOpen); cadAppliquerEtat(x.etat); cadSauverCourant(); m.close(); renderCadences($('#view')); toast('Étude « ' + x.nom + ' » ouverte'); });
-    $$('[data-e-del]', m.root).forEach(b => b.onclick = () => { DB.data.cadEtudes = list.filter(y => y.id !== b.dataset.eDel); DB.save(); m.close(); toast('Étude supprimée'); renderCadences($('#view')); });
+    $$('[data-e-del]', m.root).forEach(b => b.onclick = () => confirmDelete("l'étude", (list.find(y => y.id === b.dataset.eDel) || {}).nom, () => { DB.data.cadEtudes = list.filter(y => y.id !== b.dataset.eDel); DB.save(); m.close(); toast('Étude supprimée'); renderCadences($('#view')); }));
   };
 }
 
@@ -5134,7 +5203,7 @@ function cadRefreshCat() {
           <td style="white-space:normal;min-width:240px"><span class="t-strong">${esc(o[CAD_I.DES])}</span><br><span class="t-muted" style="font-size:11.5px">${esc(cadFamille(o))}${o[CAD_I.SUP] ? ' · ' + esc(o[CAD_I.SUP]) : ''}${cadModifie(r) ? ' · <b>modifié</b>' : ''}${cadPerso(r) ? ' · <b>ajouté</b>' : ''}</span>${cadDescHtml(o, true)}</td>
           <td>${esc(o[CAD_I.U])}</td><td class="num">${cadNum3(o[CAD_I.H])} h</td><td class="num">${o[CAD_I.H] ? num(hj / o[CAD_I.H]) + ' ' + esc(o[CAD_I.U]) + '/j' : '—'}</td>
           <td class="num">${compo.length ? eur2(fu) + '/' + esc(o[CAD_I.U]) + (cadFourn(r, 1).some(l => l.sansPrix) ? '<br><span class="chip">prix à compléter</span>' : '') : '<span class="t-muted">—</span>'}</td>
-          <td class="num" style="white-space:nowrap"><button class="icon-btn" data-edit="${esc(r)}" title="Modifier temps / composition">${icon('edit')}</button>${retenu ? '<span class="chip">retenu</span>' : `<button class="btn small" data-add="${esc(r)}">${icon('plus')}</button>`}</td></tr>`;
+          <td class="num" style="white-space:nowrap"><button class="icon-btn" data-edit="${esc(r)}" title="Modifier temps / composition">${icon('edit')}</button>${retenu ? '<span class="chip">retenu</span>' : `<button class="btn small" data-add="${esc(r)}" aria-label="Ajouter ${esc(r)} au chiffrage" data-tip="Ajouter ${esc(r)} au chiffrage">${icon('plus')}</button>`}</td></tr>`;
       }).join('')}</tbody></table></div>
     <p class="t-muted" style="margin:8px 0 0;font-size:12px">${list.length} ouvrage(s) trouvé(s)${list.length > CAD_MAX_LISTE ? ` — ${CAD_MAX_LISTE} affichés, affinez la recherche.` : ''}</p>`;
 }
@@ -5343,8 +5412,8 @@ function cadOuvrageForm(ref, onSave) {
   m.root.querySelector('[data-c]').onclick = m.close;
   const fini = msg => { cadInvalider(); DB.save(); m.close(); toast(msg); if (onSave) onSave(); };
   if ($('#o-reset')) $('#o-reset').onclick = () => { delete DB.data.cadBase.ouv[ref]; fini('Ouvrage remis aux valeurs du référentiel'); };
-  if ($('#o-del')) $('#o-del').onclick = () => confirmDialog('Supprimer cet ouvrage de votre base ?', () => {
-    DB.data.cadBase.perso = DB.data.cadBase.perso.filter(p => p.ref !== ref); CAD.lignes = CAD.lignes.filter(l => l.ref !== ref); fini('Ouvrage supprimé'); });
+  if ($('#o-del')) $('#o-del').onclick = () => confirmDelete("l'ouvrage", ref + (d.des ? ' — ' + d.des : ''), () => {
+    DB.data.cadBase.perso = DB.data.cadBase.perso.filter(p => p.ref !== ref); CAD.lignes = CAD.lignes.filter(l => l.ref !== ref); fini('Ouvrage supprimé'); }, 'Il est retiré de votre base et de l’étude en cours.');
   $('#o-save').onclick = () => {
     const h = +$('#o-h').value || 0, c = lire();
     if (base) {
@@ -5398,7 +5467,7 @@ function cadVueMateriaux(v) {
     $$('[data-mdel]', $('#m-list')).forEach(b => b.onclick = () => {
       const r = b.dataset.mdel, usages = cadTous().filter(o => cadCompo(o[CAD_I.REF]).some(k => k[0] === r)).map(o => o[CAD_I.REF]);
       if (usages.length) { toast('Matériau utilisé dans : ' + usages.join(', '), 'err'); return; }
-      confirmDialog('Supprimer ce matériau ?', () => { DB.data.materiaux = DB.data.materiaux.filter(x => x.ref !== r); delete DB.data.ikoPrix[r]; DB.save(); toast('Matériau supprimé'); refresh(); });
+      confirmDelete('le matériau', r + ((DB.data.materiaux.find(x => x.ref === r) || {}).des ? ' — ' + DB.data.materiaux.find(x => x.ref === r).des : ''), () => { DB.data.materiaux = DB.data.materiaux.filter(x => x.ref !== r); delete DB.data.ikoPrix[r]; DB.save(); toast('Matériau supprimé'); refresh(); });
     });
   };
   v.querySelector('[data-m="fam"]').onchange = e => { CAD.m.fam = e.target.value; refresh(); };
@@ -5491,7 +5560,7 @@ function renderClients(v) {
       : emptyState('users', 'Aucun client', 'Ajoutez vos clients et interlocuteurs.')}`;
   $('#add').onclick = e => openForm('clients/nouveau', e.currentTarget);
   $$('[data-edit]', v).forEach(b => b.onclick = () => openForm('clients/' + b.dataset.edit, b));
-  $$('[data-del]', v).forEach(b => b.onclick = () => confirmDialog('Supprimer ce client ?', () => { DB.data.clients = DB.data.clients.filter(x => x.id !== b.dataset.del); DB.save(); toast('Client supprimé'); renderClients(v); }));
+  $$('[data-del]', v).forEach(b => b.onclick = () => confirmDelete('le client', (DB.data.clients.find(x => x.id === b.dataset.del) || {}).nom, () => { DB.data.clients = DB.data.clients.filter(x => x.id !== b.dataset.del); DB.save(); toast('Client supprimé'); renderClients(v); }));
 }
 function clientForm(v, id) {
   const ex = id ? DB.data.clients.find(x => x.id === id) : null;
@@ -5562,7 +5631,7 @@ function renderProspection(v) {
   $('#fs').onchange = e => { prospFilter.statut = e.target.value; renderProspection(v); };
   $('#csv').onclick = () => exportXlsx('prospection', ['date', 'nom', 'ville', 'canal', 'objet', 'potentiel', 'prochaine', 'statut'], list.map(p => [p.date, p.nom, p.ville, CANAUX[p.canal], p.objet, p.potentiel, p.prochaine, STATUTS_PROSP[p.statut]]), { sheet: 'Prospection', money: ['potentiel'] });
   $$('[data-edit]', v).forEach(b => b.onclick = () => prospForm(b.dataset.edit));
-  $$('[data-del]', v).forEach(b => b.onclick = () => confirmDialog('Supprimer ce contact ?', () => { DB.data.prospection = DB.data.prospection.filter(x => x.id !== b.dataset.del); DB.save(); toast('Contact supprimé'); renderProspection(v); }));
+  $$('[data-del]', v).forEach(b => b.onclick = () => confirmDelete('le contact', (DB.data.prospection.find(x => x.id === b.dataset.del) || {}).nom, () => { DB.data.prospection = DB.data.prospection.filter(x => x.id !== b.dataset.del); DB.save(); toast('Contact supprimé'); renderProspection(v); }));
 }
 function prospForm(id) {
   const p = id ? DB.data.prospection.find(x => x.id === id) : { date: todayISO(), nom: '', ville: '', canal: 'rdv_nouveau', objet: '', statut: 'planifie', potentiel: 0, prochaine: '', note: '' };
@@ -5646,7 +5715,7 @@ function renderFactures(v) {
   $('#csv').onclick = () => exportXlsx('factures', ['num', 'otp', 'client', 'objet', 'dateFG', 'dateEmission', 'echeance', 'montantHT', 'statut'], list.map(f => [f.num, f.otp, f.client, f.objet, f.dateFG, f.dateEmission, factureEcheance(f), f.montantHT, STATUTS_FACT[f.statut]]), { sheet: 'Factures', money: ['montantHT'] });
   $$('[data-edit]', v).forEach(b => b.onclick = () => openForm('factures/' + b.dataset.edit, b));
   $$('[data-pay]', v).forEach(b => b.onclick = () => { const f = DB.data.factures.find(x => x.id === b.dataset.pay); f.statut = 'payee'; f.datePaiement = todayISO(); if (!f.dateEmission) f.dateEmission = todayISO(); DB.save(); toast('Facture réglée'); renderFactures(v); });
-  $$('[data-del]', v).forEach(b => b.onclick = () => confirmDialog('Supprimer cette facture ?', () => { DB.data.factures = DB.data.factures.filter(x => x.id !== b.dataset.del); DB.save(); toast('Facture supprimée'); renderFactures(v); }));
+  $$('[data-del]', v).forEach(b => b.onclick = () => { const fa = DB.data.factures.find(x => x.id === b.dataset.del) || {}; confirmDelete('la facture', fa.num || fa.objet, () => { DB.data.factures = DB.data.factures.filter(x => x.id !== b.dataset.del); DB.save(); toast('Facture supprimée'); renderFactures(v); }); });
 }
 function factForm(v, id) {
   const ex = id ? DB.data.factures.find(x => x.id === id) : null;
@@ -5730,13 +5799,13 @@ function renderEntretien(v) {
     $('#add-c').onclick = () => contratForm();
     $$('[data-edit]', v).forEach(b => b.onclick = () => contratForm(b.dataset.edit));
     $$('[data-plan]', v).forEach(b => b.onclick = () => visiteForm(null, b.dataset.plan));
-    $$('[data-del]', v).forEach(b => b.onclick = () => confirmDialog('Supprimer ce contrat ?', () => { DB.data.contrats = DB.data.contrats.filter(x => x.id !== b.dataset.del); DB.data.visites = DB.data.visites.filter(x => x.contratId !== b.dataset.del); DB.save(); toast('Contrat supprimé'); renderEntretien(v); }));
+    $$('[data-del]', v).forEach(b => b.onclick = () => { const ct = DB.data.contrats.find(x => x.id === b.dataset.del) || {}, nv = DB.data.visites.filter(x => x.contratId === ct.id).length; confirmDelete('le contrat', [ct.ref, ct.nom].filter(Boolean).join(' — '), () => { DB.data.contrats = DB.data.contrats.filter(x => x.id !== b.dataset.del); DB.data.visites = DB.data.visites.filter(x => x.contratId !== b.dataset.del); DB.save(); toast('Contrat supprimé'); renderEntretien(v); }, nv ? `Ses ${nv} visite(s) seront aussi supprimées.` : ''); });
   } else {
     $('#add-v').onclick = () => visiteForm();
     $$('[data-editv]', v).forEach(b => b.onclick = () => visiteForm(b.dataset.editv));
     $$('[data-done]', v).forEach(b => b.onclick = () => { const vz = DB.data.visites.find(x => x.id === b.dataset.done); vz.statut = 'realisee'; if (!vz.dateRealisee) vz.dateRealisee = todayISO(); DB.save(); toast('Visite réalisée'); renderEntretien(v); });
     $$('[data-rap]', v).forEach(b => b.onclick = () => { const vz = DB.data.visites.find(x => x.id === b.dataset.rap); vz.rapportDate = todayISO(); DB.save(); toast('Rapport transmis'); renderEntretien(v); });
-    $$('[data-delv]', v).forEach(b => b.onclick = () => confirmDialog('Supprimer cette visite ?', () => { DB.data.visites = DB.data.visites.filter(x => x.id !== b.dataset.delv); DB.save(); toast('Visite supprimée'); renderEntretien(v); }));
+    $$('[data-delv]', v).forEach(b => b.onclick = () => { const vz = DB.data.visites.find(x => x.id === b.dataset.delv) || {}, ct = DB.data.contrats.find(x => x.id === vz.contratId) || {}; confirmDelete('la visite' + (vz.datePrevue ? ' du ' + fmtDate(vz.datePrevue) : ''), ct.nom || ct.ref, () => { DB.data.visites = DB.data.visites.filter(x => x.id !== b.dataset.delv); DB.save(); toast('Visite supprimée'); renderEntretien(v); }); });
   }
 }
 function contratForm(id) {
@@ -5889,7 +5958,7 @@ function renderMarches(v) {
     $$('[data-print]', v).forEach(b => b.onclick = () => imprimerBc(DB.data.bcs.find(x => x.id === b.dataset.print)));
     $$('[data-done]', v).forEach(b => b.onclick = () => { const bc = DB.data.bcs.find(x => x.id === b.dataset.done); bc.statut = 'realise'; if (!bc.dateIntervention) bc.dateIntervention = todayISO(); DB.save(); toast('BC réalisé — pensez à le facturer'); renderMarches(v); });
     $$('[data-fact]', v).forEach(b => b.onclick = () => { const bc = DB.data.bcs.find(x => x.id === b.dataset.fact); if (facturerBc(bc)) { DB.save(); toast('Facture créée (à émettre) — voir Facturation'); } renderMarches(v); });
-    $$('[data-del]', v).forEach(b => b.onclick = () => confirmDialog('Supprimer ce bon de commande ? (sa facture éventuelle est conservée)', () => { DB.data.bcs = DB.data.bcs.filter(x => x.id !== b.dataset.del); DB.save(); toast('BC supprimé'); renderMarches(v); }));
+    $$('[data-del]', v).forEach(b => b.onclick = () => { const bc = DB.data.bcs.find(x => x.id === b.dataset.del) || {}; confirmDelete('le bon de commande', [bc.num, bc.residence].filter(Boolean).join(' — '), () => { DB.data.bcs = DB.data.bcs.filter(x => x.id !== b.dataset.del); DB.save(); toast('BC supprimé'); renderMarches(v); }, 'Sa facture éventuelle est conservée.'); });
   } else {
     $('#add-m').onclick = () => marcheForm();
     $$('[data-editm]', v).forEach(b => b.onclick = () => marcheForm(b.dataset.editm));
@@ -5897,7 +5966,7 @@ function renderMarches(v) {
     $$('[data-delm]', v).forEach(b => {
       const n = DB.data.bcs.filter(x => x.marcheId === b.dataset.delm).length;
       b.onclick = () => n ? toast(`Ce marché a ${n} BC : supprimez-les d'abord`, 'err')
-        : confirmDialog('Supprimer ce marché et son BPU ?', () => { DB.data.marches = DB.data.marches.filter(x => x.id !== b.dataset.delm); DB.save(); toast('Marché supprimé'); renderMarches(v); });
+        : confirmDelete('le marché', (mc => [mc.ref, mc.intitule].filter(Boolean).join(' — '))(DB.data.marches.find(x => x.id === b.dataset.delm) || {}), () => { DB.data.marches = DB.data.marches.filter(x => x.id !== b.dataset.delm); DB.save(); toast('Marché supprimé'); renderMarches(v); }, 'Son BPU est aussi supprimé.');
     });
   }
 }
@@ -6164,7 +6233,7 @@ function renderPointages(v) {
       const r = DB.data.pointages.find(x => x.id === tr.dataset.id);
       tr.querySelectorAll('.ts-h').forEach(inp => inp.oninput = () => { r.h[+inp.dataset.i] = +inp.value || 0; DB.save(); refreshTot(); });
       tr.querySelectorAll('.ts-f').forEach(f => f.onchange = () => { const k = f.dataset.k; r[k] = (k === 'panier' || k === 'trajet') ? (+f.value || 0) : f.value; if (k === 'otp') { const c = DB.data.chantiers.find(x => x.otp === f.value); r.chantierNom = c ? c.nom : ''; } DB.save(); });
-      tr.querySelector('[data-del]').onclick = () => { DB.data.pointages = DB.data.pointages.filter(x => x.id !== r.id); DB.save(); renderPointages(v); };
+      tr.querySelector('[data-del]').onclick = () => confirmDelete('la ligne de pointage', r.chantierNom || r.otp || 'sans imputation', () => { DB.data.pointages = DB.data.pointages.filter(x => x.id !== r.id); DB.save(); toast('Ligne de pointage supprimée'); renderPointages(v); }, `${worker.nom}, semaine ${planWeek}.`);
     });
   };
   const refreshTot = () => {
@@ -6333,7 +6402,7 @@ function agendaForm(id, presetDate, preset = {}) {
   $('#a-ch').onchange = () => { const c = chantierById($('#a-ch').value); if (!c) return;
     const t = $('#a-title'); if (!t.value.trim() || t.value.trim() === chNom) t.value = c.nom; // on ne remplace pas un intitulé saisi à la main
     $('#a-otp').value = c.otp || ''; chNom = c.nom; };
-  if (id) $('#a-del').onclick = () => { DB.data.agenda = DB.data.agenda.filter(x => x.id !== id); DB.data.pointages = DB.data.pointages.filter(r => r.agendaId !== id); DB.save(); m.close(); toast('Événement supprimé'); renderPlanning($('#view')); };
+  if (id) $('#a-del').onclick = () => confirmDelete("l'événement", a.title, () => { DB.data.agenda = DB.data.agenda.filter(x => x.id !== id); DB.data.pointages = DB.data.pointages.filter(r => r.agendaId !== id); DB.save(); m.close(); toast('Événement supprimé'); renderPlanning($('#view')); }, 'Les heures imputées depuis cet événement sont aussi supprimées.');
   const collectCompanions = () => {
     const checked = $$('.a-comp', m.root).filter(c => c.checked).map(c => c.value);
     const extra = ($('#a-compextra').value || '').split(',').map(s => s.trim()).filter(Boolean);
@@ -6420,7 +6489,7 @@ function renderAchats(v) {
   $('#csv').onclick = () => exportXlsx('achats', ['num', 'date', 'otp', 'fournisseur', 'objet', 'statut', 'reception', 'montantHT'], list.map(c => [c.num, c.date, c.otp, c.fournisseur, c.objet, STATUTS_CMD[c.statut], c.dateReception, c.montantHT]), { sheet: 'Achats', money: ['montantHT'] });
   $$('[data-edit]', v).forEach(b => b.onclick = () => achatForm(b.dataset.edit));
   $$('[data-recv]', v).forEach(b => b.onclick = () => { const c = DB.data.commandes.find(x => x.id === b.dataset.recv); c.dateReception = todayISO(); if (c.statut === 'commande') c.statut = 'livree'; DB.save(); toast('Commande réceptionnée'); renderAchats(v); });
-  $$('[data-del]', v).forEach(b => b.onclick = () => confirmDialog('Supprimer cette commande ?', () => { DB.data.commandes = DB.data.commandes.filter(x => x.id !== b.dataset.del); DB.save(); toast('Commande supprimée'); renderAchats(v); }));
+  $$('[data-del]', v).forEach(b => b.onclick = () => { const cm = DB.data.commandes.find(x => x.id === b.dataset.del) || {}; confirmDelete('la commande', [cm.num, cm.fournisseur].filter(Boolean).join(' — '), () => { DB.data.commandes = DB.data.commandes.filter(x => x.id !== b.dataset.del); DB.save(); toast('Commande supprimée'); renderAchats(v); }); });
 }
 function receptionPicker() {
   const cand = DB.data.commandes.filter(c => !c.dateReception).sort((a, b) => (a.date || '').localeCompare(b.date || ''));
@@ -7586,7 +7655,7 @@ function renderDocs(v) {
   $('#add').onclick = () => dossierForm();
   $$('[data-open]', v).forEach(b => b.onclick = () => ouvrirAssistant(b.dataset.open, b.dataset.doc || 'commun'));
   $$('[data-edit]', v).forEach(b => b.onclick = e => { e.stopPropagation(); dossierForm(b.dataset.edit); });
-  $$('[data-del]', v).forEach(b => b.onclick = e => { e.stopPropagation(); confirmDialog('Supprimer ce dossier et tous ses documents ?', () => { DB.data.dossiers = DB.data.dossiers.filter(x => x.id !== b.dataset.del); DB.save(); toast('Dossier supprimé'); renderDocs(v); }); });
+  $$('[data-del]', v).forEach(b => b.onclick = e => { e.stopPropagation(); confirmDelete('le dossier', (DB.data.dossiers.find(x => x.id === b.dataset.del) || {}).nom, () => { DB.data.dossiers = DB.data.dossiers.filter(x => x.id !== b.dataset.del); DB.save(); toast('Dossier supprimé'); renderDocs(v); }, 'Tous ses documents sont aussi supprimés.'); });
   $$('[data-prev]', v).forEach(b => b.onclick = e => { e.stopPropagation(); apercuDoc(b.dataset.prev, b.dataset.doc); });
 }
 function carteDossier(d) {

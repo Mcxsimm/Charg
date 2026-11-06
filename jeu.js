@@ -1459,7 +1459,7 @@
   function actif() { return typeof UI !== 'undefined' && UI.prefs.game === 'on'; }
   function majBouton() {
     const b = document.getElementById('game-btn');
-    if (b) { b.classList.toggle('on', actif()); b.setAttribute('aria-pressed', actif() ? 'true' : 'false'); b.title = actif() ? 'Mode carte activé — cliquer pour revenir au mode classique' : 'Activer le mode carte (vue 3D de l’agence)'; }
+    if (b) { b.classList.toggle('on', actif()); b.setAttribute('aria-pressed', actif() ? 'true' : 'false'); const l = actif() ? 'Quitter le mode carte (revenir au mode classique)' : 'Activer le mode carte (vue 3D de l’agence)'; b.removeAttribute('title'); b.setAttribute('aria-label', l); b.dataset.tip = l; }
     fab();
   }
 
