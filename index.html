@@ -377,6 +377,51 @@ input[type=checkbox],input[type=radio]{accent-color:var(--brand-2)}
 .modal-body{padding:20px 22px;max-height:72vh;overflow:auto}
 .modal-foot{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;padding:14px 22px;border-top:1px solid var(--border);background:var(--surface-2);border-radius:0 0 16px 16px}
 
+/* ===================== Écran étroit (narrow : max-width 767.98px) =========
+   Jetons de largeur : narrow 375 / medium 768 / wide 1280. */
+#more-btn{display:none}
+@media(max-width:767.98px){
+  /* Barre du haut : export, import, mode carte et largeur passent dans le menu « ⋯ » */
+  #btn-export,#btn-import,#game-btn,#width-btn{display:none}
+  #more-btn{display:inline-flex}
+  .top-actions{flex:0 1 auto;min-width:0}
+  .more-menu{width:min(300px,calc(100vw - 32px))}
+  /* Cibles tactiles ≥ 44 × 44 px (profil WCAG 2.1 AA) */
+  .btn,.btn.small,.btn.sm,.profile-btn,.nav-item,.menu-item,.pill-tabs button,.todo-addbtn,.todo-addfolder,
+  input:not([type=checkbox]):not([type=radio]):not([type=range]),select{min-height:44px}
+  .icon-btn,#menu-toggle,#topbar .btn.icon,#topbar .btn.ghost,.todo-status,.todo-wait,.todo-due.add{min-width:44px;min-height:44px;justify-content:center;align-items:center}
+  #menu-toggle{display:inline-flex}
+  #topbar .brand{min-height:44px;min-width:44px}
+  input[type=checkbox],input[type=radio]{width:20px;height:20px}
+  .todo-toggle{width:24px;height:24px}
+  #view .todo-status,#view .todo-wait,#view .todo-due.add,#view .todo-showdone{min-height:44px}
+  #view .todo-folder-addbtn{min-width:44px}
+  /* Case à cocher des tâches : zone de 44 px sans décaler la ligne (marges négatives) */
+  #view .todo-item>.todo-check{min-width:44px;min-height:44px;justify-content:center;align-items:center;margin:-6px -10px -10px}
+  /* Devis, chantiers, factures : une carte par ligne (réf., objet, client, statut, montant, actions) */
+  .table-wrap:has(> .tbl-cards){overflow:visible;border:0;background:none;box-shadow:none;border-radius:0}
+  .tbl-cards,.tbl-cards tbody,.tbl-cards tfoot{display:block;width:auto!important;min-width:0!important}
+  .tbl-cards colgroup,.tbl-cards thead{display:none}
+  .tbl-cards tbody tr{display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"ref statut" "objet objet" "client montant" "act act";
+    gap:4px 16px;align-items:center;padding:16px 16px 8px;margin-bottom:8px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius)}
+  .tbl-cards tbody tr:hover{background:var(--surface)}
+  .tbl-cards tbody tr:hover>td{background:none}
+  /* Boutons de la fenêtre (réduire / agrandir / fermer) : sur leur ligne, au-dessus des cartes */
+  .win-float:has(.tbl-cards):not(.win-max):not(.win-min)>.win-ctl{position:static;display:flex;width:max-content;margin:0 0 8px auto;opacity:1}
+  .tbl-cards td{display:none;padding:0!important;border:0!important;width:auto!important;max-width:none!important;white-space:normal}
+  .tbl-cards td[data-c]{display:block}
+  .tbl-cards td[data-c=ref]{grid-area:ref;font-size:14px}
+  .tbl-cards td[data-c=statut]{grid-area:statut;justify-self:end}
+  .tbl-cards td[data-c=objet]{grid-area:objet;font-size:14px;color:var(--text)}
+  .tbl-cards td[data-c=client]{grid-area:client;font-size:14px;color:var(--text-2)}
+  .tbl-cards td[data-c=montant]{grid-area:montant;justify-self:end;font-weight:600;font-variant-numeric:tabular-nums;font-size:14px}
+  .tbl-cards td[data-c=act]{grid-area:act;display:flex;justify-content:flex-end;gap:4px;margin-top:4px;padding-top:4px!important;border-top:1px solid var(--border)!important}
+  .tbl-cards td[data-c=act] .icon-btn{opacity:1}
+  .tbl-cards .col-rsz{display:none}
+  .tbl-cards tfoot tr{display:flex;justify-content:space-between;align-items:center;padding:16px;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface-2);font-weight:600}
+  .tbl-cards tfoot td[data-c]{display:block}
+}
+
 /* ===================== Formulaire en page (route #module/nouveau) =======
    Saisie longue (≥ 10 s, plusieurs champs) : une page avec sa propre URL,
    colonne étroite, libellés au-dessus des champs, Annuler / Enregistrer collants. */
@@ -397,11 +442,10 @@ input[type=checkbox],input[type=radio]{accent-color:var(--brand-2)}
   padding:12px 0 calc(12px + env(safe-area-inset-bottom));background:var(--bg);border-top:1px solid var(--border)}
 .field-err{margin:0;font-size:12px;line-height:1.4;color:var(--neg)}
 .form-page .field .hint{margin:0}
-/* Infobulle des boutons icône : au survol et au focus clavier (le title natif ne s'affiche pas au focus) */
-.tip{position:relative}
-.tip::after{content:attr(data-tip);position:absolute;right:0;bottom:calc(100% + 4px);z-index:6;white-space:nowrap;pointer-events:none;
-  padding:4px 8px;border-radius:6px;background:var(--text);color:var(--surface);font-size:12px;font-weight:500;line-height:1.4;opacity:0;transition:opacity .12s}
-.tip:hover::after,.tip:focus-visible::after{opacity:1}
+/* Infobulle commune des boutons icône (survol + focus clavier), voir showTip() */
+.tip-pop{position:fixed;z-index:90;max-width:240px;padding:4px 8px;border-radius:6px;background:var(--text);color:var(--surface);
+  font-size:12px;font-weight:500;line-height:1.4;pointer-events:none;box-shadow:var(--shadow-sm)}
+.tip-pop[hidden]{display:none}
 .field.has-err .hint{display:none} /* l'erreur remplace l'aide, elle ne s'empile pas */
 .field.has-err input,.field.has-err select,.field.has-err textarea{border-color:var(--neg)}
 .field.has-err input:focus,.field.has-err select:focus,.field.has-err textarea:focus{border-color:var(--neg);box-shadow:0 0 0 3px color-mix(in srgb,var(--neg) 20%,transparent)}
@@ -1349,7 +1393,7 @@ html:not([data-density="compact"]) .pil-rec-item{padding:9px 4px}
 
     <main id="main">
       <header id="topbar">
-        <button id="menu-toggle" aria-label="Menu"></button>
+        <button id="menu-toggle" aria-label="Ouvrir le menu" title="Ouvrir le menu"></button>
         <button class="brand" id="brand-home" title="Tableau de bord">
           <span class="logo-mark" aria-hidden="true">CP</span>
           <span class="logo-text">ChargéPro</span>
@@ -1362,7 +1406,8 @@ html:not([data-density="compact"]) .pil-rec-item{padding:9px 4px}
           <button id="btn-import" class="btn ghost" title="Importer une sauvegarde">Restaurer</button>
           <input type="file" id="import-file" accept="application/json" hidden>
           <button id="game-btn" class="btn ghost" aria-pressed="false" title="Activer le mode carte (vue 3D de l’agence)"></button>
-          <button id="theme-btn" class="btn ghost icon" aria-label="Changer de thème" title="Thème clair / sombre"></button>
+          <button id="theme-btn" class="btn ghost icon" aria-label="Changer de thème" title="Changer de thème"></button>
+          <button id="more-btn" class="btn ghost icon" aria-label="Plus d'actions" title="Plus d'actions" aria-haspopup="menu" aria-expanded="false" aria-controls="menu-root"></button>
           <button id="profile-btn" class="profile-btn"></button>
         </div>
       </header>
@@ -1430,6 +1475,7 @@ const ICONS = {
   clock: '<circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15.5 14"/>',
   users: '<path d="M17 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9.5" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16.5 3.13a4 4 0 0 1 0 7.75"/>',
   plus: '<line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>',
+  more: '<circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/>',
   edit: '<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4z"/>',
   trash: '<polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>',
   download: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>',
@@ -2338,6 +2384,71 @@ function toggleProfileMenu() {
 }
 function afterProfileChange() { renderProfileButton(); go(current); }
 
+/* Menu « ⋯ » de la barre du haut (écran étroit) : sauvegarde, restauration, mode carte, largeur.
+   Clavier : Entrée/Espace ouvre, ↑ ↓ Début Fin naviguent, Échap ferme et rend le focus au bouton. */
+function toggleMoreMenu() {
+  const root = $('#menu-root'), btn = $('#more-btn');
+  if (root.innerHTML) { root.innerHTML = ''; btn.setAttribute('aria-expanded', 'false'); return; }
+  const jeuOn = $('#game-btn').getAttribute('aria-pressed') === 'true';
+  const items = [
+    { k: 'export', ico: 'download', t: 'Sauvegarder les données', run: () => exportAll() },
+    { k: 'import', ico: 'upload', t: 'Restaurer une sauvegarde', run: () => $('#import-file').click() },
+    { k: 'jeu', ico: 'gamepad', t: jeuOn ? 'Quitter le mode carte' : 'Activer le mode carte (vue 3D)', run: () => $('#game-btn').click() },
+    { k: 'width', ico: 'widthIc', t: `Changer la largeur d'affichage (${UI_WIDTHS[UI.prefs.width]})`, run: () => UI.cycleWidth() },
+  ];
+  root.innerHTML = `<div class="menu more-menu" role="menu" aria-label="Plus d'actions">${items.map(i => `<button type="button" class="menu-item" role="menuitem" tabindex="-1" data-more="${i.k}">${icon(i.ico)}<span>${esc(i.t)}</span></button>`).join('')}</div>`;
+  btn.setAttribute('aria-expanded', 'true');
+  const menu = root.firstElementChild, its = $$('[role=menuitem]', menu);
+  const close = (refocus = true) => { if (!root.innerHTML) return; root.innerHTML = ''; btn.setAttribute('aria-expanded', 'false'); document.removeEventListener('click', outside, true); if (refocus) btn.focus(); };
+  const outside = e => { if (!root.contains(e.target) && !btn.contains(e.target)) close(false); };
+  its.forEach((b, i) => b.onclick = () => { close(); items[i].run(); });
+  menu.addEventListener('keydown', e => {
+    const i = its.indexOf(document.activeElement);
+    if (e.key === 'ArrowDown') { e.preventDefault(); its[(i + 1) % its.length].focus(); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); its[(i - 1 + its.length) % its.length].focus(); }
+    else if (e.key === 'Home') { e.preventDefault(); its[0].focus(); }
+    else if (e.key === 'End') { e.preventDefault(); its[its.length - 1].focus(); }
+    else if (e.key === 'Escape') { e.preventDefault(); close(); }
+    else if (e.key === 'Tab') close(false);
+  });
+  setTimeout(() => document.addEventListener('click', outside, true), 0);
+  its[0].focus();
+}
+
+/* Infobulles des boutons icône : au survol ET au focus clavier (le title natif ne s'affiche pas au
+   focus et n'a pas de délai réglable). Texte = nom accessible (aria-label) ou, à défaut, le title,
+   qui devient alors aria-label. Position fixe : jamais rognée par un tableau qui défile. */
+const TIP_SEL = '[data-tip], .icon-btn[title], #topbar .btn[title], #menu-toggle[title]';
+function tipText(el) {
+  if (el.hasAttribute('title')) {
+    const t = el.getAttribute('title'); el.removeAttribute('title');
+    if (!el.hasAttribute('aria-label') || el.dataset.tipAuto) { el.setAttribute('aria-label', t); el.dataset.tipAuto = '1'; }
+    el.dataset.tip = el.dataset.tipAuto ? t : el.getAttribute('aria-label');
+  }
+  return el.dataset.tip || el.getAttribute('aria-label') || '';
+}
+let tipEl = null;
+function showTip(el) {
+  const txt = tipText(el); if (!txt) return;
+  if (!tipEl) { tipEl = document.createElement('div'); tipEl.className = 'tip-pop'; tipEl.setAttribute('role', 'tooltip'); tipEl.id = 'tip-pop'; document.body.appendChild(tipEl); }
+  tipEl.textContent = txt; tipEl.hidden = false;
+  const r = el.getBoundingClientRect(), w = tipEl.offsetWidth, h = tipEl.offsetHeight;
+  let top = r.bottom + 6; if (top + h > innerHeight - 4) top = r.top - h - 6;
+  const left = Math.max(4, Math.min(innerWidth - w - 4, r.left + r.width / 2 - w / 2));
+  tipEl.style.top = top + 'px'; tipEl.style.left = left + 'px';
+  el.setAttribute('aria-describedby', [el.getAttribute('aria-describedby'), 'tip-pop'].filter(Boolean).join(' ').replace(/\btip-pop\b.*\btip-pop\b/, 'tip-pop'));
+}
+function hideTip(el) {
+  if (tipEl) tipEl.hidden = true;
+  if (el) { const d = (el.getAttribute('aria-describedby') || '').split(' ').filter(x => x && x !== 'tip-pop').join(' '); if (d) el.setAttribute('aria-describedby', d); else el.removeAttribute('aria-describedby'); }
+}
+document.addEventListener('pointerover', e => { const el = e.target.closest && e.target.closest(TIP_SEL); if (el && e.pointerType !== 'touch') showTip(el); });
+document.addEventListener('pointerout', e => { const el = e.target.closest && e.target.closest(TIP_SEL); if (el && !el.contains(e.relatedTarget)) hideTip(el); });
+document.addEventListener('focusin', e => { const el = e.target.closest && e.target.closest(TIP_SEL); if (el && el.matches(':focus-visible')) showTip(el); });
+document.addEventListener('focusout', e => { const el = e.target.closest && e.target.closest(TIP_SEL); if (el) hideTip(el); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && tipEl && !tipEl.hidden) tipEl.hidden = true; }, true);
+document.addEventListener('scroll', () => { if (tipEl) tipEl.hidden = true; }, true);
+
 function profileForm(id) {
   const p = id ? DB.meta.profiles.find(x => x.id === id) : { nom: '', agence: '' };
   const m = modal({ title: id ? 'Renommer le profil' : 'Nouveau chargé d\'affaires',
@@ -3051,16 +3162,16 @@ function renderChantiers(v) {
       <select id="ff"><option value="">Mise en facturation : tous</option><option value="oui" ${chantierFilter.factu === 'oui' ? 'selected' : ''}>Autorisés</option><option value="non" ${chantierFilter.factu === 'non' ? 'selected' : ''}>Bloqués</option></select>
       <select id="fp" aria-label="Filtrer par planning"><option value="">Planning : tous</option><option value="oui" ${chantierFilter.plan === 'oui' ? 'selected' : ''}>Planifiés</option><option value="non" ${chantierFilter.plan === 'non' ? 'selected' : ''}>Non planifiés</option></select>
       <span class="chip">${list.length} chantier(s)</span></div>
-    ${list.length ? `<div class="table-wrap"><table><thead><tr><th>OTP</th><th class="wrap">Chantier</th><th>Client</th><th>Statut</th><th title="Période planifiée et heures imputées aux pointages (Planning &amp; pointages)">Planning</th><th title="Notes de préparation (datées)">Préparation</th><th title="Coché : le chantier peut être mis en facturation (proposé à la clôture de fin de mois du CA)">Mise en factu.</th><th class="num">Montant HT</th><th></th></tr></thead>
-      <tbody>${list.map(c => `<tr><td class="t-strong">${esc(c.otp || '—')}</td>
-        <td class="wrap"><span class="link" data-view="${c.id}">${esc(c.nom)}</span>${c.adresse ? `<div class="t-muted" style="font-size:12px">${esc(c.adresse)}</div>` : ''}</td><td>${esc(clientNom(c.clientId))}</td>
-        <td>${statutBadge(c.statut)}</td>
+    ${list.length ? `<div class="table-wrap"><table class="tbl-cards"><thead><tr><th>OTP</th><th class="wrap">Chantier</th><th>Client</th><th>Statut</th><th title="Période planifiée et heures imputées aux pointages (Planning &amp; pointages)">Planning</th><th title="Notes de préparation (datées)">Préparation</th><th title="Coché : le chantier peut être mis en facturation (proposé à la clôture de fin de mois du CA)">Mise en factu.</th><th class="num">Montant HT</th><th></th></tr></thead>
+      <tbody>${list.map(c => `<tr><td class="t-strong" data-c="ref">${esc(c.otp || '—')}</td>
+        <td class="wrap" data-c="objet"><span class="link" data-view="${c.id}">${esc(c.nom)}</span>${c.adresse ? `<div class="t-muted" style="font-size:12px">${esc(c.adresse)}</div>` : ''}</td><td data-c="client">${esc(clientNom(c.clientId))}</td>
+        <td data-c="statut">${statutBadge(c.statut)}</td>
         <td>${planningCell(c)}</td>
         <td>${prepaResume(c)}</td>
         <td>${chantierEnCa(c) ? '<span class="badge b-facture" title="Déjà repris dans le CA">Mis en factu.</span>' : `<label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer"><input type="checkbox" data-factu="${c.id}" ${chantierFacturable(c) ? 'checked' : ''}>${chantierFacturable(c) ? 'Autorisé' : '<span class="t-muted">Bloqué</span>'}</label>`}</td>
-        <td class="num">${eur(c.montantHT)}</td>
-        <td class="actions-cell"><button class="icon-btn" data-plan="${c.id}" title="Planifier dans le planning">${icon('calendar')}</button><button class="icon-btn" data-edit="${c.id}" title="Modifier">${icon('edit')}</button><button class="icon-btn danger" data-del="${c.id}" title="Supprimer">${icon('trash')}</button></td></tr>`).join('')}</tbody>
-      <tfoot><tr><td colspan="7">Total</td><td class="num">${eur(list.reduce((s, c) => s + (+c.montantHT || 0), 0))}</td><td></td></tr></tfoot></table></div>`
+        <td class="num" data-c="montant">${eur(c.montantHT)}</td>
+        <td class="actions-cell" data-c="act"><button class="icon-btn" data-plan="${c.id}" title="Planifier dans le planning">${icon('calendar')}</button><button class="icon-btn" data-edit="${c.id}" title="Modifier">${icon('edit')}</button><button class="icon-btn danger" data-del="${c.id}" title="Supprimer">${icon('trash')}</button></td></tr>`).join('')}</tbody>
+      <tfoot><tr><td colspan="7" data-c="tot">Total</td><td class="num" data-c="montant">${eur(list.reduce((s, c) => s + (+c.montantHT || 0), 0))}</td><td></td></tr></tfoot></table></div>`
       : emptyState('building', 'Aucun chantier', 'Créez votre premier chantier pour suivre vos affaires.')}`;
   $('#add').onclick = e => openForm('chantiers/nouveau', e.currentTarget);
   $('#q').oninput = e => { chantierFilter.q = e.target.value; renderChantiers(v); const i = $('#q'); i.focus(); i.setSelectionRange(i.value.length, i.value.length); };
@@ -3884,10 +3995,10 @@ function renderDevis(v) {
       <select id="fotp"><option value="">Tous les OTP</option>${otpDistinct().map(o2 => `<option value="${esc(o2)}" ${devisFilter.otp === o2 ? 'selected' : ''}>${esc(o2)}</option>`).join('')}</select>
       <select id="fs"><option value="">Tous les statuts</option>${Object.entries(STATUTS_DEVIS).map(([k, l]) => `<option value="${k}" ${devisFilter.statut === k ? 'selected' : ''}>${l}</option>`).join('')}</select>
       <span class="chip">${list.length} devis</span><span class="chip">Taux d'acceptation ${tauxAccept()} %</span></div>
-    ${list.length ? `<div class="table-wrap"><table><thead><tr><th>Réf.</th><th>OTP</th><th class="wrap">Objet</th><th>Client</th><th>Demande</th><th>Délai 7 j</th><th>Relances</th><th>Statut</th><th class="num">Montant HT</th><th></th></tr></thead>
-      <tbody>${list.map(d => `<tr><td class="t-strong">${esc(d.ref)}</td><td>${d.horsComptes ? '<span class="t-muted">hors compte</span>' : `<span class="chip">${esc(d.otp || '—')}</span>`}</td><td class="wrap">${esc(d.objet)}${d.horsComptes ? ' <span class="badge b-attente">hors comptes</span>' : ''}</td><td class="t-muted">${esc(clientNom(d.clientId))}</td><td>${fmtDate(d.dateDemande)}</td><td>${delaiCell(d)}</td><td>${relanceCell(d)}</td><td>${devisBadge(d.statut)}</td><td class="num">${eur(d.montantHT)}</td>
-        <td class="actions-cell">${['accepte', 'refuse'].includes(d.statut) ? '' : `<button class="icon-btn" data-relance="${d.id}" title="Relancer">${icon('bell')}</button>`}${d.statut === 'accepte' && !d.chantierId && !DB.data.chantiers.some(c => c.sourceDevisId === d.id) ? `<button class="icon-btn" data-tochantier="${d.id}" title="Créer le chantier (et suivre sa préparation)">${icon('building')}</button>` : ''}<button class="icon-btn" data-edit="${d.id}" title="Modifier">${icon('edit')}</button><button class="icon-btn danger" data-del="${d.id}" title="Supprimer">${icon('trash')}</button></td></tr>`).join('')}</tbody>
-      <tfoot><tr><td colspan="8">Total${devisFilter.otp ? ' — OTP ' + esc(devisFilter.otp) : ''}</td><td class="num">${eur(list.reduce((s, d) => s + (+d.montantHT || 0), 0))}</td><td></td></tr></tfoot></table></div>`
+    ${list.length ? `<div class="table-wrap"><table class="tbl-cards"><thead><tr><th>Réf.</th><th>OTP</th><th class="wrap">Objet</th><th>Client</th><th>Demande</th><th>Délai 7 j</th><th>Relances</th><th>Statut</th><th class="num">Montant HT</th><th></th></tr></thead>
+      <tbody>${list.map(d => `<tr><td class="t-strong" data-c="ref">${esc(d.ref)}</td><td>${d.horsComptes ? '<span class="t-muted">hors compte</span>' : `<span class="chip">${esc(d.otp || '—')}</span>`}</td><td class="wrap" data-c="objet">${esc(d.objet)}${d.horsComptes ? ' <span class="badge b-attente">hors comptes</span>' : ''}</td><td class="t-muted" data-c="client">${esc(clientNom(d.clientId))}</td><td>${fmtDate(d.dateDemande)}</td><td>${delaiCell(d)}</td><td>${relanceCell(d)}</td><td data-c="statut">${devisBadge(d.statut)}</td><td class="num" data-c="montant">${eur(d.montantHT)}</td>
+        <td class="actions-cell" data-c="act">${['accepte', 'refuse'].includes(d.statut) ? '' : `<button class="icon-btn" data-relance="${d.id}" title="Relancer">${icon('bell')}</button>`}${d.statut === 'accepte' && !d.chantierId && !DB.data.chantiers.some(c => c.sourceDevisId === d.id) ? `<button class="icon-btn" data-tochantier="${d.id}" title="Créer le chantier (et suivre sa préparation)">${icon('building')}</button>` : ''}<button class="icon-btn" data-edit="${d.id}" title="Modifier">${icon('edit')}</button><button class="icon-btn danger" data-del="${d.id}" title="Supprimer">${icon('trash')}</button></td></tr>`).join('')}</tbody>
+      <tfoot><tr><td colspan="8" data-c="tot">Total${devisFilter.otp ? ' — OTP ' + esc(devisFilter.otp) : ''}</td><td class="num" data-c="montant">${eur(list.reduce((s, d) => s + (+d.montantHT || 0), 0))}</td><td></td></tr></tfoot></table></div>`
       : emptyState('file', 'Aucun devis', 'Objectif : 45 devis / mois, envoi sous 7 jours.')}`;
   $('#add').onclick = e => openForm('devis/nouveau', e.currentTarget);
   $('#q').oninput = e => { devisFilter.q = e.target.value; renderDevis(v); const i = $('#q'); i.focus(); i.setSelectionRange(i.value.length, i.value.length); };
@@ -3908,7 +4019,7 @@ const devisPosteRow = l => `<tr class="dv-poste">
     <td><input data-p="unite" value="${esc(l.unite || '')}" placeholder="u"></td>
     <td class="num"><input data-p="pu" type="number" step="any" inputmode="decimal" value="${l.pu || ''}"></td>
     <td class="num tot"></td>
-    <td class="xls-act"><button type="button" class="icon-btn danger tip" data-prm data-tip="Retirer le poste">${icon('trash')}</button></td></tr>`;
+    <td class="xls-act"><button type="button" class="icon-btn danger" data-prm data-tip="Retirer le poste">${icon('trash')}</button></td></tr>`;
 const POSTE_NOMS = { designation: 'Désignation', desc: 'Description technique', qte: 'Quantité', unite: 'Unité', pu: 'Prix unitaire HT' };
 // Référence par défaut : format existant DEV-AAMM-NN, numéro suivant du mois (sans doublon)
 function nextDevisRef() {
@@ -5520,10 +5631,10 @@ function renderFactures(v) {
       <select id="fotp"><option value="">Tous les OTP</option>${otpDistinct().map(o => `<option value="${esc(o)}" ${factFilter.otp === o ? 'selected' : ''}>${esc(o)}</option>`).join('')}</select>
       <select id="fs"><option value="">Tous les statuts</option>${Object.entries(STATUTS_FACT).map(([k, l]) => `<option value="${k}" ${factFilter.statut === k ? 'selected' : ''}>${l}</option>`).join('')}</select>
       <span class="chip">${list.length} facture(s)</span></div>
-    ${list.length ? `<div class="table-wrap"><table><thead><tr><th>N°</th><th>OTP</th><th>Client</th><th class="wrap">Objet</th><th>Fait générateur</th><th>Émission</th><th>Échéance</th><th class="num">Montant HT</th><th>Statut</th><th></th></tr></thead>
-      <tbody>${list.map(f => { const fl = factureFlags(f); return `<tr><td class="t-strong">${esc(f.num || '—')}</td><td><span class="chip">${esc(f.otp || '—')}</span></td><td>${esc(f.client || '—')}</td><td class="wrap">${esc(f.objet || '—')}</td><td>${fmtDate(f.dateFG)}</td><td>${fmtDate(f.dateEmission)}</td><td class="${fl.retardPaiement ? 'deadline-late' : ''}">${fl.echeance ? fmtDate(fl.echeance) : '—'}</td><td class="num">${eur(f.montantHT)}</td><td>${factBadge(f)}</td>
-        <td class="actions-cell">${f.statut !== 'payee' ? `<button class="icon-btn" data-pay="${f.id}" title="Marquer payée">${icon('check')}</button>` : ''}<button class="icon-btn" data-edit="${f.id}" title="Modifier">${icon('edit')}</button><button class="icon-btn danger" data-del="${f.id}" title="Supprimer">${icon('trash')}</button></td></tr>`; }).join('')}</tbody>
-      <tfoot><tr><td colspan="7">Total affiché${factFilter.otp ? ' — OTP ' + esc(factFilter.otp) : ''}</td><td class="num">${eur(list.reduce((s, f) => s + (+f.montantHT || 0), 0))}</td><td colspan="2"></td></tr></tfoot></table></div>`
+    ${list.length ? `<div class="table-wrap"><table class="tbl-cards"><thead><tr><th>N°</th><th>OTP</th><th>Client</th><th class="wrap">Objet</th><th>Fait générateur</th><th>Émission</th><th>Échéance</th><th class="num">Montant HT</th><th>Statut</th><th></th></tr></thead>
+      <tbody>${list.map(f => { const fl = factureFlags(f); return `<tr><td class="t-strong" data-c="ref">${esc(f.num || '—')}</td><td><span class="chip">${esc(f.otp || '—')}</span></td><td data-c="client">${esc(f.client || '—')}</td><td class="wrap" data-c="objet">${esc(f.objet || '—')}</td><td>${fmtDate(f.dateFG)}</td><td>${fmtDate(f.dateEmission)}</td><td class="${fl.retardPaiement ? 'deadline-late' : ''}">${fl.echeance ? fmtDate(fl.echeance) : '—'}</td><td class="num" data-c="montant">${eur(f.montantHT)}</td><td data-c="statut">${factBadge(f)}</td>
+        <td class="actions-cell" data-c="act">${f.statut !== 'payee' ? `<button class="icon-btn" data-pay="${f.id}" title="Marquer payée">${icon('check')}</button>` : ''}<button class="icon-btn" data-edit="${f.id}" title="Modifier">${icon('edit')}</button><button class="icon-btn danger" data-del="${f.id}" title="Supprimer">${icon('trash')}</button></td></tr>`; }).join('')}</tbody>
+      <tfoot><tr><td colspan="7" data-c="tot">Total affiché${factFilter.otp ? ' — OTP ' + esc(factFilter.otp) : ''}</td><td class="num" data-c="montant">${eur(list.reduce((s, f) => s + (+f.montantHT || 0), 0))}</td><td colspan="2"></td></tr></tfoot></table></div>`
       : emptyState('receipt', 'Aucune facture', 'Facturez chaque intervention sous 7 jours et suivez les paiements.')}`;
   $('#add').onclick = e => openForm('factures/nouveau', e.currentTarget);
   $('#q').oninput = e => { factFilter.q = e.target.value; renderFactures(v); const i = $('#q'); i.focus(); i.setSelectionRange(i.value.length, i.value.length); };
@@ -7798,6 +7909,8 @@ function imprimerDoc(titre, blocks) {
 function boot() {
   UI.load();
   $('#menu-toggle').innerHTML = icon('menu');
+  $('#more-btn').innerHTML = icon('more');
+  $('#more-btn').onclick = e => { e.stopPropagation(); toggleMoreMenu(); };
   $('#nav-collapse').innerHTML = icon('menu');
   $('#nav-collapse').onclick = () => UI.toggleNav();
   $('#btn-export').innerHTML = icon('download') + '<span class="lbl">Sauvegarde</span>';
