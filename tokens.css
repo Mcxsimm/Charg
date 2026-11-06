@@ -1,0 +1,149 @@
+/* ==========================================================================
+   ChargéPro — jetons de design (seule source de vérité)
+   Style « Linear clair », thème sombre en option.
+   Règle : aucune couleur, taille, interligne, espacement ou arrondi écrit en
+   dur dans les feuilles de style ; tout passe par les variables ci-dessous.
+   ========================================================================== */
+
+:root{
+  color-scheme:light;
+
+  /* ---------- Typographie : Inter 400 / 500 / 600 ---------- */
+  --font:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+  --fw-regular:400; --fw-medium:500; --fw-semibold:600;
+  --tracking:-0.005em;        /* texte courant */
+  --tracking-title:-0.02em;   /* titres */
+  --tracking-caps:.06em;      /* libellés en capitales (sur-titres, en-têtes de colonnes) */
+  /* Six tailles, chacune avec son interligne (px) — aucune autre */
+  --text-xs:12px;  --lh-xs:16px;   /* méta : aides, dates, badges, en-têtes de colonnes */
+  --text-sm:13px;  --lh-sm:18px;   /* libellés, boutons, texte secondaire */
+  --text-md:14px;  --lh-md:20px;   /* texte courant, cellules, champs */
+  --text-lg:15px;  --lh-lg:22px;   /* titres de carte, de bloc et de fenêtre */
+  --text-xl:24px;  --lh-xl:32px;   /* chiffres clés */
+  --text-2xl:26px; --lh-2xl:32px;  /* titre de page */
+
+  /* ---------- Espacements : base 4 px ---------- */
+  --sp-half:2px;  /* micro-écart (icône / texte, séparateurs) */
+  --sp-1:4px;  --sp-2:8px;  --sp-3:12px; --sp-4:16px; --sp-5:20px; --sp-6:24px;
+  --sp-7:28px; --sp-8:32px; --sp-9:36px; --sp-10:40px; --sp-11:44px; --sp-12:48px;
+  --sp-13:52px; --sp-16:64px; --sp-22:88px; --sp-28:112px; --sp-30:120px;
+
+  /* ---------- Arrondis ---------- */
+  --r-6:6px; --r-8:8px; --r-12:12px; --r-pill:9999px;
+
+  /* ---------- Couleurs — thème clair (par défaut) ---------- */
+  --bg:#F7F7F8;
+  --surface:#FFFFFF;
+  --sunken:#F4F4F6;
+  --border:#E6E6EA;
+  --border-strong:#8A8E96;   /* contour des champs : contraste 3,3:1 sur blanc (WCAG 1.4.11) */
+  --text:#1B1C1F;
+  --muted:#686C74;
+  --hover:#EFEFF2;
+
+  --accent:#5B63D3;          /* remplissages : bouton principal, sélection, barres */
+  --accent-strong:#4B53C4;   /* texte et icônes en couleur d'accent (liens) */
+  --accent-bg:#EEEFFC;
+  --on-accent:#FFFFFF;       /* texte posé sur un fond coloré plein */
+  --focus:#5B63D3;
+
+  --red:#C8262C;    --red-bg:#FDECEC;
+  --amber:#A55A00;  --amber-bg:#FFF3E0;
+  --green:#167447;  --green-bg:#E7F6EE;
+  --blue:#1D5FD6;   --blue-bg:#E8F0FD;
+  --violet:#4B53C4; --violet-bg:#EEEFFC;
+  /* contours de pastilles et d'alertes : dérivés (30 % de la couleur sur la surface) */
+  --red-line:color-mix(in srgb,var(--red) 30%,var(--surface));
+  --amber-line:color-mix(in srgb,var(--amber) 30%,var(--surface));
+  --green-line:color-mix(in srgb,var(--green) 30%,var(--surface));
+  --blue-line:color-mix(in srgb,var(--blue) 30%,var(--surface));
+
+  /* Logo uniquement */
+  --logo:#E8590C; --logo-bg:#FFF1E6;
+
+  /* Graphiques (palette validée : séparation daltonisme et contraste) */
+  --serie-1:#5B63D3; --serie-2:#167447;
+  --grid:color-mix(in srgb,var(--border) 70%,var(--surface));
+
+  /* Catégories (équipes, types d'agenda) : fonds pleins sous texte blanc */
+  --cat-1:#2A6FC4; --cat-2:#1D7A52; --cat-3:#A15C07; --cat-4:#6941C6;
+  --cat-5:#C4320A; --cat-6:#0E7490; --cat-7:#BE185D; --cat-8:#4D7C0F; --cat-0:#5D6B82;
+
+  /* Surfaces inversées (toast) */
+  --inverse-bg:#1B1C1F; --inverse-text:#F2F3F5; --inverse-muted:#9A9EA6; --inverse-green:#4CC38A; --inverse-red:#F26B6B;
+
+  --scrim:rgba(27,28,31,.5);
+  --shadow-xs:0 1px 2px rgba(27,28,31,.04);
+  --shadow-sm:0 1px 3px rgba(27,28,31,.06),0 1px 2px rgba(27,28,31,.03);
+  --shadow-md:0 8px 24px rgba(27,28,31,.08);
+  --shadow-lg:0 16px 40px -12px rgba(27,28,31,.24);
+
+  /* Barre latérale (claire, refondue au lot 2) */
+  --side-bg:var(--surface); --side-bg-2:var(--hover); --side-text:var(--muted); --side-text-strong:var(--text);
+  --side-muted:var(--muted); --side-border:var(--border); --side-w:248px;
+
+  /* Mise en page (les préférences d'écran les ajustent, voir html[data-*]) */
+  --content-max:1240px;
+  --view-pad-x:var(--sp-6);
+  --view-pad-t:var(--sp-7);
+  --gap:var(--sp-4);
+  --card-pad:var(--sp-4) var(--sp-5);
+  --kpi-min:232px;
+  --row-py:var(--sp-2);
+  --row-px:var(--sp-3);
+  --th-py:var(--sp-2);
+  --table-fs:var(--text-md); --table-lh:var(--lh-md);
+
+  --ease-out:cubic-bezier(0.23,1,0.32,1);
+  --ease-drawer:cubic-bezier(0.32,0.72,0,1);
+}
+
+/* ---------- Thème sombre : choisi explicitement, ou suivi de l'appareil ---------- */
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#0B0C0E; --surface:#141518; --sunken:#1B1C20; --border:#26272B;
+  --border-strong:#62666E;   /* 3,2:1 sur la surface sombre */
+  --text:#F2F3F5; --muted:#9A9EA6; --hover:#1F2024;
+  --accent:#5B63D3; --accent-strong:#9AA1F5; --accent-bg:color-mix(in srgb,#9AA1F5 14%,transparent); --focus:#9AA1F5;
+  --red:#F26B6B;    --red-bg:color-mix(in srgb,#F26B6B 14%,transparent);
+  --amber:#F2B84B;  --amber-bg:color-mix(in srgb,#F2B84B 14%,transparent);
+  --green:#4CC38A;  --green-bg:color-mix(in srgb,#4CC38A 14%,transparent);
+  --blue:#5EA2F7;   --blue-bg:color-mix(in srgb,#5EA2F7 14%,transparent);
+  --violet:#9AA1F5; --violet-bg:color-mix(in srgb,#9AA1F5 14%,transparent);
+  --logo-bg:color-mix(in srgb,#E8590C 14%,transparent);
+  --serie-1:#7C83E8; --serie-2:#34A873;
+  --inverse-bg:#F2F3F5; --inverse-text:#1B1C1F; --inverse-muted:#686C74; --inverse-green:#167447; --inverse-red:#C8262C;
+  --scrim:rgba(0,0,0,.6);
+  --shadow-xs:0 1px 2px rgba(0,0,0,.3);
+  --shadow-sm:0 1px 3px rgba(0,0,0,.4),0 1px 2px rgba(0,0,0,.3);
+  --shadow-md:0 8px 24px rgba(0,0,0,.45);
+  --shadow-lg:0 16px 40px -12px rgba(0,0,0,.7);
+}
+@media (prefers-color-scheme: dark){
+  :root:where(:not([data-theme="light"])){
+    color-scheme:dark;
+    --bg:#0B0C0E; --surface:#141518; --sunken:#1B1C20; --border:#26272B;
+    --border-strong:#62666E;
+    --text:#F2F3F5; --muted:#9A9EA6; --hover:#1F2024;
+    --accent:#5B63D3; --accent-strong:#9AA1F5; --accent-bg:color-mix(in srgb,#9AA1F5 14%,transparent); --focus:#9AA1F5;
+    --red:#F26B6B;    --red-bg:color-mix(in srgb,#F26B6B 14%,transparent);
+    --amber:#F2B84B;  --amber-bg:color-mix(in srgb,#F2B84B 14%,transparent);
+    --green:#4CC38A;  --green-bg:color-mix(in srgb,#4CC38A 14%,transparent);
+    --blue:#5EA2F7;   --blue-bg:color-mix(in srgb,#5EA2F7 14%,transparent);
+    --violet:#9AA1F5; --violet-bg:color-mix(in srgb,#9AA1F5 14%,transparent);
+    --logo-bg:color-mix(in srgb,#E8590C 14%,transparent);
+    --serie-1:#7C83E8; --serie-2:#34A873;
+    --inverse-bg:#F2F3F5; --inverse-text:#1B1C1F; --inverse-muted:#686C74; --inverse-green:#167447; --inverse-red:#C8262C;
+    --scrim:rgba(0,0,0,.6);
+    --shadow-xs:0 1px 2px rgba(0,0,0,.3);
+    --shadow-sm:0 1px 3px rgba(0,0,0,.4),0 1px 2px rgba(0,0,0,.3);
+    --shadow-md:0 8px 24px rgba(0,0,0,.45);
+    --shadow-lg:0 16px 40px -12px rgba(0,0,0,.7);
+  }
+}
+
+/* ---------- Base typographique ---------- */
+body{font-family:var(--font);font-size:var(--text-md);line-height:var(--lh-md);letter-spacing:var(--tracking)}
+h1,h2,h3,h4,h5,h6{letter-spacing:var(--tracking-title)}
+/* Montants : chiffres de largeur fixe, alignés à droite */
+.num,td.num,th.num,.amount{text-align:right;font-variant-numeric:tabular-nums}
