@@ -61,9 +61,6 @@ a{color:var(--accent-strong)}
 #nav-collapse{margin-left:calc(var(--sp-2) * -1)}
 
 .top-actions{display:flex;align-items:center;gap:var(--sp-2);margin-left:auto;flex:none}
-#width-btn{width:auto;padding:0 var(--sp-2);gap:var(--sp-2);font-size:var(--text-sm);line-height:var(--lh-sm)}
-#width-btn .lbl{display:inline}
-@media(max-width:960px){#width-btn{display:none}}
 
 /* Profil */
 .profile-btn{display:flex;align-items:center;gap:var(--sp-2);height:38px;padding:0 var(--sp-2) 0 var(--sp-1);border-radius:var(--r-12);border:1px solid var(--border);
@@ -306,13 +303,8 @@ input[type=checkbox],input[type=radio]{accent-color:var(--accent-strong)}
 
 /* ===================== Écran étroit (narrow : max-width 767.98px) =========
    Jetons de largeur : narrow 375 / medium 768 / wide 1280. */
-#more-btn{display:none}
 @media(max-width:767.98px){
-  /* Barre du haut : export, import, mode carte et largeur passent dans le menu « ⋯ » */
-  #btn-export,#btn-import,#game-btn,#width-btn{display:none}
-  #more-btn{display:inline-flex}
   .top-actions{flex:0 1 auto;min-width:0}
-  .more-menu{width:min(300px,calc(100vw - 32px))}
   /* Cibles tactiles ≥ 44 × 44 px (profil WCAG 2.1 AA) */
   .btn,.btn.small,.btn.sm,.profile-btn,.nav-item,.menu-item,.pill-tabs button,.todo-addbtn,.todo-addfolder,
   input:not([type=checkbox]):not([type=radio]):not([type=range]),select{min-height:44px}
@@ -895,12 +887,9 @@ html[data-density="compact"] .filters input:not([type=checkbox]),html[data-densi
 .drive-banner .ic{width:20px;height:20px;color:var(--amber);flex:none}
 .drive-banner p{margin:0;flex:1 1 240px;font-size:var(--text-md);line-height:var(--lh-md)}
 .drive-banner p b{font-weight:var(--fw-semibold)}
-#drive-btn{gap:var(--sp-2);position:relative}
-@media(max-width:1340px){.top-actions #drive-btn .drive-dot{position:absolute;right:6px;top:6px}}
 /* ==========================================================================
    Mode carte — l'agence en vue isométrique (voir jeu.js)
    ========================================================================== */
-#game-btn.on{background:var(--accent-bg);color:var(--accent-strong)}
 #jeu-fab{display:none;position:fixed;right:20px;bottom:20px;z-index:55;align-items:center;gap:var(--sp-2);height:44px;padding:0 var(--sp-4);
   border:0;border-radius:var(--r-pill);background:var(--accent);color:var(--on-accent);font:var(--fw-semibold) var(--text-md)/1 var(--font);box-shadow:var(--shadow-lg)}
 #jeu-fab:hover{background:var(--accent-strong)}
@@ -1328,6 +1317,114 @@ html:not([data-density="compact"]) .pil-rec-item{padding:var(--sp-2) var(--sp-1)
   html:not([data-density="compact"]) .todo-add input{height:35px}
   .nav-item{padding:var(--sp-2) var(--sp-2)}
 }
+
+/* ==========================================================================
+   Coque de l'application (refonte, lot 2)
+   Barre du haut 56 px : logo, recherche ⌘K, + Nouveau, cloche, thème, avatar.
+   Menu latéral 236 px : sections, compteurs, élément actif = surface + contour.
+   ========================================================================== */
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+#topbar{height:var(--top-h);gap:var(--sp-3);padding:0 var(--sp-6);background:var(--surface);border-bottom:1px solid var(--border);position:sticky}
+#sidebar{background:var(--side-bg);border-right:1px solid var(--border)}
+#sidebar .brand{height:var(--top-h)}
+/* Recherche */
+.tb-search{position:relative;flex:1 1 auto;max-width:480px;display:flex;align-items:center}
+.tb-search-ic{position:absolute;left:var(--sp-3);display:flex;color:var(--muted);pointer-events:none}
+.tb-search-ic .ic{width:16px;height:16px}
+#gsearch{width:100%;height:36px;padding:0 var(--sp-16) 0 var(--sp-9);border:1px solid var(--border-strong);border-radius:var(--r-8);background:var(--sunken);color:var(--text);font-size:var(--text-sm);line-height:var(--lh-sm)}
+#gsearch::placeholder{color:var(--muted)}
+#gsearch:focus{outline:none;border-color:var(--accent);background:var(--surface);box-shadow:0 0 0 3px var(--accent-bg)}
+.tb-kbd{position:absolute;right:var(--sp-2);font-family:var(--font);font-size:var(--text-xs);line-height:var(--lh-xs);color:var(--muted);border:1px solid var(--border);border-radius:var(--r-6);padding:0 var(--sp-1);background:var(--surface);pointer-events:none}
+.tb-search-close{display:none}
+.gs-list{position:absolute;top:calc(100% + 6px);left:0;right:0;z-index:60;max-height:min(420px,70vh);overflow:auto;padding:var(--sp-1);background:var(--surface);border:1px solid var(--border);border-radius:var(--r-12);box-shadow:var(--shadow-md)}
+.gs-group{padding:var(--sp-2) var(--sp-3) var(--sp-1);font-size:var(--text-xs);line-height:var(--lh-xs);font-weight:var(--fw-semibold);color:var(--muted);text-transform:uppercase;letter-spacing:var(--tracking-caps)}
+.gs-opt{display:grid;grid-template-columns:auto minmax(0,1fr);grid-template-areas:"ic t" "ic s";column-gap:var(--sp-3);align-items:center;min-height:44px;padding:var(--sp-1) var(--sp-3);border-radius:var(--r-8);cursor:pointer}
+.gs-opt .ic{grid-area:ic;width:16px;height:16px;color:var(--muted)}
+.gs-t{grid-area:t;font-size:var(--text-sm);line-height:var(--lh-sm);color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.gs-sub{grid-area:s;font-size:var(--text-xs);line-height:var(--lh-xs);color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.gs-opt[aria-selected="true"],.gs-opt:hover{background:var(--hover)}
+.gs-empty{padding:var(--sp-3);font-size:var(--text-sm);line-height:var(--lh-sm);color:var(--muted)}
+/* Actions */
+#search-btn{display:none}
+.top-actions{gap:var(--sp-1)}
+#new-btn{width:auto;gap:var(--sp-1);padding:0 var(--sp-3)}
+#new-btn .lbl{display:inline;position:static;width:auto;height:auto;clip:auto;overflow:visible}
+#bell-btn{position:relative}
+.bell-badge{position:absolute;top:2px;right:2px;min-width:16px;height:16px;padding:0 var(--sp-1);border-radius:var(--r-pill);background:var(--red);color:var(--on-accent);
+  font-size:var(--text-xs);line-height:var(--lh-xs);font-weight:var(--fw-semibold);font-variant-numeric:tabular-nums;display:grid;place-items:center;box-shadow:0 0 0 2px var(--surface)}
+.profile-btn{height:36px;min-width:36px;padding:0;border:0;background:none;justify-content:center;border-radius:var(--r-pill)}
+.profile-btn .avatar{width:32px;height:32px}
+.menu-anchored{left:auto}
+/* Panneau de notifications */
+.notif-pop{position:fixed;z-index:70;width:380px;max-width:calc(100vw - 16px);max-height:min(520px,calc(100vh - 80px));display:flex;flex-direction:column;
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--r-12);box-shadow:var(--shadow-md)}
+.np-head{display:flex;align-items:center;gap:var(--sp-2);padding:var(--sp-2) var(--sp-2) var(--sp-2) var(--sp-4);border-bottom:1px solid var(--border)}
+.np-head h2{font-size:var(--text-lg);line-height:var(--lh-lg)}
+.np-count{font-size:var(--text-xs);line-height:var(--lh-xs);color:var(--muted)}
+.np-head .btn{margin-left:auto}
+.np-list{list-style:none;margin:0;padding:var(--sp-1);overflow:auto}
+.np-item{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:var(--sp-3);align-items:center;width:100%;min-height:44px;padding:var(--sp-2) var(--sp-3);
+  border:0;background:none;border-radius:var(--r-8);text-align:left;color:var(--text);font-size:var(--text-sm);line-height:var(--lh-sm)}
+.np-item:hover{background:var(--hover)}
+.np-ico{display:grid;place-items:center;width:26px;height:26px;border-radius:var(--r-8);background:var(--sunken);color:var(--muted)}
+.np-ico .ic{width:14px;height:14px}
+.np-item.bad .np-ico{background:var(--red-bg);color:var(--red)}
+.np-item.warn .np-ico{background:var(--amber-bg);color:var(--amber)}
+.np-badge{font-size:var(--text-xs);line-height:var(--lh-xs);color:var(--muted);white-space:nowrap}
+.np-item.bad .np-badge{color:var(--red)} .np-item.warn .np-badge{color:var(--amber)}
+.np-empty{margin:0;padding:var(--sp-6) var(--sp-4);text-align:center;color:var(--muted)}
+.np-foot{display:flex;justify-content:flex-end;padding:var(--sp-2) var(--sp-3);border-top:1px solid var(--border)}
+/* Menu latéral */
+.nav-group{color:var(--muted)}
+.nav-item{border:1px solid transparent;color:var(--muted)}
+.nav-item:hover{background:var(--hover);color:var(--text)}
+.nav-item.active{background:var(--surface);border-color:var(--border);color:var(--text);font-weight:var(--fw-medium)}
+.nav-item.active .ic{color:var(--text)}
+.nav-item .nav-lbl{flex:1;min-width:0}
+.nav-meta{display:inline-flex;align-items:center;gap:var(--sp-1);flex:none}
+.nav-meta:empty{display:none}
+.nav-pill{min-width:20px;padding:0 var(--sp-1);border-radius:var(--r-pill);background:var(--sunken);color:var(--muted);text-align:center;
+  font-size:var(--text-xs);line-height:var(--lh-xs);font-weight:var(--fw-medium);font-variant-numeric:tabular-nums;white-space:nowrap}
+.nav-item.active .nav-pill:not(.red):not(.amber):not(.soft){background:var(--hover)}
+.nav-pill.red{background:var(--red-bg);color:var(--red)}
+.nav-pill.amber{background:var(--amber-bg);color:var(--amber)}
+.nav-pill.soft{background:var(--accent-bg);color:var(--accent-strong)}
+.nav-dot{width:8px;height:8px;border-radius:var(--r-pill);background:var(--red)}
+/* Paramètres (modèle 5 — Settings) */
+.settings{max-width:880px;display:flex;flex-direction:column;gap:var(--sp-6)}
+.set-sec{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-12)}
+.set-sec>h2{font-size:var(--text-lg);line-height:var(--lh-lg);padding:var(--sp-4) var(--sp-5);border-bottom:1px solid var(--border)}
+.set-row{display:flex;align-items:center;justify-content:space-between;gap:var(--sp-4);flex-wrap:wrap;padding:var(--sp-4) var(--sp-5);border-bottom:1px solid var(--border)}
+.set-row:last-child{border-bottom:0}
+.set-lbl{display:flex;flex-direction:column;gap:var(--sp-half);font-weight:var(--fw-medium);min-width:0;flex:1 1 260px}
+.set-lbl span{font-weight:var(--fw-regular);font-size:var(--text-sm);line-height:var(--lh-sm);color:var(--muted)}
+.set-seg{display:inline-flex;margin:0;padding:var(--sp-half);border:1px solid var(--border);border-radius:var(--r-8);background:var(--sunken)}
+.set-opt{position:relative;display:inline-flex}
+.set-opt input{position:absolute;opacity:0;width:100%;height:100%;margin:0;cursor:pointer}
+.set-opt span{padding:var(--sp-1) var(--sp-3);border-radius:var(--r-6);font-size:var(--text-sm);line-height:var(--lh-sm);color:var(--muted)}
+.set-opt input:checked+span{background:var(--surface);color:var(--text);font-weight:var(--fw-medium);box-shadow:var(--shadow-xs)}
+.set-opt input:focus-visible+span{outline:2px solid var(--focus);outline-offset:2px}
+.set-btns{display:flex;gap:var(--sp-2);flex-wrap:wrap}
+.set-soon{font-size:var(--text-sm);line-height:var(--lh-sm);color:var(--muted);padding:var(--sp-1) var(--sp-3);border:1px dashed var(--border);border-radius:var(--r-pill)}
+/* Écran étroit : le menu passe en tiroir, la recherche s'ouvre par-dessus la barre */
+@media(max-width:767.98px){
+  #topbar{padding:0 var(--sp-3);gap:var(--sp-2)}
+  .tb-search{display:none}
+  #search-btn{display:inline-flex}
+  #new-btn{padding:0;width:44px}
+  #new-btn .lbl{display:none}
+  #theme-btn{display:none}
+  .profile-btn{min-width:44px;min-height:44px}
+  #topbar.searching .tb-search{display:flex;position:absolute;inset:0;max-width:none;padding:0 var(--sp-2);gap:var(--sp-1);background:var(--surface);z-index:5}
+  #topbar.searching .tb-search-ic{left:var(--sp-5)}
+  #topbar.searching #gsearch{height:44px;padding-right:var(--sp-3)}
+  #topbar.searching .tb-kbd{display:none}
+  #topbar.searching .tb-search-close{display:inline-flex;flex:none}
+  #topbar.searching .gs-list{left:var(--sp-2);right:var(--sp-2)}
+  .notif-pop{left:var(--sp-2);right:var(--sp-2)!important;width:auto}
+  .settings .set-seg{flex-wrap:wrap}
+  .set-opt span{padding:var(--sp-3) var(--sp-3)}
+}
 </style>
 
 </head>
@@ -1345,22 +1442,26 @@ html:not([data-density="compact"]) .pil-rec-item{padding:var(--sp-2) var(--sp-1)
 
     <main id="main">
       <header id="topbar">
-        <button id="menu-toggle" aria-label="Ouvrir le menu" aria-controls="sidebar"></button>
+        <button id="menu-toggle" class="btn ghost icon" aria-label="Ouvrir le menu" aria-controls="sidebar" aria-expanded="false"></button>
         <button class="brand" id="brand-home" aria-label="Aller au tableau de bord">
           <span class="logo-mark" aria-hidden="true">CP</span>
           <span class="logo-text">ChargéPro</span>
         </button>
         <button id="nav-collapse" class="btn ghost icon" aria-label="Réduire ou déployer le menu latéral"></button>
+        <div class="tb-search" id="tb-search">
+          <span class="tb-search-ic" aria-hidden="true"></span>
+          <input id="gsearch" type="text" role="combobox" aria-label="Rechercher un devis, un chantier ou un client" aria-expanded="false" aria-controls="gsearch-list" aria-autocomplete="list" autocomplete="off" spellcheck="false" placeholder="Rechercher un devis, un chantier, un client…">
+          <kbd class="tb-kbd" id="gsearch-kbd" aria-hidden="true">Ctrl K</kbd>
+          <button type="button" class="btn ghost icon tb-search-close" id="gsearch-close" aria-label="Fermer la recherche"></button>
+          <div id="gsearch-list" class="gs-list" role="listbox" aria-label="Résultats de la recherche" hidden></div>
+        </div>
         <div class="top-actions">
-          <button id="width-btn" class="btn ghost" aria-label="Largeur d'affichage"></button>
-          <button id="drive-btn" class="btn ghost" aria-label="Ouvrir la sauvegarde Google Drive"></button>
-          <button id="btn-export" class="btn ghost" aria-label="Sauvegarder les données du profil">Sauvegarde</button>
-          <button id="btn-import" class="btn ghost" aria-label="Restaurer une sauvegarde">Restaurer</button>
-          <input type="file" id="import-file" accept="application/json" hidden>
-          <button id="game-btn" class="btn ghost" aria-pressed="false" aria-label="Activer le mode carte (vue 3D de l’agence)"></button>
+          <button id="search-btn" class="btn ghost icon" aria-label="Rechercher" aria-controls="tb-search" aria-expanded="false"></button>
+          <button id="new-btn" class="btn primary" aria-haspopup="menu" aria-expanded="false" aria-controls="menu-root" aria-label="Nouveau"></button>
+          <button id="bell-btn" class="btn ghost icon" aria-haspopup="dialog" aria-expanded="false" aria-controls="notif-pop" aria-label="Notifications"></button>
           <button id="theme-btn" class="btn ghost icon" aria-label="Changer de thème"></button>
-          <button id="more-btn" class="btn ghost icon" aria-label="Plus d'actions" aria-haspopup="menu" aria-expanded="false" aria-controls="menu-root"></button>
-          <button id="profile-btn" class="profile-btn" aria-haspopup="menu" aria-expanded="false"></button>
+          <button id="profile-btn" class="profile-btn" aria-haspopup="menu" aria-expanded="false" aria-controls="menu-root"></button>
+          <input type="file" id="import-file" accept="application/json" hidden>
         </div>
       </header>
       <div class="content">
@@ -1429,6 +1530,8 @@ const ICONS = {
   users: '<path d="M17 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9.5" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16.5 3.13a4 4 0 0 1 0 7.75"/>',
   plus: '<line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>',
   more: '<circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/>',
+  settings: '<path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/>',
+  sparkle: '<path d="M9.94 15.5A2 2 0 0 0 8.5 14.06l-6.14-1.58a.5.5 0 0 1 0-.96L8.5 9.94A2 2 0 0 0 9.94 8.5l1.58-6.14a.5.5 0 0 1 .96 0l1.58 6.14a2 2 0 0 0 1.44 1.44l6.14 1.58a.5.5 0 0 1 0 .96l-6.14 1.58a2 2 0 0 0-1.44 1.44l-1.58 6.14a.5.5 0 0 1-.96 0z"/>',
   edit: '<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4z"/>',
   trash: '<polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>',
   download: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>',
@@ -1555,7 +1658,7 @@ const DB = {
     ikoAppliquerGrille(this.data.grilleIko);
     return this.data;
   },
-  save() { if (this.currentProfile()) { localStorage.setItem(dataKey(this.meta.currentId), JSON.stringify(this.data)); driveSoon(); } },
+  save() { if (this.currentProfile()) { localStorage.setItem(dataKey(this.meta.currentId), JSON.stringify(this.data)); driveSoon(); if (typeof queueNavMeta === 'function') queueNavMeta(); } },
 
   currentProfile() { return this.meta.profiles.find(p => p.id === this.meta.currentId) || null; },
   createProfile(nom, agence, demo) {
@@ -1945,15 +2048,16 @@ const NAV = [
   { route: 'cadences', ico: 'clock', label: 'Cadences — base & chiffrage', render: renderCadences },
   { route: 'bte', ico: 'calculator', label: 'BTE — Budget chantier', render: renderBTE },
   { route: 'achats', ico: 'cart', label: 'Achats fournisseurs', render: renderAchats },
-  { group: 'Exécution' },
   { route: 'docs', ico: 'shield', label: "Documents d'exécution", render: renderDocs },
-  { group: 'Entretien' },
   { route: 'entretien', ico: 'wrench', label: 'Contrats & visites', render: renderEntretien },
   { route: 'marches', ico: 'book', label: 'Marchés à bons de commande', render: renderMarches },
   { group: 'Finances' },
-  { route: 'ca', ico: 'euro', label: 'CA & Marge', render: renderCA },
+  { route: 'ca', ico: 'euro', label: 'CA & marge', render: renderCA },
   { route: 'factures', ico: 'receipt', label: 'Facturation', render: renderFactures },
   { route: 'raf', ico: 'target', label: 'RAF — Reste à facturer', render: renderRAF },
+  { group: 'Compte' },
+  { route: 'assistant', ico: 'sparkle', label: 'Assistant IA', render: v => renderAssistantIA(v) },
+  { route: 'parametres', ico: 'settings', label: 'Paramètres', render: v => renderParametres(v) },
 ];
 const ROUTES = Object.fromEntries(NAV.filter(n => n.route).map(n => [n.route, n]));
 // Formulaires en page : #devis/nouveau, #devis/<id>, #chantiers/nouveau?devis=<id>…
@@ -1971,10 +2075,48 @@ let currentHash = 'dashboard'; // route complète, ex. devis/nouveau
 
 function buildNav() {
   $('#nav').innerHTML = NAV.map(n => n.group
-    ? `<div class="nav-group">${n.group}</div>`
-    : `<button class="nav-item" data-route="${n.route}" title="${esc(n.label)}">${icon(n.ico)} <span>${n.label}</span></button>`).join('');
+    ? `<div class="nav-group" id="navg-${n.group.toLowerCase()}">${n.group}</div>`
+    : `<button class="nav-item" data-route="${n.route}" title="${esc(n.label)}">${icon(n.ico)} <span class="nav-lbl">${n.label}</span><span class="nav-meta" aria-hidden="true"></span></button>`).join('');
   $$('.nav-item').forEach(b => b.onclick = () => go(b.dataset.route));
+  updateNavMeta();
 }
+/* Compteurs du menu (recalculés à chaque écran et après chaque enregistrement) :
+   Devis en cours + relances en retard (rouge), Chantiers en cours, Prospection à traiter (ambre),
+   point rouge sur « CA & marge » si la marge de l'année est sous la cible, Assistant IA à configurer. */
+const AI_KEY_STORAGE = 'chargepro.ai.key'; // clé IA (lot 6) : clé dédiée, hors export du profil
+const aiConfigured = () => { try { return !!localStorage.getItem(AI_KEY_STORAGE); } catch { return false; } };
+function navStats() {
+  const t = todayISO(), d = DB.data || {}, o = d.objectifs || {}, yr = new Date().getFullYear();
+  const devis = d.devis || [], ch = d.chantiers || [], pr = d.prospection || [];
+  const devisOuverts = devis.filter(x => ['attente', 'envoye', 'relance'].includes(x.statut)).length;
+  const relances = devis.filter(x => x.relance && x.relance <= t && !['accepte', 'refuse'].includes(x.statut)).length;
+  const chantiers = ch.filter(x => !['facture', 'perdu'].includes(x.statut)).length;
+  const prospects = pr.filter(x => !['gagne', 'sans_suite'].includes(x.statut) && ((x.prochaine && x.prochaine <= t) || (x.statut === 'planifie' && x.date && x.date <= t))).length;
+  let margeBasse = false;
+  try { const ca = (d.ca || []).filter(r => r.annee === yr && otpCompte(r.otp)).reduce((s, r) => s + (+r.prixVente || 0), 0);
+    margeBasse = ca > 0 && (ca - coutsReels(yr).tot) / ca < (o.margeCible || 0); } catch { /* données incomplètes */ }
+  return { devisOuverts, relances, chantiers, prospects, margeBasse };
+}
+function updateNavMeta() {
+  if (!$('#nav') || !DB.data) return;
+  updateBell();
+  const st = navStats(), pill = (n, cls) => n ? `<span class="nav-pill ${cls || ''}">${n}</span>` : '';
+  const meta = {
+    devis: { html: pill(st.devisOuverts) + pill(st.relances, 'red'), a11y: [st.devisOuverts && st.devisOuverts + ' en cours', st.relances && st.relances + ' relance(s) en retard'] },
+    chantiers: { html: pill(st.chantiers), a11y: [st.chantiers && st.chantiers + ' en cours'] },
+    prospection: { html: pill(st.prospects, 'amber'), a11y: [st.prospects && st.prospects + ' à traiter'] },
+    ca: { html: st.margeBasse ? '<span class="nav-dot red"></span>' : '', a11y: [st.margeBasse && 'marge sous la cible'] },
+    assistant: { html: aiConfigured() ? '' : '<span class="nav-pill soft">À configurer</span>', a11y: [!aiConfigured() && 'à configurer'] },
+  };
+  $$('.nav-item').forEach(b => {
+    const m = meta[b.dataset.route], lbl = (ROUTES[b.dataset.route] || {}).label || '';
+    b.querySelector('.nav-meta').innerHTML = m ? m.html : '';
+    const extra = m ? m.a11y.filter(Boolean) : [];
+    b.setAttribute('aria-label', extra.length ? lbl + ', ' + extra.join(', ') : lbl);
+  });
+}
+let navMetaRaf = 0;
+const queueNavMeta = () => { cancelAnimationFrame(navMetaRaf); navMetaRaf = requestAnimationFrame(updateNavMeta); };
 // Sur-titre de la page : le groupe du menu auquel appartient l'écran
 function updateChrome(route) {
   $('#page-eyebrow').textContent = groupOf(route).label;
@@ -2001,11 +2143,11 @@ function go(target) {
   currentHash = form ? target : route;
   if (route === 'raf') rafOtp = ''; // entrer dans la section RAF ouvre toujours l'écran de sélection
   if (route !== 'docs') { docsEtape = null; docsInter = null; }
-  $$('.nav-item').forEach(b => b.classList.toggle('active', b.dataset.route === route));
+  $$('.nav-item').forEach(b => { const on = b.dataset.route === route; b.classList.toggle('active', on); if (on) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current'); });
   $('#page-title').textContent = ROUTES[route].label;
   updateChrome(route);
   if (location.hash.slice(1) !== currentHash) location.hash = currentHash;
-  $('#sidebar').classList.remove('open');
+  $('#sidebar').classList.remove('open'); { const mt = $('#menu-toggle'); if (mt) mt.setAttribute('aria-expanded', 'false'); }
   const v = $('#view');
   // Nouvelle route : la page repart du haut (un simple rafraîchissement de la même vue garde la position)
   if (changeRoute) { window.scrollTo(0, 0); const mn = $('#main'); if (mn) mn.scrollTop = 0; }
@@ -2019,6 +2161,8 @@ function go(target) {
     restoreFocus(null, r && r.sel, r && r.alt || '#add');
   }
   if (!form) formReturn = null;
+  updateNavMeta();
+  closeTopPopovers();
   if (window.CPJeu && CPJeu.ouverte) CPJeu.rafraichir(); // données rechargées pendant que la carte est affichée
 }
 
@@ -2239,8 +2383,10 @@ function resetAllCols() { Cols.clear(); $$('#view .table-wrap > table').forEach(
    ------------------------------------------------------------------------- */
 function renderProfileButton() {
   const p = DB.currentProfile();
-  $('#profile-btn').innerHTML = `<span class="avatar">${esc(initiales(p ? p.nom : '?'))}</span>
-    <span class="p-name">${esc(p ? p.nom : 'Profil')}</span>${icon('chevron')}`;
+  const b = $('#profile-btn');
+  b.innerHTML = `<span class="avatar" aria-hidden="true">${esc(initiales(p ? p.nom : '?'))}</span>`;
+  b.setAttribute('aria-label', 'Compte : ' + (p ? p.nom : 'aucun profil'));
+  b.dataset.tip = 'Compte — ' + (p ? p.nom : 'aucun profil');
 }
 function segHTML(pref, options, titres) {
   return `<div class="menu-seg" data-pref="${pref}">${Object.entries(options).map(([k, l]) =>
@@ -2248,7 +2394,7 @@ function segHTML(pref, options, titres) {
 }
 function profileMenuHTML() {
   const p = DB.currentProfile();
-  return `<div class="menu">
+  return `<div class="menu menu-account">
     <div class="menu-head">Chargé d'affaires${p && p.agence ? ' · ' + esc(p.agence) : ''}</div>
     ${DB.meta.profiles.map(pr => `<button class="menu-item ${pr.id === DB.meta.currentId ? 'active' : ''}" data-switch="${pr.id}">
       <span class="avatar">${esc(initiales(pr.nom))}</span>
@@ -2260,15 +2406,14 @@ function profileMenuHTML() {
     <button class="menu-item" data-demo>${icon('layers')} Charger des données de démonstration</button>
     <a class="menu-item" href="mobile.html" style="text-decoration:none;color:inherit">${icon('phone')} Version mobile (l'essentiel)</a>
     <div class="menu-sep"></div>
-    <div class="menu-head">${icon('sliders', 'ic-sm')} Affichage — adapté à cet écran</div>
-    <div class="menu-pref"><span>Largeur</span>${segHTML('width', UI_WIDTHS, {
-      confort: 'Colonne de lecture (1240 px)', large: 'Tableaux plus larges (1720 px)', plein: 'Toute la largeur de l\'écran' })}</div>
-    <div class="menu-pref"><span>Densité</span>${segHTML('density', UI_DENSITES, {
-      normal: 'Espacements standards', compact: 'Lignes serrées — plus d\'infos à l\'écran' })}</div>
-    <div class="menu-pref"><span>Thème</span>${segHTML('theme', UI_THEMES, {
-      auto: 'Suit le réglage de l\'appareil', light: 'Toujours clair', dark: 'Toujours sombre' })}</div>
-    <button class="menu-item" data-navtoggle>${icon('menu')} ${UI.prefs.nav === 'compact' ? 'Déployer le menu latéral' : 'Réduire le menu latéral'}</button>
-    ${Cols.any() ? `<button class="menu-item" data-colreset>${icon('swap')} Réinitialiser les largeurs de colonnes</button>` : ''}
+    <div class="menu-head">Données</div>
+    <button class="menu-item" data-export>${icon('download')} Sauvegarder les données</button>
+    <button class="menu-item" data-import>${icon('upload')} Restaurer une sauvegarde</button>
+    ${hasDrive() ? `<button class="menu-item" data-drive>${icon('cloud')} Google Drive — ${esc(CPDrive.connecte() ? CPDrive.libelle() : 'non connecté')}</button>` : ''}
+    <div class="menu-sep"></div>
+    <button class="menu-item" data-theme>${icon(UI.isDark() ? 'sun' : 'moon')} ${UI.isDark() ? 'Passer en thème clair' : 'Passer en thème sombre'}</button>
+    <button class="menu-item" data-jeu>${icon('gamepad')} ${UI.prefs.game === 'on' ? 'Quitter le mode carte' : 'Activer le mode carte (vue 3D)'}</button>
+    <button class="menu-item" data-params>${icon('settings')} Paramètres</button>
     <div class="menu-sep"></div>
     <button class="menu-item danger" data-del>${icon('trash')} Supprimer ce profil</button>
   </div>`;
@@ -2276,10 +2421,12 @@ function profileMenuHTML() {
 function bindProfileMenu(root, close) {
   const refresh = () => { root.innerHTML = profileMenuHTML(); bindProfileMenu(root, close); };
   $$('[data-switch]', root).forEach(b => b.onclick = () => { close(); DB.switchTo(b.dataset.switch); afterProfileChange(); });
-  $$('.menu-seg button', root).forEach(b => b.onclick = e => { e.stopPropagation(); UI.set(b.parentElement.dataset.pref, b.dataset.v); refresh(); });
-  root.querySelector('[data-navtoggle]').onclick = e => { e.stopPropagation(); UI.toggleNav(); refresh(); };
-  const cr = root.querySelector('[data-colreset]');
-  if (cr) cr.onclick = e => { e.stopPropagation(); resetAllCols(); refresh(); };
+  root.querySelector('[data-export]').onclick = () => { close(); exportAll(); };
+  root.querySelector('[data-import]').onclick = () => { close(); $('#import-file').click(); };
+  const dv = root.querySelector('[data-drive]'); if (dv) dv.onclick = () => { close(); driveDialog(); };
+  root.querySelector('[data-theme]').onclick = () => { close(); UI.toggleTheme(); };
+  root.querySelector('[data-jeu]').onclick = () => { close(); if (window.CPJeu && DB.currentProfile()) CPJeu.basculer(); };
+  root.querySelector('[data-params]').onclick = () => { close(); go('parametres'); };
   root.querySelector('[data-new]').onclick = () => { close(); profileForm(); };
   root.querySelector('[data-edit]').onclick = () => { close(); profileForm(DB.meta.currentId); };
   root.querySelector('[data-demo]').onclick = () => { close(); confirmDialog(
@@ -2307,6 +2454,7 @@ function renderDriveBanner() {
   };
 }
 function renderDriveBtn() {
+  renderDriveBanner(); // le bandeau ne dépend pas du bouton (déplacé dans le menu du compte)
   const b = $('#drive-btn'); if (!b) return;
   if (!hasDrive()) { b.style.display = 'none'; return; }
   b.innerHTML = `${icon('cloud')}<span class="lbl">${esc(CPDrive.connecte() ? CPDrive.libelle() : 'Drive')}</span><span class="drive-dot ${CPDrive.connecte() ? CPDrive.etat : ''}"></span>`;
@@ -2367,10 +2515,13 @@ function driveDialog() {
 function toggleProfileMenu() {
   const root = $('#menu-root'), pb = $('#profile-btn');
   if (root.innerHTML) { root.innerHTML = ''; pb.setAttribute('aria-expanded', 'false'); return; }
+  closeTopPopovers();
   root.innerHTML = profileMenuHTML();
   pb.setAttribute('aria-expanded', 'true');
-  const close = () => { root.innerHTML = ''; pb.setAttribute('aria-expanded', 'false'); };
+  const close = (refocus) => { root.innerHTML = ''; pb.setAttribute('aria-expanded', 'false'); if (refocus) pb.focus(); };
   bindProfileMenu(root, close);
+  const menu = root.firstElementChild; menu.setAttribute('role', 'menu'); menu.setAttribute('aria-label', 'Compte');
+  menuKeys(menu, () => close(true));
   // fermeture au clic extérieur
   setTimeout(() => document.addEventListener('click', function h(e) {
     if (!root.contains(e.target) && e.target.id !== 'profile-btn' && !$('#profile-btn').contains(e.target)) { close(); document.removeEventListener('click', h); }
@@ -2378,35 +2529,146 @@ function toggleProfileMenu() {
 }
 function afterProfileChange() { renderProfileButton(); go(current); }
 
-/* Menu « ⋯ » de la barre du haut (écran étroit) : sauvegarde, restauration, mode carte, largeur.
-   Clavier : Entrée/Espace ouvre, ↑ ↓ Début Fin naviguent, Échap ferme et rend le focus au bouton. */
-function toggleMoreMenu() {
-  const root = $('#menu-root'), btn = $('#more-btn');
-  if (root.innerHTML) { root.innerHTML = ''; btn.setAttribute('aria-expanded', 'false'); return; }
-  const jeuOn = $('#game-btn').getAttribute('aria-pressed') === 'true';
-  const items = [
-    { k: 'export', ico: 'download', t: 'Sauvegarder les données', run: () => exportAll() },
-    { k: 'import', ico: 'upload', t: 'Restaurer une sauvegarde', run: () => $('#import-file').click() },
-    { k: 'jeu', ico: 'gamepad', t: jeuOn ? 'Quitter le mode carte' : 'Activer le mode carte (vue 3D)', run: () => $('#game-btn').click() },
-    { k: 'width', ico: 'widthIc', t: `Changer la largeur d'affichage (${UI_WIDTHS[UI.prefs.width]})`, run: () => UI.cycleWidth() },
-  ];
-  root.innerHTML = `<div class="menu more-menu" role="menu" aria-label="Plus d'actions">${items.map(i => `<button type="button" class="menu-item" role="menuitem" tabindex="-1" data-more="${i.k}">${icon(i.ico)}<span>${esc(i.t)}</span></button>`).join('')}</div>`;
-  btn.setAttribute('aria-expanded', 'true');
-  const menu = root.firstElementChild, its = $$('[role=menuitem]', menu);
-  const close = (refocus = true) => { if (!root.innerHTML) return; root.innerHTML = ''; btn.setAttribute('aria-expanded', 'false'); document.removeEventListener('click', outside, true); if (refocus) btn.focus(); };
-  const outside = e => { if (!root.contains(e.target) && !btn.contains(e.target)) close(false); };
-  its.forEach((b, i) => b.onclick = () => { close(); items[i].run(); });
+/* Menus de la barre du haut : clavier commun (↑ ↓ Début Fin, Échap ferme et rend le focus au bouton) */
+function menuKeys(menu, close) {
+  const its = () => $$('button.menu-item, a.menu-item', menu);
+  its().forEach(b => { b.setAttribute('role', 'menuitem'); b.tabIndex = -1; });
   menu.addEventListener('keydown', e => {
-    const i = its.indexOf(document.activeElement);
-    if (e.key === 'ArrowDown') { e.preventDefault(); its[(i + 1) % its.length].focus(); }
-    else if (e.key === 'ArrowUp') { e.preventDefault(); its[(i - 1 + its.length) % its.length].focus(); }
-    else if (e.key === 'Home') { e.preventDefault(); its[0].focus(); }
-    else if (e.key === 'End') { e.preventDefault(); its[its.length - 1].focus(); }
+    const l = its(), i = l.indexOf(document.activeElement);
+    if (e.key === 'ArrowDown') { e.preventDefault(); l[(i + 1) % l.length].focus(); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); l[(i - 1 + l.length) % l.length].focus(); }
+    else if (e.key === 'Home') { e.preventDefault(); l[0].focus(); }
+    else if (e.key === 'End') { e.preventDefault(); l[l.length - 1].focus(); }
     else if (e.key === 'Escape') { e.preventDefault(); close(); }
     else if (e.key === 'Tab') close(false);
   });
+  const f = its()[0]; if (f) f.focus();
+}
+// Menu déroulant ancré sous un bouton : items = [{ ico, t, run }]
+function popMenu(btn, items, label) {
+  const root = $('#menu-root');
+  if (root.innerHTML && btn.getAttribute('aria-expanded') === 'true') { root.innerHTML = ''; btn.setAttribute('aria-expanded', 'false'); return; }
+  closeTopPopovers(); root.innerHTML = '';
+  $$('[aria-haspopup="menu"]').forEach(x => x.setAttribute('aria-expanded', 'false'));
+  root.innerHTML = `<div class="menu menu-anchored" role="menu" aria-label="${esc(label)}">${items.map((it, i) => `<button type="button" class="menu-item" data-i="${i}">${icon(it.ico)}<span>${esc(it.t)}</span></button>`).join('')}</div>`;
+  const menu = root.firstElementChild, r = btn.getBoundingClientRect();
+  menu.style.top = Math.round(r.bottom + 6) + 'px'; menu.style.right = Math.max(8, Math.round(innerWidth - r.right)) + 'px';
+  btn.setAttribute('aria-expanded', 'true');
+  const outside = e => { if (!root.contains(e.target) && !btn.contains(e.target)) close(false); };
+  const close = (refocus = true) => { if (!root.innerHTML) return; root.innerHTML = ''; btn.setAttribute('aria-expanded', 'false'); document.removeEventListener('click', outside, true); if (refocus) btn.focus(); };
+  $$('[data-i]', menu).forEach(b => b.onclick = () => { close(false); items[+b.dataset.i].run(); });
+  menuKeys(menu, close);
   setTimeout(() => document.addEventListener('click', outside, true), 0);
-  its[0].focus();
+}
+function openNewMenu() {
+  const btn = $('#new-btn');
+  popMenu(btn, [
+    { ico: 'file', t: 'Nouveau devis', run: () => openForm('devis/nouveau', btn) },
+    { ico: 'building', t: 'Nouveau chantier', run: () => openForm('chantiers/nouveau', btn) },
+    { ico: 'users', t: 'Nouveau client', run: () => openForm('clients/nouveau', btn) },
+    { ico: 'receipt', t: 'Nouvelle facture', run: () => openForm('factures/nouveau', btn) },
+    { ico: 'checkSquare', t: 'Nouvelle tâche', run: () => { go('dashboard'); setTimeout(() => { const i = $('#todo-input'); if (i) { i.scrollIntoView({ block: 'center' }); i.focus(); } }, 0); } },
+  ], 'Nouveau');
+}
+
+/* Notifications : panneau ancré sous la cloche (role="dialog", Échap ferme, le focus revient à la cloche).
+   Contenu : les alertes déjà calculées pour « Actions prioritaires » (aucune donnée inventée). */
+function notifItems() { try { return collectActions(); } catch { return []; } }
+function updateBell() {
+  const b = $('#bell-btn'); if (!b || !DB.data) return;
+  const n = notifItems().length;
+  b.innerHTML = icon('bell') + (n ? `<span class="bell-badge" aria-hidden="true">${n > 99 ? '99+' : n}</span>` : '');
+  const l = n ? `Notifications, ${n} alerte${n > 1 ? 's' : ''}` : 'Notifications, aucune alerte';
+  b.setAttribute('aria-label', l); b.dataset.tip = l;
+}
+function closeTopPopovers(refocus) {
+  const pop = $('#notif-pop');
+  if (pop) { pop.remove(); const b = $('#bell-btn'); if (b) { b.setAttribute('aria-expanded', 'false'); if (refocus) b.focus(); } }
+}
+function toggleNotifs() {
+  const btn = $('#bell-btn');
+  if ($('#notif-pop')) { closeTopPopovers(true); return; }
+  const root = $('#menu-root'); if (root.innerHTML) { root.innerHTML = ''; $$('[aria-haspopup="menu"]').forEach(x => x.setAttribute('aria-expanded', 'false')); }
+  const acts = notifItems();
+  const pop = document.createElement('div');
+  pop.id = 'notif-pop'; pop.className = 'notif-pop'; pop.setAttribute('role', 'dialog'); pop.setAttribute('aria-labelledby', 'notif-title');
+  pop.innerHTML = `<div class="np-head"><h2 id="notif-title">Notifications</h2><span class="np-count">${acts.length ? acts.length + ' alerte' + (acts.length > 1 ? 's' : '') : ''}</span>
+      <button type="button" class="btn ghost icon" data-np-close aria-label="Fermer les notifications">${icon('x')}</button></div>
+    ${acts.length ? `<ul class="np-list">${acts.slice(0, 12).map((a, i) => `<li><button type="button" class="np-item ${a.tone}" data-np="${i}">
+        <span class="np-ico">${icon(a.ico)}</span><span class="np-txt">${a.title}</span><span class="np-badge">${a.badge}</span></button></li>`).join('')}</ul>`
+      : `<p class="np-empty">Aucune alerte. Tout est à jour.</p>`}
+    <div class="np-foot"><button type="button" class="btn small" data-np-dash>Ouvrir le tableau de bord</button></div>`;
+  document.body.appendChild(pop);
+  const r = btn.getBoundingClientRect();
+  pop.style.top = Math.round(r.bottom + 6) + 'px';
+  pop.style.right = Math.max(8, Math.round(innerWidth - r.right)) + 'px';
+  btn.setAttribute('aria-expanded', 'true');
+  $$('[data-np]', pop).forEach(b => b.onclick = () => { const a = acts[+b.dataset.np]; closeTopPopovers(); go(a.route); });
+  pop.querySelector('[data-np-dash]').onclick = () => { closeTopPopovers(); go('dashboard'); };
+  pop.querySelector('[data-np-close]').onclick = () => closeTopPopovers(true);
+  pop.addEventListener('keydown', e => { trapTab(pop, e); if (e.key === 'Escape') { e.preventDefault(); closeTopPopovers(true); } });
+  const outside = e => { if (!pop.isConnected) { document.removeEventListener('click', outside, true); return; } if (!pop.contains(e.target) && !btn.contains(e.target)) { closeTopPopovers(); document.removeEventListener('click', outside, true); } };
+  setTimeout(() => document.addEventListener('click', outside, true), 0);
+  (pop.querySelector('[data-np]') || pop.querySelector('[data-np-dash]')).focus();
+}
+
+/* Recherche globale (⌘K / Ctrl+K) : devis, chantiers, clients — liste déroulante accessible (combobox) */
+const sansAccent = x => String(x || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+function searchAll(q) {
+  const termes = sansAccent(q).split(/\s+/).filter(Boolean); if (!termes.length) return [];
+  const ok = (...champs) => { const h = sansAccent(champs.join(' ')); return termes.every(t => h.includes(t)); };
+  const d = DB.data || {}, out = [];
+  (d.devis || []).filter(x => ok(x.ref, x.objet, x.otp, clientNom(x.clientId))).slice(0, 5)
+    .forEach(x => out.push({ type: 'Devis', ico: 'file', t: [x.ref, x.objet].filter(Boolean).join(' — '), sub: clientNom(x.clientId), run: () => openForm('devis/' + x.id, $('#gsearch')) }));
+  (d.chantiers || []).filter(x => ok(x.nom, x.otp, x.adresse, clientNom(x.clientId))).slice(0, 5)
+    .forEach(x => out.push({ type: 'Chantier', ico: 'building', t: x.nom, sub: [x.otp, clientNom(x.clientId)].filter(y => y && y !== '—').join(' · '), run: () => { go('chantiers'); chantierDetail(x.id); } }));
+  (d.clients || []).filter(x => ok(x.nom, x.contact, x.adresse, x.email)).slice(0, 5)
+    .forEach(x => out.push({ type: 'Client', ico: 'users', t: x.nom, sub: [x.type, x.adresse].filter(Boolean).join(' · '), run: () => openForm('clients/' + x.id, $('#gsearch')) }));
+  return out;
+}
+function initSearch() {
+  const inp = $('#gsearch'), list = $('#gsearch-list'), wrap = $('#tb-search');
+  const mac = /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent);
+  $('#gsearch-kbd').textContent = mac ? '⌘K' : 'Ctrl K';
+  inp.setAttribute('aria-keyshortcuts', mac ? 'Meta+K' : 'Control+K');
+  let res = [], act = -1;
+  const fermer = () => { list.hidden = true; list.innerHTML = ''; inp.setAttribute('aria-expanded', 'false'); inp.removeAttribute('aria-activedescendant'); act = -1; };
+  const marquer = i => { act = i; $$('[role=option]', list).forEach((o, k) => o.setAttribute('aria-selected', k === i ? 'true' : 'false'));
+    const o = $('#gs-opt-' + i); if (o) { inp.setAttribute('aria-activedescendant', o.id); o.scrollIntoView({ block: 'nearest' }); } else inp.removeAttribute('aria-activedescendant'); };
+  const lancer = i => { const r = res[i]; if (!r) return; fermer(); inp.value = ''; fermerMobile(false); r.run(); };
+  const afficher = () => {
+    const q = inp.value.trim(); res = q ? searchAll(q) : [];
+    if (!q) { fermer(); return; }
+    let lastType = '';
+    list.innerHTML = res.length ? res.map((r, i) => { const head = r.type !== lastType ? `<div class="gs-group" role="presentation">${r.type === 'Devis' ? 'Devis' : r.type === 'Chantier' ? 'Chantiers' : 'Clients'}</div>` : ''; lastType = r.type;
+      return head + `<div class="gs-opt" role="option" id="gs-opt-${i}" aria-selected="false" data-i="${i}">${icon(r.ico)}<span class="gs-t">${esc(r.t)}</span><span class="gs-sub">${esc(r.sub || '')}</span></div>`; }).join('')
+      : `<div class="gs-empty" role="presentation">Aucun devis, chantier ou client ne correspond à « ${esc(q)} ».</div>`;
+    list.hidden = false; inp.setAttribute('aria-expanded', 'true'); marquer(res.length ? 0 : -1);
+  };
+  inp.addEventListener('input', afficher);
+  inp.addEventListener('focus', () => { if (inp.value.trim()) afficher(); });
+  inp.addEventListener('keydown', e => {
+    if (e.key === 'ArrowDown' && res.length) { e.preventDefault(); if (list.hidden) afficher(); marquer((act + 1) % res.length); }
+    else if (e.key === 'ArrowUp' && res.length) { e.preventDefault(); marquer((act - 1 + res.length) % res.length); }
+    else if (e.key === 'Enter') { e.preventDefault(); if (act >= 0) lancer(act); }
+    else if (e.key === 'Escape') { e.preventDefault(); if (!list.hidden) fermer(); else if (inp.value) inp.value = ''; else fermerMobile(true); }
+  });
+  list.addEventListener('mousedown', e => e.preventDefault()); // le champ garde le focus
+  list.addEventListener('click', e => { const o = e.target.closest('[data-i]'); if (o) lancer(+o.dataset.i); });
+  inp.addEventListener('blur', () => setTimeout(() => { if (document.activeElement !== inp) fermer(); }, 120));
+  // Écran étroit : la recherche s'ouvre par-dessus la barre du haut
+  const sb = $('#search-btn');
+  sb.innerHTML = icon('search'); $('#gsearch-close').innerHTML = icon('x');
+  const ouvrirMobile = () => { $('#topbar').classList.add('searching'); sb.setAttribute('aria-expanded', 'true'); inp.focus(); };
+  function fermerMobile(refocus) { if (!$('#topbar').classList.contains('searching')) return; $('#topbar').classList.remove('searching'); sb.setAttribute('aria-expanded', 'false'); fermer(); if (refocus) sb.focus(); }
+  sb.onclick = ouvrirMobile;
+  $('#gsearch-close').onclick = () => fermerMobile(true);
+  document.addEventListener('keydown', e => {
+    if ((e.metaKey || e.ctrlKey) && !e.altKey && e.key.toLowerCase() === 'k') {
+      e.preventDefault();
+      if (getComputedStyle(sb).display !== 'none') ouvrirMobile(); else { inp.focus(); inp.select(); }
+    }
+  });
 }
 
 /* Noms accessibles posés dès le rendu :
@@ -6746,6 +7008,42 @@ function importAll(file) {
 }
 
 
+/* ---------- Assistant IA (configuré au lot 6) ---------- */
+function renderAssistantIA(v) {
+  v.innerHTML = `<div class="card card-pad">${emptyState('sparkle', 'Assistant IA à configurer',
+    "Branchez votre propre clé (Claude, OpenAI, Mistral ou Gemini) dans les paramètres pour faire rédiger relances, objets de devis et synthèses de chantier.",
+    { id: 'ai-config', label: "Configurer l'assistant", ico: 'settings' })}</div>`;
+  $('#ai-config').onclick = () => { go('parametres'); setTimeout(() => { const h = $('#set-ia'); if (h) { h.scrollIntoView({ block: 'start' }); h.focus({ preventScroll: true }); } }, 0); };
+}
+/* ---------- Paramètres (modèle de page 5 — Settings) ---------- */
+function renderParametres(v) {
+  const radios = (name, opts, cur, aide) => `<fieldset class="set-seg"><legend class="sr-only">${aide}</legend>${Object.entries(opts).map(([k, l]) =>
+    `<label class="set-opt"><input type="radio" name="${name}" value="${k}" ${cur === k ? 'checked' : ''}><span>${l}</span></label>`).join('')}</fieldset>`;
+  const drive = hasDrive() ? (CPDrive.connecte() ? CPDrive.libelle() : 'Non connecté') : 'Indisponible sur cet appareil';
+  v.innerHTML = `<div class="settings">
+    <section class="set-sec" aria-labelledby="set-aff"><h2 id="set-aff">Affichage</h2>
+      <div class="set-row"><div class="set-lbl" id="lbl-theme">Thème<span>Clair, sombre, ou selon le réglage de l'appareil.</span></div>${radios('theme', { auto: 'Appareil', light: 'Clair', dark: 'Sombre' }, UI.prefs.theme, 'Thème')}</div>
+      <div class="set-row"><div class="set-lbl">Largeur du contenu<span>Plus large pour voir plus de colonnes.</span></div>${radios('width', UI_WIDTHS, UI.prefs.width, 'Largeur du contenu')}</div>
+      <div class="set-row"><div class="set-lbl">Densité<span>Lignes serrées : plus d'informations à l'écran.</span></div>${radios('density', UI_DENSITES, UI.prefs.density, 'Densité')}</div>
+      <div class="set-row"><div class="set-lbl">Menu latéral<span>Réduit, il ne montre que les icônes.</span></div>${radios('nav', { full: 'Déployé', compact: 'Réduit' }, UI.prefs.nav, 'Menu latéral')}</div>
+      <div class="set-row"><div class="set-lbl">Largeurs de colonnes<span>Revenir aux largeurs automatiques des tableaux.</span></div><button type="button" class="btn" id="set-cols">${icon('swap')} Réinitialiser les colonnes</button></div>
+    </section>
+    <section class="set-sec" aria-labelledby="set-don"><h2 id="set-don">Données</h2>
+      <div class="set-row"><div class="set-lbl">Sauvegarde locale<span>Fichier JSON du profil courant (sans clé d'IA).</span></div><div class="set-btns"><button type="button" class="btn" id="set-exp">${icon('download')} Sauvegarder les données</button><button type="button" class="btn" id="set-imp">${icon('upload')} Restaurer une sauvegarde</button></div></div>
+      <div class="set-row"><div class="set-lbl">Google Drive<span>${esc(drive)}</span></div>${hasDrive() ? `<button type="button" class="btn" id="set-drive">${icon('cloud')} Gérer Google Drive</button>` : ''}</div>
+      <div class="set-row"><div class="set-lbl">Version mobile<span>L'essentiel, pour le téléphone.</span></div><a class="btn" href="mobile.html">${icon('phone')} Ouvrir la version mobile</a></div>
+    </section>
+    <section class="set-sec" aria-labelledby="set-ia"><h2 id="set-ia" tabindex="-1">Intelligence artificielle</h2>
+      <div class="set-row"><div class="set-lbl">Fournisseur et clé d'accès<span>Claude, OpenAI, Mistral ou Gemini, avec votre propre clé. La clé reste sur ce poste, hors des sauvegardes.</span></div><span class="set-soon">Bientôt disponible</span></div>
+    </section>
+  </div>`;
+  $$('.set-seg input', v).forEach(i => i.onchange = () => { UI.set(i.name, i.value); renderParametres(v); const f = $(`.set-seg input[name="${i.name}"][value="${i.value}"]`, v); if (f) f.focus(); });
+  $('#set-cols').onclick = () => resetAllCols();
+  $('#set-exp').onclick = exportAll;
+  $('#set-imp').onclick = () => $('#import-file').click();
+  if ($('#set-drive')) $('#set-drive').onclick = () => driveDialog();
+}
+
 /* =========================================================================
    11. Documents d'exécution — PAQ / PPSPS / Fiche APRI / Plan de prévention
    Assistant de remplissage guidé : l'outil pose une question, écrit la réponse
@@ -7950,27 +8248,24 @@ function imprimerDoc(titre, blocks) {
 function boot() {
   UI.load();
   $('#menu-toggle').innerHTML = icon('menu');
-  $('#more-btn').innerHTML = icon('more');
-  $('#more-btn').onclick = e => { e.stopPropagation(); toggleMoreMenu(); };
   $('#nav-collapse').innerHTML = icon('menu');
   $('#nav-collapse').onclick = () => UI.toggleNav();
-  $('#btn-export').innerHTML = icon('download') + '<span class="lbl">Sauvegarde</span>';
-  $('#btn-import').innerHTML = icon('upload') + '<span class="lbl">Restaurer</span>';
+  $('.tb-search-ic').innerHTML = icon('search');
+  $('#new-btn').innerHTML = icon('plus') + '<span class="lbl">Nouveau</span>';
+  $('#new-btn').onclick = e => { e.stopPropagation(); openNewMenu(); };
+  $('#bell-btn').onclick = e => { e.stopPropagation(); toggleNotifs(); };
   $('#theme-btn').onclick = () => UI.toggleTheme();
-  $('#width-btn').onclick = () => UI.cycleWidth();
-  $('#game-btn').innerHTML = icon('gamepad') + '<span class="lbl">Mode carte</span>';
-  $('#game-btn').onclick = () => { if (window.CPJeu && DB.currentProfile()) CPJeu.basculer(); };
+  initSearch();
   if (window.matchMedia) matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => UI.apply());
   UI.apply();
   buildNav();
   $('#year-badge').textContent = 'Année ' + new Date().getFullYear();
   $('#brand-home').onclick = () => go('dashboard');
-  $('#menu-toggle').onclick = () => $('#sidebar').classList.toggle('open');
-  $('#drawer-back').onclick = () => $('#sidebar').classList.remove('open');
+  const tiroir = on => { $('#sidebar').classList.toggle('open', on); $('#menu-toggle').setAttribute('aria-expanded', on ? 'true' : 'false'); if (on) { const a = $('#sidebar .nav-item.active') || $('#sidebar .nav-item'); if (a) a.focus(); } };
+  $('#menu-toggle').onclick = () => tiroir(!$('#sidebar').classList.contains('open'));
+  $('#drawer-back').onclick = () => tiroir(false);
+  $('#sidebar').addEventListener('keydown', e => { if (e.key === 'Escape' && $('#sidebar').classList.contains('open')) { tiroir(false); $('#menu-toggle').focus(); } });
   $('#profile-btn').onclick = e => { e.stopPropagation(); toggleProfileMenu(); };
-  $('#btn-export').onclick = exportAll;
-  $('#drive-btn').onclick = () => { if (hasDrive()) driveDialog(); };
-  $('#btn-import').onclick = () => $('#import-file').click();
   $('#import-file').onchange = e => { if (e.target.files[0]) importAll(e.target.files[0]); e.target.value = ''; };
   // Double-clic sur une ligne = ouvrir/éditer l'élément (plus intuitif)
   $('#view').addEventListener('dblclick', e => {
