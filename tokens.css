@@ -75,8 +75,8 @@
   --scrim:rgba(27,28,31,.5);
   --shadow-xs:0 1px 2px rgba(27,28,31,.04);
   --shadow-sm:0 1px 3px rgba(27,28,31,.06),0 1px 2px rgba(27,28,31,.03);
-  --shadow-md:0 8px 24px rgba(27,28,31,.08);
-  --shadow-lg:0 16px 40px -12px rgba(27,28,31,.24);
+  --shadow-md:0 8px 24px rgba(27,28,31,.07);
+  --shadow-lg:0 16px 40px -12px rgba(27,28,31,.07),0 2px 6px rgba(27,28,31,.05);
 
   /* Barre latérale (claire, refondue au lot 2) */
   --side-bg:var(--bg); --side-bg-2:var(--hover); --side-text:var(--muted); --side-text-strong:var(--text);

@@ -46,10 +46,10 @@ a{color:var(--accent-strong)}
 
 /* ============================== Coquille =============================== */
 #app{min-height:100vh;display:flex}
-#main{flex:1;min-width:0;display:flex;flex-direction:column;margin-left:var(--side-w);transition:margin-left .25s var(--ease-drawer)}
+#main{flex:1;min-width:0;display:flex;flex-direction:column;margin-left:var(--side-w)}
 
 #topbar{position:sticky;top:0;z-index:40;height:62px;display:flex;align-items:center;gap:var(--sp-4);padding:0 var(--sp-6);
-  background:color-mix(in srgb,var(--surface) 92%,transparent);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+  background:var(--surface);
   border-bottom:1px solid var(--border)}
 .brand{display:flex;align-items:center;gap:var(--sp-2);padding:var(--sp-1);border:0;background:none;color:var(--text);border-radius:var(--r-12);flex:none}
 .logo-mark{width:32px;height:32px;border-radius:var(--r-8);display:grid;place-items:center;background:var(--logo);color:var(--on-accent);
@@ -73,15 +73,15 @@ a{color:var(--accent-strong)}
 
 /* Barre latérale */
 #sidebar{position:fixed;inset:0 auto 0 0;width:var(--side-w);z-index:50;display:flex;flex-direction:column;
-  background:var(--side-bg);color:var(--side-text);border-right:1px solid var(--side-border);transition:width .25s var(--ease-drawer)}
+  background:var(--side-bg);color:var(--side-text);border-right:1px solid var(--side-border)}
 #sidebar .brand{height:62px;padding:0 var(--sp-4);border-radius:0;border-bottom:1px solid var(--side-border);color:var(--side-text-strong)}
 #nav{flex:1;overflow-y:auto;overflow-x:hidden;padding:var(--sp-2) var(--sp-3) var(--sp-3);display:flex;flex-direction:column;gap:1px;scrollbar-width:thin;scrollbar-color:var(--side-bg-2) transparent}
 .nav-group{font-size:var(--text-xs);line-height:var(--lh-xs);letter-spacing:var(--tracking-caps);text-transform:uppercase;color:var(--side-muted);font-weight:var(--fw-semibold);padding:var(--sp-4) var(--sp-2) var(--sp-1);white-space:nowrap}
 .nav-group:first-child{padding-top:var(--sp-2)}
 .nav-item{position:relative;display:flex;align-items:center;gap:var(--sp-3);width:100%;padding:var(--sp-2) var(--sp-2);border:0;background:none;border-radius:var(--r-8);
-  color:var(--side-text);font-size:var(--text-md);line-height:var(--lh-md);font-weight:var(--fw-medium);text-align:left;white-space:nowrap;transition:background .12s,color .12s}
+  color:var(--side-text);font-size:var(--text-md);line-height:var(--lh-md);font-weight:var(--fw-medium);text-align:left;white-space:nowrap;transition:background .1s,color .1s}
 .nav-item>span{white-space:normal;line-height:var(--lh-md);overflow-wrap:anywhere} /* libellé entier, sur deux lignes si besoin */
-.nav-item .ic{color:var(--side-muted);transition:color .12s}
+.nav-item .ic{color:var(--side-muted);transition:color .1s}
 .nav-item:hover{background:var(--hover);color:var(--side-text-strong)}
 .nav-item:hover .ic{color:var(--side-text)}
 .nav-item.active{background:var(--side-bg-2);color:var(--side-text-strong);font-weight:var(--fw-semibold)}
@@ -110,7 +110,7 @@ a{color:var(--accent-strong)}
 /* Menu déroulant */
 .menu{position:fixed;top:58px;right:16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-12);
   box-shadow:var(--shadow-lg);width:300px;max-height:calc(100vh - 76px);overflow:auto;z-index:50;color:var(--text);
-  transform-origin:top right;animation:menu-in .16s var(--ease-out)}
+  transform-origin:top right;animation:menu-in .15s var(--ease-out)}
 @keyframes menu-in{from{transform:scale(.96);opacity:0}to{transform:none;opacity:1}}
 .menu-head{display:flex;align-items:center;gap:var(--sp-2);padding:var(--sp-3) var(--sp-4) var(--sp-2);font-size:var(--text-xs);line-height:var(--lh-xs);font-weight:var(--fw-semibold);text-transform:uppercase;letter-spacing:var(--tracking-caps);color:var(--muted)}
 .menu-item{display:flex;align-items:center;gap:var(--sp-2);padding:var(--sp-2) var(--sp-4);font-size:var(--text-md);line-height:var(--lh-md);font-weight:var(--fw-medium);width:100%;background:none;border:0;text-align:left;color:var(--text)}
@@ -138,7 +138,7 @@ a{color:var(--accent-strong)}
 /* ============================== Boutons ================================ */
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:var(--sp-2);height:36px;padding:0 var(--sp-4);border-radius:var(--r-8);
   border:1px solid var(--border-strong);background:var(--surface);color:var(--text);font-weight:var(--fw-semibold);font-size:var(--text-md);line-height:var(--lh-md);
-  white-space:nowrap;box-shadow:var(--shadow-xs);transition:background .12s,border-color .12s,box-shadow .12s,transform .12s}
+  white-space:nowrap;box-shadow:var(--shadow-xs);transition:background .1s,border-color .1s,box-shadow .1s,transform .1s}
 .btn:hover{background:var(--sunken)}
 .btn:active{transform:scale(.98)}
 .btn:disabled{opacity:.5;cursor:not-allowed}
@@ -154,7 +154,7 @@ a{color:var(--accent-strong)}
 .btn.icon{width:36px;padding:0}
 .btn.small.icon,.btn.sm.icon{width:30px}
 .icon-btn{border:1px solid transparent;background:transparent;padding:var(--sp-2);border-radius:var(--r-8);color:var(--muted);display:inline-flex;
-  transition:background .12s,color .12s}
+  transition:background .1s,color .1s}
 .icon-btn:hover{background:var(--hover);color:var(--text)}
 .icon-btn.danger:hover{background:var(--red-bg);color:var(--red)}
 
@@ -196,7 +196,7 @@ details.detail>.detail-body{padding:0 var(--sp-4) var(--sp-4);display:grid;grid-
 .kpi-value small{font-size:var(--text-md);line-height:var(--lh-md);font-weight:var(--fw-semibold);color:var(--muted);margin-left:var(--sp-half)}
 .kpi-sub{font-size:var(--text-sm);line-height:var(--lh-sm);color:var(--muted);margin-top:var(--sp-2)}
 .progress{height:6px;border-radius:var(--r-pill);background:var(--hover);margin-top:var(--sp-3);overflow:hidden}
-.progress>i{display:block;height:100%;border-radius:var(--r-pill);background:var(--accent-strong);transition:width .5s var(--ease-out)}
+.progress>i{display:block;height:100%;border-radius:var(--r-pill);background:var(--accent-strong)}
 .progress.green>i{background:var(--green)} .progress.amber>i{background:var(--amber)} .progress.red>i{background:var(--red)}
 
 /* ============================== Tableaux =============================== */
@@ -213,7 +213,7 @@ td.col-compact,th.col-compact{white-space:normal;width:1%;min-width:96px}
 /* Colonnes étirables — poignée sur le bord droit de chaque en-tête */
 .col-rsz{position:absolute;top:0;right:-4px;width:9px;height:100%;cursor:col-resize;z-index:2;touch-action:none}
 /* Séparateur toujours visible entre les en-têtes : on voit où tirer */
-.col-rsz::after{content:"";position:absolute;left:4px;top:9px;bottom:9px;width:1px;border-radius:var(--r-6);background:var(--border-strong);transition:background .15s,width .15s,left .15s}
+.col-rsz::after{content:"";position:absolute;left:4px;top:9px;bottom:9px;width:1px;border-radius:var(--r-6);background:var(--border-strong);transition:background .15s}
 .col-rsz:hover::after,.col-rsz.active::after{background:var(--accent-strong);width:3px;left:3px;top:4px;bottom:4px}
 thead th:last-child .col-rsz::after{display:none}
 th.col-key,td.col-key{background:color-mix(in srgb,var(--accent-bg) 60%,transparent)}
@@ -253,6 +253,8 @@ tfoot td{padding:var(--th-py) var(--row-px);font-weight:var(--fw-semibold);backg
 .chip.warn{background:var(--amber-bg);color:var(--amber)}
 .chip.pos{color:var(--green)}
 .chip.neg{color:var(--red)}
+/* Métadonnées statiques (compteurs, OTP, types) : texte simple, sans pastille (anti-slop). Les pastilles restent pour les statuts et les chips cliquables. */
+span.chip:not(.ok):not(.warn){background:none;padding-left:0;padding-right:0;font-weight:var(--fw-medium)}
 .pos{color:var(--green)} .neg{color:var(--red)}
 .deadline-ok,.margin-good{color:var(--green);font-weight:var(--fw-semibold)}
 .deadline-soon,.margin-warn{color:var(--amber);font-weight:var(--fw-semibold)}
@@ -269,7 +271,7 @@ tfoot td{padding:var(--th-py) var(--row-px);font-weight:var(--fw-semibold);backg
 .field input:not([type=checkbox]):not([type=radio]),.field select,.field textarea,
 .filters input:not([type=checkbox]):not([type=radio]),.filters select,.todo-add input,.todo-folder-add input{
   width:100%;height:38px;padding:0 var(--sp-3);border:1px solid var(--border-strong);border-radius:var(--r-8);background:var(--surface);color:var(--text);
-  box-shadow:var(--shadow-xs);transition:border-color .12s,box-shadow .12s}
+  box-shadow:var(--shadow-xs);transition:border-color .1s,box-shadow .1s}
 .field textarea,textarea.input{height:auto;min-height:84px;padding:var(--sp-2) var(--sp-3);resize:vertical;line-height:var(--lh-md)}
 .input:focus,.field input:focus,.field select:focus,.field textarea:focus,.filters input:focus,.filters select:focus,.todo-add input:focus,.todo-folder-add input:focus,
 .wz-input input:focus,.wz-input textarea:focus,.wz-input select:focus,.wz-liste input:focus,.todo-edit-input,.todo-due-input,.todo-status-input,.todo-folder-input,
@@ -285,7 +287,7 @@ input[type=checkbox],input[type=radio]{accent-color:var(--accent-strong)}
 .modal-back{position:fixed;inset:0;background:var(--scrim);z-index:60;display:flex;align-items:flex-start;justify-content:center;
   padding:var(--sp-11) var(--sp-4);overflow:auto;animation:back-in .15s ease-out}
 @keyframes back-in{from{opacity:0}}
-.modal{background:var(--surface);color:var(--text);border-radius:var(--r-12);width:100%;max-width:600px;box-shadow:var(--shadow-lg);animation:modal-in .18s ease-out}
+.modal{background:var(--surface);color:var(--text);border-radius:var(--r-12);width:100%;max-width:600px;box-shadow:var(--shadow-lg);animation:modal-in .15s ease-out}
 .modal.wide{max-width:min(1080px,94vw)}
 .modal.xwide{max-width:min(1600px,96vw)}
 .modal.xwide .modal-body{max-height:84vh}
@@ -408,7 +410,7 @@ summary.win-head>.win-ctl{float:right}
 /* ============================== Notifications ========================== */
 #toast-root{position:fixed;right:20px;bottom:20px;z-index:80;display:grid;gap:var(--sp-2)}
 .toast{display:flex;align-items:center;gap:var(--sp-2);min-width:260px;max-width:420px;padding:var(--sp-3) var(--sp-4);border-radius:var(--r-12);background:var(--inverse-bg);color:var(--inverse-text);
-  box-shadow:var(--shadow-lg);font-size:var(--text-md);line-height:var(--lh-md);font-weight:var(--fw-medium);animation:toast-in .18s ease-out}
+  box-shadow:var(--shadow-lg);font-size:var(--text-md);line-height:var(--lh-md);font-weight:var(--fw-medium);animation:toast-in .15s ease-out}
 @keyframes toast-in{from{transform:translateY(10px) scale(.98);opacity:0}}
 .toast .ic{width:16px;height:16px;color:var(--inverse-muted)}
 .toast.ok .ic{color:var(--inverse-green)}
@@ -469,7 +471,7 @@ summary.win-head>.win-ctl{float:right}
 @media(hover:none){.todo-edit,.todo-del{opacity:1}}
 .todo-edit-input,.todo-folder-input{flex:1;min-width:0;padding:var(--sp-2) var(--sp-2);border:1px solid var(--accent-strong);border-radius:var(--r-8);font-size:var(--text-md);line-height:var(--lh-md);color:var(--text);background:var(--surface)}
 .todo-due,.todo-wait,.todo-status{display:inline-flex;align-items:center;gap:var(--sp-1);height:22px;padding:0 var(--sp-2);border-radius:var(--r-pill);font-size:var(--text-xs);line-height:var(--lh-xs);font-weight:var(--fw-semibold);
-  border:1px solid var(--border);background:var(--hover);color:var(--muted);white-space:nowrap;flex:none;cursor:pointer;transition:background .12s,border-color .12s}
+  border:1px solid var(--border);background:var(--hover);color:var(--muted);white-space:nowrap;flex:none;cursor:pointer;transition:background .1s,border-color .1s}
 .todo-due .ic,.todo-wait .ic,.todo-status .ic{width:13px;height:13px;flex:none}
 .todo-due.ok{background:var(--accent-bg);color:var(--accent-strong);border-color:transparent}
 .todo-due.soon{background:var(--amber-bg);color:var(--amber);border-color:var(--amber-line)}
@@ -578,7 +580,7 @@ button.link{border:0;background:none;padding:0;font:inherit;font-weight:var(--fw
 .bc-x span{flex:1;min-width:0;text-align:center;font-size:var(--text-xs);line-height:var(--lh-xs);color:var(--muted);font-weight:var(--fw-medium)}
 .barchart{position:relative;display:flex;align-items:flex-end;gap:var(--sp-2);height:160px;border-bottom:1px solid var(--border-strong)}
 .barchart .bar-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:var(--sp-2);height:100%;justify-content:flex-end;min-width:0}
-.barchart .bar{width:44%;background:var(--serie-1);border-radius:var(--r-6) var(--r-6) 0 0;min-height:2px;transition:height .5s var(--ease-out)}
+.barchart .bar{width:44%;background:var(--serie-1);border-radius:var(--r-6) var(--r-6) 0 0;min-height:2px}
 .barchart .bar.margin{background:var(--serie-2)}
 .barchart .bars{display:flex;gap:var(--sp-half);align-items:flex-end;height:100%;width:100%;justify-content:center}
 .barchart .bar-lbl{font-size:var(--text-xs);line-height:var(--lh-xs);color:var(--muted);font-weight:var(--fw-medium)}
@@ -606,7 +608,7 @@ button.link{border:0;background:none;padding:0;font:inherit;font-weight:var(--fw
 .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:var(--sp-2)}
 .cal-head{margin-bottom:var(--sp-2)}
 .cal-hd{font-size:var(--text-xs);line-height:var(--lh-xs);font-weight:var(--fw-semibold);text-transform:uppercase;letter-spacing:var(--tracking-caps);color:var(--muted);padding:var(--sp-1) var(--sp-2)}
-.cal-cell{min-height:104px;border:1px solid var(--border);border-radius:var(--r-12);background:var(--surface);padding:var(--sp-1) var(--sp-2);cursor:pointer;overflow:hidden;transition:border-color .12s,box-shadow .12s}
+.cal-cell{min-height:104px;border:1px solid var(--border);border-radius:var(--r-12);background:var(--surface);padding:var(--sp-1) var(--sp-2);cursor:pointer;overflow:hidden;transition:border-color .1s,box-shadow .1s}
 .cal-cell:hover{border-color:var(--accent-strong);box-shadow:var(--shadow-sm)}
 .cal-cell.out{background:var(--sunken)}
 .cal-cell.out .cal-daynum{color:var(--muted)}
@@ -686,7 +688,7 @@ body.row-dragging,body.row-dragging *{cursor:grabbing!important;user-select:none
 .dl-name{display:flex;flex-direction:column;min-width:210px;font-weight:var(--fw-semibold);font-size:var(--text-md);line-height:var(--lh-md)}
 .dl-name em{font-style:normal;font-weight:var(--fw-regular);font-size:var(--text-xs);line-height:var(--lh-xs);color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:340px}
 .dl-bar{flex:1;height:6px;border-radius:var(--r-pill);background:var(--hover);overflow:hidden;min-width:70px}
-.dl-bar i{display:block;height:100%;background:var(--accent-strong);border-radius:var(--r-pill);transition:width .4s var(--ease-out)}
+.dl-bar i{display:block;height:100%;background:var(--accent-strong);border-radius:var(--r-pill)}
 .doc-line.ok .dl-bar i{background:var(--green)}
 .dl-pct{font-size:var(--text-sm);line-height:var(--lh-sm);font-weight:var(--fw-semibold);color:var(--muted);width:40px;text-align:right;font-variant-numeric:tabular-nums}
 
@@ -697,9 +699,9 @@ body.row-dragging,body.row-dragging *{cursor:grabbing!important;user-select:none
 .wz-doc b{display:block;font-size:var(--text-md);line-height:var(--lh-md)}
 .wz-doc em{font-style:normal;font-size:var(--text-xs);line-height:var(--lh-xs);opacity:.85;display:block;max-width:170px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .wz-prog{height:6px;border-radius:var(--r-pill);background:var(--hover);overflow:hidden}
-.wz-prog i{display:block;height:100%;background:var(--accent-strong);transition:width .4s var(--ease-out)}
+.wz-prog i{display:block;height:100%;background:var(--accent-strong)}
 .wz-secs,.wz-docs{display:flex;flex-direction:column;gap:var(--sp-half);border-top:1px solid var(--border);padding-top:var(--sp-2)}
-.wz-sec,.wz-jump{display:flex;align-items:center;gap:var(--sp-2);text-align:left;background:none;border:0;padding:var(--sp-2) var(--sp-2);border-radius:var(--r-8);font-size:var(--text-sm);line-height:var(--lh-sm);color:var(--muted);transition:background .12s}
+.wz-sec,.wz-jump{display:flex;align-items:center;gap:var(--sp-2);text-align:left;background:none;border:0;padding:var(--sp-2) var(--sp-2);border-radius:var(--r-8);font-size:var(--text-sm);line-height:var(--lh-sm);color:var(--muted);transition:background .1s}
 .wz-sec:hover,.wz-jump:hover{background:var(--hover)}
 .wz-sec.active{background:var(--accent-bg);color:var(--accent-strong);font-weight:var(--fw-semibold)}
 .wz-dot{width:17px;height:17px;border-radius:var(--r-pill);border:1.5px solid var(--border-strong);flex:none;display:grid;place-items:center;color:var(--on-accent)}
@@ -726,11 +728,11 @@ body.row-dragging,body.row-dragging *{cursor:grabbing!important;user-select:none
 .wz-unit span{font-size:var(--text-sm);line-height:var(--lh-sm);color:var(--muted);font-weight:var(--fw-semibold)}
 .wz-nav{display:flex;align-items:center;gap:var(--sp-2);margin-top:var(--sp-6);padding-top:var(--sp-4);border-top:1px solid var(--border)}
 .wz-choices{display:flex;gap:var(--sp-2);flex-wrap:wrap}
-.wz-choice{border:1px solid var(--border-strong);background:var(--surface);border-radius:var(--r-12);padding:var(--sp-3) var(--sp-7);font-size:var(--text-md);line-height:var(--lh-md);font-weight:var(--fw-semibold);color:var(--muted);transition:border-color .12s,background .12s,color .12s}
+.wz-choice{border:1px solid var(--border-strong);background:var(--surface);border-radius:var(--r-12);padding:var(--sp-3) var(--sp-7);font-size:var(--text-md);line-height:var(--lh-md);font-weight:var(--fw-semibold);color:var(--muted);transition:border-color .1s,background .1s,color .1s}
 .wz-choice:hover{border-color:var(--accent-strong);color:var(--text)}
 .wz-choice.on{border-color:var(--accent-strong);background:var(--accent-bg);color:var(--accent-strong);box-shadow:0 0 0 1px var(--accent-strong)}
 .wz-checks{display:flex;flex-direction:column;gap:var(--sp-2)}
-.wz-check{display:flex;align-items:flex-start;gap:var(--sp-2);border:1px solid var(--border);border-radius:var(--r-8);padding:var(--sp-3) var(--sp-3);cursor:pointer;font-size:var(--text-md);line-height:var(--lh-md);background:var(--surface);transition:border-color .12s,background .12s}
+.wz-check{display:flex;align-items:flex-start;gap:var(--sp-2);border:1px solid var(--border);border-radius:var(--r-8);padding:var(--sp-3) var(--sp-3);cursor:pointer;font-size:var(--text-md);line-height:var(--lh-md);background:var(--surface);transition:border-color .1s,background .1s}
 .wz-check:hover{border-color:var(--border-strong);background:var(--sunken)}
 .wz-check.on{border-color:var(--accent-strong);background:var(--accent-bg);font-weight:var(--fw-semibold)}
 .wz-check input{margin:var(--sp-half) 0 0;flex:none}
@@ -875,7 +877,7 @@ html[data-density="compact"] .filters input:not([type=checkbox]),html[data-densi
 /* Mouvement réduit : on garde les fondus, on retire les déplacements */
 @keyframes rm-fade{from{opacity:0}to{opacity:1}}
 @media (prefers-reduced-motion: reduce){
-  #view.view-enter,.modal,.modal-back,.menu,.toast{animation:rm-fade .18s ease}
+  #view.view-enter,.modal,.modal-back,.menu,.toast{animation:rm-fade .15s ease}
   .btn:active,.kpi[data-goto]:hover{transform:none}
   #sidebar,#main{transition:none}
 }
@@ -1118,7 +1120,7 @@ a.jx-btn{text-decoration:none}
   .jx-dialogue{padding:var(--sp-4)}
 }
 @media (prefers-reduced-motion: reduce){
-  #jeu-root,.jx-dialogue{animation:rm-fade .18s ease}
+  #jeu-root,.jx-dialogue{animation:rm-fade .15s ease}
   .jx-saut,.jx-tape,.jx-anneau{animation:none!important}
 }
 
@@ -1200,7 +1202,7 @@ a.jx-btn{text-decoration:none}
 .table-wrap{box-shadow:none}
 thead th{background:var(--surface);font-size:var(--text-xs);line-height:var(--lh-xs);font-weight:var(--fw-semibold);letter-spacing:var(--tracking-caps)}
 @media (hover:hover) and (pointer:fine){
-  tbody tr .actions-cell .icon-btn{opacity:.45;transition:opacity .12s}
+  tbody tr .actions-cell .icon-btn{opacity:.45;transition:opacity .1s}
   tbody tr:hover .actions-cell .icon-btn,tbody tr .actions-cell .icon-btn:focus-visible{opacity:1}
 }
 
@@ -1229,7 +1231,7 @@ thead th{background:var(--surface);font-size:var(--text-xs);line-height:var(--lh
 .todo-item>.todo-flag.on{margin:0 calc(var(--sp-2) * -1) 0 calc(var(--sp-1) * -1)}
 @media (hover:hover) and (pointer:fine){
   .todo-tools{position:absolute;right:0;top:50%;transform:translateY(-50%);padding:var(--sp-half) 0 var(--sp-half) var(--sp-2);opacity:0;pointer-events:none;
-    background:var(--surface);transition:opacity .12s}
+    background:var(--surface);transition:opacity .1s}
   .todo-item:hover>.todo-tools,.todo-tools:focus-within{opacity:1;pointer-events:auto}
   .todo-item.dragging>.todo-tools{opacity:0}
 }
@@ -1931,7 +1933,7 @@ function toast(msg, kind = 'ok', opts = {}) {
   const fin = () => {
     if (!t.isConnected) return;
     const hadFocus = t.contains(document.activeElement);
-    t.style.transition = 'opacity .25s var(--ease-out),transform .25s var(--ease-out)'; t.style.opacity = '0'; if (!reduce) t.style.transform = 'translateY(16px) scale(.96)';
+    t.style.transition = 'opacity .2s var(--ease-out),transform .2s var(--ease-out)'; t.style.opacity = '0'; if (!reduce) t.style.transform = 'translateY(16px) scale(.96)';
     setTimeout(() => { t.remove(); if (hadFocus && opts.onFocusLost) opts.onFocusLost(); }, 260);
   };
   const go = () => { start = Date.now(); timer = setTimeout(fin, left); };
@@ -2459,7 +2461,7 @@ const Win = {
   set(k, v) { const st = this.load(); if (v) st[k] = v; else delete st[k]; try { localStorage.setItem(WIN_KEY, JSON.stringify(st)); } catch {} },
 };
 const WIN_HEAD = ':scope > .card-title:first-child, :scope > .section-head:first-child, :scope > summary:first-child';
-const winTexte = el => (el ? el.textContent : '').replace(/\(\d+\)/g, '').replace(/\s+/g, ' ').trim().slice(0, 70);
+const winTexte = el => (el ? (c => { c.querySelectorAll('[class*="count"],[class*="badge"],[class*="chip"],[class*="pill"],[class*="tag"]').forEach(x => x.remove()); return c.textContent; })(el.cloneNode(true)) : '').replace(/\(\d+\)/g, '').replace(/\s+/g, ' ').trim().slice(0, 70);
 const winTitreAuto = p => $$('th', p).slice(0, 3).map(winTexte).filter(Boolean).join(' · ') || winTexte($('h2, h3, .cm-label', p)) || 'Partie';
 function winMaj(p) {
   const c = p._winCtl; if (!c) return;
@@ -2550,7 +2552,7 @@ function profileMenuHTML() {
       <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis">${esc(pr.nom)}</span>
       ${pr.id === DB.meta.currentId ? icon('check', 'ic-sm') : ''}</button>`).join('')}
     <div class="menu-sep"></div>
-    <button class="menu-item" data-new>${icon('userPlus')} Nouveau profil</button>
+    <button class="menu-item" data-new>${icon('userPlus')} Créer un profil</button>
     <button class="menu-item" data-edit>${icon('edit')} Renommer ce profil</button>
     <button class="menu-item" data-demo>${icon('layers')} Charger des données de démonstration</button>
     <a class="menu-item" href="mobile.html" style="text-decoration:none;color:inherit">${icon('phone')} Version mobile (l'essentiel)</a>
@@ -3332,7 +3334,7 @@ function renderTodos() {
       <div class="todo-f todo-f-txt"><label for="todo-input">Nouvelle tâche</label><input id="todo-input" placeholder="Ex. relancer le syndic" maxlength="200"></div>
       <div class="todo-f"><label for="todo-due">Échéance (facultatif)</label><input id="todo-due" type="date"></div>
       <button class="btn primary small" id="todo-addbtn">${icon('plus')} Ajouter</button>
-      <button class="btn small" id="todo-addfolder" title="Créer un dossier pour regrouper des tâches (ex. plusieurs devis pour un même client). Le texte saisi sert de nom.">${icon('folder')} Nouveau dossier</button>
+      <button class="btn small" id="todo-addfolder" title="Créer un dossier pour regrouper des tâches (ex. plusieurs devis pour un même client). Le texte saisi sert de nom.">${icon('folder')} Créer un dossier</button>
     </div>
     ${vide
       ? `<div class="t-muted" style="margin-top:var(--sp-2)">${all.length ? 'Toutes les tâches sont faites.' : 'Aucune tâche pour le moment. Ajoutez ce que vous ne voulez pas oublier.'}</div>`
@@ -3595,7 +3597,7 @@ function renderChantiers(v) {
     return true;
   });
   v.innerHTML = `
-    <div class="page-actions"><button class="btn primary" id="add">${icon('plus')} Nouveau chantier</button><span class="spacer"></span>
+    <div class="page-actions"><button class="btn primary" id="add">${icon('plus')} Créer un chantier</button><span class="spacer"></span>
       <button class="btn small" id="csv">${icon('download')} Exporter en Excel</button></div>
     <div class="filters">
       <span class="search-wrap">${icon('search')}<input id="q" placeholder="OTP, nom, client…" value="${esc(chantierFilter.q)}"></span>
@@ -4431,7 +4433,7 @@ function renderDevis(v) {
     return parts.length ? `<span class="rel-parts">${parts.join('')}</span>` : '<span class="t-muted">—</span>';
   };
   v.innerHTML = `
-    <div class="page-actions"><button class="btn primary" id="add">${icon('plus')} Nouveau devis</button><span class="spacer"></span><button class="btn small" id="csv">${icon('download')} Exporter en Excel</button></div>
+    <div class="page-actions"><button class="btn primary" id="add">${icon('plus')} Créer un devis</button><span class="spacer"></span><button class="btn small" id="csv">${icon('download')} Exporter en Excel</button></div>
     <div class="filters"><span class="search-wrap">${icon('search')}<input id="q" placeholder="Réf., objet, OTP, client…" value="${esc(devisFilter.q)}"></span>
       <select id="fotp"><option value="">Tous les OTP</option>${otpDistinct().map(o2 => `<option value="${esc(o2)}" ${devisFilter.otp === o2 ? 'selected' : ''}>${esc(o2)}</option>`).join('')}</select>
       <select id="fs"><option value="">Tous les statuts</option>${Object.entries(STATUTS_DEVIS).map(([k, l]) => `<option value="${k}" ${devisFilter.statut === k ? 'selected' : ''}>${l}</option>`).join('')}</select>
@@ -4835,7 +4837,7 @@ const bteLignesDevis = b => bteDecomposition(b).lignes.map(p => ({ designation: 
 function renderBTE(v) {
   const list = DB.data.bte;
   v.innerHTML = `
-    <div class="page-actions"><button class="btn primary" id="add">${icon('plus')} Nouveau BTE</button><span class="spacer"></span><span class="chip">${list.length} budget(s)</span></div>
+    <div class="page-actions"><button class="btn primary" id="add">${icon('plus')} Créer un BTE</button><span class="spacer"></span><span class="chip">${list.length} budget(s)</span></div>
     ${list.length ? `<div class="table-wrap"><table><thead><tr><th>Date</th><th>Chantier</th><th>État</th><th class="num">Total dépenses</th><th class="num">Marge %</th><th class="num">Prix de vente</th><th class="num">Marge brute €</th><th></th></tr></thead>
       <tbody>${list.map(b => { const t = bteTotals(b); return `<tr><td class="t-muted">${fmtDate(b.dateEdition)}</td><td><span class="link" data-open="${b.id}">${esc(b.nom)}</span></td><td>${bteValide(b) ? `<span class="chip ok" title="${b.dateValidation ? 'Validé le ' + fmtDate(b.dateValidation) : ''}">Validé</span>` : '<span class="chip">En étude</span>'}</td><td class="num">${eur(t.dep)}</td><td class="num">${pct(t.margePct)}</td><td class="num t-strong">${eur(t.pv)}</td><td class="num ${t.margeEuro >= 0 ? 'margin-good' : 'margin-bad'}">${eur(t.margeEuro)}</td>
         <td class="actions-cell"><button class="icon-btn" data-todevis="${b.id}" title="Passer en devis">${icon('file')}</button><button class="icon-btn" data-dup="${b.id}" title="Dupliquer">${icon('copy')}</button><button class="icon-btn" data-open="${b.id}" title="Ouvrir">${icon('edit')}</button><button class="icon-btn danger" data-del="${b.id}" title="Supprimer">${icon('trash')}</button></td></tr>`; }).join('')}</tbody></table></div>`
@@ -5429,7 +5431,7 @@ function cadEtudesBarre() {
     <span class="t-muted" style="font-size:var(--text-sm)">Étude :</span> <b>${esc(CAD.nom || 'sans nom')}</b>
     <span class="t-muted" style="font-size:var(--text-xs)">· enregistrée automatiquement</span>
     <span class="spacer"></span>
-    <button class="btn small" id="cad-e-new">${icon('plus')} Nouvelle étude</button>
+    <button class="btn small" id="cad-e-new">${icon('plus')} Démarrer une étude</button>
     <button class="btn small" id="cad-e-save">${icon('check')} Enregistrer sous…</button>
     <button class="btn small" id="cad-e-list">${icon('book')} Mes études (${DB.data.cadEtudes.length})</button>
   </div>`;
@@ -5808,7 +5810,7 @@ function cadOuvrageForm(ref, onSave) {
 /* ===== Vue 3 : Matériaux & prix ===== */
 function cadVueMateriaux(v) {
   v.innerHTML = `<div class="card card-pad">
-      <div class="page-actions" style="margin-bottom:var(--sp-3)"><button class="btn primary" id="m-new">${icon('plus')} Nouveau matériau</button><span class="spacer"></span>
+      <div class="page-actions" style="margin-bottom:var(--sp-3)"><button class="btn primary" id="m-new">${icon('plus')} Ajouter un matériau</button><span class="spacer"></span>
         <button class="btn small" id="m-xlsx">${icon('download')} Exporter</button></div>
       <div class="form-grid" style="grid-template-columns:repeat(2,1fr)">
         <div class="field"><label>Famille</label><select data-m="fam"><option value="">Toutes les familles</option>${IKO_FAMILLES.map((f, i) => `<option value="${i}" ${CAD.m.fam === String(i) ? 'selected' : ''}>${esc(f)}</option>`).join('')}</select></div>
@@ -5926,7 +5928,7 @@ function cadVueGrille(v) {
 function renderClients(v) {
   const list = DB.data.clients;
   v.innerHTML = `
-    <div class="page-actions"><button class="btn primary" id="add">${icon('plus')} Nouveau client</button><span class="spacer"></span><span class="chip">${list.length} client(s)</span></div>
+    <div class="page-actions"><button class="btn primary" id="add">${icon('plus')} Créer un client</button><span class="spacer"></span><span class="chip">${list.length} client(s)</span></div>
     ${list.length ? `<div class="table-wrap"><table><thead><tr><th>Client</th><th>Type</th><th>Contact</th><th>Téléphone</th><th>Email</th><th>Ville</th><th class="num">Chantiers</th><th></th></tr></thead>
       <tbody>${list.map(c => `<tr><td class="t-strong">${esc(c.nom)}</td><td><span class="chip">${esc(c.type || '—')}</span></td><td>${esc(c.contact || '—')}</td><td>${esc(c.tel || '—')}</td><td class="t-muted">${esc(c.email || '—')}</td><td>${esc(c.adresse || '—')}</td><td class="num">${DB.data.chantiers.filter(ch => ch.clientId === c.id).length}</td>
         <td class="actions-cell"><button class="icon-btn" data-edit="${c.id}" title="Modifier">${icon('edit')}</button><button class="icon-btn danger" data-del="${c.id}" title="Supprimer">${icon('trash')}</button></td></tr>`).join('')}</tbody></table></div>`
@@ -5991,7 +5993,7 @@ function renderProspection(v) {
       <div class="kpi"><div class="kpi-top"><span class="kpi-label">Potentiel en cours</span><span class="kpi-ico">${icon('euro')}</span></div><div class="kpi-value">${eur(potentielOuvert)}</div><div class="kpi-sub">Pipeline ouvert</div></div>
       <div class="kpi"><div class="kpi-top"><span class="kpi-label">Contacts</span><span class="kpi-ico">${icon('users')}</span></div><div class="kpi-value">${DB.data.prospection.length}</div><div class="kpi-sub">Total suivi</div></div>
     </div>
-    <div class="page-actions"><button class="btn primary" id="add">${icon('plus')} Nouveau contact / RDV</button><span class="spacer"></span><button class="btn small" id="csv">${icon('download')} Exporter en Excel</button></div>
+    <div class="page-actions"><button class="btn primary" id="add">${icon('plus')} Ajouter un contact / RDV</button><span class="spacer"></span><button class="btn small" id="csv">${icon('download')} Exporter en Excel</button></div>
     <div class="filters"><span class="search-wrap">${icon('search')}<input id="q" placeholder="Nom, ville, objet…" value="${esc(prospFilter.q)}"></span>
       <select id="fs"><option value="">Tous les statuts</option>${Object.entries(STATUTS_PROSP).map(([k, l]) => `<option value="${k}" ${prospFilter.statut === k ? 'selected' : ''}>${l}</option>`).join('')}</select>
       <span class="chip">${list.length} contact(s)</span></div>
@@ -6068,7 +6070,7 @@ function renderFactures(v) {
           <tbody>${keys.sort().map(k => `<tr><td class="t-strong">${esc(k)}</td><td class="t-muted">${esc(grp[k].client || '—')}</td><td class="num">${grp[k].n}</td><td class="num t-strong">${eur(grp[k].m)}</td><td class="actions-cell"><button class="link" data-fotp="${esc(k === '(sans OTP)' ? '' : k)}">Filtrer</button></td></tr>`).join('')}</tbody>
           <tfoot><tr><td colspan="3">Total à facturer</td><td class="num">${eur(aEmettre.reduce((s, f) => s + (+f.montantHT || 0), 0))}</td><td></td></tr></tfoot></table></div>`; })()}
     </div>
-    <div class="page-actions"><button class="btn primary" id="add">${icon('plus')} Nouvelle facture</button><span class="spacer"></span><button class="btn small" id="csv">${icon('download')} Exporter en Excel</button></div>
+    <div class="page-actions"><button class="btn primary" id="add">${icon('plus')} Créer une facture</button><span class="spacer"></span><button class="btn small" id="csv">${icon('download')} Exporter en Excel</button></div>
     <div class="filters"><span class="search-wrap">${icon('search')}<input id="q" placeholder="N°, client, objet, OTP…" value="${esc(factFilter.q)}"></span>
       <select id="fotp"><option value="">Tous les OTP</option>${otpDistinct().map(o => `<option value="${esc(o)}" ${factFilter.otp === o ? 'selected' : ''}>${esc(o)}</option>`).join('')}</select>
       <select id="fs"><option value="">Tous les statuts</option>${Object.entries(STATUTS_FACT).map(([k, l]) => `<option value="${k}" ${factFilter.statut === k ? 'selected' : ''}>${l}</option>`).join('')}</select>
@@ -6155,14 +6157,14 @@ function renderEntretien(v) {
     <div class="pill-tabs"><button data-tab="contrats" class="${entretienTab === 'contrats' ? 'active' : ''}">Contrats</button><button data-tab="visites" class="${entretienTab === 'visites' ? 'active' : ''}">Visites & rapports</button></div>`;
   let body;
   if (entretienTab === 'contrats') {
-    body = `<div class="page-actions"><button class="btn primary" id="add-c">${icon('plus')} Nouveau contrat</button></div>
+    body = `<div class="page-actions"><button class="btn primary" id="add-c">${icon('plus')} Créer un contrat</button></div>
     ${contrats.length ? `<div class="table-wrap"><table><thead><tr><th>Réf.</th><th>Client</th><th>Intitulé</th><th>Type</th><th>Période</th><th class="num">Visites/an</th><th class="num">Montant/an</th><th>Prochaine visite</th><th></th></tr></thead>
       <tbody>${contrats.map(c => { const fut = contratVisitesFutures(c).sort((a, b) => a.datePrevue.localeCompare(b.datePrevue))[0]; const prog = contratAProgrammer(c); return `<tr><td class="t-strong">${esc(c.ref || '—')}</td><td>${esc(clientNom(c.clientId))}</td><td>${esc(c.nom)}</td><td>${esc(c.type || '—')}</td><td class="t-muted">${fmtDate(c.dateDebut)} → ${fmtDate(c.dateFin)}</td><td class="num">${c.frequence || '—'}</td><td class="num">${eur(c.montantAnnuel)}</td><td class="${prog ? 'deadline-soon' : ''}">${fut ? fmtDate(fut.datePrevue) : (contratActif(c) ? 'À programmer' : 'Clos')}</td>
         <td class="actions-cell"><button class="icon-btn" data-plan="${c.id}" title="Programmer une visite">${icon('calendar')}</button><button class="icon-btn" data-edit="${c.id}" title="Modifier">${icon('edit')}</button><button class="icon-btn danger" data-del="${c.id}" title="Supprimer">${icon('trash')}</button></td></tr>`; }).join('')}</tbody></table></div>`
       : emptyState('wrench', 'Aucun contrat', "Enregistrez vos contrats d'entretien et planifiez les visites.")}`;
   } else {
     const vs = visites.slice().sort((a, b) => (b.datePrevue || '').localeCompare(a.datePrevue || ''));
-    body = `<div class="page-actions"><button class="btn primary" id="add-v">${icon('plus')} Nouvelle visite</button></div>
+    body = `<div class="page-actions"><button class="btn primary" id="add-v">${icon('plus')} Planifier une visite</button></div>
     ${vs.length ? `<div class="table-wrap"><table><thead><tr><th>Date prévue</th><th>Client / contrat</th><th>Statut</th><th>Réalisée le</th><th>Rapport</th><th></th></tr></thead>
       <tbody>${vs.map(vz => { const c = contrats.find(x => x.id === vz.contratId); const retard = vz.statut === 'realisee' && vz.dateRealisee && !vz.rapportDate && daysBetween(vz.dateRealisee, todayISO()) > DB.data.objectifs.delaiRapport;
         const rap = vz.rapportDate ? `<span class="deadline-ok">Transmis ${fmtDate(vz.rapportDate)}</span>` : vz.statut === 'realisee' ? `<span class="${retard ? 'deadline-late' : 'deadline-soon'}">${retard ? 'En retard' : 'À transmettre'}</span>` : '<span class="t-muted">—</span>';
@@ -6297,7 +6299,7 @@ function renderMarches(v) {
       return true;
     }).sort((a, b) => (b.dateBC || '').localeCompare(a.dateBC || ''));
     const multi = marches.length > 1;
-    body = `<div class="page-actions"><button class="btn primary" id="add-bc" ${marches.length ? '' : 'disabled title="Créez d\'abord un marché"'}>${icon('plus')} Nouveau BC</button>
+    body = `<div class="page-actions"><button class="btn primary" id="add-bc" ${marches.length ? '' : 'disabled title="Créez d\'abord un marché"'}>${icon('plus')} Créer un BC</button>
       ${aFact.length ? `<button class="btn" id="fact-all">${icon('receipt')} Facturer les ${aFact.length} BC réalisés</button>` : ''}
       <span class="spacer"></span><button class="btn small" id="csv">${icon('download')} Exporter en Excel</button></div>
     <div class="filters"><span class="search-wrap">${icon('search')}<input id="q" placeholder="N° BC, résidence, logement, locataire…" value="${esc(bcFilter.q)}"></span>
@@ -6312,7 +6314,7 @@ function renderMarches(v) {
       <tfoot><tr><td colspan="${multi ? 5 : 4}">Total affiché</td><td class="num">${eur2(list.reduce((s, b) => s + (+b.montantHT || 0), 0))}</td><td colspan="2"></td></tr></tfoot></table></div>`
       : emptyState('wrench', 'Aucun bon de commande', marches.length ? 'Saisissez les BC reçus du bailleur : ils se chiffrent depuis le BPU du marché.' : 'Créez d\'abord un marché (onglet « Marchés & BPU ») avec son bordereau de prix.')}`;
   } else {
-    body = `<div class="page-actions"><button class="btn primary" id="add-m">${icon('plus')} Nouveau marché</button></div>
+    body = `<div class="page-actions"><button class="btn primary" id="add-m">${icon('plus')} Créer un marché</button></div>
     ${marches.length ? `<div class="table-wrap"><table><thead><tr><th>Réf.</th><th class="wrap">Intitulé / période</th><th>Client</th><th>OTP</th><th class="num">BPU</th><th class="num">BC</th><th class="num">Engagé / maximum HT</th><th></th></tr></thead>
       <tbody>${marches.map(m => { const cons = marcheConsomme(m.id), max = +m.montantMax || 0, p = max ? Math.round(cons / max * 100) : 0; return `<tr><td class="t-strong">${esc(m.ref || '—')}</td><td class="wrap">${esc(m.intitule || '—')}<div class="t-muted" style="font-size:var(--text-xs)">${fmtDate(m.dateDebut)} → ${fmtDate(m.dateFin)}</div></td><td>${esc(clientNom(m.clientId))}</td><td><span class="chip">${esc(m.otp || '—')}</span></td>
         <td class="num">${(m.bpu || []).length} prix</td><td class="num">${DB.data.bcs.filter(b => b.marcheId === m.id).length}</td>
@@ -6846,7 +6848,7 @@ function renderAchats(v) {
         <tbody>${otpKeys.map(k => `<tr><td class="t-strong">${esc(k)}</td><td class="num">${eur(grp[k])}</td><td class="actions-cell"><button class="link" data-fotp="${esc(k === '(sans OTP)' ? '' : k)}">Filtrer</button></td></tr>`).join('')}</tbody>
         <tfoot><tr><td>Total</td><td class="num">${eur(DB.data.commandes.reduce((s, c) => s + (+c.montantHT || 0), 0))}</td><td></td></tr></tfoot></table></div>` : '<div class="t-muted">Aucun achat enregistré.</div>'}
     </div>
-    <div class="page-actions"><button class="btn primary" id="add">${icon('plus')} Nouvelle commande</button>
+    <div class="page-actions"><button class="btn primary" id="add">${icon('plus')} Créer une commande</button>
       <button class="btn" id="recept">${icon('checkSquare')} Réception du mois${DB.data.commandes.filter(c => !c.dateReception).length ? ` &nbsp;<span class="badge b-relance">${DB.data.commandes.filter(c => !c.dateReception).length}</span>` : ''}</button>
       <span class="spacer"></span><button class="btn small" id="csv">${icon('download')} Exporter en Excel</button></div>
     <div class="filters"><span class="search-wrap">${icon('search')}<input id="q" placeholder="Fournisseur, objet, OTP…" value="${esc(achatFilter.q)}"></span>
@@ -7154,7 +7156,7 @@ function importAll(file) {
     const data = parsed && parsed.data ? parsed.data : parsed; // compat ancien format
     if (!data || typeof data !== 'object') throw 0;
     DB.data = DB.normalize(data); ikoAppliquerGrille(DB.data.grilleIko); DB.save(); toast('Sauvegarde restaurée dans le profil courant'); go(current);
-  } catch { toast('Fichier invalide', 'err'); } };
+  } catch { toast("Ce fichier n'est pas une sauvegarde ChargéPro. Choisissez le fichier .json exporté depuis Paramètres.", 'err'); } };
   r.readAsText(file);
 }
 
@@ -8088,7 +8090,7 @@ function renderDocs(v) {
   const list = DB.data.dossiers;
   v.innerHTML = `
     <div class="page-actions">
-      <button class="btn primary" id="add">${icon('plus')} Nouveau dossier d'exécution</button>
+      <button class="btn primary" id="add">${icon('plus')} Créer un dossier d'exécution</button>
       <span class="spacer"></span>
       <span class="chip">${list.length} dossier(s)</span>
     </div>
@@ -8424,7 +8426,7 @@ function boot() {
   $('#nav-collapse').innerHTML = icon('menu');
   $('#nav-collapse').onclick = () => UI.toggleNav();
   $('.tb-search-ic').innerHTML = icon('search');
-  $('#new-btn').innerHTML = icon('plus') + '<span class="lbl">Nouveau</span>';
+  $('#new-btn').innerHTML = icon('plus') + '<span class="lbl">Créer</span>';
   $('#new-btn').onclick = e => { e.stopPropagation(); openNewMenu(); };
   $('#bell-btn').onclick = e => { e.stopPropagation(); toggleNotifs(); };
   $('#theme-btn').onclick = () => UI.toggleTheme();
