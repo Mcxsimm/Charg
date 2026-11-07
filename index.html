@@ -1425,6 +1425,88 @@ html:not([data-density="compact"]) .pil-rec-item{padding:var(--sp-2) var(--sp-1)
   .settings .set-seg{flex-wrap:wrap}
   .set-opt span{padding:var(--sp-3) var(--sp-3)}
 }
+
+/* ==========================================================================
+   Composants (refonte, lot 3) — créés une fois, réutilisés partout
+   ========================================================================== */
+/* Boutons : principal (.primary), secondaire (défaut), danger (rouge plein, confirmation),
+   danger discret (.danger-quiet : texte rouge, pour lancer une action destructive) */
+.btn{background:var(--surface);border:1px solid var(--border);color:var(--text);border-radius:var(--r-8);font-weight:var(--fw-medium);box-shadow:none}
+.btn:hover{background:var(--hover)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--on-accent);box-shadow:none}
+.btn.primary:hover{background:var(--accent-strong);border-color:var(--accent-strong)}
+.btn.danger{background:var(--red);border-color:var(--red);color:var(--on-accent)}
+.btn.danger:hover{background:color-mix(in srgb,var(--red) 88%,var(--text));border-color:color-mix(in srgb,var(--red) 88%,var(--text))}
+.btn.danger-quiet{background:transparent;border-color:transparent;color:var(--red)}
+.btn.danger-quiet:hover{background:var(--red-bg)}
+.btn.ghost{background:transparent;border-color:transparent}
+.btn:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+:root[data-theme="dark"] .btn.danger{color:var(--bg)}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .btn.danger{color:var(--bg)}}
+/* Champ et liste déroulante */
+.field input:not([type=checkbox]):not([type=radio]),.field select,.field textarea,.input,
+.filters input:not([type=checkbox]):not([type=radio]),.filters select{border-color:var(--border-strong);border-radius:var(--r-8);background:var(--surface);box-shadow:none}
+.field select,.filters select{cursor:pointer}
+/* Case à cocher */
+input[type=checkbox]:not(.switch),input[type=radio]{accent-color:var(--accent);width:16px;height:16px}
+/* Interrupteur : <input type="checkbox" role="switch" class="switch"> */
+.switch{appearance:none;-webkit-appearance:none;position:relative;flex:none;width:36px;height:20px;margin:0;border-radius:var(--r-pill);background:var(--border-strong);cursor:pointer;transition:background .15s}
+.switch::after{content:"";position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:var(--r-pill);background:var(--surface);box-shadow:var(--shadow-xs);transition:transform .15s var(--ease-out)}
+.switch:checked{background:var(--accent)}
+.switch:checked::after{transform:translateX(16px)}
+.switch:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.switch:disabled{opacity:.45;cursor:not-allowed}
+.switch-lbl{display:inline-flex;align-items:center;gap:var(--sp-2);cursor:pointer}
+@media (prefers-reduced-motion: reduce){.switch,.switch::after{transition:none}}
+/* Pastille d'état (.pill ; les anciennes .badge partagent le même style) */
+.pill{display:inline-flex;align-items:center;gap:var(--sp-1);padding:0 var(--sp-2);border-radius:var(--r-pill);font-size:var(--text-xs);line-height:var(--lh-xs);font-weight:var(--fw-medium);white-space:nowrap;background:var(--sunken);color:var(--muted)}
+.pill.red{background:var(--red-bg);color:var(--red)} .pill.amber{background:var(--amber-bg);color:var(--amber)}
+.pill.green{background:var(--green-bg);color:var(--green)} .pill.blue{background:var(--blue-bg);color:var(--blue)}
+.pill.violet{background:var(--violet-bg);color:var(--violet)}
+.badge{border:0;font-weight:var(--fw-medium)}
+/* Tuile d'icône colorée : 26 / 30 / 40 px */
+.tile{display:inline-grid;place-items:center;flex:none;border-radius:var(--r-8);background:var(--sunken);color:var(--muted)}
+.tile.s26{width:26px;height:26px} .tile.s26 .ic{width:14px;height:14px}
+.tile.s30{width:30px;height:30px} .tile.s30 .ic{width:16px;height:16px}
+.tile.s40{width:40px;height:40px;border-radius:var(--r-12)} .tile.s40 .ic{width:20px;height:20px}
+.tile.red{background:var(--red-bg);color:var(--red)} .tile.amber{background:var(--amber-bg);color:var(--amber)}
+.tile.green{background:var(--green-bg);color:var(--green)} .tile.blue{background:var(--blue-bg);color:var(--blue)}
+.tile.violet{background:var(--violet-bg);color:var(--violet)}
+/* Carte : bordure 1 px, arrondi 12, sans ombre ; en-tête de carte */
+.card,.set-sec{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-12);box-shadow:none}
+.card-head{display:flex;align-items:center;gap:var(--sp-2);padding:var(--sp-3) var(--sp-4);border-bottom:1px solid var(--border)}
+.card-head h2{font-size:var(--text-lg);line-height:var(--lh-lg)}
+/* Ligne de liste */
+.list-row{display:flex;align-items:center;gap:var(--sp-3);min-height:44px;padding:var(--sp-2) var(--sp-4);border-bottom:1px solid var(--border)}
+.list-row:last-child{border-bottom:0}
+button.list-row,a.list-row{width:100%;background:none;border-left:0;border-right:0;border-top:0;text-align:left;color:var(--text);cursor:pointer}
+button.list-row:hover,a.list-row:hover{background:var(--hover)}
+/* Toast : bas droite, bouton d'action (« Annuler ») */
+#toast-root{right:var(--sp-5);bottom:var(--sp-5)}
+.toast{border-radius:var(--r-12);font-size:var(--text-sm);line-height:var(--lh-sm)}
+.toast-msg{flex:1;min-width:0}
+.toast-act{flex:none;margin-left:var(--sp-2);padding:var(--sp-1) var(--sp-3);min-height:32px;border-radius:var(--r-6);border:1px solid color-mix(in srgb,var(--inverse-text) 35%,transparent);
+  background:transparent;color:var(--inverse-text);font-weight:var(--fw-semibold);cursor:pointer}
+.toast-act:hover{background:color-mix(in srgb,var(--inverse-text) 12%,transparent)}
+.toast-act:focus-visible{outline:2px solid var(--inverse-text);outline-offset:2px}
+/* Confirmation intégrée à la page (irréversible) */
+.inline-confirm{display:flex;align-items:center;justify-content:space-between;gap:var(--sp-3) var(--sp-4);flex-wrap:wrap;margin:var(--sp-3) 0;padding:var(--sp-4);
+  border:1px solid var(--red-line);border-radius:var(--r-12);background:var(--red-bg)}
+.set-sec .inline-confirm{margin:0 var(--sp-5) var(--sp-4)}
+.ic-txt{flex:1 1 280px;min-width:0}
+.ic-title{margin:0;font-weight:var(--fw-semibold);color:var(--red)}
+.ic-detail{margin:var(--sp-1) 0 0;font-size:var(--text-sm);line-height:var(--lh-sm);color:var(--text)}
+.ic-btns{display:flex;gap:var(--sp-2);flex-wrap:wrap}
+/* Popover (panneau ancré : notifications, menus) */
+.pop{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-12);box-shadow:var(--shadow-md)}
+@media(max-width:767.98px){
+  .switch{width:44px;height:24px}
+  .switch::after{width:20px;height:20px}
+  .switch:checked::after{transform:translateX(20px)}
+  .switch-lbl,.fp-checks .field.inline{min-height:44px}
+  .toast-act{min-height:44px}
+  #toast-root{left:var(--sp-4);right:var(--sp-4);bottom:var(--sp-4)}
+}
 </style>
 
 </head>
@@ -1469,7 +1551,7 @@ html:not([data-density="compact"]) .pil-rec-item{padding:var(--sp-2) var(--sp-1)
         <div class="page-head">
           <div class="ph-txt">
             <div class="eyebrow" id="page-eyebrow"></div>
-            <h1 id="page-title">Tableau de bord</h1>
+            <h1 id="page-title" tabindex="-1">Tableau de bord</h1>
             <div class="sub"><span id="year-badge" class="year-badge"></span></div>
           </div>
         </div>
@@ -1830,14 +1912,40 @@ const chantierById = id => DB.data.chantiers.find(c => c.id === id);
 /* -------------------------------------------------------------------------
    5. Toast / Modal / Confirm
    ------------------------------------------------------------------------- */
-function toast(msg, kind = 'ok') {
+/* Toast (composant) : bas droite. opts.action = { label, run } ajoute un bouton (ex. « Annuler ») ;
+   le toast reste alors plus longtemps et ne disparaît pas tant que le pointeur ou le focus est dessus. */
+let toastMute = 0;
+function toast(msg, kind = 'ok', opts = {}) {
+  if (toastMute) return null;
   const ico = kind === 'err' ? 'alert' : 'check';
   const t = document.createElement('div');
-  t.className = 'toast ' + kind; t.innerHTML = icon(ico) + '<span>' + esc(msg) + '</span>';
-  $('#toast-root').appendChild(t);
+  t.className = 'toast ' + kind;
+  t.setAttribute('role', kind === 'err' ? 'alert' : 'status');
+  t.innerHTML = icon(ico) + '<span class="toast-msg">' + esc(msg) + '</span>' + (opts.action ? `<button type="button" class="toast-act">${esc(opts.action.label)}</button>` : '');
+  const pile = $('#toast-root');
+  pile.appendChild(t);
+  // 3 toasts au plus : le plus ancien laisse sa place (sans voler le focus de l'utilisateur)
+  while (pile.children.length > 3) { const old = pile.firstElementChild; if (old.contains(document.activeElement)) break; old.remove(); }
   const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  setTimeout(() => { t.style.transition = 'opacity .25s var(--ease-out),transform .25s var(--ease-out)'; t.style.opacity = '0'; if (!reduce) t.style.transform = 'translateY(16px) scale(.96)'; }, 2200);
-  setTimeout(() => t.remove(), 2600);
+  let left = opts.duration || (opts.action ? 8000 : 2400), timer = null, start = 0;
+  const fin = () => {
+    if (!t.isConnected) return;
+    const hadFocus = t.contains(document.activeElement);
+    t.style.transition = 'opacity .25s var(--ease-out),transform .25s var(--ease-out)'; t.style.opacity = '0'; if (!reduce) t.style.transform = 'translateY(16px) scale(.96)';
+    setTimeout(() => { t.remove(); if (hadFocus && opts.onFocusLost) opts.onFocusLost(); }, 260);
+  };
+  const go = () => { start = Date.now(); timer = setTimeout(fin, left); };
+  const pause = () => { if (timer) { clearTimeout(timer); timer = null; left = Math.max(1200, left - (Date.now() - start)); } };
+  t.addEventListener('mouseenter', pause); t.addEventListener('mouseleave', go);
+  t.addEventListener('focusin', pause); t.addEventListener('focusout', e => { if (!t.contains(e.relatedTarget)) go(); });
+  if (opts.action) {
+    const b = t.querySelector('.toast-act');
+    b.onclick = () => { clearTimeout(timer); t.remove(); opts.action.run(); };
+    t.addEventListener('keydown', e => { if (e.key === 'Escape') { e.preventDefault(); fin(); } });
+    if (opts.focus) b.focus();
+  }
+  go();
+  return t;
 }
 /* Sélecteur stable d'un élément (id ou premier attribut data-*), pour lui rendre le focus
    même si la vue a été redessinée entre-temps. */
@@ -1903,9 +2011,50 @@ function confirmDialog(msg, onYes, label = 'Supprimer', title = 'Confirmation') 
 
 /* Suppression : le titre nomme l'élément (« Supprimer le chantier « X » ? »), le bouton porte
    le verbe destructif, Annuler a le focus par défaut, Échap annule. */
-function confirmDelete(quoi, nom, onYes, detail) {
+/* Suppression d'un élément récupérable : faite tout de suite, puis toast « … supprimé — Annuler ».
+   « Annuler » remet les données du profil telles qu'avant la suppression (même format, rien de migré),
+   à condition que rien d'autre n'ait changé entre-temps. Le focus va sur « Annuler », puis revient
+   sur le bouton principal de la page quand le toast disparaît. */
+function confirmDelete(quoi, nom, onYes, detail, opts = {}) {
   const n = String(nom == null ? '' : nom).trim();
-  confirmDialog(detail || 'Cette action est définitive.', onYes, 'Supprimer ' + quoi, `Supprimer ${quoi}${n ? ' « ' + n + ' »' : ''} ?`);
+  if (opts.irreversible) return inlineConfirm({ title: `Supprimer ${quoi}${n ? ' « ' + n + ' »' : ''} ?`, detail: detail || 'Cette action est définitive.', verb: 'Supprimer ' + quoi, onYes, host: opts.host, trigger: opts.trigger });
+  const avant = JSON.stringify(DB.data), profil = DB.meta.currentId;
+  toastMute++; try { onYes(); } finally { toastMute--; }
+  const apres = JSON.stringify(DB.data);
+  if (apres === avant) return; // rien n'a été supprimé
+  const nomF = quoi.replace(/^(le |la |l')/, ''), fem = /^la |^l'(étude|activité)/.test(quoi);
+  const libelle = nomF.charAt(0).toUpperCase() + nomF.slice(1) + (n ? ' « ' + n + ' »' : '');
+  const repli = () => { const f = $('#view #add') || $('#page-title'); if (f) f.focus(); };
+  toast(`${libelle} supprimé${fem ? 'e' : ''}`, 'ok', { focus: true, onFocusLost: repli, action: { label: 'Annuler', run: () => {
+    if (DB.meta.currentId !== profil || JSON.stringify(DB.data) !== apres) { toast("Annulation impossible : d'autres modifications ont été faites depuis", 'err'); repli(); return; }
+    DB.data = JSON.parse(avant); DB.save();
+    $('#modal-root').innerHTML = '';
+    go(current);
+    toast(`${libelle} restauré${fem ? 'e' : ''}`);
+    repli();
+  } } });
+}
+/* Confirmation intégrée à la page (actions irréversibles) : panneau rouge qui nomme l'élément,
+   verbe destructif explicite, « Annuler » a le focus, Échap annule et rend le focus au déclencheur. */
+function inlineConfirm({ title, detail, verb, onYes, host, trigger }) {
+  const dec = trigger || document.activeElement;
+  const box = document.createElement('div');
+  const id = 'ic-' + Date.now().toString(36);
+  box.className = 'inline-confirm'; box.setAttribute('role', 'alertdialog'); box.setAttribute('aria-labelledby', id + '-t'); box.setAttribute('aria-describedby', id + '-d');
+  box.innerHTML = `<div class="ic-txt"><p class="ic-title" id="${id}-t">${esc(title)}</p><p class="ic-detail" id="${id}-d">${esc(detail || '')}</p></div>
+    <div class="ic-btns"><button type="button" class="btn" data-ic-no>Annuler</button><button type="button" class="btn danger" data-ic-yes>${esc(verb)}</button></div>`;
+  $$('.inline-confirm').forEach(x => x.remove());
+  // rien ne doit masquer le choix destructif : on retire les toasts affichés (sauf celui qui a le focus)
+  $$('#toast-root .toast').forEach(x => { if (!x.contains(document.activeElement)) x.remove(); });
+  const where = host || $('#view');
+  if (host && host.matches && host.matches('button, a, .set-row')) host.insertAdjacentElement('afterend', box); else where.prepend(box);
+  const fermer = () => { box.remove(); if (dec && dec.isConnected) dec.focus(); };
+  box.querySelector('[data-ic-no]').onclick = fermer;
+  box.querySelector('[data-ic-yes]').onclick = () => { box.remove(); onYes(); };
+  box.addEventListener('keydown', e => { trapTab(box, e); if (e.key === 'Escape') { e.preventDefault(); fermer(); } });
+  box.scrollIntoView({ block: 'nearest' });
+  box.querySelector('[data-ic-no]').focus();
+  return box;
 }
 
 /* -------------------------------------------------------------------------
@@ -2429,13 +2578,8 @@ function bindProfileMenu(root, close) {
   root.querySelector('[data-params]').onclick = () => { close(); go('parametres'); };
   root.querySelector('[data-new]').onclick = () => { close(); profileForm(); };
   root.querySelector('[data-edit]').onclick = () => { close(); profileForm(DB.meta.currentId); };
-  root.querySelector('[data-demo]').onclick = () => { close(); confirmDialog(
-    'Charger un jeu de données de démonstration dans ce profil ? Les données actuelles de ce profil seront remplacées.',
-    () => { const g = DB.data.grilleIko; DB.data = demoData(); if (g) DB.data.grilleIko = g; ikoAppliquerGrille(DB.data.grilleIko); DB.save(); toast('Données de démonstration chargées'); go(current); }, 'Charger'); };
-  root.querySelector('[data-del]').onclick = () => { close();
-    if (DB.meta.profiles.length <= 1) { toast('Impossible de supprimer le dernier profil', 'err'); return; }
-    confirmDelete('le profil', DB.currentProfile().nom,
-      () => { DB.deleteProfile(DB.meta.currentId); afterProfileChange(); toast('Profil supprimé'); }, 'Toutes les données de ce profil seront supprimées définitivement de ce poste.'); };
+  root.querySelector('[data-demo]').onclick = () => { close(); go('parametres'); setTimeout(() => demanderDemo(), 0); };
+  root.querySelector('[data-del]').onclick = () => { close(); go('parametres'); setTimeout(() => demanderSuppressionProfil(), 0); };
 }
 /* ---------- Sauvegarde commune Google Drive (drive.js, même principe qu'OmSmK) ---------- */
 const hasDrive = () => typeof CPDrive !== 'undefined';
@@ -2490,7 +2634,7 @@ function driveDialog() {
       <li>Autorisation limitée aux fichiers créés par l'outil (dossier « ChargéPro »).</li></ul>
       <div class="field"><label>Identifiant client OAuth Google</label><input id="d-cid" value="${esc(D.clientId())}" placeholder="xxxxxxxx.apps.googleusercontent.com">
       <div class="hint">Le même que dans OmSmK (repris automatiquement s'il y est déjà saisi sur cet appareil).</div></div>`,
-    footer: on ? `<button class="btn danger" id="d-off">Déconnecter</button><span style="flex:1"></span>${D.etat === 'reconnexion' ? `<button class="btn primary" id="d-co">Reconnecter</button>` : `<button class="btn primary" id="d-sync">${icon('swap')} Synchroniser</button>`}`
+    footer: on ? `<button class="btn danger-quiet" id="d-off">Déconnecter Google Drive</button><span style="flex:1"></span>${D.etat === 'reconnexion' ? `<button class="btn primary" id="d-co">Reconnecter</button>` : `<button class="btn primary" id="d-sync">${icon('swap')} Synchroniser</button>`}`
       : `<button class="btn" data-c>Annuler</button><button class="btn primary" id="d-co">${icon('cloud')} Connecter Google Drive</button>` });
   const c = m.root.querySelector('[data-c]'); if (c) c.onclick = m.close;
   const co = $('#d-co', m.root);
@@ -2591,7 +2735,7 @@ function toggleNotifs() {
   const root = $('#menu-root'); if (root.innerHTML) { root.innerHTML = ''; $$('[aria-haspopup="menu"]').forEach(x => x.setAttribute('aria-expanded', 'false')); }
   const acts = notifItems();
   const pop = document.createElement('div');
-  pop.id = 'notif-pop'; pop.className = 'notif-pop'; pop.setAttribute('role', 'dialog'); pop.setAttribute('aria-labelledby', 'notif-title');
+  pop.id = 'notif-pop'; pop.className = 'pop notif-pop'; pop.setAttribute('role', 'dialog'); pop.setAttribute('aria-labelledby', 'notif-title');
   pop.innerHTML = `<div class="np-head"><h2 id="notif-title">Notifications</h2><span class="np-count">${acts.length ? acts.length + ' alerte' + (acts.length > 1 ? 's' : '') : ''}</span>
       <button type="button" class="btn ghost icon" data-np-close aria-label="Fermer les notifications">${icon('x')}</button></div>
     ${acts.length ? `<ul class="np-list">${acts.slice(0, 12).map((a, i) => `<li><button type="button" class="np-item ${a.tone}" data-np="${i}">
@@ -3465,7 +3609,7 @@ function renderChantiers(v) {
         <td data-c="statut">${statutBadge(c.statut)}</td>
         <td>${planningCell(c)}</td>
         <td>${prepaResume(c)}</td>
-        <td>${chantierEnCa(c) ? '<span class="badge b-facture" title="Déjà repris dans le CA">Mis en factu.</span>' : `<label style="display:inline-flex;align-items:center;gap:var(--sp-2);cursor:pointer"><input type="checkbox" data-factu="${c.id}" ${chantierFacturable(c) ? 'checked' : ''}>${chantierFacturable(c) ? 'Autorisé' : '<span class="t-muted">Bloqué</span>'}</label>`}</td>
+        <td>${chantierEnCa(c) ? '<span class="badge b-facture" title="Déjà repris dans le CA">Mis en factu.</span>' : `<label class="switch-lbl"><input type="checkbox" role="switch" class="switch" data-factu="${c.id}" ${chantierFacturable(c) ? 'checked' : ''} aria-label="Autoriser la mise en facturation de ${esc(c.nom)}">${chantierFacturable(c) ? 'Autorisé' : '<span class="t-muted">Bloqué</span>'}</label>`}</td>
         <td class="num" data-c="montant">${eur(c.montantHT)}</td>
         <td class="actions-cell" data-c="act"><button class="icon-btn" data-plan="${c.id}" title="Planifier dans le planning">${icon('calendar')}</button><button class="icon-btn" data-edit="${c.id}" title="Modifier">${icon('edit')}</button><button class="icon-btn danger" data-del="${c.id}" title="Supprimer">${icon('trash')}</button></td></tr>`).join('')}</tbody>
       <tfoot><tr><td colspan="7" data-c="tot">Total</td><td class="num" data-c="montant">${eur(list.reduce((s, c) => s + (+c.montantHT || 0), 0))}</td><td></td></tr></tfoot></table></div>`
@@ -3543,7 +3687,7 @@ function chantierForm(v, id, devisId) {
       <div class="field"><label for="f-montant">Montant HT (€)</label><input id="f-montant" type="number" min="0" step="0.01" inputmode="decimal" value="${c.montantHT || ''}" placeholder="0,00"></div>
       <div class="field full"><label for="f-notes">Notes</label><textarea id="f-notes" rows="2">${esc(c.notes)}</textarea></div>
     </div>
-    <div class="fp-checks"><div class="field inline"><input type="checkbox" id="f-factu" ${chantierFacturable(c) ? 'checked' : ''}><label for="f-factu"><b>Autoriser la mise en facturation</b> — le chantier sera proposé à la clôture de fin de mois (CA &amp; Marge)</label></div></div>`,
+    <div class="fp-checks"><div class="field inline"><input type="checkbox" role="switch" class="switch" id="f-factu" ${chantierFacturable(c) ? 'checked' : ''}><label for="f-factu"><b>Autoriser la mise en facturation</b> — le chantier sera proposé à la clôture de fin de mois (CA &amp; Marge)</label></div></div>`,
   });
   let srcDevisId = c.sourceDevisId || '';
   $('#f-fromdevis').onchange = e => {
@@ -5616,7 +5760,7 @@ function cadOuvrageForm(ref, onSave) {
       <p class="t-muted" style="font-size:var(--text-xs);margin:var(--sp-2) 0 0">Consommation recouvrements et chutes inclus. « Relevé » : quantité donnée pour h = 0,30 m, recalculée selon la hauteur saisie au chiffrage (développé = h + 15 cm ; isolant ∝ h).</p></div>`,
     footer: `<button class="btn" data-c>Annuler</button>
       ${base && cadModifie(ref) ? `<button class="btn" id="o-reset">Revenir au référentiel</button>` : ''}
-      ${perso ? `<button class="btn danger" id="o-del">${icon('trash')} Supprimer</button>` : ''}
+      ${perso ? `<button class="btn danger-quiet" id="o-del">${icon('trash')} Supprimer l'ouvrage</button>` : ''}
       <span class="spacer"></span><button class="btn primary" id="o-save">Enregistrer</button>` });
   const lire = () => $$('.o-row', m.root).map(tr => [tr.querySelector('[data-k="mat"]').value, +tr.querySelector('[data-k="conso"]').value || 0, tr.querySelector('[data-k="role"]').value.trim(), tr.querySelector('[data-k="ech"]').value || undefined].filter(x => x !== undefined));
   const total = () => { const t = lire().reduce((s, k) => s + (+k[1] || 0) * matPrix(k[0]), 0); $('#o-tot').textContent = 'Fournitures : ' + eur2(t) + ' / ' + ($('#o-u').value || 'u'); };
@@ -6617,7 +6761,7 @@ function agendaForm(id, presetDate, preset = {}) {
       <div class="field"><label>OTP (optionnel)</label><input id="a-otp" value="${esc(a.otp)}" list="a-otplist"><datalist id="a-otplist">${otpDistinct().map(o => `<option value="${esc(o)}">`).join('')}</datalist></div>
       <div class="field"><label>Note</label><input id="a-note" value="${esc(a.note)}"></div>
     </div>`,
-    footer: `${id ? `<button class="btn danger" id="a-del">${icon('trash')} Supprimer</button>` : ''}<span class="spacer"></span><button class="btn" data-c>Annuler</button><button class="btn primary" id="a-save">Enregistrer</button>` });
+    footer: `${id ? `<button class="btn danger-quiet" id="a-del">${icon('trash')} Supprimer l'événement</button>` : ''}<span class="spacer"></span><button class="btn" data-c>Annuler</button><button class="btn primary" id="a-save">Enregistrer</button>` });
   m.root.querySelector('.modal-foot').style.justifyContent = 'flex-start';
   m.root.querySelector('[data-c]').onclick = m.close;
   const majType = () => { $('#a-chwrap').style.display = $('#a-type').value === 'chantier' ? '' : 'none'; };
@@ -6777,6 +6921,13 @@ function achatForm(id) {
    ------------------------------------------------------------------------- */
 // Montant affiché en grand : l'unité (€, %) passe en petit à côté du chiffre
 const unitSmall = v => String(v).replace(/([\s\u202f\u00a0])(€|%)$/, '$1<small>$2</small>');
+/* Composants réutilisables (HTML) */
+// Interrupteur : vraie case à cocher (clavier, formulaire, change) annoncée comme « switch »
+const switchHTML = (id, on, extra = '') => `<input type="checkbox" role="switch" class="switch" id="${id}" ${on ? 'checked' : ''} ${extra}>`;
+// Pastille d'état : tone = neutral | red | amber | green | blue | violet
+const pill = (txt, tone = 'neutral') => `<span class="pill ${tone}">${esc(txt)}</span>`;
+// Tuile d'icône colorée : taille 26 | 30 | 40
+const tile = (ico, tone = 'neutral', size = 30) => `<span class="tile ${tone} s${size}" aria-hidden="true">${icon(ico)}</span>`;
 // action (facultative) : { id, label, ico } → bouton principal sous le texte
 function emptyState(ico, title, sub, action) { return `<div class="empty"><div class="em-ico">${icon(ico)}</div><h3>${esc(title)}</h3><div>${esc(sub)}</div>${action ? `<div class="em-act"><button type="button" class="btn ${action.secondary ? '' : 'primary'}" id="${action.id}">${action.ico ? icon(action.ico) + ' ' : ''}${esc(action.label)}</button></div>` : ''}</div>`; }
 function download(name, content, type = 'text/plain') {
@@ -7015,6 +7166,19 @@ function renderAssistantIA(v) {
     { id: 'ai-config', label: "Configurer l'assistant", ico: 'settings' })}</div>`;
   $('#ai-config').onclick = () => { go('parametres'); setTimeout(() => { const h = $('#set-ia'); if (h) { h.scrollIntoView({ block: 'start' }); h.focus({ preventScroll: true }); } }, 0); };
 }
+/* Actions irréversibles sur le profil : confirmation intégrée dans Paramètres › Profil */
+function demanderSuppressionProfil() {
+  const b = $('#set-del-profil'); if (!b) return;
+  if (DB.meta.profiles.length <= 1) { toast('Impossible de supprimer le dernier profil : créez-en un autre avant', 'err'); b.focus(); return; }
+  confirmDelete('le profil', DB.currentProfile().nom, () => { DB.deleteProfile(DB.meta.currentId); afterProfileChange(); toast('Profil supprimé'); },
+    'Toutes les données de ce profil seront supprimées définitivement de ce poste. Pensez à sauvegarder les données avant.', { irreversible: true, host: b.closest('.set-row'), trigger: b });
+}
+function demanderDemo() {
+  const b = $('#set-demo'); if (!b) return;
+  inlineConfirm({ title: `Remplacer les données du profil « ${DB.currentProfile().nom} » par la démonstration ?`, detail: 'Les devis, chantiers, factures et tâches actuels de ce profil seront remplacés. Sauvegardez les données avant si besoin.',
+    verb: 'Remplacer par la démonstration', host: b.closest('.set-row'), trigger: b,
+    onYes: () => { const g = DB.data.grilleIko; DB.data = demoData(); if (g) DB.data.grilleIko = g; ikoAppliquerGrille(DB.data.grilleIko); DB.save(); toast('Données de démonstration chargées'); go('dashboard'); } });
+}
 /* ---------- Paramètres (modèle de page 5 — Settings) ---------- */
 function renderParametres(v) {
   const radios = (name, opts, cur, aide) => `<fieldset class="set-seg"><legend class="sr-only">${aide}</legend>${Object.entries(opts).map(([k, l]) =>
@@ -7025,7 +7189,7 @@ function renderParametres(v) {
       <div class="set-row"><div class="set-lbl" id="lbl-theme">Thème<span>Clair, sombre, ou selon le réglage de l'appareil.</span></div>${radios('theme', { auto: 'Appareil', light: 'Clair', dark: 'Sombre' }, UI.prefs.theme, 'Thème')}</div>
       <div class="set-row"><div class="set-lbl">Largeur du contenu<span>Plus large pour voir plus de colonnes.</span></div>${radios('width', UI_WIDTHS, UI.prefs.width, 'Largeur du contenu')}</div>
       <div class="set-row"><div class="set-lbl">Densité<span>Lignes serrées : plus d'informations à l'écran.</span></div>${radios('density', UI_DENSITES, UI.prefs.density, 'Densité')}</div>
-      <div class="set-row"><div class="set-lbl">Menu latéral<span>Réduit, il ne montre que les icônes.</span></div>${radios('nav', { full: 'Déployé', compact: 'Réduit' }, UI.prefs.nav, 'Menu latéral')}</div>
+      <div class="set-row"><label class="set-lbl" for="set-nav">Menu latéral réduit<span>Il ne montre que les icônes.</span></label>${switchHTML('set-nav', UI.prefs.nav === 'compact')}</div>
       <div class="set-row"><div class="set-lbl">Largeurs de colonnes<span>Revenir aux largeurs automatiques des tableaux.</span></div><button type="button" class="btn" id="set-cols">${icon('swap')} Réinitialiser les colonnes</button></div>
     </section>
     <section class="set-sec" aria-labelledby="set-don"><h2 id="set-don">Données</h2>
@@ -7033,12 +7197,21 @@ function renderParametres(v) {
       <div class="set-row"><div class="set-lbl">Google Drive<span>${esc(drive)}</span></div>${hasDrive() ? `<button type="button" class="btn" id="set-drive">${icon('cloud')} Gérer Google Drive</button>` : ''}</div>
       <div class="set-row"><div class="set-lbl">Version mobile<span>L'essentiel, pour le téléphone.</span></div><a class="btn" href="mobile.html">${icon('phone')} Ouvrir la version mobile</a></div>
     </section>
+    <section class="set-sec" aria-labelledby="set-prof"><h2 id="set-prof">Profil</h2>
+      <div class="set-row"><div class="set-lbl">Nom du profil<span>${esc(DB.currentProfile() ? DB.currentProfile().nom : '')}</span></div><button type="button" class="btn" id="set-ren">${icon('edit')} Renommer le profil</button></div>
+      <div class="set-row"><div class="set-lbl">Données de démonstration<span>Remplace les données de ce profil par un jeu d'exemple.</span></div><button type="button" class="btn" id="set-demo">${icon('layers')} Charger la démonstration</button></div>
+      <div class="set-row"><div class="set-lbl">Supprimer ce profil<span>Efface définitivement toutes ses données de ce poste.</span></div><button type="button" class="btn danger-quiet" id="set-del-profil">${icon('trash')} Supprimer ce profil</button></div>
+    </section>
     <section class="set-sec" aria-labelledby="set-ia"><h2 id="set-ia" tabindex="-1">Intelligence artificielle</h2>
       <div class="set-row"><div class="set-lbl">Fournisseur et clé d'accès<span>Claude, OpenAI, Mistral ou Gemini, avec votre propre clé. La clé reste sur ce poste, hors des sauvegardes.</span></div><span class="set-soon">Bientôt disponible</span></div>
     </section>
   </div>`;
   $$('.set-seg input', v).forEach(i => i.onchange = () => { UI.set(i.name, i.value); renderParametres(v); const f = $(`.set-seg input[name="${i.name}"][value="${i.value}"]`, v); if (f) f.focus(); });
   $('#set-cols').onclick = () => resetAllCols();
+  $('#set-nav').onchange = e => UI.set('nav', e.target.checked ? 'compact' : 'full');
+  $('#set-ren').onclick = () => profileForm(DB.meta.currentId);
+  $('#set-demo').onclick = demanderDemo;
+  $('#set-del-profil').onclick = demanderSuppressionProfil;
   $('#set-exp').onclick = exportAll;
   $('#set-imp').onclick = () => $('#import-file').click();
   if ($('#set-drive')) $('#set-drive').onclick = () => driveDialog();
