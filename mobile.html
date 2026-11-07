@@ -81,7 +81,7 @@ h2:first-child{margin-top:4px}
 .kpis{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .kpi{padding:12px 14px}
 .kpi .l{font-size:12px;color:var(--text-3)}
-.kpi .v{font-size:20px;font-weight:700;margin-top:4px;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kpi .v{font-size:20px;font-weight:600;margin-top:4px;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .kpi .s{font-size:12px;color:var(--text-2);margin-top:2px}
 .kpi .s.bad{color:var(--neg)} .kpi .s.ok{color:var(--pos)}
 .bar{height:5px;border-radius:3px;background:var(--surface-3);margin-top:8px;overflow:hidden}
@@ -107,7 +107,7 @@ h2:first-child{margin-top:4px}
 
 .day-h{display:flex;justify-content:space-between;align-items:baseline}
 .day-h small{font-size:12px;color:var(--text-3);text-transform:none;letter-spacing:0;font-weight:500}
-.time{font-size:13px;font-weight:700;color:var(--text-2);width:44px;flex:none;font-variant-numeric:tabular-nums}
+.time{font-size:13px;font-weight:600;color:var(--text-2);width:44px;flex:none;font-variant-numeric:tabular-nums}
 
 .add{display:flex;flex-wrap:wrap;gap:8px;padding:10px}
 .add #txt{flex:1 1 100%}
@@ -132,10 +132,10 @@ h2:first-child{margin-top:4px}
 
 nav{position:fixed;left:0;right:0;bottom:0;z-index:5;display:grid;grid-template-columns:repeat(5,1fr);
   background:var(--surface);border-top:1px solid var(--border);padding-bottom:env(safe-area-inset-bottom)}
-nav button{background:none;border:0;padding:8px 0 7px;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11px;color:var(--text-3);cursor:pointer;position:relative}
+nav button{background:none;border:0;padding:8px 0 7px;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:12px;color:var(--text-3);cursor:pointer;position:relative}
 nav button svg{width:22px;height:22px}
 nav button.on{color:var(--brand-2);font-weight:600}
-nav .badge{position:absolute;top:4px;left:calc(50% + 6px);background:var(--neg);color:#fff;font-size:10px;font-weight:700;border-radius:999px;padding:1px 5px;min-width:16px}
+nav .badge{position:absolute;top:4px;left:calc(50% + 6px);background:var(--neg);color:#fff;font-size:12px;font-weight:600;border-radius:999px;padding:1px 5px;min-width:16px}
 
 .sheet-back{position:fixed;inset:0;background:rgba(10,18,32,.55);z-index:10;display:flex;align-items:flex-end}
 .sheet{background:var(--surface);width:100%;border-radius:16px 16px 0 0;padding:8px 0 calc(12px + env(safe-area-inset-bottom));max-width:640px;margin:0 auto}
@@ -386,7 +386,7 @@ function vTodo(v) {
   v.innerHTML = `
     <h2>Ma to-do list · ${openTodos().length} à faire</h2>
     <div class="card list">
-      <form class="add" id="add"><input id="txt" placeholder="Nouvelle tâche…" maxlength="200" autocomplete="off"><input type="date" id="due" aria-label="Échéance" title="Échéance (optionnel)">${dossiers.length ? `<select id="dos" aria-label="Dossier"><option value="">Sans dossier</option>${dossiers.map(d => `<option value="${esc(d.id)}">${esc(d.text)}</option>`).join('')}</select>` : ''}<button class="btn">OK</button></form>
+      <form class="add" id="add"><input id="txt" aria-label="Nouvelle tâche" placeholder="Ex. relancer le syndic" maxlength="200" autocomplete="off"><input type="date" id="due" aria-label="Échéance" title="Échéance (optionnel)">${dossiers.length ? `<select id="dos" aria-label="Dossier"><option value="">Sans dossier</option>${dossiers.map(d => `<option value="${esc(d.id)}">${esc(d.text)}</option>`).join('')}</select>` : ''}<button class="btn">Ajouter</button></form>
       ${(libres.map(x => rowHtml(x, false)).join('') + blocs) || `<div class="empty">${taches.length ? 'Toutes les tâches sont faites.' : 'Aucune tâche.'}</div>`}
       ${nDone ? `<button class="toggle" id="show-done">${showDone ? 'Masquer' : 'Afficher'} les tâches faites (${nDone})</button>` : ''}
     </div>
