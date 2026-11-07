@@ -79,8 +79,9 @@
   --shadow-lg:0 16px 40px -12px rgba(27,28,31,.24);
 
   /* Barre latérale (claire, refondue au lot 2) */
-  --side-bg:var(--surface); --side-bg-2:var(--hover); --side-text:var(--muted); --side-text-strong:var(--text);
-  --side-muted:var(--muted); --side-border:var(--border); --side-w:248px;
+  --side-bg:var(--bg); --side-bg-2:var(--hover); --side-text:var(--muted); --side-text-strong:var(--text);
+  --side-muted:var(--muted); --side-border:var(--border); --side-w:236px;
+  --top-h:56px;
 
   /* Mise en page (les préférences d'écran les ajustent, voir html[data-*]) */
   --content-max:1240px;
