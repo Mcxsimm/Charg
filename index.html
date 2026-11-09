@@ -1408,6 +1408,19 @@ html:not([data-density="compact"]) .pil-rec-item{padding:var(--sp-2) var(--sp-1)
 .set-opt input:checked+span{background:var(--surface);color:var(--text);font-weight:var(--fw-medium);box-shadow:var(--shadow-xs)}
 .set-opt input:focus-visible+span{outline:2px solid var(--focus);outline-offset:2px}
 .set-btns{display:flex;gap:var(--sp-2);flex-wrap:wrap}
+/* Assistant IA (lot 6) */
+.ai-page [hidden],#set-ia-body [hidden]{display:none!important}
+.ai-actions{margin-top:var(--sp-4)}
+.ai-texte{font:inherit;min-height:220px}
+.ai-skel{display:flex;flex-direction:column;gap:var(--sp-2);padding:var(--sp-2) 0}
+.ai-skel i{display:block;height:12px;border-radius:var(--r-6);background:var(--hover);animation:ai-pulse 1.4s ease-in-out infinite}
+.ai-skel i:nth-child(3){width:86%}.ai-skel i:nth-child(4){width:58%}
+@keyframes ai-pulse{50%{opacity:.45}}
+@media (prefers-reduced-motion: reduce){.ai-skel i{animation:none}}
+.ai-err{display:flex;align-items:flex-start;gap:var(--sp-2);padding:var(--sp-3) var(--sp-4);margin-bottom:var(--sp-3);border:1px solid var(--red-line);border-radius:var(--r-8);background:var(--red-bg);color:var(--text);font-size:var(--text-md);line-height:var(--lh-md)}
+.ai-err .ic{flex:none;width:18px;height:18px;margin-top:1px;color:var(--red)}
+.ia-key .input,#set-ia-model{width:auto;min-width:0;flex:1 1 220px;max-width:320px}
+@media (max-width:640px){.ia-key .input,#set-ia-model{max-width:none;width:100%;flex-basis:100%}}
 .set-soon{font-size:var(--text-sm);line-height:var(--lh-sm);color:var(--muted);padding:var(--sp-1) var(--sp-3);border:1px dashed var(--border);border-radius:var(--r-pill)}
 /* Écran étroit : le menu passe en tiroir, la recherche s'ouvre par-dessus la barre */
 @media(max-width:767.98px){
@@ -1660,6 +1673,10 @@ const ICONS = {
   winMax: '<rect x="5" y="5" width="14" height="14" rx="1.5"/>',
   winRestore: '<rect x="4" y="8" width="12" height="12" rx="1.5"/><path d="M8 8V5.5A1.5 1.5 0 0 1 9.5 4h9A1.5 1.5 0 0 1 20 5.5v9a1.5 1.5 0 0 1-1.5 1.5H16"/>',
   flag: '<path d="M4 22V4"/><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1"/>',
+  key: '<circle cx="7.5" cy="15.5" r="5.5"/><path d="m21 2-9.6 9.6"/><path d="m15.5 7.5 3 3L22 7l-3-3"/>',
+  mail: '<rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>',
+  refresh: '<path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/>',
+  stop: '<rect x="6" y="6" width="12" height="12" rx="2"/>',
   copy: '<rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>',
   folder: '<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>',
   grip: '<circle cx="9" cy="6" r="1"/><circle cx="15" cy="6" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="9" cy="18" r="1"/><circle cx="15" cy="18" r="1"/>',
@@ -2236,7 +2253,7 @@ function buildNav() {
    Devis en cours + relances en retard (rouge), Chantiers en cours, Prospection à traiter (ambre),
    point rouge sur « CA & marge » si la marge de l'année est sous la cible, Assistant IA à configurer. */
 const AI_KEY_STORAGE = 'chargepro.ai.key'; // clé IA (lot 6) : clé dédiée, hors export du profil
-const aiConfigured = () => { try { return !!localStorage.getItem(AI_KEY_STORAGE); } catch { return false; } };
+const aiConfigured = () => !!AI.key(); // fournisseur courant muni d'une clé (voir « Assistant IA »)
 function navStats() {
   const t = todayISO(), d = DB.data || {}, o = d.objectifs || {}, yr = new Date().getFullYear();
   const devis = d.devis || [], ch = d.chantiers || [], pr = d.prospection || [];
@@ -4603,8 +4620,9 @@ function relanceDevis(id) {
         <div class="field"><label>Relance effectuée le</label><input id="r-fait" type="date" value="${todayISO()}"></div>
         <div class="field"><label>Prochaine relance à prévoir</label><input id="r-next" type="date" value="${next}"></div>
       </div>`,
-    footer: `<button class="btn" data-c>Annuler</button><button class="btn primary" id="r-ok">Enregistrer la relance</button>` });
+    footer: `<button class="btn ghost" id="r-ia" style="margin-right:auto">${icon('sparkle')} Rédiger le message avec l'IA</button><button class="btn" data-c>Annuler</button><button class="btn primary" id="r-ok">Enregistrer la relance</button>` });
   m.root.querySelector('[data-c]').onclick = m.close;
+  $('#r-ia').onclick = () => { m.close(); ouvrirAssistantIA('relance-devis', d.id); };
   $('#r-ok').onclick = () => {
     d.derniereRelance = $('#r-fait').value || todayISO();
     d.relance = $('#r-next').value || '';
@@ -7162,12 +7180,324 @@ function importAll(file) {
 }
 
 
-/* ---------- Assistant IA (configuré au lot 6) ---------- */
+/* ---------- Assistant IA (lot 6) ----------
+   Votre propre clé, chez le fournisseur de votre choix. La clé et le réglage restent sur ce poste
+   (localStorage, hors sauvegarde du profil). Les appels partent directement du navigateur vers le
+   fournisseur : seules les données de l'élément choisi sont envoyées. */
+const AI_CFG_STORAGE = 'chargepro.ai.cfg';
+const AI_PROVIDERS = {
+  claude: { nom: 'Claude (Anthropic)', court: 'Claude', modele: 'claude-opus-5-5', modeles: ['claude-opus-5-5', 'claude-sonnet-5-5', 'claude-haiku-5-5'], cle: 'sk-ant-…', console: 'console.anthropic.com' },
+  openai: { nom: 'OpenAI', court: 'OpenAI', modele: 'gpt-5', modeles: ['gpt-5', 'gpt-5-mini'], cle: 'sk-…', console: 'platform.openai.com' },
+  mistral: { nom: 'Mistral AI', court: 'Mistral', modele: 'mistral-large-latest', modeles: ['mistral-large-latest', 'mistral-medium-latest', 'mistral-small-latest'], cle: '', console: 'console.mistral.ai' },
+  gemini: { nom: 'Google Gemini', court: 'Gemini', modele: 'gemini-2.5-flash', modeles: ['gemini-2.5-pro', 'gemini-2.5-flash'], cle: 'AIza…', console: 'aistudio.google.com' },
+};
+const AI = {
+  keys() { try { const r = localStorage.getItem(AI_KEY_STORAGE); if (!r) return {}; const o = JSON.parse(r); return o && typeof o === 'object' ? o : {}; } catch { return {}; } },
+  cfg() { let c = {}; try { c = JSON.parse(localStorage.getItem(AI_CFG_STORAGE)) || {}; } catch {}
+    const provider = AI_PROVIDERS[c.provider] ? c.provider : 'claude';
+    return { provider, modele: (c.modeles && c.modeles[provider]) || AI_PROVIDERS[provider].modele, modeles: c.modeles || {} }; },
+  saveCfg(c) { try { localStorage.setItem(AI_CFG_STORAGE, JSON.stringify({ provider: c.provider, modeles: c.modeles })); } catch {} },
+  key(p) { return this.keys()[p || this.cfg().provider] || ''; },
+  setKey(p, k) { const ks = this.keys(); if (k) ks[p] = k; else delete ks[p];
+    try { if (Object.keys(ks).length) localStorage.setItem(AI_KEY_STORAGE, JSON.stringify(ks)); else localStorage.removeItem(AI_KEY_STORAGE); } catch {} },
+};
+
+/* Erreur d'appel : message lisible + piste de correction, sans accuser l'utilisateur. */
+class AiError extends Error { constructor(msg, cfg) { super(msg); this.cfg = !!cfg; } }
+function aiErreurHttp(status, detail, p, modele) {
+  const n = AI_PROVIDERS[p].court;
+  if (status === 401 || status === 403) return new AiError(`${n} refuse la clé d'accès. Vérifiez-la ou remplacez-la dans Paramètres › Intelligence artificielle.`, true);
+  if (status === 404 || (status === 400 && /model/i.test(detail))) return new AiError(`${n} ne reconnaît pas le modèle « ${modele} ». Choisissez un autre modèle dans Paramètres › Intelligence artificielle.`, true);
+  if (status === 429) return new AiError(`${n} limite le nombre de demandes ou le crédit du compte est épuisé. Réessayez dans une minute ou vérifiez le crédit sur ${AI_PROVIDERS[p].console}.`);
+  if (status >= 500) return new AiError(`${n} est indisponible pour le moment (erreur ${status}). Réessayez dans quelques minutes.`);
+  return new AiError(`${n} a renvoyé une erreur ${status}${detail ? ' : ' + detail : ''}. Réessayez, ou changez de modèle dans Paramètres.`);
+}
+
+/* Un appel = une consigne système + un message. Retourne le texte produit. */
+async function aiComplete({ system, prompt, signal, provider, modele, key }) {
+  const c = AI.cfg(); provider = provider || c.provider; modele = modele || c.modele; key = key || AI.key(provider);
+  if (!key) throw new AiError('Aucune clé d\'accès enregistrée pour ' + AI_PROVIDERS[provider].court + '. Ajoutez-la dans Paramètres › Intelligence artificielle.', true);
+  let url, headers = { 'content-type': 'application/json' }, body;
+  if (provider === 'claude') {
+    url = 'https://api.anthropic.com/v1/messages';
+    Object.assign(headers, { 'x-api-key': key, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' });
+    body = { model: modele, max_tokens: 8000, system, messages: [{ role: 'user', content: prompt }] };
+    // Modèles 5.x Opus / Sonnet / Fable : bascule automatique côté serveur si la demande est déclinée
+    if (/^claude-(opus|sonnet|fable)-5/.test(modele)) { headers['anthropic-beta'] = 'server-side-fallback-2026-07-01'; body.fallbacks = 'default'; }
+  } else if (provider === 'gemini') {
+    url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(modele)}:generateContent`;
+    headers['x-goog-api-key'] = key;
+    body = { systemInstruction: { parts: [{ text: system }] }, contents: [{ role: 'user', parts: [{ text: prompt }] }] };
+  } else {
+    url = provider === 'openai' ? 'https://api.openai.com/v1/chat/completions' : 'https://api.mistral.ai/v1/chat/completions';
+    headers.authorization = 'Bearer ' + key;
+    body = { model: modele, messages: [{ role: 'system', content: system }, { role: 'user', content: prompt }] };
+  }
+  let r;
+  try { r = await fetch(url, { method: 'POST', headers, body: JSON.stringify(body), signal }); }
+  catch (e) { if (e.name === 'AbortError') throw e; throw new AiError(`Impossible de joindre ${AI_PROVIDERS[provider].court}. Vérifiez la connexion internet, puis réessayez.`); }
+  let j = null; try { j = await r.json(); } catch {}
+  if (!r.ok) {
+    const det = j && (j.error && (j.error.message || (typeof j.error === 'string' ? j.error : '')) || j.message) || '';
+    throw aiErreurHttp(r.status, String(det).slice(0, 200), provider, modele);
+  }
+  let txt = '';
+  if (provider === 'claude') {
+    if (j.stop_reason === 'refusal') throw new AiError('Claude a décliné cette demande. Reformulez les consignes, puis réessayez.');
+    txt = (j.content || []).filter(b => b.type === 'text').map(b => b.text).join('');
+  } else if (provider === 'gemini') {
+    const cand = j.candidates && j.candidates[0];
+    txt = cand && cand.content && cand.content.parts ? cand.content.parts.map(p => p.text || '').join('') : '';
+  } else txt = j.choices && j.choices[0] && j.choices[0].message ? j.choices[0].message.content || '' : '';
+  txt = String(txt).trim();
+  if (!txt) throw new AiError(`${AI_PROVIDERS[provider].court} n'a renvoyé aucun texte. Réessayez, ou ajoutez des consignes.`);
+  return txt;
+}
+
+/* ---- Tâches : ce qu'on envoie au modèle pour chaque type de texte ---- */
+const AI_SYSTEME = `Tu assistes un chargé d'affaires d'une entreprise d'étanchéité et de couverture (BTP, France).
+Tu rédiges en français professionnel, sobre et direct, avec vouvoiement. Pas de formules creuses, pas de point d'exclamation, pas d'emoji, pas de markdown (ni astérisques, ni dièses).
+N'invente aucun fait, montant, date ou nom : utilise seulement les données fournies. Si une information manque, formule la phrase sans elle plutôt que d'insérer un champ à compléter.
+Réponds uniquement avec le texte demandé, sans préambule ni commentaire.`;
+const aiSignataire = () => { const p = DB.currentProfile(); return p && p.nom ? p.nom : ''; };
+const aiClient = id => DB.data.clients.find(c => c.id === id) || null;
+const aiLignes = o => Object.entries(o).filter(([, v]) => v !== '' && v != null && v !== false).map(([k, v]) => `- ${k} : ${v}`).join('\n');
+const AI_TONS = { courtois: 'Courtois', neutre: 'Neutre', ferme: 'Ferme' };
+const AI_FORMAT_MAIL = `Format : première ligne « Objet : … », une ligne vide, puis le corps du message (formule d'appel, 2 à 4 courts paragraphes, formule de politesse) et la signature.`;
+
+const AI_TACHES = {
+  'relance-devis': {
+    label: 'Relance de devis', aide: 'Message de relance pour un devis envoyé sans réponse.', ton: true, mail: true, champ: 'Devis à relancer',
+    items: () => DB.data.devis.filter(d => ['envoye', 'relance', 'attente'].includes(d.statut))
+      .sort((a, b) => (b.dateEnvoi || '').localeCompare(a.dateEnvoi || ''))
+      .map(d => ({ id: d.id, t: `${d.ref} — ${d.objet || 'sans objet'} — ${clientNom(d.clientId)}` })),
+    vide: 'Aucun devis envoyé en attente de réponse.',
+    email: id => { const d = DB.data.devis.find(x => x.id === id); const c = d && aiClient(d.clientId); return c ? c.email : ''; },
+    prompt(id) {
+      const d = DB.data.devis.find(x => x.id === id), c = aiClient(d.clientId) || {};
+      return `Rédige un e-mail de relance pour ce devis resté sans réponse.\n${AI_FORMAT_MAIL}\n\nDevis :\n` + aiLignes({
+        'Référence': d.ref, 'Objet': d.objet, 'Client': c.nom, 'Interlocuteur': c.contact, 'Montant HT': d.montantHT ? eur(d.montantHT) : '',
+        'Envoyé le': d.dateEnvoi ? fmtDate(d.dateEnvoi) : '', 'Relances déjà faites': +d.nbRelances || 0,
+        'Dernière relance le': d.derniereRelance ? fmtDate(d.derniereRelance) : '', 'Aujourd\'hui': fmtDate(todayISO()), 'Signataire': aiSignataire() });
+    },
+  },
+  'relance-facture': {
+    label: 'Relance de facture', aide: 'Rappel de paiement pour une facture émise non réglée.', ton: true, mail: true, champ: 'Facture à relancer',
+    items: () => DB.data.factures.filter(f => f.statut === 'emise')
+      .sort((a, b) => (factureEcheance(a) || '').localeCompare(factureEcheance(b) || ''))
+      .map(f => ({ id: f.id, t: `${f.num || 'Sans numéro'} — ${f.objet || ''} — ${f.client || clientNom(f.clientId)}${factureFlags(f).retardPaiement ? ' (en retard)' : ''}` })),
+    vide: 'Aucune facture émise en attente de paiement.',
+    email: id => { const f = DB.data.factures.find(x => x.id === id); const c = f && aiClient(f.clientId); return c ? c.email : ''; },
+    prompt(id) {
+      const f = DB.data.factures.find(x => x.id === id), c = aiClient(f.clientId) || {}, ech = factureEcheance(f);
+      const retard = ech && ech < todayISO() ? daysBetween(ech, todayISO()) : 0;
+      return `Rédige un e-mail de relance de paiement pour cette facture.${retard ? '' : ' L\'échéance n\'est pas encore dépassée : c\'est un simple rappel.'}\n${AI_FORMAT_MAIL}\n\nFacture :\n` + aiLignes({
+        'Numéro': f.num, 'Objet': f.objet, 'Client': c.nom || f.client, 'Interlocuteur': c.contact, 'Montant HT': f.montantHT ? eur(f.montantHT) : '',
+        'Émise le': f.dateEmission ? fmtDate(f.dateEmission) : '', 'Échéance': ech ? fmtDate(ech) : '', 'Jours de retard': retard || '',
+        'Aujourd\'hui': fmtDate(todayISO()), 'Signataire': aiSignataire() });
+    },
+  },
+  'objet-devis': {
+    label: 'Objet de devis', aide: 'Trois formulations courtes de l\'objet, à partir d\'une description des travaux.', champ: 'Devis concerné',
+    items: () => DB.data.devis.slice().sort((a, b) => (b.dateDemande || '').localeCompare(a.dateDemande || ''))
+      .map(d => ({ id: d.id, t: `${d.ref} — ${d.objet || 'sans objet'} — ${clientNom(d.clientId)}` })),
+    optionnel: true, vide: '',
+    consignesLabel: 'Description des travaux', consignesAide: 'Nature, support, surface, localisation. Exemple : réfection étanchéité bitumineuse 450 m², toiture terrasse inaccessible, bât. B.',
+    besoinConsignes: true,
+    prompt(id, consignes) {
+      const d = id ? DB.data.devis.find(x => x.id === id) : null;
+      return `Propose trois formulations d'objet de devis, courtes (12 mots au plus), précises et techniques, une par ligne, sans numérotation ni guillemets.\n\nDescription des travaux : ${consignes}` +
+        (d ? '\n\nDevis existant :\n' + aiLignes({ 'Référence': d.ref, 'Objet actuel': d.objet, 'Client': clientNom(d.clientId) }) : '');
+    },
+  },
+  'synthese-chantier': {
+    label: 'Synthèse de chantier', aide: 'Point d\'avancement à partir du chantier, de ses notes de préparation, devis, factures et planning.', champ: 'Chantier',
+    items: () => DB.data.chantiers.slice().sort((a, b) => (b.dateDemande || '').localeCompare(a.dateDemande || ''))
+      .map(c => ({ id: c.id, t: `${c.otp ? c.otp + ' — ' : ''}${c.nom} — ${clientNom(c.clientId)}` })),
+    vide: 'Aucun chantier enregistré.',
+    prompt(id) {
+      const c = DB.data.chantiers.find(x => x.id === id), cl = aiClient(c.clientId) || {}, pl = chantierPlanning(c);
+      const devis = DB.data.devis.filter(d => d.chantierId === c.id), facts = DB.data.factures.filter(f => f.chantierId === c.id);
+      const notes = prepaNotes(c).slice(0, 30);
+      return `Rédige une synthèse d'avancement de ce chantier, en 5 à 10 lignes : situation, points d'attention, prochaines étapes. Phrases courtes ; des tirets simples sont acceptés pour les listes.\n\nChantier :\n` + aiLignes({
+        'Nom': c.nom, 'OTP': c.otp, 'Client': cl.nom, 'Adresse': c.adresse, 'Statut': STATUTS_CHANTIER[c.statut] || c.statut,
+        'Montant HT': c.montantHT ? eur(c.montantHT) : '', 'Notes': c.notes,
+        'Planning': pl ? `du ${fmtDate(pl.debut)} au ${fmtDate(pl.fin)} (${PLAN_ETATS[pl.etat]}), ${fmtHeures(pl.heures)} pointées` : 'non planifié',
+        'Aujourd\'hui': fmtDate(todayISO()) }) +
+        (devis.length ? '\n\nDevis :\n' + devis.map(d => `- ${d.ref} ${d.objet || ''} : ${eur(d.montantHT || 0)}, ${STATUTS_DEVIS[d.statut] || d.statut}`).join('\n') : '') +
+        (facts.length ? '\n\nFactures :\n' + facts.map(f => `- ${f.num || 'à émettre'} ${f.objet || ''} : ${eur(f.montantHT || 0)}, ${STATUTS_FACT[f.statut] || f.statut}`).join('\n') : '') +
+        (notes.length ? '\n\nNotes de préparation (plus récentes en premier) :\n' + notes.map(n => `- ${fmtDateHeure(n.date)} : ${n.texte}`).join('\n') : '');
+    },
+  },
+  'libre': {
+    label: 'Rédaction libre', aide: 'Un texte à partir de vos seules consignes : courrier, compte rendu, reformulation.', champ: null,
+    consignesLabel: 'Votre demande', consignesAide: 'Exemple : reformule ce constat pour le client, en termes simples : « décollement du relevé en pied d\'acrotère… »',
+    besoinConsignes: true,
+    prompt: (id, consignes) => consignes + (aiSignataire() ? `\n\n(Signataire si besoin : ${aiSignataire()})` : ''),
+  },
+};
+let aiPreset = null; // ouverture depuis un autre écran : { tache, id }
+function ouvrirAssistantIA(tache, id) { aiPreset = { tache, id }; go('assistant'); }
+
 function renderAssistantIA(v) {
-  v.innerHTML = `<div class="card card-pad">${emptyState('sparkle', 'Assistant IA à configurer',
-    "Branchez votre propre clé (Claude, OpenAI, Mistral ou Gemini) dans les paramètres pour faire rédiger relances, objets de devis et synthèses de chantier.",
-    { id: 'ai-config', label: "Configurer l'assistant", ico: 'settings' })}</div>`;
-  $('#ai-config').onclick = () => { go('parametres'); setTimeout(() => { const h = $('#set-ia'); if (h) { h.scrollIntoView({ block: 'start' }); h.focus({ preventScroll: true }); } }, 0); };
+  if (!aiConfigured()) {
+    v.innerHTML = `<div class="form-page"><div class="fp-panel">${emptyState('sparkle', 'Assistant IA à configurer',
+      "Branchez votre propre clé (Claude, OpenAI, Mistral ou Gemini) dans les paramètres pour faire rédiger relances, objets de devis et synthèses de chantier.",
+      { id: 'ai-config', label: "Configurer l'assistant", ico: 'settings' })}</div></div>`;
+    $('#ai-config').onclick = allerReglagesIA;
+    return;
+  }
+  const cfg = AI.cfg(), pv = AI_PROVIDERS[cfg.provider];
+  const pre = aiPreset; aiPreset = null;
+  const tache0 = pre && AI_TACHES[pre.tache] ? pre.tache : 'relance-devis';
+  v.innerHTML = `<form class="form-page ai-page" novalidate aria-labelledby="page-title">
+    <div class="fp-top"><p class="fp-req">Rédigé par ${esc(pv.court)} · ${esc(cfg.modele)}. Seules les données de l'élément choisi sont envoyées.</p>
+      <button type="button" class="btn ghost small" id="ai-reglages">${icon('settings')} Changer de fournisseur</button></div>
+    <div class="fp-panel">
+      <div class="form-grid">
+        <div class="field full"><label for="ai-tache">Texte à rédiger</label>
+          <select id="ai-tache">${Object.entries(AI_TACHES).map(([k, t]) => `<option value="${k}" ${k === tache0 ? 'selected' : ''}>${esc(t.label)}</option>`).join('')}</select>
+          <p class="hint" id="ai-tache-aide"></p></div>
+        <div class="field full" id="ai-item-f"><label for="ai-item" id="ai-item-l"></label><select id="ai-item"></select><p class="hint" id="ai-item-vide" hidden></p></div>
+        <div class="field full" id="ai-ton-f"><label for="ai-ton">Ton</label>
+          <select id="ai-ton">${Object.entries(AI_TONS).map(([k, l]) => `<option value="${k}">${l}</option>`).join('')}</select></div>
+        <div class="field full"><label for="ai-consignes" id="ai-consignes-l"></label><textarea id="ai-consignes" rows="3"></textarea><p class="hint" id="ai-consignes-aide"></p>
+          <p class="field-err" id="ai-consignes-err" role="alert" hidden></p></div>
+      </div>
+      <div class="fp-tools ai-actions"><button type="submit" class="btn primary" id="ai-go">${icon('sparkle')} Rédiger le texte</button>
+        <button type="button" class="btn" id="ai-stop" hidden>${icon('stop')} Arrêter la rédaction</button></div>
+      <section class="fp-section ai-out" id="ai-out" aria-labelledby="ai-out-t" aria-live="polite" hidden>
+        <h2 id="ai-out-t">Texte proposé</h2><p>Relisez et modifiez avant envoi : le texte n'est envoyé à personne depuis ChargéPro.</p>
+        <div id="ai-out-body"></div>
+      </section>
+    </div>
+  </form>`;
+  const root = v.querySelector('form');
+  const sel = $('#ai-tache', root), item = $('#ai-item', root), cons = $('#ai-consignes', root), err = $('#ai-consignes-err', root);
+  const goBtn = $('#ai-go', root), stopBtn = $('#ai-stop', root), out = $('#ai-out', root), outBody = $('#ai-out-body', root);
+  $('#ai-reglages', root).onclick = allerReglagesIA;
+  let ctrl = null, dernier = null;
+  const tache = () => AI_TACHES[sel.value];
+  const montrerErr = msg => { err.textContent = msg || ''; err.hidden = !msg; cons.closest('.field').classList.toggle('has-err', !!msg);
+    if (msg) cons.setAttribute('aria-invalid', 'true'); else cons.removeAttribute('aria-invalid'); };
+  const majTache = (garderItem) => {
+    const t = tache();
+    $('#ai-tache-aide', root).textContent = t.aide;
+    const itF = $('#ai-item-f', root), vide = $('#ai-item-vide', root);
+    itF.hidden = !t.champ;
+    if (t.champ) {
+      $('#ai-item-l', root).textContent = t.champ + (t.optionnel ? ' (facultatif)' : '');
+      const its = t.items();
+      item.innerHTML = (t.optionnel ? '<option value="">Aucun</option>' : '') + its.map(i => `<option value="${esc(i.id)}">${esc(i.t)}</option>`).join('');
+      if (garderItem && its.some(i => i.id === garderItem)) item.value = garderItem;
+      item.disabled = !its.length && !t.optionnel;
+      vide.hidden = !!its.length || t.optionnel; vide.textContent = t.vide;
+    }
+    $('#ai-ton-f', root).hidden = !t.ton;
+    $('#ai-consignes-l', root).textContent = (t.consignesLabel || 'Consignes complémentaires') + (t.besoinConsignes ? '' : ' (facultatif)');
+    $('#ai-consignes-aide', root).textContent = t.consignesAide || 'Exemple : rappeler que le planning de l\'équipe se remplit pour mars.';
+    if (t.besoinConsignes) $('#ai-consignes-l', root).insertAdjacentHTML('beforeend', ' <span class="req" aria-hidden="true">*</span>');
+    cons.required = !!t.besoinConsignes;
+    montrerErr('');
+    cons.setAttribute('aria-describedby', 'ai-consignes-aide ai-consignes-err');
+  };
+  sel.onchange = () => majTache();
+  cons.addEventListener('input', () => { if (!err.hidden) montrerErr(''); });
+  cons.addEventListener('blur', () => { if (tache().besoinConsignes && !cons.value.trim() && cons.dataset.touche) montrerErr('Décrivez votre demande pour que l\'assistant puisse rédiger.'); });
+  cons.addEventListener('input', () => { cons.dataset.touche = '1'; }, { once: true });
+  majTache(pre && pre.id);
+
+  const chargement = on => {
+    goBtn.disabled = on; stopBtn.hidden = !on; root.setAttribute('aria-busy', on ? 'true' : 'false');
+    if (on) { out.hidden = false; outBody.innerHTML = `<div class="ai-skel" role="status"><span class="sr-only">Rédaction en cours</span><i></i><i></i><i></i><i></i></div>`; }
+  };
+  const afficher = (txt, ctx) => {
+    const t = AI_TACHES[ctx.tache], mail = t.mail && ctx.id ? t.email(ctx.id) : '';
+    outBody.innerHTML = `<div class="field"><label for="ai-texte" class="sr-only">Texte proposé, modifiable</label><textarea id="ai-texte" class="ai-texte" rows="12">${esc(txt)}</textarea></div>
+      <div class="fp-tools"><button type="button" class="btn primary" id="ai-copy">${icon('copy')} Copier le texte</button>
+        ${t.mail ? `<button type="button" class="btn" id="ai-mail">${icon('mail')} Ouvrir dans la messagerie</button>` : ''}
+        <button type="button" class="btn ghost" id="ai-again">${icon('refresh')} Rédiger une autre version</button></div>`;
+    const ta = $('#ai-texte', outBody);
+    ta.style.height = 'auto'; ta.style.height = Math.min(ta.scrollHeight + 4, 560) + 'px';
+    $('#ai-copy', outBody).onclick = () => (navigator.clipboard ? navigator.clipboard.writeText(ta.value) : Promise.reject())
+      .then(() => toast('Texte copié'), () => { ta.select(); toast('Copie automatique impossible dans ce navigateur : le texte est sélectionné, utilisez Ctrl+C', 'err'); });
+    if (t.mail) $('#ai-mail', outBody).onclick = () => {
+      const lignes = ta.value.split('\n'), m = /^\s*objet\s*:\s*(.*)$/i.exec(lignes[0] || '');
+      const sujet = m ? m[1] : '', corps = (m ? lignes.slice(1) : lignes).join('\n').replace(/^\s*\n/, '');
+      location.href = `mailto:${encodeURIComponent(mail || '')}?subject=${encodeURIComponent(sujet)}&body=${encodeURIComponent(corps)}`;
+    };
+    $('#ai-again', outBody).onclick = () => lancer(true);
+  };
+  async function lancer(autre) {
+    const t = tache(), id = t.champ ? item.value : '';
+    const c = cons.value.trim();
+    if (t.besoinConsignes && !c) { montrerErr('Décrivez votre demande pour que l\'assistant puisse rédiger.'); cons.focus(); return; }
+    if (t.champ && !t.optionnel && !id) { toast(t.vide || 'Choisissez un élément', 'err'); item.focus(); return; }
+    let prompt = t.prompt(id, c);
+    if (t.ton) prompt += `\n\nTon : ${AI_TONS[$('#ai-ton', root).value].toLowerCase()}.`;
+    if (c && !t.besoinConsignes) prompt += `\n\nConsignes complémentaires : ${c}`;
+    if (autre && dernier) prompt += `\n\nVersion précédente, à ne pas reprendre telle quelle — propose une formulation différente :\n${dernier}`;
+    ctrl = new AbortController(); chargement(true);
+    try {
+      const txt = await aiComplete({ system: AI_SYSTEME, prompt, signal: ctrl.signal });
+      if (!root.isConnected) return;
+      dernier = txt; afficher(txt, { tache: sel.value, id });
+    } catch (e) {
+      if (!root.isConnected) return;
+      if (e.name === 'AbortError') { outBody.innerHTML = ''; out.hidden = !dernier; if (dernier) afficher(dernier, { tache: sel.value, id }); toast('Rédaction arrêtée'); }
+      else {
+        outBody.innerHTML = `<div class="ai-err" role="alert">${icon('alert')}<div>${esc(e.message || 'La rédaction a échoué. Réessayez.')}</div></div>
+          <div class="fp-tools">${e.cfg ? `<button type="button" class="btn" id="ai-fix">${icon('settings')} Ouvrir les réglages de l'IA</button>` : `<button type="button" class="btn" id="ai-retry">${icon('refresh')} Réessayer</button>`}</div>`;
+        const fx = $('#ai-fix', outBody); if (fx) fx.onclick = allerReglagesIA;
+        const rt = $('#ai-retry', outBody); if (rt) rt.onclick = () => lancer(false);
+      }
+    } finally { ctrl = null; if (root.isConnected) { chargement(false); if (!out.hidden && document.activeElement === document.body) goBtn.focus(); } }
+  }
+  root.addEventListener('submit', e => { e.preventDefault(); lancer(false); });
+  stopBtn.onclick = () => { if (ctrl) ctrl.abort(); goBtn.focus(); };
+  if (pre && pre.id) goBtn.focus();
+}
+function allerReglagesIA() { go('parametres'); setTimeout(() => { const h = $('#set-ia'); if (h) { h.scrollIntoView({ block: 'start' }); h.focus({ preventScroll: true }); } }, 0); }
+
+/* Paramètres › Intelligence artificielle */
+function iaReglagesHTML() {
+  const c = AI.cfg(), p = AI_PROVIDERS[c.provider], k = AI.key(c.provider);
+  return `<div class="set-row"><div class="set-lbl" id="lbl-ia-four">Fournisseur<span>Utilisé par l'Assistant IA. Chaque fournisseur garde sa propre clé.</span></div>
+      <fieldset class="set-seg"><legend class="sr-only">Fournisseur d'IA</legend>${Object.entries(AI_PROVIDERS).map(([id, x]) =>
+        `<label class="set-opt"><input type="radio" name="ia-four" value="${id}" ${c.provider === id ? 'checked' : ''}><span>${esc(x.court)}</span></label>`).join('')}</fieldset></div>
+    <div class="set-row"><div class="set-lbl"><label for="set-ia-key">Clé d'accès ${esc(p.court)}</label><span id="set-ia-key-aide">${k ? 'Clé enregistrée sur ce poste : ' + esc(k.slice(0, 6)) + '…' + esc(k.slice(-4)) + '.' : 'À créer sur ' + esc(p.console) + '.'} Elle reste sur ce poste, hors des sauvegardes.</span></div>
+      <div class="set-btns ia-key"><input id="set-ia-key" class="input" type="password" autocomplete="off" spellcheck="false" placeholder="${k ? 'Coller une nouvelle clé' : esc(p.cle || 'Coller la clé')}" aria-describedby="set-ia-key-aide">
+        <button type="button" class="btn" id="set-ia-save">${icon('check')} Enregistrer la clé</button>
+        ${k ? `<button type="button" class="btn danger-quiet" id="set-ia-del">${icon('trash')} Effacer la clé</button>` : ''}</div></div>
+    <div class="set-row"><div class="set-lbl"><label for="set-ia-model">Modèle</label><span id="set-ia-model-aide">Proposé par défaut : ${esc(p.modele)}. Saisissez un autre nom si votre abonnement le permet.</span></div>
+      <div class="set-btns"><input id="set-ia-model" class="input" list="set-ia-models" value="${esc(c.modele)}" spellcheck="false" aria-describedby="set-ia-model-aide">
+        <datalist id="set-ia-models">${p.modeles.map(m => `<option value="${esc(m)}">`).join('')}</datalist></div></div>
+    <div class="set-row"><div class="set-lbl">Vérifier la connexion<span id="set-ia-test-res" role="status">${k ? 'Envoie une courte demande au fournisseur.' : 'Enregistrez d\'abord une clé.'}</span></div>
+      <button type="button" class="btn" id="set-ia-test" ${k ? '' : 'disabled'}>${icon('zap')} Tester la connexion</button></div>
+    <div class="set-row"><div class="set-lbl">Données envoyées<span>À chaque rédaction, ChargéPro envoie au fournisseur choisi les données de l'élément sélectionné (client, objet, montants, notes) et vos consignes. Rien n'est envoyé sans action de votre part.</span></div></div>`;
+}
+function bindIaReglages(v) {
+  const sec = $('#set-ia-body', v); if (!sec) return;
+  const redraw = focusSel => { sec.innerHTML = iaReglagesHTML(); bindIaReglages(v); updateNavMeta(); if (focusSel) { const f = $(focusSel, sec); if (f) f.focus(); } };
+  $$('input[name="ia-four"]', sec).forEach(i => i.onchange = () => { const c = AI.cfg(); c.provider = i.value; AI.saveCfg(c); redraw(`input[name="ia-four"][value="${i.value}"]`); });
+  const keyIn = $('#set-ia-key', sec);
+  const save = () => { const k = keyIn.value.trim(); if (!k) { toast('Collez la clé dans le champ avant de l\'enregistrer', 'err'); keyIn.focus(); return; }
+    AI.setKey(AI.cfg().provider, k); toast('Clé enregistrée sur ce poste'); redraw('#set-ia-test'); };
+  $('#set-ia-save', sec).onclick = save;
+  keyIn.onkeydown = e => { if (e.key === 'Enter') { e.preventDefault(); save(); } };
+  const del = $('#set-ia-del', sec);
+  if (del) del.onclick = () => inlineConfirm({ title: `Effacer la clé ${AI_PROVIDERS[AI.cfg().provider].court} de ce poste ?`, detail: 'L\'Assistant IA ne pourra plus rédiger avec ce fournisseur tant qu\'une nouvelle clé n\'est pas enregistrée.',
+    verb: 'Effacer la clé', host: del.closest('.set-row'), trigger: del, onYes: () => { AI.setKey(AI.cfg().provider, ''); toast('Clé effacée'); redraw('#set-ia-key'); } });
+  const mod = $('#set-ia-model', sec);
+  mod.onchange = () => { const c = AI.cfg(), val = mod.value.trim(); if (val && val !== AI_PROVIDERS[c.provider].modele) c.modeles[c.provider] = val; else delete c.modeles[c.provider]; AI.saveCfg(c);
+    if (!val) mod.value = AI_PROVIDERS[c.provider].modele; toast('Modèle enregistré : ' + AI.cfg().modele); };
+  const test = $('#set-ia-test', sec), res = $('#set-ia-test-res', sec);
+  test.onclick = async () => {
+    test.disabled = true; res.textContent = 'Test en cours…';
+    try { await aiComplete({ system: 'Réponds en un mot.', prompt: 'Réponds « OK ».' }); res.textContent = 'Connexion établie avec ' + AI_PROVIDERS[AI.cfg().provider].court + ' (' + AI.cfg().modele + ').'; }
+    catch (e) { res.textContent = e.message || 'Le test a échoué. Réessayez.'; }
+    finally { if (test.isConnected) test.disabled = false; }
+  };
 }
 /* Actions irréversibles sur le profil : confirmation intégrée dans Paramètres › Profil */
 function demanderSuppressionProfil() {
@@ -7205,8 +7535,7 @@ function renderParametres(v) {
       <div class="set-row"><div class="set-lbl">Données de démonstration<span>Remplace les données de ce profil par un jeu d'exemple.</span></div><button type="button" class="btn" id="set-demo">${icon('layers')} Charger la démonstration</button></div>
       <div class="set-row"><div class="set-lbl">Supprimer ce profil<span>Efface définitivement toutes ses données de ce poste.</span></div><button type="button" class="btn danger-quiet" id="set-del-profil">${icon('trash')} Supprimer ce profil</button></div>
     </section>
-    <section class="set-sec" aria-labelledby="set-ia"><h2 id="set-ia" tabindex="-1">Intelligence artificielle</h2>
-      <div class="set-row"><div class="set-lbl">Fournisseur et clé d'accès<span>Claude, OpenAI, Mistral ou Gemini, avec votre propre clé. La clé reste sur ce poste, hors des sauvegardes.</span></div><span class="set-soon">Bientôt disponible</span></div>
+    <section class="set-sec" aria-labelledby="set-ia"><h2 id="set-ia" tabindex="-1">Intelligence artificielle</h2><div id="set-ia-body">${iaReglagesHTML()}</div>
     </section>
   </div>`;
   $$('.set-seg input', v).forEach(i => i.onchange = () => { UI.set(i.name, i.value); renderParametres(v); const f = $(`.set-seg input[name="${i.name}"][value="${i.value}"]`, v); if (f) f.focus(); });
@@ -7218,6 +7547,7 @@ function renderParametres(v) {
   $('#set-exp').onclick = exportAll;
   $('#set-imp').onclick = () => $('#import-file').click();
   if ($('#set-drive')) $('#set-drive').onclick = () => driveDialog();
+  bindIaReglages(v);
 }
 
 /* =========================================================================
