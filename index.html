@@ -10,6 +10,7 @@
     /* Clé dédiée « chargepro.theme » ; à défaut, ancien réglage lu (jamais réécrit) dans « chargepro.ui » ; sinon l'appareil décide */
     try { let t = localStorage.getItem('chargepro.theme'); if (t !== 'light' && t !== 'dark' && t !== 'auto') t = (JSON.parse(localStorage.getItem('chargepro.ui')) || {}).theme; if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t; } catch (_e) { /* stockage indisponible */ }
   </script>
+  <link rel="icon" href="logo-mark.svg" type="image/svg+xml">
   <link rel="stylesheet" href="tokens.css">
   <style>
 /* ==========================================================================
@@ -52,8 +53,8 @@ a{color:var(--accent-strong)}
   background:var(--surface);
   border-bottom:1px solid var(--border)}
 .brand{display:flex;align-items:center;gap:var(--sp-2);padding:var(--sp-1);border:0;background:none;color:var(--text);border-radius:var(--r-12);flex:none}
-.logo-mark{width:32px;height:32px;border-radius:var(--r-8);display:grid;place-items:center;background:var(--logo);color:var(--on-accent);
-  font-weight:var(--fw-semibold);font-size:var(--text-sm);line-height:var(--lh-sm);letter-spacing:.02em;box-shadow:inset 0 -2px 0 rgba(0,0,0,.15);flex:none}
+.logo-mark{width:32px;height:32px;border-radius:var(--r-8);background:var(--logo-navy) url(logo-mark.svg) center/cover no-repeat;flex:none}
+.logo-pro{color:var(--logo-text)}
 .logo-text{font-weight:var(--fw-semibold);font-size:var(--text-lg);line-height:var(--lh-lg);letter-spacing:var(--tracking-title);white-space:nowrap}
 #menu-toggle{display:none;border:0;background:none;color:var(--text);padding:var(--sp-2);border-radius:var(--r-8)}
 #menu-toggle:hover{background:var(--hover)}
@@ -1516,8 +1517,8 @@ button.list-row:hover,a.list-row:hover{background:var(--hover)}
   <div id="app">
     <aside id="sidebar" aria-label="Navigation">
       <div class="brand">
-        <span class="logo-mark" id="brand-mark">CP</span>
-        <span class="logo-text">ChargéPro</span>
+        <span class="logo-mark" id="brand-mark" aria-hidden="true"></span>
+        <span class="logo-text">Chargé<span class="logo-pro">Pro</span></span>
       </div>
       <nav id="nav"></nav>
       <div class="foot-note">Données stockées sur ce poste.<br><a href="mentions-legales.html">Mentions légales &amp; confidentialité</a></div>
@@ -1528,8 +1529,8 @@ button.list-row:hover,a.list-row:hover{background:var(--hover)}
       <header id="topbar">
         <button id="menu-toggle" class="btn ghost icon" aria-label="Ouvrir le menu" aria-controls="sidebar" aria-expanded="false"></button>
         <button class="brand" id="brand-home" aria-label="Aller au tableau de bord">
-          <span class="logo-mark" aria-hidden="true">CP</span>
-          <span class="logo-text">ChargéPro</span>
+          <span class="logo-mark" aria-hidden="true"></span>
+          <span class="logo-text">Chargé<span class="logo-pro">Pro</span></span>
         </button>
         <button id="nav-collapse" class="btn ghost icon" aria-label="Réduire ou déployer le menu latéral"></button>
         <div class="tb-search" id="tb-search">

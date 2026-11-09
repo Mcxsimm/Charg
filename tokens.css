@@ -59,7 +59,7 @@
   --blue-line:color-mix(in srgb,var(--blue) 30%,var(--surface));
 
   /* Logo uniquement */
-  --logo:#E8590C; --logo-bg:#FFF1E6;
+  --logo:#1EC0DD; --logo-navy:#0A1A33; --logo-text:#0E7F98; --logo-bg:#E4F7FB;
 
   /* Graphiques (palette validée : séparation daltonisme et contraste) */
   --serie-1:#5B63D3; --serie-2:#167447;
@@ -111,7 +111,7 @@
   --green:#4CC38A;  --green-bg:color-mix(in srgb,#4CC38A 14%,transparent);
   --blue:#5EA2F7;   --blue-bg:color-mix(in srgb,#5EA2F7 14%,transparent);
   --violet:#9AA1F5; --violet-bg:color-mix(in srgb,#9AA1F5 14%,transparent);
-  --logo-bg:color-mix(in srgb,#E8590C 14%,transparent);
+  --logo-bg:color-mix(in srgb,#1EC0DD 14%,transparent); --logo-text:#1EC0DD;
   --serie-1:#7C83E8; --serie-2:#34A873;
   --inverse-bg:#F2F3F5; --inverse-text:#1B1C1F; --inverse-muted:#686C74; --inverse-green:#167447; --inverse-red:#C8262C;
   --scrim:rgba(0,0,0,.6);
@@ -132,7 +132,7 @@
     --green:#4CC38A;  --green-bg:color-mix(in srgb,#4CC38A 14%,transparent);
     --blue:#5EA2F7;   --blue-bg:color-mix(in srgb,#5EA2F7 14%,transparent);
     --violet:#9AA1F5; --violet-bg:color-mix(in srgb,#9AA1F5 14%,transparent);
-    --logo-bg:color-mix(in srgb,#E8590C 14%,transparent);
+    --logo-bg:color-mix(in srgb,#1EC0DD 14%,transparent); --logo-text:#1EC0DD;
     --serie-1:#7C83E8; --serie-2:#34A873;
     --inverse-bg:#F2F3F5; --inverse-text:#1B1C1F; --inverse-muted:#686C74; --inverse-green:#167447; --inverse-red:#C8262C;
     --scrim:rgba(0,0,0,.6);

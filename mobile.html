@@ -3,7 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <meta name="theme-color" content="#12335c">
+  <meta name="theme-color" content="#0A1A33">
+  <link rel="icon" href="logo-mark.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="logo-mark.svg">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="ChargéPro">
   <title>ChargéPro mobile</title>
@@ -20,7 +22,7 @@
   --bg:#f4f6f9; --surface:#ffffff; --surface-2:#f8f9fb; --surface-3:#eef1f5;
   --border:#e4e8ee; --border-strong:#cdd4de;
   --text:#101828; --text-2:#475467; --text-3:#667085;
-  --brand:#12335c; --brand-2:#1d4f8f; --brand-soft:#e9eff8;
+  --brand:#0A1A33; --brand-2:#1d4f8f; --brand-soft:#e9eff8;
   --accent:#e8590c;
   --pos:#067647; --pos-soft:#ecfdf3;
   --neg:#b42318; --neg-soft:#fef3f2;
@@ -66,7 +68,8 @@ header{position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:10px;
   padding:calc(10px + env(safe-area-inset-top)) 16px 10px;background:var(--brand);color:#fff}
 @media (prefers-color-scheme: dark){:root:where(:not([data-theme="light"])) header{background:var(--surface);border-bottom:1px solid var(--border)}}
 :root[data-theme="dark"] header{background:var(--surface);border-bottom:1px solid var(--border)}
-.logo{width:30px;height:30px;border-radius:8px;background:var(--accent);display:grid;place-items:center;font-weight:800;font-size:13px;color:#fff;flex:none}
+.logo{width:30px;height:30px;border-radius:8px;background:#0A1A33 url(logo-mark.svg) center/cover no-repeat;flex:none}
+.h-txt b .pro{color:#1EC0DD;font-style:normal}
 .h-txt{flex:1;min-width:0}
 .h-txt b{display:block;font-size:16px}
 .h-txt span{display:block;font-size:12px;opacity:.75;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -154,8 +157,8 @@ nav .badge{position:absolute;top:4px;left:calc(50% + 6px);background:var(--neg);
 </head>
 <body>
   <header>
-    <span class="logo">CP</span>
-    <div class="h-txt"><b>ChargéPro</b><span id="h-sub"></span></div>
+    <span class="logo" aria-hidden="true"></span>
+    <div class="h-txt"><b>Chargé<em class="pro">Pro</em></b><span id="h-sub"></span></div>
     <button class="h-btn" id="menu-btn" aria-label="Menu"></button>
   </header>
   <main id="view"></main>
