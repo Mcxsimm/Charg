@@ -10,9 +10,12 @@
      OPENAI_API_KEY      → OpenAI
      MISTRAL_API_KEY     → Mistral
      GEMINI_API_KEY      → Google Gemini
-     IA_ORDRE            → ordre d'essai, ex. "claude,openai,mistral,gemini"
+     GROQ_API_KEY        → Groq (modèles ouverts, offre gratuite limitée)
+     OPENROUTER_API_KEY  → OpenRouter (modèles « :free » gratuits)
+     IA_ORDRE            → ordre d'essai, ex. "gemini,groq,openrouter"
                            (si un fournisseur échoue, le suivant prend le relais)
-     IA_MODELE_CLAUDE, IA_MODELE_OPENAI, IA_MODELE_MISTRAL, IA_MODELE_GEMINI
+     IA_MODELE_CLAUDE, IA_MODELE_OPENAI, IA_MODELE_MISTRAL, IA_MODELE_GEMINI,
+     IA_MODELE_GROQ, IA_MODELE_OPENROUTER
                          → pour changer de modèle sans toucher au code
      CHARGEPRO_CODE      → code d'accès (fortement conseillé) : sans lui,
                            n'importe qui connaissant l'adresse du site peut
@@ -29,8 +32,10 @@ const FOURNISSEURS = {
   openai: { nom: 'OpenAI', env: 'OPENAI_API_KEY', modele: 'gpt-5' },
   mistral: { nom: 'Mistral', env: 'MISTRAL_API_KEY', modele: 'mistral-large-latest' },
   gemini: { nom: 'Gemini', env: 'GEMINI_API_KEY', modele: 'gemini-3.8-flash' },
+  groq: { nom: 'Groq', env: 'GROQ_API_KEY', modele: 'llama-3.3-70b-versatile' },
+  openrouter: { nom: 'OpenRouter', env: 'OPENROUTER_API_KEY', modele: 'meta-llama/llama-3.3-70b-instruct:free' },
 };
-const ORDRE_DEFAUT = ['claude', 'openai', 'mistral', 'gemini'];
+const ORDRE_DEFAUT = ['claude', 'openai', 'gemini', 'mistral', 'groq', 'openrouter'];
 const MAX_CARACTERES = 400000; // garde-fou sur la taille d'une demande
 const DELAI_MS = 110000;       // par appel
 const PAUSES_MS = [2000, 5000]; // attente avant chaque nouvelle tentative en cas de surcharge
@@ -71,6 +76,14 @@ async function appelHttp(url, headers, body) {
 /* Consigne JSON ajoutée pour les fournisseurs sans contrainte de schéma stricte. */
 const consigneJson = schema => `\n\nRéponds uniquement avec un objet JSON valide, sans texte autour ni bloc de code, conforme à ce schéma JSON :\n${JSON.stringify(schema)}`;
 
+/* Fournisseurs à l'API « compatible OpenAI » (Mistral, Groq, OpenRouter). */
+async function compatibleOpenAI(id, url, { system, messages, schema, maxTokens }, m, modeJson, entetes) {
+  const body = { model: m, messages: [{ role: 'system', content: system + (schema ? consigneJson(schema) : '') }, ...messages], max_tokens: maxTokens };
+  if (schema && modeJson) body.response_format = { type: 'json_object' };
+  const j = await appelHttp(url, { authorization: 'Bearer ' + cle(id), ...(entetes || {}) }, body);
+  return j.choices && j.choices[0] && j.choices[0].message ? j.choices[0].message.content || '' : '';
+}
+
 const APPELS = {
   async claude({ system, messages, schema, effort, maxTokens }, m) {
     const body = { model: m, max_tokens: maxTokens, system, messages };
@@ -92,12 +105,10 @@ const APPELS = {
     const j = await appelHttp('https://api.openai.com/v1/chat/completions', { authorization: 'Bearer ' + cle('openai') }, body);
     return j.choices && j.choices[0] && j.choices[0].message ? j.choices[0].message.content || '' : '';
   },
-  async mistral({ system, messages, schema, maxTokens }, m) {
-    const body = { model: m, messages: [{ role: 'system', content: system + (schema ? consigneJson(schema) : '') }, ...messages], max_tokens: maxTokens };
-    if (schema) body.response_format = { type: 'json_object' };
-    const j = await appelHttp('https://api.mistral.ai/v1/chat/completions', { authorization: 'Bearer ' + cle('mistral') }, body);
-    return j.choices && j.choices[0] && j.choices[0].message ? j.choices[0].message.content || '' : '';
-  },
+  mistral: (d, m) => compatibleOpenAI('mistral', 'https://api.mistral.ai/v1/chat/completions', d, m, true),
+  groq: (d, m) => compatibleOpenAI('groq', 'https://api.groq.com/openai/v1/chat/completions', d, m, true),
+  // OpenRouter : le mode JSON n'existe pas sur tous les modèles, la consigne JSON passe par le texte
+  openrouter: (d, m) => compatibleOpenAI('openrouter', 'https://openrouter.ai/api/v1/chat/completions', d, m, false, { 'x-title': 'ChargePro' }),
   async gemini({ system, messages, schema, maxTokens }, m) {
     const body = {
       systemInstruction: { parts: [{ text: system + (schema ? consigneJson(schema) : '') }] },
@@ -142,7 +153,7 @@ module.exports = async function handler(req, res) {
   if (req.method !== 'POST') { res.setHeader('allow', 'GET, POST'); return res.status(405).json({ erreur: 'Méthode non prise en charge.' }); }
 
   if (!codeValide(req.headers['x-chargepro-code'])) return res.status(401).json({ erreur: 'Code d\'accès IA manquant ou incorrect. Saisissez-le dans Paramètres › Intelligence artificielle.', code: 'code' });
-  if (!dispo.length) return res.status(503).json({ erreur: 'Aucune clé d\'IA n\'est configurée sur le serveur. Ajoutez au moins ANTHROPIC_API_KEY, OPENAI_API_KEY, MISTRAL_API_KEY ou GEMINI_API_KEY dans les variables d\'environnement Vercel, puis redéployez.', code: 'config' });
+  if (!dispo.length) return res.status(503).json({ erreur: 'Aucune clé d\'IA n\'est configurée sur le serveur. Ajoutez au moins une clé (GEMINI_API_KEY, ANTHROPIC_API_KEY, OPENAI_API_KEY, MISTRAL_API_KEY, GROQ_API_KEY ou OPENROUTER_API_KEY) dans les variables d\'environnement Vercel, puis redéployez.', code: 'config' });
 
   let b = req.body;
   if (typeof b === 'string') { try { b = JSON.parse(b); } catch { b = null; } }

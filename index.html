@@ -7682,7 +7682,7 @@ const IA = {
     const e = this.etat;
     if (!e) return 'Vérification du service IA…';
     if (e.injoignable) return 'Le service IA du site est injoignable. Il fonctionne une fois le site déployé sur Vercel (dossier api/). En local, lancez « vercel dev ».';
-    if (!e.fournisseurs.length) return 'Aucune clé d\'IA n\'est configurée sur le serveur. Ajoutez ANTHROPIC_API_KEY (ou OPENAI_API_KEY, MISTRAL_API_KEY, GEMINI_API_KEY) dans les variables d\'environnement Vercel, puis redéployez.';
+    if (!e.fournisseurs.length) return 'Aucune clé d\'IA n\'est configurée sur le serveur. Ajoutez au moins une clé (GEMINI_API_KEY, ANTHROPIC_API_KEY, OPENAI_API_KEY, MISTRAL_API_KEY, GROQ_API_KEY ou OPENROUTER_API_KEY) dans les variables d\'environnement Vercel, puis redéployez.';
     if (e.codeRequis && !e.codeOk) return 'Le service IA est protégé par un code d\'accès. Saisissez-le dans Paramètres › Intelligence artificielle.';
     return '';
   },
@@ -8277,7 +8277,7 @@ function iaReglagesHTML() {
       <div class="set-btns ia-key"><input id="set-ia-code" class="input" type="password" autocomplete="off" spellcheck="false" placeholder="${k ? 'Saisir un nouveau code' : 'Code d\'accès'}" aria-describedby="set-ia-code-aide">
         <button type="button" class="btn" id="set-ia-save">${icon('check')} Enregistrer le code</button>
         ${k ? `<button type="button" class="btn danger-quiet" id="set-ia-del">${icon('trash')} Effacer le code</button>` : ''}</div></div>` : ''}
-    <div class="set-row"><div class="set-lbl">Clés et modèles<span>Les clés API sont rangées sur le serveur, dans les variables d'environnement du projet Vercel : ANTHROPIC_API_KEY (Claude), OPENAI_API_KEY, MISTRAL_API_KEY, GEMINI_API_KEY. Ordre d'essai : IA_ORDRE. Modèles : IA_MODELE_CLAUDE, IA_MODELE_OPENAI… Protection : CHARGEPRO_CODE. Redéployez après chaque changement.</span></div></div>
+    <div class="set-row"><div class="set-lbl">Clés et modèles<span>Les clés API sont rangées sur le serveur, dans les variables d'environnement du projet Vercel : ANTHROPIC_API_KEY (Claude), OPENAI_API_KEY, MISTRAL_API_KEY, GEMINI_API_KEY, GROQ_API_KEY, OPENROUTER_API_KEY. Ordre d'essai : IA_ORDRE. Modèles : IA_MODELE_CLAUDE, IA_MODELE_OPENAI… Protection : CHARGEPRO_CODE. Redéployez après chaque changement.</span></div></div>
     <div class="set-row"><div class="set-lbl">Données envoyées<span>À chaque demande (rédaction, analyse, pré-chiffrage), ChargéPro envoie au serveur du site, qui les transmet à l'IA, les données de l'élément choisi et vos consignes. Rien n'est envoyé sans action de votre part.</span></div></div>`;
 }
 function bindIaReglages(v) {
