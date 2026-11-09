@@ -22,7 +22,7 @@
                            consommer vos crédits IA.
 
    GET  /api/ia  → état : fournisseurs disponibles (sans les clés), code requis ou non
-   POST /api/ia  → { system, messages:[{role,content}], schema?, effort?, max_tokens?, fournisseur? }
+   POST /api/ia  → { system, messages:[{role,content}], schema?, effort?, max_tokens?, delai_s?, fournisseur? }
                  ← { texte, fournisseur, modele }
    ========================================================================= */
 const crypto = require('crypto');
@@ -58,9 +58,9 @@ class ErreurFournisseur extends Error {
   constructor(msg, statut) { super(msg); this.statut = statut || 0; }
 }
 
-async function appelHttp(url, headers, body) {
+async function appelHttp(url, headers, body, delai) {
   const ctrl = new AbortController();
-  const t = setTimeout(() => ctrl.abort(), DELAI_MS);
+  const t = setTimeout(() => ctrl.abort(), delai || DELAI_MS);
   let r;
   try { r = await fetch(url, { method: 'POST', headers: { 'content-type': 'application/json', ...headers }, body: JSON.stringify(body), signal: ctrl.signal }); }
   catch (e) { throw new ErreurFournisseur(e.name === 'AbortError' ? 'délai dépassé' : 'injoignable'); }
@@ -77,15 +77,15 @@ async function appelHttp(url, headers, body) {
 const consigneJson = schema => `\n\nRéponds uniquement avec un objet JSON valide, sans texte autour ni bloc de code, conforme à ce schéma JSON :\n${JSON.stringify(schema)}`;
 
 /* Fournisseurs à l'API « compatible OpenAI » (Mistral, Groq, OpenRouter). */
-async function compatibleOpenAI(id, url, { system, messages, schema, maxTokens }, m, modeJson, entetes) {
+async function compatibleOpenAI(id, url, { system, messages, schema, maxTokens, delai }, m, modeJson, entetes) {
   const body = { model: m, messages: [{ role: 'system', content: system + (schema ? consigneJson(schema) : '') }, ...messages], max_tokens: maxTokens };
   if (schema && modeJson) body.response_format = { type: 'json_object' };
-  const j = await appelHttp(url, { authorization: 'Bearer ' + cle(id), ...(entetes || {}) }, body);
+  const j = await appelHttp(url, { authorization: 'Bearer ' + cle(id), ...(entetes || {}) }, body, delai);
   return j.choices && j.choices[0] && j.choices[0].message ? j.choices[0].message.content || '' : '';
 }
 
 const APPELS = {
-  async claude({ system, messages, schema, effort, maxTokens }, m) {
+  async claude({ system, messages, schema, effort, maxTokens, delai }, m) {
     const body = { model: m, max_tokens: maxTokens, system, messages };
     const oc = {};
     if (['low', 'medium', 'high'].includes(effort)) oc.effort = effort;
@@ -94,28 +94,28 @@ const APPELS = {
     const headers = { 'x-api-key': cle('claude'), 'anthropic-version': '2026-10-21' };
     // Modèles Claude 5 (Opus, Sonnet, Fable) : si une demande est déclinée, relance automatique sur le modèle de secours
     if (/^claude-(opus|sonnet|fable)-5/.test(m)) { headers['anthropic-beta'] = 'server-side-fallback-2026-07-01'; body.fallbacks = 'default'; }
-    const j = await appelHttp('https://api.anthropic.com/v1/messages', headers, body);
+    const j = await appelHttp('https://api.anthropic.com/v1/messages', headers, body, delai);
     if (j.stop_reason === 'refusal') throw new ErreurFournisseur('demande déclinée');
     if (j.stop_reason === 'max_tokens') throw new ErreurFournisseur('réponse tronquée (trop longue)');
     return (j.content || []).filter(b => b.type === 'text').map(b => b.text).join('');
   },
-  async openai({ system, messages, schema, maxTokens }, m) {
+  async openai({ system, messages, schema, maxTokens, delai }, m) {
     const body = { model: m, messages: [{ role: 'system', content: system + (schema ? consigneJson(schema) : '') }, ...messages], max_completion_tokens: maxTokens };
     if (schema) body.response_format = { type: 'json_object' };
-    const j = await appelHttp('https://api.openai.com/v1/chat/completions', { authorization: 'Bearer ' + cle('openai') }, body);
+    const j = await appelHttp('https://api.openai.com/v1/chat/completions', { authorization: 'Bearer ' + cle('openai') }, body, delai);
     return j.choices && j.choices[0] && j.choices[0].message ? j.choices[0].message.content || '' : '';
   },
   mistral: (d, m) => compatibleOpenAI('mistral', 'https://api.mistral.ai/v1/chat/completions', d, m, true),
   groq: (d, m) => compatibleOpenAI('groq', 'https://api.groq.com/openai/v1/chat/completions', d, m, true),
   // OpenRouter : le mode JSON n'existe pas sur tous les modèles, la consigne JSON passe par le texte
   openrouter: (d, m) => compatibleOpenAI('openrouter', 'https://openrouter.ai/api/v1/chat/completions', d, m, false, { 'x-title': 'ChargePro' }),
-  async gemini({ system, messages, schema, maxTokens }, m) {
+  async gemini({ system, messages, schema, maxTokens, delai }, m) {
     const body = {
       systemInstruction: { parts: [{ text: system + (schema ? consigneJson(schema) : '') }] },
       contents: messages.map(x => ({ role: x.role === 'assistant' ? 'model' : 'user', parts: [{ text: x.content }] })),
       generationConfig: { maxOutputTokens: maxTokens, ...(schema ? { responseMimeType: 'application/json' } : {}) },
     };
-    const j = await appelHttp(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(m)}:generateContent`, { 'x-goog-api-key': cle('gemini') }, body);
+    const j = await appelHttp(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(m)}:generateContent`, { 'x-goog-api-key': cle('gemini') }, body, delai);
     const c = j.candidates && j.candidates[0];
     return c && c.content && c.content.parts ? c.content.parts.map(p => p.text || '').join('') : '';
   },
@@ -135,6 +135,8 @@ function lireDemande(b) {
     schema: b.schema && typeof b.schema === 'object' ? b.schema : null,
     effort: typeof b.effort === 'string' ? b.effort : '',
     maxTokens: Math.max(256, Math.min(32000, +b.max_tokens || 8000)),
+    // Délai d'attente par appel avant de passer à l'IA suivante (15 à 110 s ; défaut 110 s)
+    delai: +b.delai_s > 0 ? Math.max(15, Math.min(110, +b.delai_s)) * 1000 : DELAI_MS,
     fournisseur: FOURNISSEURS[b.fournisseur] ? b.fournisseur : '',
   };
 }

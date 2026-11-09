@@ -3498,6 +3498,8 @@ ${chatContexte(compact)}`;
 }
 function chatContexte(compact) {
   const d = DB.data, t = todayISO(), e = x => eur(+x || 0), lim = (a, n) => a.slice(0, compact ? Math.min(n, 5) : n);
+  // En cours d'abord (devis sans réponse, factures non payées…), puis les plus récents : contexte court = réponse plus rapide
+  const prio = (a, enCours) => a.filter(enCours).concat(a.filter(x => !enCours(x)));
   const L = [`Aujourd'hui : ${fmtDate(t)} (${['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'][new Date().getDay()]})`];
   L.push(pilotageDossier(pilotageCalc(new Date().getFullYear()), compact));
   const devis = d.devis.slice().sort((a, b) => (b.dateDemande || '').localeCompare(a.dateDemande || ''));
@@ -3505,16 +3507,16 @@ function chatContexte(compact) {
     const att = devis.filter(x => ['envoye', 'relance', 'attente'].includes(x.statut));
     if (att.length) L.push('## Devis à suivre\n' + lim(att, 5).map(x => `- ${x.ref} ${x.objet || ''} — ${clientNom(x.clientId)} : ${e(x.montantHT)}, ${STATUTS_DEVIS[x.statut] || x.statut}${x.relance ? ', relance le ' + fmtDate(x.relance) : ''}`).join('\n'));
   } else {
-    L.push('## Clients\n' + lim(d.clients, 150).map(c => `- ${c.nom}${c.type ? ' (' + c.type + ')' : ''} : ${[c.contact, c.tel, c.email, c.adresse].filter(Boolean).join(', ')}${c.notes ? ' — ' + c.notes : ''}`).join('\n'));
-    L.push('## Devis\n' + lim(devis, 200).map(x => `- ${x.ref} ${x.objet || ''} — ${clientNom(x.clientId)} : ${e(x.montantHT)}, ${STATUTS_DEVIS[x.statut] || x.statut}, demandé le ${x.dateDemande ? fmtDate(x.dateDemande) : '?'}${x.dateEnvoi ? ', envoyé le ' + fmtDate(x.dateEnvoi) : ''}${x.nbRelances ? ', ' + x.nbRelances + ' relance(s)' : ''}${x.relance ? ', prochaine relance le ' + fmtDate(x.relance) : ''}${x.otp ? ', OTP ' + x.otp : ''}`).join('\n'));
-    L.push('## Chantiers\n' + lim(d.chantiers, 150).map(c => { const pl = chantierPlanning(c);
+    L.push('## Clients\n' + lim(d.clients, 60).map(c => `- ${c.nom}${c.type ? ' (' + c.type + ')' : ''} : ${[c.contact, c.tel, c.email, c.adresse].filter(Boolean).join(', ')}${c.notes ? ' — ' + c.notes : ''}`).join('\n'));
+    L.push('## Devis\n' + lim(prio(devis, x => ['attente', 'envoye', 'relance'].includes(x.statut)), 80).map(x => `- ${x.ref} ${x.objet || ''} — ${clientNom(x.clientId)} : ${e(x.montantHT)}, ${STATUTS_DEVIS[x.statut] || x.statut}, demandé le ${x.dateDemande ? fmtDate(x.dateDemande) : '?'}${x.dateEnvoi ? ', envoyé le ' + fmtDate(x.dateEnvoi) : ''}${x.nbRelances ? ', ' + x.nbRelances + ' relance(s)' : ''}${x.relance ? ', prochaine relance le ' + fmtDate(x.relance) : ''}${x.otp ? ', OTP ' + x.otp : ''}`).join('\n'));
+    L.push('## Chantiers\n' + lim(d.chantiers, 50).map(c => { const pl = chantierPlanning(c);
       return `- ${c.otp ? c.otp + ' ' : ''}${c.nom} — ${clientNom(c.clientId)} : ${STATUTS_CHANTIER[c.statut] || c.statut}, ${e(c.montantHT)}${c.adresse ? ', ' + c.adresse : ''}${pl ? `, planning du ${fmtDate(pl.debut)} au ${fmtDate(pl.fin)} (${fmtHeures(pl.heures)} pointées)` : ''}${c.notes ? ' — ' + c.notes : ''}${prepaNotes(c).length ? ' — dernière note : ' + prepaNotes(c)[0].texte.slice(0, 160) : ''}`; }).join('\n'));
-    L.push('## Factures\n' + lim(d.factures.slice().sort((a, b) => (b.dateEmission || b.dateFG || '').localeCompare(a.dateEmission || a.dateFG || '')), 200).map(f => { const ech = factureEcheance(f), fl = factureFlags(f);
+    L.push('## Factures\n' + lim(prio(d.factures.slice().sort((a, b) => (b.dateEmission || b.dateFG || '').localeCompare(a.dateEmission || a.dateFG || '')), f => f.statut !== 'payee'), 80).map(f => { const ech = factureEcheance(f), fl = factureFlags(f);
       return `- ${f.num || 'sans numéro'} ${f.objet || ''} — ${f.client || clientNom(f.clientId)} : ${e(f.montantHT)}, ${STATUTS_FACT[f.statut] || f.statut}${f.dateEmission ? ', émise le ' + fmtDate(f.dateEmission) : ''}${ech ? ', échéance ' + fmtDate(ech) : ''}${f.datePaiement ? ', payée le ' + fmtDate(f.datePaiement) : ''}${fl.retardPaiement ? ' (en retard)' : ''}${fl.retardEmission ? ' (émission hors délai)' : ''}`; }).join('\n'));
-    if (d.prospection.length) L.push('## Prospection\n' + lim(d.prospection, 100).map(x => `- ${x.nom}${x.ville ? ' (' + x.ville + ')' : ''} : ${x.objet || ''}, ${STATUTS_PROSP[x.statut] || x.statut}, potentiel ${e(x.potentiel)}${x.prochaine ? ', prochaine action le ' + fmtDate(x.prochaine) : ''}${x.note ? ' — ' + x.note : ''}`).join('\n'));
-    if (d.commandes.length) L.push('## Commandes fournisseurs\n' + lim(d.commandes.slice().sort((a, b) => (b.date || '').localeCompare(a.date || '')), 100).map(c => `- ${c.num || 'sans n°'} ${c.fournisseur || ''} ${c.objet || ''} (OTP ${c.otp || '?'}) : ${e(c.montantHT)}, ${c.statut || ''}${c.dateReception ? ', reçue le ' + fmtDate(c.dateReception) : ''}`).join('\n'));
+    if (d.prospection.length) L.push('## Prospection\n' + lim(d.prospection, 40).map(x => `- ${x.nom}${x.ville ? ' (' + x.ville + ')' : ''} : ${x.objet || ''}, ${STATUTS_PROSP[x.statut] || x.statut}, potentiel ${e(x.potentiel)}${x.prochaine ? ', prochaine action le ' + fmtDate(x.prochaine) : ''}${x.note ? ' — ' + x.note : ''}`).join('\n'));
+    if (d.commandes.length) L.push('## Commandes fournisseurs\n' + lim(d.commandes.slice().sort((a, b) => (b.date || '').localeCompare(a.date || '')), 40).map(c => `- ${c.num || 'sans n°'} ${c.fournisseur || ''} ${c.objet || ''} (OTP ${c.otp || '?'}) : ${e(c.montantHT)}, ${c.statut || ''}${c.dateReception ? ', reçue le ' + fmtDate(c.dateReception) : ''}`).join('\n'));
     const bcs = d.bcs.filter(b => b.statut !== 'facture');
-    if (bcs.length) L.push('## Bons de commande (marchés) non facturés\n' + lim(bcs, 60).map(b => `- ${b.num} ${b.nature || ''} — ${b.residence || ''} ${b.logement || ''} : ${b.statut}${b.dateLimite ? ', date limite ' + fmtDate(b.dateLimite) : ''}${b.dateIntervention ? ', intervention le ' + fmtDate(b.dateIntervention) : ''}`).join('\n'));
+    if (bcs.length) L.push('## Bons de commande (marchés) non facturés\n' + lim(bcs, 40).map(b => `- ${b.num} ${b.nature || ''} — ${b.residence || ''} ${b.logement || ''} : ${b.statut}${b.dateLimite ? ', date limite ' + fmtDate(b.dateLimite) : ''}${b.dateIntervention ? ', intervention le ' + fmtDate(b.dateIntervention) : ''}`).join('\n'));
   }
   const fin = addDays(t, compact ? 7 : 30);
   const ag = d.agenda.filter(a => a.dateDebut && (a.dateFin || a.dateDebut) >= t && a.dateDebut <= fin).sort((a, b) => (a.dateDebut + (a.heureDebut || '')).localeCompare(b.dateDebut + (b.heureDebut || '')));
@@ -3635,11 +3637,11 @@ async function chatEnvoyer(q) {
   ta.value = ''; ta.style.height = 'auto';
   send.hidden = true; stop.hidden = false; pan.setAttribute('aria-busy', 'true'); chatDefiler();
   // Historique envoyé : toute la conversation (bornée), ou les 2 derniers échanges pour l'IA locale (contexte de 4 096 tokens)
-  const hist = CHAT.msgs.slice(local ? -5 : -30).map(m => ({ role: m.role, content: local ? String(m.content).slice(0, 900) : m.content }));
+  const hist = CHAT.msgs.slice(local ? -5 : -12).map(m => ({ role: m.role, content: local ? String(m.content).slice(0, 900) : m.content }));
   while (hist.length && hist[0].role !== 'user') hist.shift();
   CHAT.ctrl = new AbortController();
   try {
-    const txt = await aiComplete({ system: chatSysteme(local), messages: hist, signal: CHAT.ctrl.signal });
+    const txt = await aiComplete({ system: chatSysteme(local), messages: hist, signal: CHAT.ctrl.signal, maxTokens: 1500, effort: 'low', delai: 40 });
     CHAT.msgs.push({ role: 'assistant', content: txt }); chatGarder();
     if (!att.isConnected) return;
     att.outerHTML = chatMsgHTML(CHAT.msgs[CHAT.msgs.length - 1]);
@@ -7691,12 +7693,12 @@ IA.statut();
 
 /* Un appel = une consigne système + une conversation. Retourne le texte produit.
    schema : schéma JSON attendu (réponse structurée) ; effort : low | medium | high (Claude). */
-async function aiComplete({ system, prompt, messages, signal, schema, effort, maxTokens, fournisseur }) {
+async function aiComplete({ system, prompt, messages, signal, schema, effort, maxTokens, delai, fournisseur }) {
   messages = (messages || [{ role: 'user', content: prompt }]).map(m => ({ role: m.role === 'assistant' ? 'assistant' : 'user', content: String(m.content) }));
   let r;
   try {
     r = await fetch(IA_URL, { method: 'POST', signal, headers: { 'content-type': 'application/json', ...IA.entetes() },
-      body: JSON.stringify({ system, messages, schema, effort, max_tokens: maxTokens, fournisseur }) });
+      body: JSON.stringify({ system, messages, schema, effort, max_tokens: maxTokens, delai_s: delai, fournisseur }) });
   } catch (e) {
     if (e.name === 'AbortError') throw e;
     throw new AiError('Impossible de joindre le service IA. Vérifiez la connexion internet, puis réessayez.');
