@@ -1424,6 +1424,34 @@ html:not([data-density="compact"]) .pil-rec-item{padding:var(--sp-2) var(--sp-1)
 #set-ia-body .set-seg{flex-wrap:wrap}
 #set-ia-local-model{width:auto;min-width:0;flex:1 1 260px;max-width:360px}
 @media (max-width:640px){#set-ia-local-model{max-width:none;width:100%;flex-basis:100%}}
+.pia{margin-bottom:var(--gap)}
+.pia-intro{margin:0 0 var(--sp-3);color:var(--muted)}
+.pia-form{display:grid;grid-template-columns:minmax(0,240px) minmax(0,1fr) auto;gap:var(--sp-3) var(--sp-4);align-items:start}
+.pia-form .hint{margin:0}
+.pia-btns{display:flex;gap:var(--sp-2);flex-wrap:wrap;padding-top:calc(var(--lh-sm) + var(--sp-2))}
+.pia-note{margin:var(--sp-3) 0 0;font-size:var(--text-xs);line-height:var(--lh-xs);color:var(--muted)}
+.pia-out:not(:empty){border-top:1px solid var(--border);margin-top:var(--sp-4);padding-top:var(--sp-4)}
+.pia-res{max-width:760px}
+.pia-res+.pia-res{border-top:1px dashed var(--border);margin-top:var(--sp-4);padding-top:var(--sp-4)}
+.pia-res:focus{outline:0}
+.pia-meta{margin:0 0 var(--sp-2);font-size:var(--text-xs);line-height:var(--lh-xs);color:var(--muted)}
+.pia-qq{margin:0 0 var(--sp-2);font-weight:var(--fw-medium)}
+.pia-qq span{font-size:var(--text-xs);line-height:var(--lh-xs);color:var(--muted);text-transform:uppercase;letter-spacing:var(--tracking-caps);margin-right:var(--sp-1)}
+.pia-txt{font-size:var(--text-md);line-height:var(--lh-md)}
+.pia-txt h4{font-size:var(--text-md);line-height:var(--lh-md);font-weight:var(--fw-semibold);margin:var(--sp-4) 0 var(--sp-1)}
+.pia-txt h4:first-child{margin-top:0}
+.pia-txt p{margin:0 0 var(--sp-2)}
+.pia-txt ul,.pia-txt ol{margin:0 0 var(--sp-2);padding-left:var(--sp-5)}
+.pia-txt li{margin:var(--sp-1) 0}
+.pia-txt b{font-weight:var(--fw-semibold)}
+.pia-wait{margin-top:var(--sp-4);max-width:760px}
+.pia-tools{margin-top:var(--sp-4)}
+.pia-suite{margin-top:var(--sp-4);max-width:760px}
+.pia-suite-row{display:flex;gap:var(--sp-2)}
+.pia-suite-row input{flex:1;min-width:0}
+.pia [hidden]{display:none!important}
+@media (max-width:820px){.pia-form{grid-template-columns:minmax(0,1fr)}.pia-btns{padding-top:0}}
+@media (max-width:520px){.pia-suite-row{flex-direction:column}}
 .ai-err{display:flex;align-items:flex-start;gap:var(--sp-2);padding:var(--sp-3) var(--sp-4);margin-bottom:var(--sp-3);border:1px solid var(--red-line);border-radius:var(--r-8);background:var(--red-bg);color:var(--text);font-size:var(--text-md);line-height:var(--lh-md)}
 .ai-err .ic{flex:none;width:18px;height:18px;margin-top:1px;color:var(--red)}
 .ia-key .input,#set-ia-model{width:auto;min-width:0;flex:1 1 220px;max-width:320px}
@@ -3164,6 +3192,8 @@ function renderPilotage(v) {
       </div>
     </div>
 
+    ${piaCarteHTML(k)}
+
     <div class="grid-2 pil-grid">
       <div class="card card-pad">
         <div class="section-head">${icon('phone')}<h2>Où chercher le CA</h2></div>
@@ -3205,8 +3235,180 @@ function renderPilotage(v) {
 
   $('#pil-annee').onchange = e => { pilAnnee = +e.target.value; renderPilotage(v); };
   $('#pil-obj').onclick = editObjectifs;
+  bindPilotageIA(v, k);
   $$('[data-goto]', v).forEach(b => b.onclick = () => go(b.dataset.goto));
   $$('[data-voir-marges]', v).forEach(b => b.onclick = () => { const h = $('#pil-marges'); if (h) { h.scrollIntoView({ block: 'start', behavior: 'smooth' }); h.focus({ preventScroll: true }); } });
+}
+
+/* ---------- Pilotage stratégique × Assistant IA ----------
+   Le dossier envoyé est construit à partir de pilotageCalc() : les mêmes chiffres que la page,
+   plus le détail utile (devis en attente, factures en retard, chantiers, clients, prospects)
+   et la comparaison avec l'année précédente. Version resserrée pour l'IA locale (contexte de 4 096 tokens). */
+const PIA_ANGLES = {
+  global: { label: 'Synthèse de direction', consigne: `Fais un diagnostic de direction complet de l'activité.
+Sections attendues : « Situation en bref » (3 à 4 phrases chiffrées), « Points forts », « Risques et signaux faibles », « Actions prioritaires » (5 au plus, classées par montant en jeu, chacune avec le montant concerné et une échéance), « Données à fiabiliser » (incohérences ou manques constatés dans les chiffres).` },
+  objectif: { label: 'Atteindre l\'objectif de CA', consigne: `Analyse la capacité à tenir l'objectif annuel de chiffre d'affaires.
+Sections attendues : « Écart à l'objectif » (réalisé, carnet, manque, rythme nécessaire), « Trois scénarios de fin d'année » (prudent, central, favorable : calcule-les à partir du réalisé, du carnet, du pipeline et du taux de transformation, en montrant le calcul en une ligne), « Leviers » (devis à relancer, clients et prospects à activer, avec montants), « Décision à prendre ».` },
+  marge: { label: 'Marge par chantier', consigne: `Analyse la marge chantier par chantier.
+Sections attendues : « Marge globale » (réelle contre cible, manque à gagner), « Chantiers fragiles » (pour chacun : marge, écart à la cible en euros, poids achats contre main d'œuvre, consommation du budget BTE, cause probable), « Chantiers à surveiller avant clôture », « Actions » (renégociation, travaux supplémentaires à facturer, maîtrise des heures, achats), « Limites » (chantiers sans BTE, non facturés, données manquantes).` },
+  treso: { label: 'Trésorerie et encaissements', consigne: `Analyse la trésorerie et le cycle facturation – encaissement.
+Sections attendues : « Situation » (encours, échu, non facturé, délai de paiement constaté contre prévu), « Où est bloqué l'argent » (factures en retard et travaux non facturés, du plus gros au plus petit), « Plan d'encaissement » (qui relancer, dans quel ordre, avec quel ton, et quoi facturer cette semaine), « Risque client » (clients qui paient mal ou concentrent l'encours).` },
+  commercial: { label: 'Commercial et clients', consigne: `Analyse l'efficacité commerciale et le portefeuille clients.
+Sections attendues : « Transformation » (nombre et valeur, délai d'envoi des devis), « Pipeline » (devis en attente par ancienneté et montant, relances dues), « Portefeuille » (concentration, clients qui signent, clients qui consomment des devis sans signer), « Prospection » (pistes à prioriser), « Actions commerciales de la semaine » (nommées, avec montant).` },
+  plan: { label: 'Plan d\'action 30 jours', consigne: `Construis un plan d'action concret sur les 30 prochains jours pour le chargé d'affaires.
+Organise-le en « Semaine 1 » à « Semaine 4 ». Pour chaque action : verbe d'action, cible nommée (client, chantier, devis, facture), montant en jeu, résultat attendu. Termine par « Indicateurs à suivre » (3 à 5, avec la valeur actuelle et la valeur visée).` },
+};
+const PIA_SYSTEME = `Tu es contrôleur de gestion et conseiller de direction pour une agence d'étanchéité et de couverture (BTP, France). Tu analyses le tableau de pilotage d'un chargé d'affaires.
+Règles :
+- Appuie chaque constat sur un chiffre du dossier ; cite les montants en euros et les pourcentages tels qu'ils figurent ou calcule-les explicitement.
+- N'invente aucun chiffre, client, chantier ni événement. Si une donnée manque ou semble incohérente, dis-le.
+- Distingue ce qui est constaté de ce qui est probable.
+- Priorise par montant en jeu. Sois concret : nomme les clients, chantiers, devis et factures concernés.
+- Français professionnel, direct, sans formule creuse ni point d'exclamation.
+Format : titres de section sur une ligne commençant par « ## », listes avec « - » ou « 1. », gras avec **…** pour les montants clés seulement. Pas de tableau.`;
+
+function pilotageDossier(k, compact) {
+  const o = DB.data.objectifs, t = todayISO(), lim = compact ? 5 : 15;
+  const pc = x => x == null ? 'n/d' : pct(x), e = x => eur(+x || 0);
+  const L = [];
+  L.push(`# Pilotage ${k.yr}${k.enCours ? ` (année en cours, ${k.moisEcoules.toFixed(1).replace('.', ',')} mois écoulés)` : ' (année close)'} — au ${fmtDate(t)}`);
+  L.push(`## Objectifs fixés\nCA annuel ${e(o.caAnnuel)} · marge cible ${pc(o.margeCible)} · délai de paiement prévu ${o.delaiPaiement} j · envoi des devis en ${o.delaiDevis} j · facturation en ${o.delaiFacture} j après fin de travaux`);
+  L.push(`## Chiffre d'affaires\nRéalisé ${e(k.caReal)} (${pc(o.caAnnuel ? k.caReal / o.caAnnuel : null)} de l'objectif) · projection au rythme actuel ${e(k.tendance)} · carnet restant à produire ${e(k.carnet)} · manque après carnet ${e(k.manque)}${k.manque ? ` · à signer par mois ${e(k.aSignerMois)}` : ''}`);
+  if (!compact) L.push('CA par mois : ' + k.caMois.map((v, i) => `${MOIS_COURT[i]} ${e(v)}`).join(' · '));
+  if (!compact && k.yr > 2000) {
+    const p = pilotageCalc(k.yr - 1);
+    if (p.caReal > 0) L.push(`Année ${k.yr - 1} pour comparaison : CA ${e(p.caReal)} · marge ${pc(p.margePct)} · transformation des devis ${pc(p.tauxNb)}`);
+  }
+  L.push(`## Marge\nMarge réelle ${pc(k.margePct)} (${e(k.margeReal)}) · coûts réels ${e(k.couts.tot)} dont achats ${e(k.couts.achats)} et main d'œuvre ${e(k.couts.mo)} (${Math.round(k.couts.heures)} h)`);
+  const ch = k.chantiers.filter(c => c.ca > 0 || c.cout > 0).slice(0, compact ? 5 : 20);
+  if (ch.length) L.push('Chantiers (du plus fragile au plus sain) :\n' + ch.map(c => `- ${c.otp} ${c.nom} (${c.client}) : vendu ${e(c.vendu)}, facturé ${e(c.ca)}, achats ${e(c.achats)}, MO ${e(c.mo)}, marge ${c.marge == null ? 'non facturé' : pc(c.marge)}, budget BTE ${c.consoBudget == null ? 'absent' : 'consommé à ' + pc(c.consoBudget)}`).join('\n'));
+  L.push(`## Commercial\nTransformation des devis ${pc(k.tauxNb)} en nombre, ${pc(k.tauxVal)} en valeur${k.tauxNb == null ? ' (pas de devis clos : hypothèse de 30 % retenue)' : ''} · délai moyen d'envoi ${k.delaiEnvoi == null ? 'n/d' : Math.round(k.delaiEnvoi) + ' j'} · pipeline ${e(k.pipeline)} (pondéré ${e(k.pipelinePondere)}) · relances dues ${k.relancesDues.length}`);
+  const att = k.enAttente.slice().sort((a, b) => (+b.montantHT || 0) - (+a.montantHT || 0)).slice(0, lim);
+  if (att.length) L.push('Devis en attente de réponse :\n' + att.map(d => `- ${d.ref} ${d.objet || ''} — ${clientNom(d.clientId)} : ${e(d.montantHT)}, envoyé ${d.dateEnvoi ? 'il y a ' + daysBetween(d.dateEnvoi, t) + ' j' : 'date inconnue'}, ${+d.nbRelances || 0} relance(s)${d.relance && d.relance <= t ? ', relance due' : ''}`).join('\n'));
+  const cl = k.clients.filter(c => c.ca || c.devis || c.attente).slice(0, compact ? 5 : 12);
+  if (cl.length) L.push(`Clients (part des 3 premiers dans le CA : ${pc(k.caReal ? k.partTop3 : null)}) :\n` + cl.map(c => `- ${clientNom(c.id)} : CA ${e(c.ca)}, ${c.devis} devis dont ${c.acc} accepté(s) sur ${c.clos} clos, en attente ${e(c.attente)}`).join('\n'));
+  const pr = k.prospects.slice().sort((a, b) => (+b.potentiel || 0) - (+a.potentiel || 0)).slice(0, compact ? 3 : 10);
+  L.push(`Prospection ouverte : ${k.prospects.length} piste(s), potentiel ${e(k.potentielProspection)}` + (pr.length ? '\n' + pr.map(p => `- ${p.nom}${p.ville ? ' (' + p.ville + ')' : ''} : ${p.objet || ''}, potentiel ${e(p.potentiel)}, ${STATUTS_PROSP[p.statut] || p.statut}${p.prochaine ? ', prochaine action le ' + fmtDate(p.prochaine) : ''}`).join('\n') : ''));
+  L.push(`## Trésorerie\nEncours facturé ${e(k.encours)} · échu non payé ${e(k.retard)} (${k.enRetard.length} facture(s)) · délai de paiement constaté ${k.delaiPaiement == null ? 'n/d' : Math.round(k.delaiPaiement) + ' j'} · travaux faits non facturés ${e(k.nonFacture)} (${k.aEmettre.length} facture(s) à émettre, ${k.bcs.length} BC à facturer)`);
+  const ret = k.enRetard.slice().sort((a, b) => (+b.montantHT || 0) - (+a.montantHT || 0)).slice(0, lim);
+  if (ret.length) L.push('Factures échues :\n' + ret.map(f => { const ech = factureEcheance(f); return `- ${f.num || 'sans n°'} ${f.objet || ''} — ${f.client || clientNom(f.clientId)} : ${e(f.montantHT)}, échue depuis ${ech ? daysBetween(ech, t) : '?'} j`; }).join('\n'));
+  const ae = k.aEmettre.slice().sort((a, b) => (+b.montantHT || 0) - (+a.montantHT || 0)).slice(0, compact ? 3 : 10);
+  if (ae.length) L.push('Factures à émettre :\n' + ae.map(f => `- ${f.objet || ''} — ${f.client || clientNom(f.clientId)} : ${e(f.montantHT)}${f.dateFG ? ', travaux finis le ' + fmtDate(f.dateFG) : ''}${factureFlags(f).retardEmission ? ' (hors délai)' : ''}`).join('\n'));
+  if (k.rec.length) L.push('## Orientations calculées par ChargéPro\n' + k.rec.slice(0, compact ? 4 : 10).map(r => `- [${r.axe}] ${r.txt}`).join('\n'));
+  return L.join('\n\n');
+}
+
+/* Mise en forme minimale de la réponse : titres « ## », listes « - » / « 1. », gras **…**. Tout est échappé. */
+function piaRendu(txt) {
+  const inl = s => esc(s).replace(/(\d) (?=\d{3}\b)/g, '$1\u202f').replace(/(\d) (?=(€|%|k€|j\b|h\b))/g, '$1\u00a0').replace(/\*\*(.+?)\*\*/g, '<b>$1</b>');
+  let html = '', liste = '';
+  const fermer = () => { if (liste) { html += `</${liste}>`; liste = ''; } };
+  String(txt).split('\n').forEach(l => {
+    const s = l.trim();
+    let m;
+    if (!s) { fermer(); return; }
+    if ((m = /^#{1,4}\s+(.*)$/.exec(s))) { fermer(); html += `<h4>${inl(m[1].replace(/\*\*/g, ''))}</h4>`; return; }
+    if ((m = /^[-•*]\s+(.*)$/.exec(s))) { if (liste !== 'ul') { fermer(); html += '<ul>'; liste = 'ul'; } html += `<li>${inl(m[1])}</li>`; return; }
+    if ((m = /^\d+[.)]\s+(.*)$/.exec(s))) { if (liste !== 'ol') { fermer(); html += '<ol>'; liste = 'ol'; } html += `<li>${inl(m[1])}</li>`; return; }
+    fermer(); html += `<p>${inl(s)}</p>`;
+  });
+  fermer();
+  return html;
+}
+
+const PIA = {}; // par année : { angle, fils: [{ q, txt, quand, four }] } — conservé pendant la session
+function piaCarteHTML(k) {
+  const head = `<div class="section-head">${icon('sparkle')}<h2 id="pia-t">Analyse IA</h2><span class="hint">à partir des chiffres de cette page</span></div>`;
+  if (!aiConfigured()) return `<div class="card card-pad pia" aria-labelledby="pia-t">${head}
+    <p class="pia-intro">Faites analyser votre pilotage par l'IA : diagnostic de direction, scénarios de fin d'année, marge par chantier, trésorerie, plan d'action à 30 jours.</p>
+    <button type="button" class="btn" id="pia-config">${icon('settings')} Configurer l'IA</button></div>`;
+  const c = AI.cfg(), pv = AI_PROVIDERS[c.provider], st = PIA[k.yr] || {};
+  return `<div class="card card-pad pia" aria-labelledby="pia-t">${head}
+    <form class="pia-form" novalidate>
+      <div class="field"><label for="pia-angle">Angle d'analyse</label>
+        <select id="pia-angle">${Object.entries(PIA_ANGLES).map(([id, a]) => `<option value="${id}" ${id === (st.angle || 'global') ? 'selected' : ''}>${esc(a.label)}</option>`).join('')}</select></div>
+      <div class="field pia-q"><label for="pia-q">Précision (facultatif)</label><input id="pia-q" type="text" aria-describedby="pia-q-aide">
+        <p class="hint" id="pia-q-aide">Exemple : faut-il accepter le chantier du collège à 18 % de marge ?</p></div>
+      <div class="pia-btns"><button type="submit" class="btn primary" id="pia-go">${icon('sparkle')} Analyser ${k.yr}</button>
+        <button type="button" class="btn" id="pia-stop" hidden>${icon('stop')} Arrêter l'analyse</button></div>
+    </form>
+    <p class="pia-note">${pv.local ? 'IA locale : l\'analyse est faite sur ce poste, aucune donnée n\'est envoyée. Version courte du dossier (capacité limitée du modèle).'
+      : `Envoyé à ${esc(pv.court)} (${esc(c.modele)}) : les chiffres de cette page, avec les noms des clients, chantiers, devis et factures cités.`}</p>
+    <div id="pia-out" class="pia-out"></div></div>`;
+}
+function bindPilotageIA(v, k) {
+  const carte = $('.pia', v); if (!carte) return;
+  const cfgBtn = $('#pia-config', carte); if (cfgBtn) { cfgBtn.onclick = allerReglagesIA; return; }
+  const form = $('.pia-form', carte), angle = $('#pia-angle', carte), q = $('#pia-q', carte), goBtn = $('#pia-go', carte), stop = $('#pia-stop', carte), out = $('#pia-out', carte);
+  const st = PIA[k.yr] = PIA[k.yr] || { angle: angle.value, fils: [] };
+  let ctrl = null;
+  const local = () => !!AI_PROVIDERS[AI.cfg().provider].local;
+  const fil = () => st.fils.map((f, i) => `<article class="pia-res" ${i ? '' : 'aria-labelledby="pia-res-t0"'}>
+      ${i ? `<p class="pia-qq"><span>Question</span> ${esc(f.q)}</p>` : `<p class="pia-meta" id="pia-res-t0">${esc(PIA_ANGLES[st.angle].label)} · ${k.yr}${f.q ? ' · ' + esc(f.q) : ''} · ${esc(f.four)} · ${esc(f.quand)}</p>`}
+      <div class="pia-txt">${piaRendu(f.txt)}</div></article>`).join('');
+  const afficher = () => {
+    if (!st.fils.length) { out.innerHTML = ''; return; }
+    out.innerHTML = fil() + `<div class="fp-tools pia-tools"><button type="button" class="btn" id="pia-copy">${icon('copy')} Copier l'analyse</button>
+        <button type="button" class="btn ghost" id="pia-clear">${icon('x')} Effacer l'analyse</button></div>
+      <form class="pia-suite" novalidate><div class="field"><label for="pia-suite-q">Approfondir</label>
+        <div class="pia-suite-row"><input id="pia-suite-q" type="text" aria-describedby="pia-suite-aide"><button type="submit" class="btn">${icon('sparkle')} Poser la question</button></div>
+        <p class="hint" id="pia-suite-aide">Exemple : détaille le scénario prudent, ou quel client relancer en premier ?</p></div></form>`;
+    $('#pia-copy', out).onclick = () => { const txt = st.fils.map((f, i) => (i ? 'Question : ' + f.q + '\n\n' : PIA_ANGLES[st.angle].label + ' — ' + k.yr + '\n\n') + f.txt).join('\n\n———\n\n');
+      (navigator.clipboard ? navigator.clipboard.writeText(txt) : Promise.reject()).then(() => toast('Analyse copiée'), () => toast('Copie automatique impossible dans ce navigateur : sélectionnez le texte puis Ctrl+C', 'err')); };
+    $('#pia-clear', out).onclick = () => { const avant = st.fils; st.fils = []; afficher(); goBtn.focus();
+      toast('Analyse effacée', 'ok', { action: { label: 'Annuler', run: () => { st.fils = avant; if (carte.isConnected) afficher(); } } }); };
+    const sf = $('.pia-suite', out), sq = $('#pia-suite-q', out);
+    sf.onsubmit = e => { e.preventDefault(); const t = sq.value.trim(); if (!t) { toast('Écrivez votre question avant de l\'envoyer', 'err'); sq.focus(); return; } lancer(t); };
+  };
+  const busy = on => { goBtn.disabled = on; stop.hidden = !on; carte.setAttribute('aria-busy', on ? 'true' : 'false'); $$('.pia-suite button, .pia-tools button', out).forEach(b => b.disabled = on); };
+  const zoneAttente = () => { let z = $('.pia-wait', out); if (!z) { z = document.createElement('div'); z.className = 'pia-wait'; const sf = $('.pia-suite', out); if (sf) out.insertBefore(z, sf); else out.appendChild(z); } return z; };
+  async function lancer(suite) {
+    const dossier = pilotageDossier(k, local());
+    let prompt;
+    if (!suite) {
+      st.angle = angle.value; st.fils = [];
+      out.innerHTML = '';
+      prompt = `${PIA_ANGLES[st.angle].consigne}${q.value.trim() ? `\n\nQuestion précise du chargé d'affaires, à traiter en priorité : ${q.value.trim()}` : ''}\n\nDossier de pilotage :\n\n${dossier}`;
+    } else {
+      const prec = local() ? st.fils.slice(-1) : st.fils;
+      prompt = `Dossier de pilotage :\n\n${dossier}\n\nAnalyse déjà remise (${PIA_ANGLES[st.angle].label}) :\n\n` +
+        prec.map((f, i) => (f.q && (i || local()) ? `Question : ${f.q}\n` : '') + (local() ? f.txt.slice(0, 1800) : f.txt)).join('\n\n') +
+        `\n\nNouvelle question du chargé d'affaires : ${suite}\nRéponds précisément à cette question en t'appuyant sur le dossier, sans répéter l'analyse.`;
+    }
+    const z = zoneAttente();
+    z.innerHTML = `<div class="ai-skel" role="status"><span class="sr-only">Analyse en cours</span><i></i><i></i><i></i><i></i></div>`;
+    let prog = null;
+    const onProgress = r => {
+      if (!z.isConnected) return; const p = Math.round((r && r.progress || 0) * 100);
+      if (p >= 100) { if (prog) { prog = null; z.innerHTML = `<div class="ai-skel" role="status"><span class="sr-only">Analyse en cours</span><i></i><i></i><i></i><i></i></div>`; } return; }
+      if (!prog) { z.innerHTML = `<div class="ai-prog"><p class="ai-prog-t"><b>Préparation de l'IA locale</b> <span data-pc>0 %</span></p><div class="wz-prog" aria-hidden="true"><i data-bar style="width:0"></i></div>
+        <p class="ai-prog-n">Premier usage : le modèle se télécharge une seule fois, puis reste sur ce poste.</p></div>`; prog = { pc: $('[data-pc]', z), bar: $('[data-bar]', z) }; }
+      prog.pc.textContent = p + ' %'; prog.bar.style.width = p + '%';
+    };
+    ctrl = new AbortController(); busy(true);
+    try {
+      const txt = await aiComplete({ system: PIA_SYSTEME, prompt, signal: ctrl.signal, onProgress });
+      const c = AI.cfg();
+      st.fils.push({ q: suite || q.value.trim(), txt, four: AI_PROVIDERS[c.provider].local ? 'IA locale' : AI_PROVIDERS[c.provider].court, quand: new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) });
+      if (!carte.isConnected) return;
+      afficher();
+      const derniers = $$('.pia-res', out); const d = derniers[derniers.length - 1];
+      if (d) { d.setAttribute('tabindex', '-1'); d.focus({ preventScroll: true }); d.scrollIntoView({ block: 'nearest' }); }
+    } catch (e) {
+      if (!carte.isConnected) return;
+      if (e.name === 'AbortError') { z.remove(); if (!st.fils.length) out.innerHTML = ''; toast('Analyse arrêtée'); }
+      else {
+        z.innerHTML = `<div class="ai-err" role="alert">${icon('alert')}<div>${esc(e.message || 'L\'analyse a échoué. Réessayez.')}</div></div>
+          <div class="fp-tools">${e.cfg ? `<button type="button" class="btn" data-pia-fix>${icon('settings')} Ouvrir les réglages de l'IA</button>` : `<button type="button" class="btn" data-pia-retry>${icon('refresh')} Réessayer</button>`}</div>`;
+        const fx = $('[data-pia-fix]', z); if (fx) fx.onclick = allerReglagesIA;
+        const rt = $('[data-pia-retry]', z); if (rt) rt.onclick = () => { z.remove(); lancer(suite); };
+      }
+    } finally { ctrl = null; if (carte.isConnected) busy(false); }
+  }
+  angle.onchange = () => { st.angle = angle.value; };
+  form.onsubmit = e => { e.preventDefault(); lancer(null); };
+  stop.onclick = () => { if (ctrl) ctrl.abort(); goBtn.focus(); };
+  afficher();
 }
 
 /* ---------- Tableau de bord ---------- */
