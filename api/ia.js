@@ -32,7 +32,8 @@ const FOURNISSEURS = {
 };
 const ORDRE_DEFAUT = ['claude', 'openai', 'mistral', 'gemini'];
 const MAX_CARACTERES = 400000; // garde-fou sur la taille d'une demande
-const DELAI_MS = 110000;       // par fournisseur
+const DELAI_MS = 110000;       // par appel
+const PAUSES_MS = [2000, 5000]; // attente avant chaque nouvelle tentative en cas de surcharge
 
 const cle = id => (process.env[FOURNISSEURS[id].env] || '').trim();
 const modele = id => (process.env['IA_MODELE_' + id.toUpperCase()] || '').trim() || FOURNISSEURS[id].modele;
@@ -154,13 +155,20 @@ module.exports = async function handler(req, res) {
   const echecs = [];
   for (const id of essais) {
     const m = modele(id);
-    try {
-      const texte = String(await APPELS[id](d, m)).trim();
-      if (!texte) throw new ErreurFournisseur('réponse vide');
-      return res.status(200).json({ texte, fournisseur: id, nom: FOURNISSEURS[id].nom, modele: m, echecs });
-    } catch (e) {
-      echecs.push(`${FOURNISSEURS[id].nom} (${m}) : ${e.message}`);
+    // Surcharge passagère (429, 5xx, 529) : jusqu'à 2 nouvelles tentatives sur le même fournisseur avant de passer au suivant
+    for (let tentative = 0; tentative <= PAUSES_MS.length; tentative++) {
+      try {
+        const texte = String(await APPELS[id](d, m)).trim();
+        if (!texte) throw new ErreurFournisseur('réponse vide');
+        return res.status(200).json({ texte, fournisseur: id, nom: FOURNISSEURS[id].nom, modele: m, echecs });
+      } catch (e) {
+        const passager = e.statut === 429 || e.statut >= 500;
+        if (passager && tentative < PAUSES_MS.length) { await new Promise(r => setTimeout(r, PAUSES_MS[tentative])); continue; }
+        echecs.push(`${FOURNISSEURS[id].nom} (${m}) : ${e.message}`);
+        break;
+      }
     }
   }
-  return res.status(502).json({ erreur: 'Aucune IA n\'a pu répondre. ' + echecs.join(' · '), code: 'fournisseurs', echecs });
+  const surcharge = echecs.length && echecs.every(x => / : erreur (429|5\d\d)/.test(x));
+  return res.status(502).json({ erreur: (surcharge ? 'L\'IA est momentanément surchargée. Réessayez dans une minute. ' : 'Aucune IA n\'a pu répondre. ') + echecs.join(' · '), code: 'fournisseurs', echecs });
 };
