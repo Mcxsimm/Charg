@@ -1444,18 +1444,9 @@
     document.documentElement.classList.remove('jeu-ouvert');
     if (racine) { racine.hidden = true; racine.innerHTML = ''; }
   }
-  /* Bouton flottant « Carte » (affiché quand le mode est actif, hors carte) */
-  function fab() {
-    let b = document.getElementById('jeu-fab');
-    if (!b) {
-      b = document.createElement('button');
-      b.id = 'jeu-fab'; b.type = 'button'; b.title = "Revenir à la carte de l'agence";
-      b.innerHTML = `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg><span>Carte</span>`;
-      b.onclick = () => { if (typeof current !== 'undefined') dernier = current; ouvrir(); };
-      document.body.appendChild(b);
-    }
-    return b;
-  }
+  /* L'ancien bouton flottant « Carte » est devenu l'Assistant (chatbot, voir index.html) :
+     le retour à la carte se fait depuis l'en-tête de l'Assistant (CPJeu.allerCarte). */
+  function fab() { const b = document.getElementById('jeu-fab'); if (b) b.remove(); if (typeof chatMaj === 'function') chatMaj(); }
   function actif() { return typeof UI !== 'undefined' && UI.prefs.game === 'on'; }
   function majBouton() {
     const b = document.getElementById('game-btn');
@@ -1475,6 +1466,9 @@
     /* Données modifiées (changement de profil, synchro Drive…) : redessiner si la carte est affichée */
     rafraichir() { if (ouverte) { const c = { ...cam }; construire(); Object.assign(cam, c); appliquerCam(); } },
     ouvrir, fermer,
+    /* Depuis le mode classique (en-tête de l'Assistant) : revenir à la carte, en mémorisant la page quittée */
+    allerCarte() { if (typeof current !== 'undefined') dernier = current; ouvrir(); },
+    get actif() { return actif(); },
     get ouverte() { return ouverte; },
     get position() { return { x: J.x, y: J.y, salle: J.salle && J.salle.route }; },
   };

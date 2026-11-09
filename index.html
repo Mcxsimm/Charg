@@ -893,12 +893,7 @@ html[data-density="compact"] .filters input:not([type=checkbox]),html[data-densi
 /* ==========================================================================
    Mode carte — l'agence en vue isométrique (voir jeu.js)
    ========================================================================== */
-#jeu-fab{display:none;position:fixed;right:20px;bottom:20px;z-index:55;align-items:center;gap:var(--sp-2);height:44px;padding:0 var(--sp-4);
-  border:0;border-radius:var(--r-pill);background:var(--accent);color:var(--on-accent);font:var(--fw-semibold) var(--text-md)/1 var(--font);box-shadow:var(--shadow-lg)}
-#jeu-fab:hover{background:var(--accent-strong)}
-#jeu-fab:active{transform:scale(.97)}
-html[data-game="on"] #jeu-fab{display:inline-flex}
-html.jeu-ouvert #jeu-fab{display:none}
+/* L'ancien bouton flottant « Carte » est devenu l'Assistant (.chat-fab) */
 html.jeu-ouvert,html.jeu-ouvert body{overflow:hidden}
 #jeu-root{position:fixed;inset:0;z-index:58;background:#e9dfcd;color:var(--text);font-family:var(--font);
   -webkit-user-select:none;user-select:none;animation:jx-entree .45s var(--ease-out) both}
@@ -1452,6 +1447,58 @@ html:not([data-density="compact"]) .pil-rec-item{padding:var(--sp-2) var(--sp-1)
 .pia [hidden]{display:none!important}
 @media (max-width:820px){.pia-form{grid-template-columns:minmax(0,1fr)}.pia-btns{padding-top:0}}
 @media (max-width:520px){.pia-suite-row{flex-direction:column}}
+/* Assistant (chatbot) — bouton flottant et panneau */
+.chat-fab{position:fixed;right:20px;bottom:20px;z-index:55;display:inline-flex;align-items:center;gap:var(--sp-2);height:44px;padding:0 var(--sp-4);border:0;border-radius:var(--r-pill);
+  background:var(--accent);color:var(--on-accent);font:var(--fw-semibold) var(--text-md)/1 var(--font);box-shadow:var(--shadow-lg);cursor:pointer}
+.chat-fab .ic{width:18px;height:18px}
+.chat-fab:hover{background:var(--accent-strong)}
+.chat-fab:active{transform:scale(.97)}
+.chat-fab:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.chat-fab[hidden],html.jeu-ouvert .chat-fab,html.jeu-ouvert .chat-panel{display:none!important}
+html.chat-fab-on #toast-root{bottom:76px}
+.chat-panel{position:fixed;right:20px;bottom:20px;z-index:60;width:400px;max-width:calc(100vw - 40px);height:min(640px,calc(100vh - 96px));display:flex;flex-direction:column;
+  background:var(--surface);border:1px solid var(--border-strong);border-radius:var(--r-12);box-shadow:var(--shadow-lg);overflow:hidden}
+.chat-panel[hidden]{display:none}
+.chat-head{display:flex;align-items:center;gap:var(--sp-2);padding:var(--sp-2) var(--sp-2) var(--sp-2) var(--sp-4);border-bottom:1px solid var(--border);min-height:56px}
+.chat-ic{color:var(--accent-strong);display:inline-flex}
+.chat-ic .ic{width:18px;height:18px}
+.chat-ttl{flex:1;min-width:0}
+.chat-ttl h2{font-size:var(--text-md);line-height:var(--lh-md);font-weight:var(--fw-semibold);margin:0}
+.chat-ttl span{display:block;font-size:var(--text-xs);line-height:var(--lh-xs);color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chat-log{flex:1;overflow-y:auto;padding:var(--sp-4);display:flex;flex-direction:column;gap:var(--sp-3);overscroll-behavior:contain}
+.chat-msg{max-width:92%;font-size:var(--text-md);line-height:var(--lh-md);overflow-wrap:anywhere}
+.chat-msg.moi{align-self:flex-end;background:var(--accent-bg);color:var(--text);padding:var(--sp-2) var(--sp-3);border-radius:var(--r-12) var(--r-12) var(--r-6) var(--r-12)}
+.chat-msg.moi p{margin:0}
+.chat-msg.ia{align-self:flex-start}
+.chat-msg.ia>:last-child{margin-bottom:0}
+.chat-msg .ai-err{margin-bottom:var(--sp-2)}
+.chat-lien{color:var(--accent-strong);font-weight:var(--fw-medium);text-decoration:underline;text-underline-offset:2px}
+.chat-vide{color:var(--muted)}
+.chat-vide p{margin:0 0 var(--sp-3)}
+.chat-vide b{color:var(--text);font-weight:var(--fw-semibold)}
+.chat-sugg{display:flex;flex-direction:column;gap:var(--sp-2);align-items:flex-start}
+.chat-chip{border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:var(--r-8);padding:var(--sp-2) var(--sp-3);text-align:left;font:inherit;
+  font-size:var(--text-sm);line-height:var(--lh-sm);min-height:36px;cursor:pointer;transition:background .1s}
+.chat-chip:hover{background:var(--hover)}
+.chat-chip:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.chat-form{border-top:1px solid var(--border);padding:var(--sp-3) var(--sp-4)}
+.chat-lbl{display:block;font-size:var(--text-xs);line-height:var(--lh-xs);font-weight:var(--fw-semibold);color:var(--muted);margin-bottom:var(--sp-1)}
+.chat-row{display:flex;gap:var(--sp-2);align-items:flex-end}
+.chat-row textarea{flex:1;min-width:0;resize:none;height:38px;min-height:38px;max-height:132px;padding:var(--sp-2) var(--sp-3);border:1px solid var(--border-strong);border-radius:var(--r-8);
+  background:var(--surface);color:var(--text);font:inherit;line-height:var(--lh-md)}
+.chat-row textarea:focus{outline:0;border-color:var(--accent-strong);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent-strong) 22%,transparent)}
+.chat-row [hidden]{display:none!important}
+.chat-aide{margin:var(--sp-1) 0 0;font-size:var(--text-xs);line-height:var(--lh-xs);color:var(--muted)}
+.chat-dots{display:inline-flex;gap:4px;padding:var(--sp-2) 0}
+.chat-dots i{width:6px;height:6px;border-radius:50%;background:var(--muted);animation:ai-pulse 1.2s ease-in-out infinite}
+.chat-dots i:nth-of-type(2){animation-delay:.2s}.chat-dots i:nth-of-type(3){animation-delay:.4s}
+@media (prefers-reduced-motion: reduce){.chat-dots i{animation:none}}
+@media (max-width:640px){
+  .chat-fab{right:16px;bottom:16px;width:52px;height:52px;padding:0;justify-content:center}
+  .chat-fab span{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+  .chat-panel{inset:0;width:auto;max-width:none;height:auto;border:0;border-radius:0;z-index:95}
+  html.chat-fab-on #toast-root{bottom:80px}
+}
 .ai-err{display:flex;align-items:flex-start;gap:var(--sp-2);padding:var(--sp-3) var(--sp-4);margin-bottom:var(--sp-3);border:1px solid var(--red-line);border-radius:var(--r-8);background:var(--red-bg);color:var(--text);font-size:var(--text-md);line-height:var(--lh-md)}
 .ai-err .ic{flex:none;width:18px;height:18px;margin-top:1px;color:var(--red)}
 .ia-key .input,#set-ia-model{width:auto;min-width:0;flex:1 1 220px;max-width:320px}
@@ -1712,6 +1759,9 @@ const ICONS = {
   mail: '<rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>',
   refresh: '<path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/>',
   stop: '<rect x="6" y="6" width="12" height="12" rx="2"/>',
+  chat: '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>',
+  send: '<path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/>',
+  map: '<polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/>',
   copy: '<rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>',
   folder: '<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>',
   grip: '<circle cx="9" cy="6" r="1"/><circle cx="15" cy="6" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="9" cy="18" r="1"/><circle cx="15" cy="18" r="1"/>',
@@ -2367,6 +2417,7 @@ function go(target) {
   if (!form) formReturn = null;
   updateNavMeta();
   closeTopPopovers();
+  chatMaj();
   if (window.CPJeu && CPJeu.ouverte) CPJeu.rafraichir(); // données rechargées pendant que la carte est affichée
 }
 
@@ -3409,6 +3460,211 @@ function bindPilotageIA(v, k) {
   form.onsubmit = e => { e.preventDefault(); lancer(null); };
   stop.onclick = () => { if (ctrl) ctrl.abort(); goBtn.focus(); };
   afficher();
+}
+
+/* ---------- Assistant (chatbot) — bouton flottant en bas à droite ----------
+   Répond aux questions sur les données du profil (devis, chantiers, factures, clients, prospection,
+   commandes, agenda, tâches, pilotage) et aux questions générales du métier. Il ne modifie rien :
+   il indique où agir dans ChargéPro. Les références citées (devis, factures) deviennent des liens.
+   Conversation gardée pour l'onglet (sessionStorage), par profil. */
+const CHAT = { msgs: [], ctrl: null, ouvert: false, retour: null, profil: null };
+const chatCle = () => 'chargepro.chat.' + (DB.meta && DB.meta.currentId || '');
+function chatCharger() {
+  if (CHAT.profil === (DB.meta && DB.meta.currentId)) return;
+  CHAT.profil = DB.meta && DB.meta.currentId; CHAT.msgs = [];
+  try { const r = JSON.parse(sessionStorage.getItem(chatCle())); if (Array.isArray(r)) CHAT.msgs = r.filter(m => m && m.content && (m.role === 'user' || m.role === 'assistant')); } catch {}
+}
+function chatGarder() { try { sessionStorage.setItem(chatCle(), JSON.stringify(CHAT.msgs.slice(-40))); } catch {} }
+
+const CHAT_SUGGESTIONS = ['Quels devis dois-je relancer cette semaine ?', 'Combien me reste-t-il à facturer ?', 'Quelles factures sont en retard de paiement ?', 'Qu\'ai-je à l\'agenda cette semaine ?'];
+function chatSysteme(compact) {
+  const p = DB.currentProfile();
+  return `Tu es l'Assistant intégré à ChargéPro, l'outil d'un chargé d'affaires en étanchéité et couverture (BTP, France)${p && p.nom ? ', ' + p.nom : ''}.
+Tu réponds à ses questions sur ses propres données (fournies plus bas) et à des questions générales du métier : technique d'étanchéité, réglementation, rédaction, calculs.
+Règles :
+- Sur ses données : réponds uniquement à partir des données fournies. Si l'information n'y figure pas, dis-le simplement et indique où la saisir dans ChargéPro.
+- Cite les références exactes : numéro de devis et numéro de facture (ils deviennent des liens cliquables), OTP des chantiers.
+- Tu ne peux rien modifier. Pour une action (créer, relancer, facturer), indique le menu de ChargéPro où la faire. Menus : ${NAV.filter(n => n.route).map(n => n.label).join(', ')}.
+- Réponses courtes et directes (3 à 8 lignes) sauf si on te demande le détail. Français professionnel, sans formule creuse, sans point d'exclamation, sans emoji.
+- Format : listes avec « - », gras **…** pour les montants ou noms clés. Pas de tableau.
+
+Données du profil :
+
+${chatContexte(compact)}`;
+}
+function chatContexte(compact) {
+  const d = DB.data, t = todayISO(), e = x => eur(+x || 0), lim = (a, n) => a.slice(0, compact ? Math.min(n, 5) : n);
+  const L = [`Aujourd'hui : ${fmtDate(t)} (${['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'][new Date().getDay()]})`];
+  L.push(pilotageDossier(pilotageCalc(new Date().getFullYear()), compact));
+  const devis = d.devis.slice().sort((a, b) => (b.dateDemande || '').localeCompare(a.dateDemande || ''));
+  if (compact) {
+    const att = devis.filter(x => ['envoye', 'relance', 'attente'].includes(x.statut));
+    if (att.length) L.push('## Devis à suivre\n' + lim(att, 5).map(x => `- ${x.ref} ${x.objet || ''} — ${clientNom(x.clientId)} : ${e(x.montantHT)}, ${STATUTS_DEVIS[x.statut] || x.statut}${x.relance ? ', relance le ' + fmtDate(x.relance) : ''}`).join('\n'));
+  } else {
+    L.push('## Clients\n' + lim(d.clients, 150).map(c => `- ${c.nom}${c.type ? ' (' + c.type + ')' : ''} : ${[c.contact, c.tel, c.email, c.adresse].filter(Boolean).join(', ')}${c.notes ? ' — ' + c.notes : ''}`).join('\n'));
+    L.push('## Devis\n' + lim(devis, 200).map(x => `- ${x.ref} ${x.objet || ''} — ${clientNom(x.clientId)} : ${e(x.montantHT)}, ${STATUTS_DEVIS[x.statut] || x.statut}, demandé le ${x.dateDemande ? fmtDate(x.dateDemande) : '?'}${x.dateEnvoi ? ', envoyé le ' + fmtDate(x.dateEnvoi) : ''}${x.nbRelances ? ', ' + x.nbRelances + ' relance(s)' : ''}${x.relance ? ', prochaine relance le ' + fmtDate(x.relance) : ''}${x.otp ? ', OTP ' + x.otp : ''}`).join('\n'));
+    L.push('## Chantiers\n' + lim(d.chantiers, 150).map(c => { const pl = chantierPlanning(c);
+      return `- ${c.otp ? c.otp + ' ' : ''}${c.nom} — ${clientNom(c.clientId)} : ${STATUTS_CHANTIER[c.statut] || c.statut}, ${e(c.montantHT)}${c.adresse ? ', ' + c.adresse : ''}${pl ? `, planning du ${fmtDate(pl.debut)} au ${fmtDate(pl.fin)} (${fmtHeures(pl.heures)} pointées)` : ''}${c.notes ? ' — ' + c.notes : ''}${prepaNotes(c).length ? ' — dernière note : ' + prepaNotes(c)[0].texte.slice(0, 160) : ''}`; }).join('\n'));
+    L.push('## Factures\n' + lim(d.factures.slice().sort((a, b) => (b.dateEmission || b.dateFG || '').localeCompare(a.dateEmission || a.dateFG || '')), 200).map(f => { const ech = factureEcheance(f), fl = factureFlags(f);
+      return `- ${f.num || 'sans numéro'} ${f.objet || ''} — ${f.client || clientNom(f.clientId)} : ${e(f.montantHT)}, ${STATUTS_FACT[f.statut] || f.statut}${f.dateEmission ? ', émise le ' + fmtDate(f.dateEmission) : ''}${ech ? ', échéance ' + fmtDate(ech) : ''}${f.datePaiement ? ', payée le ' + fmtDate(f.datePaiement) : ''}${fl.retardPaiement ? ' (en retard)' : ''}${fl.retardEmission ? ' (émission hors délai)' : ''}`; }).join('\n'));
+    if (d.prospection.length) L.push('## Prospection\n' + lim(d.prospection, 100).map(x => `- ${x.nom}${x.ville ? ' (' + x.ville + ')' : ''} : ${x.objet || ''}, ${STATUTS_PROSP[x.statut] || x.statut}, potentiel ${e(x.potentiel)}${x.prochaine ? ', prochaine action le ' + fmtDate(x.prochaine) : ''}${x.note ? ' — ' + x.note : ''}`).join('\n'));
+    if (d.commandes.length) L.push('## Commandes fournisseurs\n' + lim(d.commandes.slice().sort((a, b) => (b.date || '').localeCompare(a.date || '')), 100).map(c => `- ${c.num || 'sans n°'} ${c.fournisseur || ''} ${c.objet || ''} (OTP ${c.otp || '?'}) : ${e(c.montantHT)}, ${c.statut || ''}${c.dateReception ? ', reçue le ' + fmtDate(c.dateReception) : ''}`).join('\n'));
+    const bcs = d.bcs.filter(b => b.statut !== 'facture');
+    if (bcs.length) L.push('## Bons de commande (marchés) non facturés\n' + lim(bcs, 60).map(b => `- ${b.num} ${b.nature || ''} — ${b.residence || ''} ${b.logement || ''} : ${b.statut}${b.dateLimite ? ', date limite ' + fmtDate(b.dateLimite) : ''}${b.dateIntervention ? ', intervention le ' + fmtDate(b.dateIntervention) : ''}`).join('\n'));
+  }
+  const fin = addDays(t, compact ? 7 : 30);
+  const ag = d.agenda.filter(a => a.dateDebut && (a.dateFin || a.dateDebut) >= t && a.dateDebut <= fin).sort((a, b) => (a.dateDebut + (a.heureDebut || '')).localeCompare(b.dateDebut + (b.heureDebut || '')));
+  if (ag.length) L.push(`## Agenda (${compact ? '7' : '30'} prochains jours)\n` + lim(ag, 60).map(a => `- ${fmtDate(a.dateDebut)}${a.heureDebut ? ' ' + a.heureDebut : ''}${a.dateFin && a.dateFin !== a.dateDebut ? ' au ' + fmtDate(a.dateFin) : ''} : ${a.title || ''}${a.otp ? ' (OTP ' + a.otp + ')' : ''}`).join('\n'));
+  const todos = d.todos.filter(x => x.kind !== 'dossier' && !x.done);
+  if (todos.length) L.push('## Tâches à faire\n' + lim(todos, 60).map(x => `- ${x.text}${x.due ? ' (pour le ' + fmtDate(x.due) + ')' : ''}`).join('\n'));
+  return L.join('\n\n');
+}
+/* Références connues → liens vers la fiche (devis, factures) */
+function chatLiens(html) {
+  const refs = [];
+  DB.data.devis.forEach(x => { if (x.ref && x.ref.length >= 4) refs.push([x.ref, 'devis/' + x.id]); });
+  DB.data.factures.forEach(x => { if (x.num && x.num.length >= 4) refs.push([x.num, 'factures/' + x.id]); });
+  if (!refs.length) return html;
+  refs.sort((a, b) => b[0].length - a[0].length);
+  const map = new Map(refs.map(([r, h]) => [esc(r), h]));
+  const re = new RegExp('(?<![\\w-])(' + [...map.keys()].map(r => r.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|') + ')(?![\\w-])', 'g');
+  return html.split(/(<[^>]+>)/).map(part => part.startsWith('<') ? part : part.replace(re, m => `<a class="chat-lien" href="#${esc(map.get(m))}">${m}</a>`)).join('');
+}
+
+function initChat() {
+  if ($('#chat-fab')) return;
+  const fab = document.createElement('button');
+  fab.id = 'chat-fab'; fab.type = 'button'; fab.className = 'chat-fab';
+  fab.setAttribute('aria-haspopup', 'dialog'); fab.setAttribute('aria-expanded', 'false'); fab.setAttribute('aria-controls', 'chat-panel');
+  fab.innerHTML = `${icon('chat')}<span>Assistant</span>`;
+  fab.onclick = () => chatOuvrir();
+  const pan = document.createElement('section');
+  pan.id = 'chat-panel'; pan.className = 'chat-panel'; pan.hidden = true;
+  pan.setAttribute('role', 'dialog'); pan.setAttribute('aria-labelledby', 'chat-t');
+  document.body.append(fab, pan);
+  pan.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && !e.defaultPrevented) { e.preventDefault(); chatFermer(true); return; }
+    if (window.matchMedia('(max-width: 640px)').matches) trapTab(pan, e); // plein écran sur téléphone : le focus reste dans l'Assistant
+  });
+  chatMaj();
+}
+/* Visibilité du bouton : un profil, pas de formulaire en cours (barre Enregistrer en bas), pas la vue carte */
+function chatMaj() {
+  const fab = $('#chat-fab'); if (!fab) { initChat(); return; } // créé à la première navigation
+  const visible = !!(DB.currentProfile && DB.currentProfile()) && !(typeof currentHash === 'string' && currentHash.includes('/'));
+  document.documentElement.classList.toggle('chat-fab-on', visible && !CHAT.ouvert);
+  fab.hidden = !visible || CHAT.ouvert;
+  if (!visible && CHAT.ouvert) chatFermer(false);
+}
+function chatOuvrir() {
+  chatCharger();
+  CHAT.ouvert = true; CHAT.retour = document.activeElement;
+  const pan = $('#chat-panel'); pan.hidden = false;
+  $('#chat-fab').setAttribute('aria-expanded', 'true');
+  chatRendre(); chatMaj();
+  const i = $('#chat-in', pan); (i || $('.chat-head button', pan)).focus();
+}
+function chatFermer(refocus) {
+  if (CHAT.ctrl) CHAT.ctrl.abort();
+  CHAT.ouvert = false;
+  const pan = $('#chat-panel'); if (pan) { pan.hidden = true; pan.innerHTML = ''; }
+  const fab = $('#chat-fab'); if (fab) fab.setAttribute('aria-expanded', 'false');
+  chatMaj();
+  if (refocus && fab && !fab.hidden) fab.focus();
+}
+function chatRendre() {
+  const pan = $('#chat-panel'); if (!pan) return;
+  const pret = aiConfigured(), c = AI.cfg(), pv = AI_PROVIDERS[c.provider];
+  const carte = window.CPJeu && CPJeu.actif;
+  pan.innerHTML = `<header class="chat-head">
+      <span class="chat-ic">${icon('sparkle')}</span><div class="chat-ttl"><h2 id="chat-t">Assistant</h2><span>${pret ? esc(pv.local ? 'IA locale · rien ne quitte le poste' : pv.court + ' · ' + c.modele) : 'IA à configurer'}</span></div>
+      ${carte ? `<button type="button" class="btn ghost icon" data-chat-carte aria-label="Revenir à la carte de l'agence" data-tip="Revenir à la carte de l'agence">${icon('map')}</button>` : ''}
+      ${CHAT.msgs.length ? `<button type="button" class="btn ghost icon" data-chat-new aria-label="Nouvelle conversation" data-tip="Nouvelle conversation">${icon('refresh')}</button>` : ''}
+      <button type="button" class="btn ghost icon" data-chat-close aria-label="Fermer l'Assistant" data-tip="Fermer l'Assistant (Échap)">${icon('x')}</button></header>
+    <div class="chat-log" id="chat-log" aria-live="polite">${pret ? chatLogHTML() : `<div class="chat-vide"><p><b>Posez vos questions sur vos devis, chantiers, factures ou votre activité.</b></p>
+      <p>L'Assistant a besoin d'une IA : l'IA locale gratuite, ou votre propre clé (Claude, OpenAI, Mistral, Gemini).</p>
+      <button type="button" class="btn primary" data-chat-config>${icon('settings')} Configurer l'IA</button></div>`}</div>
+    ${pret ? `<form class="chat-form" novalidate><label for="chat-in" class="chat-lbl">Votre question</label>
+      <div class="chat-row"><textarea id="chat-in" rows="1" aria-describedby="chat-aide"></textarea>
+        <button type="submit" class="btn primary icon" id="chat-send" aria-label="Envoyer la question" data-tip="Envoyer (Entrée)">${icon('send')}</button>
+        <button type="button" class="btn icon" id="chat-stop" aria-label="Arrêter la réponse" data-tip="Arrêter la réponse" hidden>${icon('stop')}</button></div>
+      <p class="chat-aide" id="chat-aide">Entrée pour envoyer, Maj+Entrée pour aller à la ligne. ${pv.local ? 'Rien ne quitte ce poste.' : 'Vos données sont envoyées à ' + esc(pv.court) + ' pour répondre.'}</p></form>` : ''}`;
+  $('[data-chat-close]', pan).onclick = () => chatFermer(true);
+  const cb = $('[data-chat-carte]', pan); if (cb) cb.onclick = () => { chatFermer(false); CPJeu.allerCarte(); };
+  const nb = $('[data-chat-new]', pan); if (nb) nb.onclick = () => { const avant = CHAT.msgs; CHAT.msgs = []; chatGarder(); chatRendre(); $('#chat-in').focus();
+    toast('Conversation effacée', 'ok', { action: { label: 'Annuler', run: () => { CHAT.msgs = avant; chatGarder(); if (CHAT.ouvert) chatRendre(); } } }); };
+  const cf = $('[data-chat-config]', pan); if (cf) cf.onclick = () => { chatFermer(false); allerReglagesIA(); };
+  $$('[data-chat-sugg]', pan).forEach(b => b.onclick = () => chatEnvoyer(b.textContent));
+  chatLiensBind(pan);
+  const form = $('.chat-form', pan); if (!form) return;
+  const ta = $('#chat-in', pan);
+  const grandir = () => { ta.style.height = 'auto'; ta.style.height = Math.min(ta.scrollHeight, 132) + 'px'; };
+  ta.addEventListener('input', grandir);
+  ta.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); form.requestSubmit(); } });
+  form.onsubmit = e => { e.preventDefault(); const q = ta.value.trim(); if (!q || CHAT.ctrl) return; chatEnvoyer(q); };
+  $('#chat-stop', pan).onclick = () => { if (CHAT.ctrl) CHAT.ctrl.abort(); };
+  chatDefiler();
+}
+function chatMsgHTML(m) {
+  return m.role === 'user' ? `<div class="chat-msg moi"><p>${esc(m.content).replace(/\n/g, '<br>')}</p></div>`
+    : `<div class="chat-msg ia pia-txt">${chatLiens(piaRendu(m.content))}</div>`;
+}
+function chatLogHTML() {
+  if (!CHAT.msgs.length) return `<div class="chat-vide"><p><b>Bonjour${DB.currentProfile() ? ' ' + esc(DB.currentProfile().nom.split(' ')[0]) : ''}.</b> Posez une question sur vos devis, chantiers, factures, clients, votre agenda, ou une question technique.</p>
+    <div class="chat-sugg">${CHAT_SUGGESTIONS.map(s => `<button type="button" class="chat-chip" data-chat-sugg>${esc(s)}</button>`).join('')}</div></div>`;
+  return CHAT.msgs.map(chatMsgHTML).join('');
+}
+function chatLiensBind(scope) {
+  $$('.chat-lien', scope).forEach(a => a.onclick = () => { if (window.matchMedia('(max-width: 640px)').matches) chatFermer(false); });
+}
+function chatDefiler() { const l = $('#chat-log'); if (l) l.scrollTop = l.scrollHeight; }
+async function chatEnvoyer(q) {
+  const pan = $('#chat-panel'); if (!pan || CHAT.ctrl) return;
+  const local = !!AI_PROVIDERS[AI.cfg().provider].local;
+  CHAT.msgs.push({ role: 'user', content: q }); chatGarder();
+  const log = $('#chat-log', pan), ta = $('#chat-in', pan), send = $('#chat-send', pan), stop = $('#chat-stop', pan);
+  if (!$('.chat-msg', log)) log.innerHTML = '';
+  log.insertAdjacentHTML('beforeend', chatMsgHTML(CHAT.msgs[CHAT.msgs.length - 1]));
+  const att = document.createElement('div'); att.className = 'chat-msg ia chat-att';
+  att.innerHTML = `<div class="chat-dots" role="status"><span class="sr-only">L'Assistant rédige sa réponse</span><i></i><i></i><i></i></div>`;
+  log.appendChild(att);
+  ta.value = ''; ta.style.height = 'auto';
+  send.hidden = true; stop.hidden = false; pan.setAttribute('aria-busy', 'true'); chatDefiler();
+  let prog = null;
+  const onProgress = r => {
+    if (!att.isConnected) return; const p = Math.round((r && r.progress || 0) * 100);
+    if (p >= 100) { if (prog) { prog = null; att.innerHTML = `<div class="chat-dots" role="status"><span class="sr-only">L'Assistant rédige sa réponse</span><i></i><i></i><i></i></div>`; } return; }
+    if (!prog) { att.innerHTML = `<div class="ai-prog"><p class="ai-prog-t"><b>Préparation de l'IA locale</b> <span data-pc>0 %</span></p><div class="wz-prog" aria-hidden="true"><i data-bar style="width:0"></i></div><p class="ai-prog-n">Premier usage : téléchargement unique du modèle.</p></div>`; prog = { pc: $('[data-pc]', att), bar: $('[data-bar]', att) }; }
+    prog.pc.textContent = p + ' %'; prog.bar.style.width = p + '%';
+  };
+  // Historique envoyé : toute la conversation (bornée), ou les 2 derniers échanges pour l'IA locale (contexte de 4 096 tokens)
+  const hist = CHAT.msgs.slice(local ? -5 : -30).map(m => ({ role: m.role, content: local ? String(m.content).slice(0, 900) : m.content }));
+  while (hist.length && hist[0].role !== 'user') hist.shift();
+  CHAT.ctrl = new AbortController();
+  try {
+    const txt = await aiComplete({ system: chatSysteme(local), messages: hist, signal: CHAT.ctrl.signal, onProgress, cache: true });
+    CHAT.msgs.push({ role: 'assistant', content: txt }); chatGarder();
+    if (!att.isConnected) return;
+    att.outerHTML = chatMsgHTML(CHAT.msgs[CHAT.msgs.length - 1]);
+  } catch (e) {
+    if (e.name === 'AbortError') { CHAT.msgs.pop(); chatGarder(); if (att.isConnected) { att.remove(); const last = $$('.chat-msg.moi', log).pop(); if (last) last.remove(); if (ta) ta.value = q; } }
+    else if (att.isConnected) {
+      CHAT.msgs.pop(); chatGarder();
+      att.className = 'chat-msg ia';
+      att.innerHTML = `<div class="ai-err" role="alert">${icon('alert')}<div>${esc(e.message || 'La réponse a échoué. Réessayez.')}</div></div>
+        ${e.cfg ? `<button type="button" class="btn small" data-chat-fix>${icon('settings')} Ouvrir les réglages de l'IA</button>` : `<button type="button" class="btn small" data-chat-retry>${icon('refresh')} Réessayer</button>`}`;
+      const fx = $('[data-chat-fix]', att); if (fx) fx.onclick = () => { chatFermer(false); allerReglagesIA(); };
+      const rt = $('[data-chat-retry]', att); if (rt) rt.onclick = () => { att.remove(); const last = $$('.chat-msg.moi', log).pop(); if (last) last.remove(); chatEnvoyer(q); };
+    }
+  } finally {
+    CHAT.ctrl = null;
+    if (CHAT.ouvert && pan.isConnected && $('#chat-send', pan)) {
+      $('#chat-send', pan).hidden = false; $('#chat-stop', pan).hidden = true; pan.removeAttribute('aria-busy');
+      if (!$('[data-chat-new]', pan) && CHAT.msgs.length) chatRendre(); // affiche « Nouvelle conversation »
+      else { chatLiensBind(pan); chatDefiler(); }
+      const i = $('#chat-in', pan); if (i && (document.activeElement === document.body || !pan.contains(document.activeElement))) i.focus();
+    }
+  }
 }
 
 /* ---------- Tableau de bord ---------- */
@@ -7455,7 +7711,7 @@ async function localSupprimer(base) {
   if (LOCAL.engine && LOCAL.modele === id) { try { await LOCAL.engine.unload(); } catch {} LOCAL.engine = null; LOCAL.modele = ''; }
   await lib.deleteModelAllInfoInCache(id);
 }
-async function aiLocal({ system, prompt, signal, modele, onProgress }) {
+async function aiLocal({ system, messages, signal, modele, onProgress }) {
   const arret = () => new DOMException('Rédaction arrêtée', 'AbortError');
   if (onProgress) LOCAL.ecoute.add(onProgress);
   let eng;
@@ -7467,7 +7723,8 @@ async function aiLocal({ system, prompt, signal, modele, onProgress }) {
   if (signal) signal.addEventListener('abort', stop, { once: true });
   try {
     // Consigne système fusionnée dans le message : tous les modèles locaux ne gèrent pas le rôle « system »
-    const r = await eng.chat.completions.create({ messages: [{ role: 'user', content: system + '\n\n---\n\n' + prompt }], max_tokens: 1200 });
+    const msgs = messages.map((m, i) => i === 0 ? { role: 'user', content: system + '\n\n---\n\n' + m.content } : m);
+    const r = await eng.chat.completions.create({ messages: msgs, max_tokens: 1200 });
     if (signal && signal.aborted) throw arret();
     const t = String(r && r.choices && r.choices[0] && r.choices[0].message ? r.choices[0].message.content || '' : '').trim();
     if (!t) throw new AiError('L\'IA locale n\'a renvoyé aucun texte. Réessayez, ou ajoutez des consignes.');
@@ -7498,25 +7755,28 @@ function aiErreurHttp(status, detail, p, modele) {
 }
 
 /* Un appel = une consigne système + un message. Retourne le texte produit. */
-async function aiComplete({ system, prompt, signal, provider, modele, key, onProgress }) {
+/* messages : conversation [{ role: 'user' | 'assistant', content }] ; à défaut, prompt = un seul message.
+   cache : contexte système long et répété (chatbot) → mis en cache chez Claude. */
+async function aiComplete({ system, prompt, messages, signal, provider, modele, key, onProgress, cache }) {
   const c = AI.cfg(); provider = provider || c.provider; modele = modele || c.modele; key = key || AI.key(provider);
-  if (AI_PROVIDERS[provider].local) return aiLocal({ system, prompt, signal, modele, onProgress });
+  messages = (messages || [{ role: 'user', content: prompt }]).map(m => ({ role: m.role === 'assistant' ? 'assistant' : 'user', content: String(m.content) }));
+  if (AI_PROVIDERS[provider].local) return aiLocal({ system, messages, signal, modele, onProgress });
   if (!key) throw new AiError('Aucune clé d\'accès enregistrée pour ' + AI_PROVIDERS[provider].court + '. Ajoutez-la dans Paramètres › Intelligence artificielle.', true);
   let url, headers = { 'content-type': 'application/json' }, body;
   if (provider === 'claude') {
     url = 'https://api.anthropic.com/v1/messages';
     Object.assign(headers, { 'x-api-key': key, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' });
-    body = { model: modele, max_tokens: 8000, system, messages: [{ role: 'user', content: prompt }] };
+    body = { model: modele, max_tokens: 8000, system: cache ? [{ type: 'text', text: system, cache_control: { type: 'ephemeral' } }] : system, messages };
     // Modèles 5.x Opus / Sonnet / Fable : bascule automatique côté serveur si la demande est déclinée
     if (/^claude-(opus|sonnet|fable)-5/.test(modele)) { headers['anthropic-beta'] = 'server-side-fallback-2026-07-01'; body.fallbacks = 'default'; }
   } else if (provider === 'gemini') {
     url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(modele)}:generateContent`;
     headers['x-goog-api-key'] = key;
-    body = { systemInstruction: { parts: [{ text: system }] }, contents: [{ role: 'user', parts: [{ text: prompt }] }] };
+    body = { systemInstruction: { parts: [{ text: system }] }, contents: messages.map(m => ({ role: m.role === 'assistant' ? 'model' : 'user', parts: [{ text: m.content }] })) };
   } else {
     url = provider === 'openai' ? 'https://api.openai.com/v1/chat/completions' : 'https://api.mistral.ai/v1/chat/completions';
     headers.authorization = 'Bearer ' + key;
-    body = { model: modele, messages: [{ role: 'system', content: system }, { role: 'user', content: prompt }] };
+    body = { model: modele, messages: [{ role: 'system', content: system }, ...messages] };
   }
   let r;
   try { r = await fetch(url, { method: 'POST', headers, body: JSON.stringify(body), signal }); }
