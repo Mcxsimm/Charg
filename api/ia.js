@@ -28,7 +28,7 @@ const FOURNISSEURS = {
   claude: { nom: 'Claude', env: 'ANTHROPIC_API_KEY', modele: 'claude-opus-5-5' },
   openai: { nom: 'OpenAI', env: 'OPENAI_API_KEY', modele: 'gpt-5' },
   mistral: { nom: 'Mistral', env: 'MISTRAL_API_KEY', modele: 'mistral-large-latest' },
-  gemini: { nom: 'Gemini', env: 'GEMINI_API_KEY', modele: 'gemini-2.5-flash' },
+  gemini: { nom: 'Gemini', env: 'GEMINI_API_KEY', modele: 'gemini-3.8-flash' },
 };
 const ORDRE_DEFAUT = ['claude', 'openai', 'mistral', 'gemini'];
 const MAX_CARACTERES = 400000; // garde-fou sur la taille d'une demande
