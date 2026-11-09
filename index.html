@@ -1412,13 +1412,26 @@ html:not([data-density="compact"]) .pil-rec-item{padding:var(--sp-2) var(--sp-1)
 .ai-skel i:nth-child(3){width:86%}.ai-skel i:nth-child(4){width:58%}
 @keyframes ai-pulse{50%{opacity:.45}}
 @media (prefers-reduced-motion: reduce){.ai-skel i{animation:none}}
-.ai-prog{padding:var(--sp-2) 0}
-.ai-prog-t{display:flex;justify-content:space-between;gap:var(--sp-3);margin:0 0 var(--sp-2);font-size:var(--text-md);line-height:var(--lh-md)}
-.ai-prog-t span{color:var(--muted);font-variant-numeric:tabular-nums}
-.ai-prog-n{margin:var(--sp-2) 0 0;font-size:var(--text-xs);line-height:var(--lh-xs);color:var(--muted)}
-#set-ia-body .set-seg{flex-wrap:wrap}
-#set-ia-local-model{width:auto;min-width:0;flex:1 1 260px;max-width:360px}
-@media (max-width:640px){#set-ia-local-model{max-width:none;width:100%;flex-basis:100%}}
+.pc-note{margin:0 0 var(--sp-4);padding:var(--sp-3) var(--sp-4);border:1px solid var(--border);border-radius:var(--r-8);background:var(--sunken);font-size:var(--text-md);line-height:var(--lh-md)}
+.pc-dictee{display:flex;align-items:center;gap:var(--sp-3);flex-wrap:wrap;margin-top:var(--sp-2)}
+.pc-meta{margin:0 0 var(--sp-3);color:var(--muted);font-size:var(--text-sm);line-height:var(--lh-sm)}
+.pc-tot{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:var(--sp-3);margin:var(--sp-4) 0}
+.pc-tot>div{padding:var(--sp-3);border:1px solid var(--border);border-radius:var(--r-8);background:var(--surface);min-width:0}
+.pc-tot dt{font-size:var(--text-xs);line-height:var(--lh-xs);color:var(--muted)}
+.pc-tot dd{margin:var(--sp-1) 0 0;font-weight:var(--fw-semibold);font-variant-numeric:tabular-nums}
+.pc-tot dd .pc-in{width:100%}
+.pc-in{width:96px;text-align:right;font-variant-numeric:tabular-nums}
+.pc-table{box-shadow:none;margin-bottom:var(--sp-2)}
+.pc-table td{vertical-align:top}
+.pc-table td:first-child,.pc-hist td:nth-child(2){white-space:normal;min-width:160px}
+.pc-page .fp-section{min-width:0}
+.pc-motif{font-size:var(--text-xs);line-height:var(--lh-xs);color:var(--muted);margin-top:2px}
+.pc-motif.neg{color:var(--red)}
+.pc-h3{font-size:var(--text-md);line-height:var(--lh-md);font-weight:var(--fw-semibold);margin:var(--sp-5) 0 var(--sp-2)}
+.pc-list{margin:0;padding-left:var(--sp-5)}
+.pc-list li{margin-bottom:var(--sp-1)}
+.pc-actions{margin-top:var(--sp-5)}
+@media (max-width:640px){.pc-tot{grid-template-columns:repeat(2,minmax(0,1fr))}.pc-in{width:72px}}
 .pia{margin-bottom:var(--gap)}
 .pia-intro{margin:0 0 var(--sp-3);color:var(--muted)}
 .pia-form{display:grid;grid-template-columns:minmax(0,240px) minmax(0,1fr) auto;gap:var(--sp-3) var(--sp-4);align-items:start}
@@ -1762,6 +1775,7 @@ const ICONS = {
   chat: '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>',
   send: '<path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/>',
   map: '<polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/>',
+  mic: '<path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/>',
   copy: '<rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>',
   folder: '<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>',
   grip: '<circle cx="9" cy="6" r="1"/><circle cx="15" cy="6" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="9" cy="18" r="1"/><circle cx="15" cy="18" r="1"/>',
@@ -1813,7 +1827,7 @@ const DB = {
   normalize(d) {
     d = d || {};
     d.objectifs = Object.assign({}, OBJECTIFS_DEFAUT, d.objectifs || {});
-    ['clients', 'chantiers', 'devis', 'ca', 'bte', 'prospection', 'factures', 'contrats', 'visites', 'equipes', 'pointages', 'commandes', 'dossiers', 'marches', 'bcs'].forEach(k => { if (!Array.isArray(d[k])) d[k] = []; });
+    ['clients', 'chantiers', 'devis', 'ca', 'bte', 'prospection', 'factures', 'contrats', 'visites', 'equipes', 'pointages', 'commandes', 'dossiers', 'marches', 'bcs', 'prechiffrages'].forEach(k => { if (!Array.isArray(d[k])) d[k] = []; });
     d.marches.forEach(x => { if (!Array.isArray(x.bpu)) x.bpu = []; });
     d.bcs.forEach(x => { if (!Array.isArray(x.lignes)) x.lignes = []; });
     d.devis.forEach(x => { if (x.otp === undefined) x.otp = ''; if (x.clientId === undefined) x.clientId = ''; if (x.derniereRelance === undefined) x.derniereRelance = ''; if (x.nbRelances === undefined) x.nbRelances = 0; if (x.horsComptes === undefined) x.horsComptes = false; });
@@ -2293,6 +2307,7 @@ const NAV = [
   { route: 'pilotage', ico: 'trend', label: 'Pilotage stratégique', render: renderPilotage },
   { group: 'Commercial' },
   { route: 'prospection', ico: 'phone', label: 'Prospection & RDV', render: renderProspection },
+  { route: 'prechiffrage', ico: 'sparkle', label: 'Pré-chiffrage IA', render: v => renderPrechiffrage(v) },
   { route: 'devis', ico: 'file', label: 'Devis', render: renderDevis },
   { route: 'otps', ico: 'layers', label: 'Comptes OTP', render: renderOtps },
   { route: 'clients', ico: 'users', label: 'Clients', render: renderClients },
@@ -2337,8 +2352,7 @@ function buildNav() {
 /* Compteurs du menu (recalculés à chaque écran et après chaque enregistrement) :
    Devis en cours + relances en retard (rouge), Chantiers en cours, Prospection à traiter (ambre),
    point rouge sur « CA & marge » si la marge de l'année est sous la cible, Assistant IA à configurer. */
-const AI_KEY_STORAGE = 'chargepro.ai.key'; // clé IA (lot 6) : clé dédiée, hors export du profil
-const aiConfigured = () => AI.pret(); // IA locale choisie, ou fournisseur courant muni d'une clé (voir « Assistant IA »)
+const aiConfigured = () => IA.pret(); // passerelle /api/ia joignable, au moins une clé côté serveur, code d'accès valide
 function navStats() {
   const t = todayISO(), d = DB.data || {}, o = d.objectifs || {}, yr = new Date().getFullYear();
   const devis = d.devis || [], ch = d.chantiers || [], pr = d.prospection || [];
@@ -3373,7 +3387,7 @@ function piaCarteHTML(k) {
   if (!aiConfigured()) return `<div class="card card-pad pia" aria-labelledby="pia-t">${head}
     <p class="pia-intro">Faites analyser votre pilotage par l'IA : diagnostic de direction, scénarios de fin d'année, marge par chantier, trésorerie, plan d'action à 30 jours.</p>
     <button type="button" class="btn" id="pia-config">${icon('settings')} Configurer l'IA</button></div>`;
-  const c = AI.cfg(), pv = AI_PROVIDERS[c.provider], st = PIA[k.yr] || {};
+  const st = PIA[k.yr] || {};
   return `<div class="card card-pad pia" aria-labelledby="pia-t">${head}
     <form class="pia-form" novalidate>
       <div class="field"><label for="pia-angle">Angle d'analyse</label>
@@ -3383,8 +3397,7 @@ function piaCarteHTML(k) {
       <div class="pia-btns"><button type="submit" class="btn primary" id="pia-go">${icon('sparkle')} Analyser ${k.yr}</button>
         <button type="button" class="btn" id="pia-stop" hidden>${icon('stop')} Arrêter l'analyse</button></div>
     </form>
-    <p class="pia-note">${pv.local ? 'IA locale : l\'analyse est faite sur ce poste, aucune donnée n\'est envoyée. Version courte du dossier (capacité limitée du modèle).'
-      : `Envoyé à ${esc(pv.court)} (${esc(c.modele)}) : les chiffres de cette page, avec les noms des clients, chantiers, devis et factures cités.`}</p>
+    <p class="pia-note">Envoyé à ${esc(IA.libelle())} via le serveur du site : les chiffres de cette page, avec les noms des clients, chantiers, devis et factures cités.</p>
     <div id="pia-out" class="pia-out"></div></div>`;
 }
 function bindPilotageIA(v, k) {
@@ -3393,7 +3406,7 @@ function bindPilotageIA(v, k) {
   const form = $('.pia-form', carte), angle = $('#pia-angle', carte), q = $('#pia-q', carte), goBtn = $('#pia-go', carte), stop = $('#pia-stop', carte), out = $('#pia-out', carte);
   const st = PIA[k.yr] = PIA[k.yr] || { angle: angle.value, fils: [] };
   let ctrl = null;
-  const local = () => !!AI_PROVIDERS[AI.cfg().provider].local;
+  const local = () => false;
   const fil = () => st.fils.map((f, i) => `<article class="pia-res" ${i ? '' : 'aria-labelledby="pia-res-t0"'}>
       ${i ? `<p class="pia-qq"><span>Question</span> ${esc(f.q)}</p>` : `<p class="pia-meta" id="pia-res-t0">${esc(PIA_ANGLES[st.angle].label)} · ${k.yr}${f.q ? ' · ' + esc(f.q) : ''} · ${esc(f.four)} · ${esc(f.quand)}</p>`}
       <div class="pia-txt">${piaRendu(f.txt)}</div></article>`).join('');
@@ -3428,19 +3441,10 @@ function bindPilotageIA(v, k) {
     }
     const z = zoneAttente();
     z.innerHTML = `<div class="ai-skel" role="status"><span class="sr-only">Analyse en cours</span><i></i><i></i><i></i><i></i></div>`;
-    let prog = null;
-    const onProgress = r => {
-      if (!z.isConnected) return; const p = Math.round((r && r.progress || 0) * 100);
-      if (p >= 100) { if (prog) { prog = null; z.innerHTML = `<div class="ai-skel" role="status"><span class="sr-only">Analyse en cours</span><i></i><i></i><i></i><i></i></div>`; } return; }
-      if (!prog) { z.innerHTML = `<div class="ai-prog"><p class="ai-prog-t"><b>Préparation de l'IA locale</b> <span data-pc>0 %</span></p><div class="wz-prog" aria-hidden="true"><i data-bar style="width:0"></i></div>
-        <p class="ai-prog-n">Premier usage : le modèle se télécharge une seule fois, puis reste sur ce poste.</p></div>`; prog = { pc: $('[data-pc]', z), bar: $('[data-bar]', z) }; }
-      prog.pc.textContent = p + ' %'; prog.bar.style.width = p + '%';
-    };
     ctrl = new AbortController(); busy(true);
     try {
-      const txt = await aiComplete({ system: PIA_SYSTEME, prompt, signal: ctrl.signal, onProgress });
-      const c = AI.cfg();
-      st.fils.push({ q: suite || q.value.trim(), txt, four: AI_PROVIDERS[c.provider].local ? 'IA locale' : AI_PROVIDERS[c.provider].court, quand: new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) });
+      const txt = await aiComplete({ system: PIA_SYSTEME, prompt, signal: ctrl.signal });
+      st.fils.push({ q: suite || q.value.trim(), txt, four: IA.dernier ? IA.dernier.nom : 'IA', quand: new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) });
       if (!carte.isConnected) return;
       afficher();
       const derniers = $$('.pia-res', out); const d = derniers[derniers.length - 1];
@@ -3574,21 +3578,21 @@ function chatFermer(refocus) {
 }
 function chatRendre() {
   const pan = $('#chat-panel'); if (!pan) return;
-  const pret = aiConfigured(), c = AI.cfg(), pv = AI_PROVIDERS[c.provider];
+  const pret = aiConfigured();
   const carte = window.CPJeu && CPJeu.actif;
   pan.innerHTML = `<header class="chat-head">
-      <span class="chat-ic">${icon('sparkle')}</span><div class="chat-ttl"><h2 id="chat-t">Assistant</h2><span>${pret ? esc(pv.local ? 'IA locale · rien ne quitte le poste' : pv.court + ' · ' + c.modele) : 'IA à configurer'}</span></div>
+      <span class="chat-ic">${icon('sparkle')}</span><div class="chat-ttl"><h2 id="chat-t">Assistant</h2><span>${pret ? esc(IA.libelle()) : 'IA à configurer'}</span></div>
       ${carte ? `<button type="button" class="btn ghost icon" data-chat-carte aria-label="Revenir à la carte de l'agence" data-tip="Revenir à la carte de l'agence">${icon('map')}</button>` : ''}
       ${CHAT.msgs.length ? `<button type="button" class="btn ghost icon" data-chat-new aria-label="Nouvelle conversation" data-tip="Nouvelle conversation">${icon('refresh')}</button>` : ''}
       <button type="button" class="btn ghost icon" data-chat-close aria-label="Fermer l'Assistant" data-tip="Fermer l'Assistant (Échap)">${icon('x')}</button></header>
     <div class="chat-log" id="chat-log" aria-live="polite">${pret ? chatLogHTML() : `<div class="chat-vide"><p><b>Posez vos questions sur vos devis, chantiers, factures ou votre activité.</b></p>
-      <p>L'Assistant a besoin d'une IA : l'IA locale gratuite, ou votre propre clé (Claude, OpenAI, Mistral, Gemini).</p>
+      <p>${esc(IA.raison())}</p>
       <button type="button" class="btn primary" data-chat-config>${icon('settings')} Configurer l'IA</button></div>`}</div>
     ${pret ? `<form class="chat-form" novalidate><label for="chat-in" class="chat-lbl">Votre question</label>
       <div class="chat-row"><textarea id="chat-in" rows="1" aria-describedby="chat-aide"></textarea>
         <button type="submit" class="btn primary icon" id="chat-send" aria-label="Envoyer la question" data-tip="Envoyer (Entrée)">${icon('send')}</button>
         <button type="button" class="btn icon" id="chat-stop" aria-label="Arrêter la réponse" data-tip="Arrêter la réponse" hidden>${icon('stop')}</button></div>
-      <p class="chat-aide" id="chat-aide">Entrée pour envoyer, Maj+Entrée pour aller à la ligne. ${pv.local ? 'Rien ne quitte ce poste.' : 'Vos données sont envoyées à ' + esc(pv.court) + ' pour répondre.'}</p></form>` : ''}`;
+      <p class="chat-aide" id="chat-aide">Entrée pour envoyer, Maj+Entrée pour aller à la ligne. Vos données sont envoyées à l'IA via le serveur du site pour répondre.</p></form>` : ''}`;
   $('[data-chat-close]', pan).onclick = () => chatFermer(true);
   const cb = $('[data-chat-carte]', pan); if (cb) cb.onclick = () => { chatFermer(false); CPJeu.allerCarte(); };
   const nb = $('[data-chat-new]', pan); if (nb) nb.onclick = () => { const avant = CHAT.msgs; CHAT.msgs = []; chatGarder(); chatRendre(); $('#chat-in').focus();
@@ -3620,7 +3624,7 @@ function chatLiensBind(scope) {
 function chatDefiler() { const l = $('#chat-log'); if (l) l.scrollTop = l.scrollHeight; }
 async function chatEnvoyer(q) {
   const pan = $('#chat-panel'); if (!pan || CHAT.ctrl) return;
-  const local = !!AI_PROVIDERS[AI.cfg().provider].local;
+  const local = false;
   CHAT.msgs.push({ role: 'user', content: q }); chatGarder();
   const log = $('#chat-log', pan), ta = $('#chat-in', pan), send = $('#chat-send', pan), stop = $('#chat-stop', pan);
   if (!$('.chat-msg', log)) log.innerHTML = '';
@@ -3630,19 +3634,12 @@ async function chatEnvoyer(q) {
   log.appendChild(att);
   ta.value = ''; ta.style.height = 'auto';
   send.hidden = true; stop.hidden = false; pan.setAttribute('aria-busy', 'true'); chatDefiler();
-  let prog = null;
-  const onProgress = r => {
-    if (!att.isConnected) return; const p = Math.round((r && r.progress || 0) * 100);
-    if (p >= 100) { if (prog) { prog = null; att.innerHTML = `<div class="chat-dots" role="status"><span class="sr-only">L'Assistant rédige sa réponse</span><i></i><i></i><i></i></div>`; } return; }
-    if (!prog) { att.innerHTML = `<div class="ai-prog"><p class="ai-prog-t"><b>Préparation de l'IA locale</b> <span data-pc>0 %</span></p><div class="wz-prog" aria-hidden="true"><i data-bar style="width:0"></i></div><p class="ai-prog-n">Premier usage : téléchargement unique du modèle.</p></div>`; prog = { pc: $('[data-pc]', att), bar: $('[data-bar]', att) }; }
-    prog.pc.textContent = p + ' %'; prog.bar.style.width = p + '%';
-  };
   // Historique envoyé : toute la conversation (bornée), ou les 2 derniers échanges pour l'IA locale (contexte de 4 096 tokens)
   const hist = CHAT.msgs.slice(local ? -5 : -30).map(m => ({ role: m.role, content: local ? String(m.content).slice(0, 900) : m.content }));
   while (hist.length && hist[0].role !== 'user') hist.shift();
   CHAT.ctrl = new AbortController();
   try {
-    const txt = await aiComplete({ system: chatSysteme(local), messages: hist, signal: CHAT.ctrl.signal, onProgress, cache: true });
+    const txt = await aiComplete({ system: chatSysteme(local), messages: hist, signal: CHAT.ctrl.signal });
     CHAT.msgs.push({ role: 'assistant', content: txt }); chatGarder();
     if (!att.isConnected) return;
     att.outerHTML = chatMsgHTML(CHAT.msgs[CHAT.msgs.length - 1]);
@@ -6483,13 +6480,14 @@ function renderProspection(v) {
       <span class="chip">${list.length} contact(s)</span></div>
     ${list.length ? `<div class="table-wrap"><table><thead><tr><th>Date</th><th>Prospect / client</th><th>Ville</th><th>Canal</th><th>Objet</th><th class="num">Potentiel</th><th>Prochaine action</th><th>Statut</th><th></th></tr></thead>
       <tbody>${list.map(p => { const dueProch = p.prochaine && p.prochaine <= todayISO() && !['gagne', 'sans_suite'].includes(p.statut); return `<tr><td>${fmtDate(p.date)}</td><td class="t-strong">${esc(p.nom)}</td><td class="t-muted">${esc(p.ville || '—')}</td><td>${CANAUX[p.canal] || '—'}</td><td>${esc(p.objet || '—')}</td><td class="num">${p.potentiel ? eur(p.potentiel) : '—'}</td><td class="${dueProch ? 'deadline-late' : ''}">${p.prochaine ? fmtDate(p.prochaine) : '—'}</td><td>${prospBadge(p.statut)}</td>
-        <td class="actions-cell"><button class="icon-btn" data-edit="${p.id}" title="Modifier">${icon('edit')}</button><button class="icon-btn danger" data-del="${p.id}" title="Supprimer">${icon('trash')}</button></td></tr>`; }).join('')}</tbody></table></div>`
+        <td class="actions-cell"><button class="icon-btn" data-pc="${p.id}" title="Pré-chiffrer ce rendez-vous" aria-label="Pré-chiffrer le rendez-vous ${esc(p.nom)}">${icon('sparkle')}</button><button class="icon-btn" data-edit="${p.id}" title="Modifier">${icon('edit')}</button><button class="icon-btn danger" data-del="${p.id}" title="Supprimer">${icon('trash')}</button></td></tr>`; }).join('')}</tbody></table></div>`
       : emptyState('phone', 'Aucun contact', 'Objectif : 4 RDV nouveaux clients par mois.')}`;
   $('#add').onclick = () => prospForm();
   $('#q').oninput = e => { prospFilter.q = e.target.value; renderProspection(v); const i = $('#q'); i.focus(); i.setSelectionRange(i.value.length, i.value.length); };
   $('#fs').onchange = e => { prospFilter.statut = e.target.value; renderProspection(v); };
   $('#csv').onclick = () => exportXlsx('prospection', ['date', 'nom', 'ville', 'canal', 'objet', 'potentiel', 'prochaine', 'statut'], list.map(p => [p.date, p.nom, p.ville, CANAUX[p.canal], p.objet, p.potentiel, p.prochaine, STATUTS_PROSP[p.statut]]), { sheet: 'Prospection', money: ['potentiel'] });
   $$('[data-edit]', v).forEach(b => b.onclick = () => prospForm(b.dataset.edit));
+  $$('[data-pc]', v).forEach(b => b.onclick = () => pcDepuisRdv(b.dataset.pc));
   $$('[data-del]', v).forEach(b => b.onclick = () => confirmDelete('le contact', (DB.data.prospection.find(x => x.id === b.dataset.del) || {}).nom, () => { DB.data.prospection = DB.data.prospection.filter(x => x.id !== b.dataset.del); DB.save(); toast('Contact supprimé'); renderProspection(v); }));
 }
 function prospForm(id) {
@@ -7645,158 +7643,83 @@ function importAll(file) {
 }
 
 
-/* ---------- Assistant IA (lot 6) ----------
-   Votre propre clé, chez le fournisseur de votre choix. La clé et le réglage restent sur ce poste
-   (localStorage, hors sauvegarde du profil). Les appels partent directement du navigateur vers le
-   fournisseur : seules les données de l'élément choisi sont envoyées. */
-const AI_CFG_STORAGE = 'chargepro.ai.cfg';
-const AI_PROVIDERS = {
-  claude: { nom: 'Claude (Anthropic)', court: 'Claude', modele: 'claude-opus-5-5', modeles: ['claude-opus-5-5', 'claude-sonnet-5-5', 'claude-haiku-5-5'], cle: 'sk-ant-…', console: 'console.anthropic.com' },
-  openai: { nom: 'OpenAI', court: 'OpenAI', modele: 'gpt-5', modeles: ['gpt-5', 'gpt-5-mini'], cle: 'sk-…', console: 'platform.openai.com' },
-  mistral: { nom: 'Mistral AI', court: 'Mistral', modele: 'mistral-large-latest', modeles: ['mistral-large-latest', 'mistral-medium-latest', 'mistral-small-latest'], cle: '', console: 'console.mistral.ai' },
-  gemini: { nom: 'Google Gemini', court: 'Gemini', modele: 'gemini-2.5-flash', modeles: ['gemini-2.5-pro', 'gemini-2.5-flash'], cle: 'AIza…', console: 'aistudio.google.com' },
-  local: { nom: 'IA locale (gratuite)', court: 'IA locale', local: true, modele: 'Qwen2.5-3B-Instruct', modeles: [] },
-};
-/* IA locale : WebLLM fait tourner un modèle ouvert dans le navigateur (WebGPU). Gratuit, sans clé,
-   rien ne quitte le poste. Le modèle se télécharge une fois puis reste en cache dans le navigateur. */
-const WEBLLM_URL = 'https://cdn.jsdelivr.net/npm/@mlc-ai/web-llm@0.2.86/+esm';
-const LOCAL_MODELES = {
-  'Qwen2.5-3B-Instruct': { nom: 'Qwen 2.5 — 3B', taille: '≈ 2,5 Go', note: 'Équilibré, bon français. Recommandé.' },
-  'Qwen2.5-1.5B-Instruct': { nom: 'Qwen 2.5 — 1,5B', taille: '≈ 1,6 Go', note: 'Léger et rapide, pour un PC modeste. Textes plus simples.' },
-  'Llama-3.2-3B-Instruct': { nom: 'Llama 3.2 — 3B', taille: '≈ 2,3 Go', note: 'Alternative de même taille.' },
-  'Mistral-7B-Instruct-v0.3': { nom: 'Mistral — 7B', taille: '≈ 4,6 Go', note: 'Meilleur français, demande une carte graphique récente.' },
-};
-const LOCAL = { lib: null, engine: null, modele: '', charge: null, chargeId: '', ecoute: new Set() };
-const localErr = msg => new AiError(msg, true);
-async function localSupport() {
-  if (!window.isSecureContext || !navigator.gpu) return { ok: false, raison: 'Ce navigateur ne permet pas l\'IA locale (WebGPU absent). Utilisez Chrome ou Edge à jour, sur ordinateur, ou choisissez un autre fournisseur.' };
-  let a = null; try { a = await navigator.gpu.requestAdapter(); } catch {}
-  if (!a) return { ok: false, raison: 'Aucune carte graphique compatible n\'est disponible pour l\'IA locale sur ce poste. Mettez à jour le navigateur ou choisissez un autre fournisseur.' };
-  return { ok: true, f16: a.features.has('shader-f16') };
-}
-const localId = (base, f16) => base + (f16 ? '-q4f16_1-MLC' : '-q4f32_1-MLC');
-function localLib() {
-  if (!LOCAL.lib) LOCAL.lib = import(WEBLLM_URL).catch(() => { LOCAL.lib = null; throw new AiError('Impossible de télécharger le moteur de l\'IA locale. Vérifiez la connexion internet, puis réessayez.'); });
-  return LOCAL.lib;
-}
-async function localEngine(base) {
-  const s = await localSupport(); if (!s.ok) throw localErr(s.raison);
-  const id = localId(LOCAL_MODELES[base] ? base : AI_PROVIDERS.local.modele, s.f16), lib = await localLib();
-  if (LOCAL.engine && LOCAL.modele === id) return LOCAL.engine;
-  if (LOCAL.charge && LOCAL.chargeId === id) return LOCAL.charge;
-  LOCAL.chargeId = id;
-  LOCAL.charge = (async () => {
-    try {
-      if (LOCAL.engine) await LOCAL.engine.reload(id);
-      else LOCAL.engine = await lib.CreateMLCEngine(id, { initProgressCallback: r => LOCAL.ecoute.forEach(f => { try { f(r); } catch {} }) });
-      LOCAL.modele = id; return LOCAL.engine;
-    } catch (e) {
-      LOCAL.modele = '';
-      const m = String(e && e.message || e);
-      if (/quota/i.test(m)) throw localErr('Le navigateur manque d\'espace disque pour enregistrer le modèle. Libérez de la place ou choisissez un modèle plus léger dans Paramètres.');
-      if (/memory|device (was )?lost|out of/i.test(m)) throw localErr('La carte graphique manque de mémoire pour ce modèle. Choisissez un modèle plus léger dans Paramètres › Intelligence artificielle.');
-      if (/fetch|network/i.test(m)) throw new AiError('Le téléchargement du modèle a été interrompu. Vérifiez la connexion internet, puis réessayez : la partie déjà téléchargée est conservée.');
-      throw localErr('Le modèle n\'a pas pu être chargé (' + m.slice(0, 120) + '). Réessayez, ou choisissez un modèle plus léger dans Paramètres.');
-    } finally { LOCAL.charge = null; }
-  })();
-  return LOCAL.charge;
-}
-async function localEnCache(base) {
-  const s = await localSupport(); if (!s.ok) return null;
-  try { const lib = await localLib(); return await lib.hasModelInCache(localId(base, s.f16)); } catch { return null; }
-}
-async function localSupprimer(base) {
-  const s = await localSupport(); if (!s.ok) return;
-  const id = localId(base, s.f16), lib = await localLib();
-  if (LOCAL.engine && LOCAL.modele === id) { try { await LOCAL.engine.unload(); } catch {} LOCAL.engine = null; LOCAL.modele = ''; }
-  await lib.deleteModelAllInfoInCache(id);
-}
-async function aiLocal({ system, messages, signal, modele, onProgress }) {
-  const arret = () => new DOMException('Rédaction arrêtée', 'AbortError');
-  if (onProgress) LOCAL.ecoute.add(onProgress);
-  let eng;
-  try {
-    eng = await Promise.race([localEngine(modele), new Promise((_, rej) => { if (signal) signal.addEventListener('abort', () => rej(arret()), { once: true }); })]);
-  } finally { if (onProgress) LOCAL.ecoute.delete(onProgress); }
-  if (signal && signal.aborted) throw arret();
-  const stop = () => { try { eng.interruptGenerate(); } catch {} };
-  if (signal) signal.addEventListener('abort', stop, { once: true });
-  try {
-    // Consigne système fusionnée dans le message : tous les modèles locaux ne gèrent pas le rôle « system »
-    const msgs = messages.map((m, i) => i === 0 ? { role: 'user', content: system + '\n\n---\n\n' + m.content } : m);
-    const r = await eng.chat.completions.create({ messages: msgs, max_tokens: 1200 });
-    if (signal && signal.aborted) throw arret();
-    const t = String(r && r.choices && r.choices[0] && r.choices[0].message ? r.choices[0].message.content || '' : '').trim();
-    if (!t) throw new AiError('L\'IA locale n\'a renvoyé aucun texte. Réessayez, ou ajoutez des consignes.');
-    return t;
-  } finally { if (signal) signal.removeEventListener('abort', stop); }
-}
-const AI = {
-  keys() { try { const r = localStorage.getItem(AI_KEY_STORAGE); if (!r) return {}; const o = JSON.parse(r); return o && typeof o === 'object' ? o : {}; } catch { return {}; } },
-  cfg() { let c = {}; try { c = JSON.parse(localStorage.getItem(AI_CFG_STORAGE)) || {}; } catch {}
-    const provider = AI_PROVIDERS[c.provider] ? c.provider : 'claude';
-    return { provider, modele: (c.modeles && c.modeles[provider]) || AI_PROVIDERS[provider].modele, modeles: c.modeles || {} }; },
-  saveCfg(c) { try { localStorage.setItem(AI_CFG_STORAGE, JSON.stringify({ provider: c.provider, modeles: c.modeles })); } catch {} },
-  key(p) { return this.keys()[p || this.cfg().provider] || ''; },
-  pret() { const p = this.cfg().provider; return !!AI_PROVIDERS[p].local || !!this.key(p); },
-  setKey(p, k) { const ks = this.keys(); if (k) ks[p] = k; else delete ks[p];
-    try { if (Object.keys(ks).length) localStorage.setItem(AI_KEY_STORAGE, JSON.stringify(ks)); else localStorage.removeItem(AI_KEY_STORAGE); } catch {} },
-};
-
-/* Erreur d'appel : message lisible + piste de correction, sans accuser l'utilisateur. */
+/* ---------- Intelligence artificielle : client de la passerelle serveur ----------
+   Toutes les demandes passent par la fonction serveur /api/ia (dossier api/ du site).
+   Les clés des fournisseurs (Claude, OpenAI, Mistral, Gemini) sont rangées côté serveur, dans
+   les variables d'environnement Vercel : rien à saisir sur le poste, aucune clé dans le navigateur.
+   Si un fournisseur échoue, le serveur bascule automatiquement sur le suivant.
+   Seul le code d'accès éventuel (CHARGEPRO_CODE) est conservé sur ce poste. */
+const IA_URL = 'api/ia';
+const IA_CODE_STORAGE = 'chargepro.ia.code';
+/* Ancien réglage « votre clé » (navigateur) : retiré, les clés ne doivent plus rester sur le poste. */
+try { localStorage.removeItem('chargepro.ai.key'); localStorage.removeItem('chargepro.ai.cfg'); } catch { /* stockage indisponible */ }
 class AiError extends Error { constructor(msg, cfg) { super(msg); this.cfg = !!cfg; } }
-function aiErreurHttp(status, detail, p, modele) {
-  const n = AI_PROVIDERS[p].court;
-  if (status === 401 || status === 403) return new AiError(`${n} refuse la clé d'accès. Vérifiez-la ou remplacez-la dans Paramètres › Intelligence artificielle.`, true);
-  if (status === 404 || (status === 400 && /model/i.test(detail))) return new AiError(`${n} ne reconnaît pas le modèle « ${modele} ». Choisissez un autre modèle dans Paramètres › Intelligence artificielle.`, true);
-  if (status === 429) return new AiError(`${n} limite le nombre de demandes ou le crédit du compte est épuisé. Réessayez dans une minute ou vérifiez le crédit sur ${AI_PROVIDERS[p].console}.`);
-  if (status >= 500) return new AiError(`${n} est indisponible pour le moment (erreur ${status}). Réessayez dans quelques minutes.`);
-  return new AiError(`${n} a renvoyé une erreur ${status}${detail ? ' : ' + detail : ''}. Réessayez, ou changez de modèle dans Paramètres.`);
-}
+const IA = {
+  etat: null,       // { fournisseurs: [{ id, nom, modele }], codeRequis, codeOk } | { injoignable: true }
+  dernier: null,    // { nom, modele } du dernier fournisseur ayant répondu
+  _charge: null,
+  code() { try { return localStorage.getItem(IA_CODE_STORAGE) || ''; } catch { return ''; } },
+  setCode(c) { try { if (c) localStorage.setItem(IA_CODE_STORAGE, c); else localStorage.removeItem(IA_CODE_STORAGE); } catch { /* stockage indisponible */ } },
+  entetes() { const c = this.code(); return c ? { 'x-chargepro-code': c } : {}; },
+  /* État du serveur (mis en cache pour la session ; force = relire). */
+  statut(force) {
+    if (this._charge && !force) return this._charge;
+    this._charge = fetch(IA_URL, { headers: this.entetes(), cache: 'no-store' })
+      .then(r => r.ok ? r.json() : Promise.reject(r.status))
+      .then(j => ({ fournisseurs: Array.isArray(j.fournisseurs) ? j.fournisseurs : [], codeRequis: !!j.codeRequis, codeOk: j.codeOk !== false }))
+      .catch(() => ({ injoignable: true, fournisseurs: [] }))
+      .then(e => { this.etat = e; if (typeof updateNavMeta === 'function') try { updateNavMeta(); } catch { /* menu pas encore construit */ } return e; });
+    return this._charge;
+  },
+  pret() { const e = this.etat; return !!(e && e.fournisseurs.length && (!e.codeRequis || e.codeOk)); },
+  /* Libellé « Claude · claude-opus-5-5 » du fournisseur principal (ou du dernier ayant répondu). */
+  libelle() {
+    const d = this.dernier || (this.etat && this.etat.fournisseurs[0]);
+    return d ? d.nom + ' · ' + d.modele : 'IA';
+  },
+  /* Explication courte quand l'IA n'est pas prête. */
+  raison() {
+    const e = this.etat;
+    if (!e) return 'Vérification du service IA…';
+    if (e.injoignable) return 'Le service IA du site est injoignable. Il fonctionne une fois le site déployé sur Vercel (dossier api/). En local, lancez « vercel dev ».';
+    if (!e.fournisseurs.length) return 'Aucune clé d\'IA n\'est configurée sur le serveur. Ajoutez ANTHROPIC_API_KEY (ou OPENAI_API_KEY, MISTRAL_API_KEY, GEMINI_API_KEY) dans les variables d\'environnement Vercel, puis redéployez.';
+    if (e.codeRequis && !e.codeOk) return 'Le service IA est protégé par un code d\'accès. Saisissez-le dans Paramètres › Intelligence artificielle.';
+    return '';
+  },
+};
+IA.statut();
 
-/* Un appel = une consigne système + un message. Retourne le texte produit. */
-/* messages : conversation [{ role: 'user' | 'assistant', content }] ; à défaut, prompt = un seul message.
-   cache : contexte système long et répété (chatbot) → mis en cache chez Claude. */
-async function aiComplete({ system, prompt, messages, signal, provider, modele, key, onProgress, cache }) {
-  const c = AI.cfg(); provider = provider || c.provider; modele = modele || c.modele; key = key || AI.key(provider);
+/* Un appel = une consigne système + une conversation. Retourne le texte produit.
+   schema : schéma JSON attendu (réponse structurée) ; effort : low | medium | high (Claude). */
+async function aiComplete({ system, prompt, messages, signal, schema, effort, maxTokens, fournisseur }) {
   messages = (messages || [{ role: 'user', content: prompt }]).map(m => ({ role: m.role === 'assistant' ? 'assistant' : 'user', content: String(m.content) }));
-  if (AI_PROVIDERS[provider].local) return aiLocal({ system, messages, signal, modele, onProgress });
-  if (!key) throw new AiError('Aucune clé d\'accès enregistrée pour ' + AI_PROVIDERS[provider].court + '. Ajoutez-la dans Paramètres › Intelligence artificielle.', true);
-  let url, headers = { 'content-type': 'application/json' }, body;
-  if (provider === 'claude') {
-    url = 'https://api.anthropic.com/v1/messages';
-    Object.assign(headers, { 'x-api-key': key, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' });
-    body = { model: modele, max_tokens: 8000, system: cache ? [{ type: 'text', text: system, cache_control: { type: 'ephemeral' } }] : system, messages };
-    // Modèles 5.x Opus / Sonnet / Fable : bascule automatique côté serveur si la demande est déclinée
-    if (/^claude-(opus|sonnet|fable)-5/.test(modele)) { headers['anthropic-beta'] = 'server-side-fallback-2026-07-01'; body.fallbacks = 'default'; }
-  } else if (provider === 'gemini') {
-    url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(modele)}:generateContent`;
-    headers['x-goog-api-key'] = key;
-    body = { systemInstruction: { parts: [{ text: system }] }, contents: messages.map(m => ({ role: m.role === 'assistant' ? 'model' : 'user', parts: [{ text: m.content }] })) };
-  } else {
-    url = provider === 'openai' ? 'https://api.openai.com/v1/chat/completions' : 'https://api.mistral.ai/v1/chat/completions';
-    headers.authorization = 'Bearer ' + key;
-    body = { model: modele, messages: [{ role: 'system', content: system }, ...messages] };
-  }
   let r;
-  try { r = await fetch(url, { method: 'POST', headers, body: JSON.stringify(body), signal }); }
-  catch (e) { if (e.name === 'AbortError') throw e; throw new AiError(`Impossible de joindre ${AI_PROVIDERS[provider].court}. Vérifiez la connexion internet, puis réessayez.`); }
-  let j = null; try { j = await r.json(); } catch {}
-  if (!r.ok) {
-    const det = j && (j.error && (j.error.message || (typeof j.error === 'string' ? j.error : '')) || j.message) || '';
-    throw aiErreurHttp(r.status, String(det).slice(0, 200), provider, modele);
+  try {
+    r = await fetch(IA_URL, { method: 'POST', signal, headers: { 'content-type': 'application/json', ...IA.entetes() },
+      body: JSON.stringify({ system, messages, schema, effort, max_tokens: maxTokens, fournisseur }) });
+  } catch (e) {
+    if (e.name === 'AbortError') throw e;
+    throw new AiError('Impossible de joindre le service IA. Vérifiez la connexion internet, puis réessayez.');
   }
-  let txt = '';
-  if (provider === 'claude') {
-    if (j.stop_reason === 'refusal') throw new AiError('Claude a décliné cette demande. Reformulez les consignes, puis réessayez.');
-    txt = (j.content || []).filter(b => b.type === 'text').map(b => b.text).join('');
-  } else if (provider === 'gemini') {
-    const cand = j.candidates && j.candidates[0];
-    txt = cand && cand.content && cand.content.parts ? cand.content.parts.map(p => p.text || '').join('') : '';
-  } else txt = j.choices && j.choices[0] && j.choices[0].message ? j.choices[0].message.content || '' : '';
-  txt = String(txt).trim();
-  if (!txt) throw new AiError(`${AI_PROVIDERS[provider].court} n'a renvoyé aucun texte. Réessayez, ou ajoutez des consignes.`);
-  return txt;
+  let j = null; try { j = await r.json(); } catch { /* réponse non JSON */ }
+  if (!r.ok) {
+    if (r.status === 404) throw new AiError('Le service IA du site est introuvable. Il fonctionne une fois le site déployé sur Vercel avec le dossier api/.', true);
+    const msg = j && j.erreur ? j.erreur : `Le service IA a renvoyé une erreur ${r.status}. Réessayez dans quelques instants.`;
+    if (r.status === 401 || r.status === 503) { IA.statut(true); throw new AiError(msg, true); }
+    throw new AiError(msg);
+  }
+  if (!j || !j.texte) throw new AiError('L\'IA n\'a renvoyé aucun texte. Réessayez, ou ajoutez des consignes.');
+  IA.dernier = { nom: j.nom || j.fournisseur, modele: j.modele };
+  return String(j.texte).trim();
+}
+/* Réponse structurée : renvoie l'objet JSON produit (tolère un bloc de code ou du texte autour). */
+async function aiJSON(opts) {
+  const txt = await aiComplete(opts);
+  const brut = txt.replace(/^```(?:json)?\s*|\s*```$/g, '');
+  try { return JSON.parse(brut); } catch { /* texte autour du JSON */ }
+  const a = brut.indexOf('{'), b = brut.lastIndexOf('}');
+  if (a >= 0 && b > a) { try { return JSON.parse(brut.slice(a, b + 1)); } catch { /* invalide */ } }
+  throw new AiError('La réponse de l\'IA n\'est pas exploitable (format inattendu). Réessayez.');
 }
 
 /* ---- Tâches : ce qu'on envoie au modèle pour chaque type de texte ---- */
@@ -7885,19 +7808,12 @@ let aiPreset = null; // ouverture depuis un autre écran : { tache, id }
 function ouvrirAssistantIA(tache, id) { aiPreset = { tache, id }; go('assistant'); }
 
 function renderAssistantIA(v) {
-  if (!aiConfigured()) {
-    v.innerHTML = `<div class="form-page"><div class="fp-panel">${emptyState('sparkle', 'Assistant IA à configurer',
-      "Choisissez l'IA locale gratuite, ou branchez votre propre clé (Claude, OpenAI, Mistral ou Gemini), pour faire rédiger relances, objets de devis et synthèses de chantier.",
-      { id: 'ai-config', label: "Configurer l'assistant", ico: 'settings' })}</div></div>`;
-    $('#ai-config').onclick = allerReglagesIA;
-    return;
-  }
-  const cfg = AI.cfg(), pv = AI_PROVIDERS[cfg.provider];
+  if (!iaPretOuAttente(v, () => renderAssistantIA(v), 'Assistant IA indisponible')) return;
   const pre = aiPreset; aiPreset = null;
   const tache0 = pre && AI_TACHES[pre.tache] ? pre.tache : 'relance-devis';
   v.innerHTML = `<form class="form-page ai-page" novalidate aria-labelledby="page-title">
-    <div class="fp-top"><p class="fp-req">${pv.local ? `Rédigé sur ce poste par l'IA locale · ${esc((LOCAL_MODELES[cfg.modele] || {}).nom || cfg.modele)}. Aucune donnée n'est envoyée.` : `Rédigé par ${esc(pv.court)} · ${esc(cfg.modele)}. Seules les données de l'élément choisi sont envoyées.`}</p>
-      <button type="button" class="btn ghost small" id="ai-reglages">${icon('settings')} Changer de fournisseur</button></div>
+    <div class="fp-top"><p class="fp-req">Rédigé par ${esc(IA.libelle())}, via le serveur du site. Seules les données de l'élément choisi sont envoyées.</p>
+      <button type="button" class="btn ghost small" id="ai-reglages">${icon('settings')} Voir les réglages de l'IA</button></div>
     <div class="fp-panel">
       <div class="form-grid">
         <div class="field full"><label for="ai-tache">Texte à rédiger</label>
@@ -7983,24 +7899,8 @@ function renderAssistantIA(v) {
     if (c && !t.besoinConsignes) prompt += `\n\nConsignes complémentaires : ${c}`;
     if (autre && dernier) prompt += `\n\nVersion précédente, à ne pas reprendre telle quelle — propose une formulation différente :\n${dernier}`;
     ctrl = new AbortController(); chargement(true);
-    let prog = null, palier = -1;
-    const onProgress = r => {
-      if (!root.isConnected) return;
-      const pc = Math.max(0, Math.min(100, Math.round((r && r.progress || 0) * 100)));
-      if (pc >= 100) { if (prog) { prog = null; outBody.innerHTML = `<div class="ai-skel" role="status"><span class="sr-only">Rédaction en cours</span><i></i><i></i><i></i><i></i></div>`; } return; }
-      if (!prog) {
-        const m = LOCAL_MODELES[AI.cfg().modele] || {};
-        outBody.innerHTML = `<div class="ai-prog"><p class="ai-prog-t"><b>Préparation de l'IA locale</b> <span data-pc>0 %</span></p>
-          <div class="wz-prog" aria-hidden="true"><i data-bar style="width:0"></i></div>
-          <p class="ai-prog-n">Premier usage : le modèle (${esc(m.taille || '')}) se télécharge une seule fois, puis reste sur ce poste. Les fois suivantes, il se charge en quelques secondes.</p>
-          <span class="sr-only" role="status" data-sr></span></div>`;
-        prog = { pc: $('[data-pc]', outBody), bar: $('[data-bar]', outBody), sr: $('[data-sr]', outBody) };
-      }
-      prog.pc.textContent = pc + ' %'; prog.bar.style.width = pc + '%';
-      const p10 = Math.floor(pc / 10); if (p10 !== palier) { palier = p10; prog.sr.textContent = 'Préparation de l\'IA locale : ' + pc + ' %'; }
-    };
     try {
-      const txt = await aiComplete({ system: AI_SYSTEME, prompt, signal: ctrl.signal, onProgress });
+      const txt = await aiComplete({ system: AI_SYSTEME, prompt, signal: ctrl.signal });
       if (!root.isConnected) return;
       dernier = txt; afficher(txt, { tache: sel.value, id });
     } catch (e) {
@@ -8018,96 +7918,389 @@ function renderAssistantIA(v) {
   stopBtn.onclick = () => { if (ctrl) ctrl.abort(); goBtn.focus(); };
   if (pre && pre.id) goBtn.focus();
 }
+/* ---------- Pré-chiffrage IA (après un rendez-vous) ----------
+   1. Le chargé d'affaires décrit le rendez-vous (texte libre ou dictée).
+   2. L'IA en tire une description structurée : réponses de l'assistant « Composer une toiture »,
+      coefficients chantier, ouvrages complémentaires pris dans la base Cadences, hypothèses, questions.
+   3. Les prix ne viennent jamais de l'IA : la composition (cadComposer) et le calcul (cadCompute)
+      de la base Cadences donnent temps, main d'œuvre et fournitures ; la marge visée donne le prix de vente.
+   Les pré-chiffrages sont enregistrés dans le profil (DB.data.prechiffrages). */
+let pcPreset = null; // ouverture depuis la prospection : { rdvId }
+let pcOuvert = null; // id du pré-chiffrage affiché
+function pcDepuisRdv(rdvId) { pcPreset = { rdvId }; pcOuvert = null; go('prechiffrage'); }
+
+const PC_SYSTEME = `Tu es l'économiste d'une entreprise d'étanchéité et de couverture (toitures-terrasses, SMAC, France).
+À partir du compte rendu d'un rendez-vous client, tu prépares un pré-chiffrage : tu décris l'ouvrage avec les options imposées, tu choisis les coefficients chantier et tu ajoutes les ouvrages complémentaires de la base fournie.
+Règles :
+- Ne donne aucun prix : les prix sont calculés ensuite par l'outil à partir de la base.
+- Utilise uniquement les valeurs d'options et les références d'ouvrages fournies. N'invente pas de référence.
+- Quantités dans l'unité de l'ouvrage. Si une quantité n'est pas donnée, estime-la de façon réaliste à partir des indices du compte rendu et écris l'hypothèse correspondante (exemple : relevés estimés au périmètre d'une surface carrée).
+- Si les travaux ne concernent pas une toiture-terrasse (réparation ponctuelle, bardage, couverture…), mets toiture_terrasse à false, laisse les quantités de toiture à 0 et décris les travaux avec les ouvrages complémentaires.
+- N'ajoute pas en ouvrage complémentaire ce que la composition de toiture couvre déjà (dépose, primaire, pare-vapeur, isolant, revêtement, protection, relevés, couvertines, émergences, entrées d'eaux pluviales).
+- Ce qui n'existe pas dans la base va dans hors_base (désignation courte, unité, quantité).
+- questions : ce qu'il faut demander ou vérifier avant de remettre le devis. Phrases courtes, 3 à 8.
+- objet : intitulé de devis court et technique (12 mots au plus). synthese : 2 à 4 phrases.
+Français professionnel, sobre, sans markdown ni emoji.`;
+
+const pcEnumOpts = k => Object.keys(CAD_ASST_OPTS[k]);
+function pcSchema() {
+  const num = { type: 'number' }, str = { type: 'string' };
+  const obj = (props) => ({ type: 'object', additionalProperties: false, required: Object.keys(props), properties: props });
+  return obj({
+    objet: str, synthese: str,
+    toiture_terrasse: { type: 'boolean' },
+    toiture: obj({ surface: num, support: { type: 'string', enum: pcEnumOpts('support') }, depose: { type: 'string', enum: pcEnumOpts('depose') },
+      iso: { type: 'string', enum: pcEnumOpts('iso') }, protection: { type: 'string', enum: pcEnumOpts('protection') }, revet: { type: 'string', enum: pcEnumOpts('revet') },
+      rel: num, relH: num, couv: num, emerg: num, ep: num }),
+    coefficients: obj(Object.fromEntries(CAD_COEFFS.map(c => [c.key, { type: 'integer', enum: c.opts.map((_, i) => i) }]))),
+    ouvrages_supplementaires: { type: 'array', items: obj({ ref: str, quantite: num, motif: str }) },
+    hors_base: { type: 'array', items: obj({ designation: str, unite: str, quantite: num, motif: str }) },
+    hypotheses: { type: 'array', items: str },
+    questions: { type: 'array', items: str },
+  });
+}
+function pcPrompt(f) {
+  const opts = Object.entries(CAD_ASST_OPTS).map(([k, o]) => `- ${k} : ` + Object.entries(o).map(([v, l]) => `${v} (${l})`).join(' ; ')).join('\n');
+  const coeffs = CAD_COEFFS.map(c => `- ${c.key} — ${c.label.replace(/^\d+\.\s*/, '')} : ` + c.opts.map((o, i) => `${i} = ${o[0]}`).join(' ; ') + ` (défaut ${c.def})`).join('\n');
+  const cat = cadTous().map(o => `${o[CAD_I.REF]} | ${o[CAD_I.DES]} | ${o[CAD_I.U]} | ${cadFamille(o)}`).join('\n');
+  return `Rendez-vous du ${f.dateRdv ? fmtDate(f.dateRdv) : fmtDate(todayISO())}
+Client : ${f.clientNom || 'non précisé'}
+Adresse du chantier : ${f.adresse || 'non précisée'}
+
+Compte rendu du rendez-vous :
+${f.notes}
+
+---
+Options de la toiture (champ toiture) :
+- surface : surface de partie courante en m²
+${opts}
+- rel : longueur de relevés en ml (acrotères + émergences) ; relH : hauteur des relevés en m (0,30 par défaut)
+- couv : couvertines en ml ; emerg : nombre d'émergences / pénétrations ; ep : nombre d'entrées d'eaux pluviales
+
+Coefficients chantier (index de l'option retenue) :
+${coeffs}
+
+Base des ouvrages (réf. | désignation | unité | famille) :
+${cat}`;
+}
+
+/* Réponse de l'IA → pré-chiffrage contrôlé (options et références vérifiées, quantités bornées). */
+function pcDepuisIA(r) {
+  const n = x => { const v = +x; return isFinite(v) && v > 0 ? Math.round(v * 100) / 100 : 0; };
+  const t = r && typeof r.toiture === 'object' && r.toiture ? r.toiture : {};
+  const toiture = Object.assign({}, CAD_ASST_DEF);
+  Object.keys(CAD_ASST_OPTS).forEach(k => { if (CAD_ASST_OPTS[k][t[k]]) toiture[k] = t[k]; });
+  ['surface', 'rel', 'couv', 'emerg', 'ep'].forEach(k => { toiture[k] = n(t[k]); });
+  toiture.relH = n(t.relH) || IKO_REL_H;
+  const coeff = Object.fromEntries(CAD_COEFFS.map(c => { const i = parseInt((r.coefficients || {})[c.key], 10); return [c.key, i >= 0 && i < c.opts.length ? i : c.def]; }));
+  const lignes = [];
+  if (r.toiture_terrasse !== false && toiture.surface > 0) {
+    cadComposer(toiture).forEach(l => {
+      const x = { ref: l.ref, qte: Math.round(l.qte * 100) / 100, motif: l.why || '' };
+      if (l.v !== undefined) x.v = l.v;
+      if (l.h !== undefined || cadAHauteur(l.ref)) x.h = l.h || IKO_REL_H;
+      lignes.push(x);
+    });
+  }
+  const horsBase = [];
+  (Array.isArray(r.ouvrages_supplementaires) ? r.ouvrages_supplementaires : []).forEach(o => {
+    const ref = String(o && o.ref || '').trim(), q = n(o && o.quantite);
+    if (!q) return;
+    const ouv = cadOuvrage(ref);
+    if (!ouv) { horsBase.push({ designation: ref + (o.motif ? ' — ' + o.motif : ''), unite: 'u', qte: q, pu: 0, motif: 'Référence absente de la base' }); return; }
+    if (lignes.some(l => l.ref === ref)) return;
+    const x = { ref, qte: q, motif: String(o.motif || '') };
+    if (cadAHauteur(ref)) x.h = IKO_REL_H;
+    lignes.push(x);
+  });
+  (Array.isArray(r.hors_base) ? r.hors_base : []).forEach(o => {
+    const d = String(o && o.designation || '').trim(); if (!d) return;
+    horsBase.push({ designation: d, unite: String(o.unite || 'u').slice(0, 12), qte: n(o.quantite) || 1, pu: 0, motif: String(o.motif || '') });
+  });
+  const liste = a => (Array.isArray(a) ? a : []).map(x => String(x).trim()).filter(Boolean).slice(0, 12);
+  return { objet: String(r.objet || '').trim(), synthese: String(r.synthese || '').trim(), toiture, coeff, lignes, horsBase,
+    hypotheses: liste(r.hypotheses), questions: liste(r.questions) };
+}
+
+/* Calcul par la base Cadences (état de l'étude en cours préservé). */
+function pcCalcul(pc) {
+  cadRestaurer();
+  const garde = { lignes: CAD.lignes, coeff: CAD.coeff, mats: CAD.mats, surface: CAD.surface };
+  let k;
+  try {
+    Object.assign(CAD, { lignes: pc.lignes, coeff: Object.assign(Object.fromEntries(CAD_COEFFS.map(c => [c.key, c.def])), pc.coeff), mats: [], surface: pc.toiture.surface || 0 });
+    k = cadCompute();
+  } finally { Object.assign(CAD, garde); }
+  const marge = Math.min(0.8, Math.max(0, +pc.marge || 0));
+  const lignes = k.steps.map((s, i) => {
+    const cout = s.h * k.taux + s.fournTot, qte = s.qte || 0;
+    const pu = qte > 0 ? Math.round(cout / qte / (1 - marge) * 100) / 100 : 0;
+    return { i, ref: s.ref, designation: s.nom + (s.variante ? ' — ' + s.variante : ''), desc: s.desc || '', unite: s.unite, qte, pu, total: Math.round(qte * pu * 100) / 100,
+      h: s.h, cout, sansPrix: s.fourn.some(f => f.sansPrix), motif: (pc.lignes[i] || {}).motif || '' };
+  });
+  const hb = pc.horsBase.map((l, i) => ({ i, designation: l.designation, unite: l.unite, qte: +l.qte || 0, pu: +l.pu || 0, total: Math.round((+l.qte || 0) * (+l.pu || 0) * 100) / 100, motif: l.motif }));
+  const total = lignes.reduce((s, l) => s + l.total, 0) + hb.reduce((s, l) => s + l.total, 0);
+  return { k, lignes, hb, total: Math.round(total * 100) / 100, cout: k.mo + k.fournTot, marge,
+    sansPrix: k.materiaux.filter(m => m.sansPrix).length, aChiffrer: hb.filter(l => !l.pu).length };
+}
+const pcClientNom = pc => (pc.clientId && (DB.data.clients.find(c => c.id === pc.clientId) || {}).nom) || pc.clientNom || '';
+
+function renderPrechiffrage(v) {
+  const pre = pcPreset; pcPreset = null;
+  const rdv = pre && pre.rdvId ? DB.data.prospection.find(p => p.id === pre.rdvId) : null;
+  const cliParNom = rdv ? DB.data.clients.find(c => c.nom.trim().toLowerCase() === rdv.nom.trim().toLowerCase()) : null;
+  const pret = aiConfigured();
+  v.innerHTML = `<form class="form-page ai-page pc-page" novalidate aria-labelledby="page-title">
+    <div class="fp-top"><p class="fp-req">Décrivez le rendez-vous : l'IA en tire les ouvrages et les quantités, la base Cadences calcule les prix. <span class="req" aria-hidden="true">*</span> obligatoire.</p>
+      ${pret ? '' : `<button type="button" class="btn small" id="pc-reglages">${icon('settings')} Ouvrir les réglages de l'IA</button>`}</div>
+    ${pret ? '' : `<p class="pc-note" id="pc-etat" role="status">${esc(IA.raison())}</p>`}
+    <div class="fp-panel">
+      <div class="form-grid">
+        <div class="field"><label for="pc-client">Client</label>
+          <select id="pc-client"><option value="">Nouveau prospect</option>${DB.data.clients.slice().sort((a, b) => a.nom.localeCompare(b.nom, 'fr')).map(c => `<option value="${esc(c.id)}" ${cliParNom && cliParNom.id === c.id ? 'selected' : ''}>${esc(c.nom)}</option>`).join('')}</select></div>
+        <div class="field" id="pc-nom-f"><label for="pc-nom">Nom du prospect (facultatif)</label><input id="pc-nom" value="${esc(rdv && !cliParNom ? rdv.nom : '')}" autocomplete="off"></div>
+        <div class="field"><label for="pc-adr">Adresse du chantier (facultatif)</label><input id="pc-adr" value="${esc(rdv ? rdv.ville || '' : '')}"></div>
+        <div class="field"><label for="pc-date">Date du rendez-vous</label><input id="pc-date" type="date" value="${esc(rdv && rdv.date ? rdv.date : todayISO())}"></div>
+        <div class="field full"><label for="pc-notes">Compte rendu du rendez-vous <span class="req" aria-hidden="true">*</span></label>
+          <textarea id="pc-notes" rows="9" required aria-describedby="pc-notes-aide pc-notes-err">${esc(rdv ? [rdv.objet, rdv.note].filter(Boolean).join('\n') : '')}</textarea>
+          <p class="hint" id="pc-notes-aide">Surface, support, existant, isolation, accès et usage, relevés, émergences, eaux pluviales, hauteur, contraintes du site. Exemple : terrasse béton 420 m² inaccessible, bicouche à déposer, isolation PIR 120 mm, acrotères 0,40 m sur tout le tour, 3 EP, 6 émergences, R+4, accès par cour intérieure.</p>
+          <p class="field-err" id="pc-notes-err" role="alert" hidden></p>
+          <div class="pc-dictee" id="pc-dictee-f" hidden><button type="button" class="btn small" id="pc-dictee">${icon('mic')} Dicter le compte rendu</button><span class="hint" id="pc-dictee-etat" role="status"></span></div></div>
+      </div>
+      <div class="fp-tools ai-actions"><button type="submit" class="btn primary" id="pc-go">${icon('sparkle')} Générer le pré-chiffrage</button>
+        <button type="button" class="btn" id="pc-stop" hidden>${icon('stop')} Arrêter la génération</button></div>
+      <section class="fp-section" id="pc-out" aria-labelledby="pc-out-t" aria-live="polite" hidden></section>
+      <section class="fp-section" aria-labelledby="pc-hist-t"><h2 id="pc-hist-t">Pré-chiffrages enregistrés</h2><div id="pc-hist"></div></section>
+    </div>
+  </form>`;
+  const root = v.querySelector('form');
+  const cli = $('#pc-client', root), nomF = $('#pc-nom-f', root), notes = $('#pc-notes', root), err = $('#pc-notes-err', root);
+  const goBtn = $('#pc-go', root), stopBtn = $('#pc-stop', root), out = $('#pc-out', root);
+  const rg = $('#pc-reglages', root); if (rg) rg.onclick = allerReglagesIA;
+  if (!IA.etat) IA.statut().then(() => { if (root.isConnected && aiConfigured()) { const e = $('#pc-etat', root); if (e) e.remove(); const b = $('#pc-reglages', root); if (b) b.remove(); } else if (root.isConnected) { const e = $('#pc-etat', root); if (e) e.textContent = IA.raison(); } });
+  const majNom = () => { nomF.hidden = !!cli.value; };
+  cli.onchange = majNom; majNom();
+  const montrerErr = msg => { err.textContent = msg || ''; err.hidden = !msg; notes.closest('.field').classList.toggle('has-err', !!msg);
+    if (msg) notes.setAttribute('aria-invalid', 'true'); else notes.removeAttribute('aria-invalid'); };
+  const MSG_NOTES = 'Décrivez le rendez-vous en quelques phrases (au moins la nature des travaux et la surface) pour que l\'IA puisse chiffrer.';
+  notes.addEventListener('input', () => { notes.dataset.touche = '1'; if (!err.hidden) montrerErr(''); });
+  notes.addEventListener('blur', () => { if (notes.dataset.touche && notes.value.trim().length < 20) montrerErr(MSG_NOTES); });
+  pcDictee(root, notes);
+  let ctrl = null;
+  const occupe = on => { goBtn.disabled = on; stopBtn.hidden = !on; root.setAttribute('aria-busy', on ? 'true' : 'false'); };
+  const histo = () => pcHistorique($('#pc-hist', root), id => { pcOuvert = id; const pc = DB.data.prechiffrages.find(x => x.id === id); if (pc) { pcAfficher(out, pc, histo); out.scrollIntoView({ block: 'start' }); } });
+
+  async function lancer() {
+    const n = notes.value.trim();
+    if (n.length < 20) { montrerErr(MSG_NOTES); notes.focus(); return; }
+    const f = { clientId: cli.value, clientNom: cli.value ? clientNom(cli.value) : $('#pc-nom', root).value.trim(), adresse: $('#pc-adr', root).value.trim(), dateRdv: $('#pc-date', root).value, notes: n };
+    ctrl = new AbortController(); occupe(true);
+    out.hidden = false;
+    out.innerHTML = `<h2 id="pc-out-t">Pré-chiffrage en cours</h2><p class="hint">Analyse du compte rendu et choix des ouvrages : 20 secondes à 1 minute.</p>
+      <div class="ai-skel" role="status"><span class="sr-only">Génération du pré-chiffrage en cours</span><i></i><i></i><i></i><i></i></div>`;
+    try {
+      const r = await aiJSON({ system: PC_SYSTEME, prompt: pcPrompt(f), schema: pcSchema(), effort: 'medium', maxTokens: 16000, signal: ctrl.signal });
+      const pc = Object.assign({ id: uid(), cree: new Date().toISOString(), rdvId: rdv ? rdv.id : '', marge: +DB.data.objectifs.margeCible || 0.3, devisId: '', ia: IA.dernier || null }, f, pcDepuisIA(r));
+      if (!pc.lignes.length && !pc.horsBase.length) throw new AiError('L\'IA n\'a identifié aucun ouvrage dans ce compte rendu. Précisez la nature des travaux et les surfaces, puis réessayez.');
+      DB.data.prechiffrages.unshift(pc); DB.data.prechiffrages = DB.data.prechiffrages.slice(0, 100); DB.save();
+      pcOuvert = pc.id;
+      if (!root.isConnected) return;
+      pcAfficher(out, pc, histo); histo();
+      const h = $('#pc-out-t', out); if (h) { h.setAttribute('tabindex', '-1'); h.focus({ preventScroll: true }); out.scrollIntoView({ block: 'start' }); }
+      toast('Pré-chiffrage enregistré');
+    } catch (e) {
+      if (!root.isConnected) return;
+      if (e.name === 'AbortError') { out.hidden = true; out.innerHTML = ''; toast('Génération arrêtée'); }
+      else {
+        out.innerHTML = `<h2 id="pc-out-t">Pré-chiffrage non généré</h2><div class="ai-err" role="alert">${icon('alert')}<div>${esc(e.message || 'La génération a échoué. Réessayez.')}</div></div>
+          <div class="fp-tools">${e.cfg ? `<button type="button" class="btn" id="pc-fix">${icon('settings')} Ouvrir les réglages de l'IA</button>` : `<button type="button" class="btn" id="pc-retry">${icon('refresh')} Réessayer</button>`}</div>`;
+        const fx = $('#pc-fix', out); if (fx) fx.onclick = allerReglagesIA;
+        const rt = $('#pc-retry', out); if (rt) rt.onclick = lancer;
+      }
+    } finally { ctrl = null; if (root.isConnected) occupe(false); }
+  }
+  root.addEventListener('submit', e => { e.preventDefault(); if (!ctrl) lancer(); });
+  stopBtn.onclick = () => { if (ctrl) ctrl.abort(); goBtn.focus(); };
+  histo();
+  const ouvert = pcOuvert && !rdv ? DB.data.prechiffrages.find(x => x.id === pcOuvert) : null;
+  if (ouvert) pcAfficher(out, ouvert, histo);
+  if (rdv) notes.focus();
+}
+
+/* Dictée vocale (navigateurs qui la proposent : Chrome, Edge, Safari) : le texte s'ajoute au compte rendu. */
+function pcDictee(root, ta) {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition; if (!SR) return;
+  const f = $('#pc-dictee-f', root), b = $('#pc-dictee', root), etat = $('#pc-dictee-etat', root);
+  f.hidden = false;
+  let rec = null;
+  const fin = () => { rec = null; b.innerHTML = `${icon('mic')} Dicter le compte rendu`; b.setAttribute('aria-pressed', 'false'); etat.textContent = ''; };
+  b.setAttribute('aria-pressed', 'false');
+  b.onclick = () => {
+    if (rec) { rec.stop(); return; }
+    rec = new SR(); rec.lang = 'fr-FR'; rec.continuous = true; rec.interimResults = false;
+    rec.onresult = e => { for (let i = e.resultIndex; i < e.results.length; i++) if (e.results[i].isFinal) {
+      const t = e.results[i][0].transcript.trim(); if (!t) continue;
+      ta.value = (ta.value.trim() ? ta.value.replace(/\s*$/, ' ') : '') + t.charAt(0).toUpperCase() + t.slice(1) + '.';
+      ta.dispatchEvent(new Event('input', { bubbles: true })); } };
+    rec.onerror = e => { etat.textContent = e.error === 'not-allowed' ? 'Micro refusé : autorisez-le dans le navigateur, puis réessayez.' : 'Dictée interrompue. Réessayez.'; };
+    rec.onend = () => { const m = etat.textContent; fin(); if (m && m !== 'Dictée en cours : parlez, puis arrêtez la dictée.') etat.textContent = m; };
+    try { rec.start(); } catch { fin(); return; }
+    b.innerHTML = `${icon('stop')} Arrêter la dictée`; b.setAttribute('aria-pressed', 'true'); etat.textContent = 'Dictée en cours : parlez, puis arrêtez la dictée.';
+  };
+  root.addEventListener('submit', () => { if (rec) rec.stop(); });
+}
+
+function pcAfficher(out, pc, majHisto) {
+  out.hidden = false;
+  const c = pcCalcul(pc);
+  const ligne = (l, hb) => `<tr><td><div class="t-strong">${esc(l.designation)}</div>${l.motif ? `<div class="pc-motif">${esc(l.motif)}</div>` : ''}${!hb && l.sansPrix ? '<div class="pc-motif neg">Fourniture sans prix dans la base</div>' : ''}</td>
+      <td class="num"><label class="sr-only" for="pc-q-${hb ? 'h' : 'o'}${l.i}">Quantité — ${esc(l.designation)}</label><input class="pc-in" id="pc-q-${hb ? 'h' : 'o'}${l.i}" type="number" min="0" step="any" inputmode="decimal" value="${l.qte}" data-q="${hb ? 'h' : 'o'}${l.i}"></td>
+      <td>${esc(l.unite)}</td>
+      <td class="num">${hb ? `<label class="sr-only" for="pc-p-${l.i}">Prix unitaire HT — ${esc(l.designation)}</label><input class="pc-in" id="pc-p-${l.i}" type="number" min="0" step="any" inputmode="decimal" value="${l.pu || ''}" placeholder="À chiffrer" data-p="${l.i}">` : eur2(l.pu)}</td>
+      <td class="num">${l.total ? eur2(l.total) : '—'}</td></tr>`;
+  const quand = pc.cree ? new Date(pc.cree).toLocaleDateString('fr-FR') : '';
+  out.innerHTML = `<h2 id="pc-out-t">${esc(pc.objet || 'Pré-chiffrage')}</h2>
+    <p class="pc-meta">${esc(pcClientNom(pc) || 'Prospect non nommé')}${pc.adresse ? ' · ' + esc(pc.adresse) : ''} · ${esc(quand)}${pc.ia ? ' · ' + esc(pc.ia.nom + ' · ' + pc.ia.modele) : ''}</p>
+    ${pc.synthese ? `<p>${esc(pc.synthese)}</p>` : ''}
+    <dl class="pc-tot">
+      <div><dt>Total HT estimé</dt><dd>${eur(c.total)}</dd></div>
+      <div><dt>Main d'œuvre</dt><dd>${cadNum3(Math.round(c.k.totalH))} h · ${cadNum3(Math.round(c.k.jours * 10) / 10)} j à ${c.k.eq}</dd></div>
+      <div><dt>Fournitures</dt><dd>${eur(c.k.fournTot)}</dd></div>
+      <div><dt><label for="pc-marge">Marge visée (%)</label></dt><dd><input class="pc-in" id="pc-marge" type="number" min="0" max="80" step="0.5" inputmode="decimal" value="${Math.round(c.marge * 1000) / 10}"></dd></div>
+    </dl>
+    ${c.sansPrix || c.aChiffrer ? `<div class="ai-err" role="note">${icon('alert')}<div>Total sous-estimé : ${[c.sansPrix ? `${c.sansPrix} fourniture(s) sans prix dans la base (importez la grille IKO dans Cadences, ou saisissez les prix)` : '', c.aChiffrer ? `${c.aChiffrer} ligne(s) hors base à chiffrer` : ''].filter(Boolean).join(' ; ')}.</div></div>` : ''}
+    <div class="table-wrap pc-table"><table><caption class="sr-only">Lignes du pré-chiffrage</caption>
+      <thead><tr><th scope="col">Ouvrage</th><th scope="col" class="num">Qté</th><th scope="col">U</th><th scope="col" class="num">PU HT</th><th scope="col" class="num">Total HT</th></tr></thead>
+      <tbody>${c.lignes.map(l => ligne(l, false)).join('')}${c.hb.map(l => ligne(l, true)).join('')}</tbody></table></div>
+    <p class="hint">Prix unitaires = (temps Cadences × taux horaire ${eur(c.k.taux)}/h × coefficient chantier ×${cadNum3(Math.round(c.k.gc * 1000) / 1000)} + fournitures) ÷ (1 − marge). Quantités modifiables.</p>
+    ${pc.hypotheses.length ? `<h3 class="pc-h3">Hypothèses retenues</h3><ul class="pc-list">${pc.hypotheses.map(x => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}
+    ${pc.questions.length ? `<h3 class="pc-h3">À vérifier avant le devis</h3><ul class="pc-list">${pc.questions.map(x => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}
+    <div class="fp-tools pc-actions">
+      ${pc.devisId && DB.data.devis.some(d => d.id === pc.devisId) ? `<button type="button" class="btn primary" id="pc-devis-ouvrir">${icon('file')} Ouvrir le devis créé</button>` : `<button type="button" class="btn primary" id="pc-devis">${icon('file')} Créer le devis</button>`}
+      <button type="button" class="btn" id="pc-cad">${icon('clock')} Ouvrir dans Cadences</button>
+      <button type="button" class="btn" id="pc-copy">${icon('copy')} Copier le pré-chiffrage</button></div>`;
+  const sauver = () => { DB.save(); const top = out.scrollTop; pcAfficher(out, pc, majHisto); out.scrollTop = top; if (majHisto) majHisto(); };
+  $$('[data-q]', out).forEach(i => i.onchange = () => {
+    const q = Math.max(0, +i.value || 0), k = i.dataset.q, idx = +k.slice(1);
+    if (k[0] === 'o') pc.lignes[idx].qte = q; else pc.horsBase[idx].qte = q;
+    const id = i.id; sauver(); const n = $('#' + id, out); if (n) n.focus();
+  });
+  $$('[data-p]', out).forEach(i => i.onchange = () => { pc.horsBase[+i.dataset.p].pu = Math.max(0, +i.value || 0); const id = i.id; sauver(); const n = $('#' + id, out); if (n) n.focus(); });
+  $('#pc-marge', out).onchange = e => { pc.marge = Math.min(80, Math.max(0, +e.target.value || 0)) / 100; sauver(); const n = $('#pc-marge', out); if (n) n.focus(); };
+  const ouvrirDevis = $('#pc-devis-ouvrir', out); if (ouvrirDevis) ouvrirDevis.onclick = () => openForm('devis/' + pc.devisId);
+  const creer = $('#pc-devis', out); if (creer) creer.onclick = () => pcVersDevis(pc);
+  $('#pc-cad', out).onclick = () => pcVersCadences(pc);
+  $('#pc-copy', out).onclick = () => {
+    const cc = pcCalcul(pc);
+    const txt = [pc.objet, pcClientNom(pc), pc.synthese, '',
+      ...cc.lignes.concat(cc.hb).map(l => `${l.designation} — ${cadNum3(l.qte)} ${l.unite} × ${eur2(l.pu)} = ${eur2(l.total)}`),
+      '', 'Total HT estimé : ' + eur2(cc.total),
+      ...(pc.hypotheses.length ? ['', 'Hypothèses :', ...pc.hypotheses.map(x => '- ' + x)] : []),
+      ...(pc.questions.length ? ['', 'À vérifier :', ...pc.questions.map(x => '- ' + x)] : [])].join('\n');
+    (navigator.clipboard ? navigator.clipboard.writeText(txt) : Promise.reject()).then(() => toast('Pré-chiffrage copié'), () => toast('Copie automatique impossible dans ce navigateur. Utilisez « Créer le devis » ou sélectionnez le tableau.', 'err'));
+  };
+}
+
+function pcVersDevis(pc) {
+  const c = pcCalcul(pc);
+  const lignes = c.lignes.filter(l => l.qte > 0).map(l => ({ designation: l.designation, desc: l.desc, unite: l.unite, qte: l.qte, pu: l.pu }))
+    .concat(c.hb.filter(l => l.qte > 0).map(l => ({ designation: l.designation, desc: l.motif || '', unite: l.unite, qte: l.qte, pu: l.pu })));
+  const montant = Math.round(lignes.reduce((s, l) => s + l.qte * l.pu, 0) * 100) / 100;
+  const dv = { id: uid(), ref: nextDevisRef(), otp: '', clientId: pc.clientId || '', chantierId: '', objet: pc.objet || 'Pré-chiffrage ' + (pcClientNom(pc) || ''), adresse: pc.adresse || '',
+    dateDemande: pc.dateRdv || todayISO(), dateEnvoi: '', montantHT: montant, lignes, statut: 'attente', relance: '', derniereRelance: '', nbRelances: 0, horsComptes: false };
+  DB.data.devis.unshift(dv); pc.devisId = dv.id;
+  const rdv = pc.rdvId && DB.data.prospection.find(p => p.id === pc.rdvId);
+  if (rdv && ['planifie', 'realise'].includes(rdv.statut)) rdv.statut = 'devis';
+  DB.save();
+  toast(`Devis ${dv.ref} créé depuis le pré-chiffrage (${eur(montant)}, ${lignes.length} poste(s))${pc.clientId ? '' : ' — choisissez le client'}`);
+  openForm('devis/' + dv.id);
+}
+function pcVersCadences(pc) {
+  cadRestaurer();
+  const appliquer = () => {
+    cadAppliquerEtat({ nom: 'Pré-chiffrage — ' + (pcClientNom(pc) || pc.objet || ''), surface: pc.toiture.surface, equipe: CAD.equipe, hj: CAD.hj, coeff: pc.coeff,
+      lignes: pc.lignes.map(({ ref, qte, v, h }) => { const l = { ref, qte }; if (v !== undefined) l.v = v; if (h !== undefined) l.h = h; return l; }),
+      mats: [], asst: pc.toiture, asstPourquoi: Object.fromEntries(pc.lignes.filter(l => l.motif).map(l => [l.ref, l.motif])) });
+    CAD.vue = 'chiffrage'; cadSauverCourant(); go('cadences');
+    toast('Pré-chiffrage chargé dans Cadences' + (pc.horsBase.length ? ` — ${pc.horsBase.length} ligne(s) hors base non reprises` : ''));
+  };
+  if (CAD.lignes.length) confirmDialog('Remplacer les ' + CAD.lignes.length + ' ouvrage(s) de l\'étude Cadences en cours par ceux du pré-chiffrage ? Enregistrez l\'étude en cours dans « Mes études » avant si besoin.', appliquer, 'Remplacer l\'étude', 'Ouvrir dans Cadences');
+  else appliquer();
+}
+function pcHistorique(box, ouvrir) {
+  const list = DB.data.prechiffrages;
+  box.innerHTML = list.length ? `<div class="table-wrap pc-hist"><table><caption class="sr-only">Pré-chiffrages enregistrés</caption>
+    <thead><tr><th scope="col">Date</th><th scope="col">Client et objet</th><th scope="col" class="num">Total HT</th><th scope="col"><span class="sr-only">Actions</span></th></tr></thead>
+    <tbody>${list.map(pc => `<tr><td class="t-muted">${esc(pc.dateRdv ? fmtDate(pc.dateRdv) : '')}</td>
+      <td><button type="button" class="link" data-pc-open="${esc(pc.id)}">${esc(pcClientNom(pc) || 'Prospect non nommé')}</button><div class="pc-motif">${esc(pc.objet || '')}${pc.devisId ? ' · devis créé' : ''}</div></td>
+      <td class="num">${eur(pcCalcul(pc).total)}</td>
+      <td class="actions-cell"><button type="button" class="icon-btn" data-pc-open="${esc(pc.id)}" aria-label="Ouvrir le pré-chiffrage" title="Ouvrir">${icon('edit')}</button><button type="button" class="icon-btn danger" data-pc-del="${esc(pc.id)}" aria-label="Supprimer le pré-chiffrage" title="Supprimer">${icon('trash')}</button></td></tr>`).join('')}</tbody></table></div>`
+    : `<div class="table-wrap">${emptyState('sparkle', 'Aucun pré-chiffrage', 'Les pré-chiffrages générés après vos rendez-vous s\'affichent ici.')}</div>`;
+  $$('[data-pc-open]', box).forEach(b => b.onclick = () => ouvrir(b.dataset.pcOpen));
+  $$('[data-pc-del]', box).forEach(b => b.onclick = () => {
+    const pc = DB.data.prechiffrages.find(x => x.id === b.dataset.pcDel); if (!pc) return;
+    confirmDelete('le pré-chiffrage', pcClientNom(pc) || pc.objet || '', () => {
+      DB.data.prechiffrages = DB.data.prechiffrages.filter(x => x.id !== pc.id); DB.save();
+      if (pcOuvert === pc.id) { pcOuvert = null; const o = $('#pc-out'); if (o) { o.hidden = true; o.innerHTML = ''; } }
+      toast('Pré-chiffrage supprimé'); pcHistorique(box, ouvrir);
+    });
+  });
+}
+
+/* Écran dépendant de l'IA : renvoie true si elle est prête ; sinon affiche l'état (vérification en cours,
+   ou raison + accès aux réglages) dans la page, et la redessine une fois l'état connu. */
+function iaPretOuAttente(v, redessiner, titre) {
+  if (aiConfigured()) return true;
+  if (!IA.etat) {
+    v.innerHTML = `<div class="form-page"><div class="fp-panel"><div class="ai-skel" role="status"><span class="sr-only">Vérification du service IA</span><i></i><i></i><i></i></div></div></div>`;
+    const route = currentHash;
+    IA.statut().then(() => { if (v.isConnected && currentHash === route) redessiner(); });
+    return false;
+  }
+  v.innerHTML = `<div class="form-page"><div class="fp-panel">${emptyState('sparkle', titre, IA.raison(),
+    { id: 'ai-config', label: "Ouvrir les réglages de l'IA", ico: 'settings' })}</div></div>`;
+  $('#ai-config').onclick = allerReglagesIA;
+  return false;
+}
 function allerReglagesIA() { go('parametres'); setTimeout(() => { const h = $('#set-ia'); if (h) { h.scrollIntoView({ block: 'start' }); h.focus({ preventScroll: true }); } }, 0); }
 
-/* Paramètres › Intelligence artificielle */
+/* Paramètres › Intelligence artificielle : état du service, code d'accès, test. Les clés se gèrent sur Vercel. */
 function iaReglagesHTML() {
-  const c = AI.cfg(), p = AI_PROVIDERS[c.provider];
-  const four = `<div class="set-row"><div class="set-lbl" id="lbl-ia-four">Fournisseur<span>Utilisé par l'Assistant IA. L'IA locale est gratuite et fonctionne sans clé ; les autres demandent votre propre clé.</span></div>
-      <fieldset class="set-seg"><legend class="sr-only">Fournisseur d'IA</legend>${Object.entries(AI_PROVIDERS).map(([id, x]) =>
-        `<label class="set-opt"><input type="radio" name="ia-four" value="${id}" ${c.provider === id ? 'checked' : ''}><span>${esc(x.local ? 'IA locale (gratuite)' : x.court)}</span></label>`).join('')}</fieldset></div>`;
-  if (p.local) {
-    const m = LOCAL_MODELES[c.modele] || LOCAL_MODELES[p.modele];
-    return four + `
-    <div class="set-row"><div class="set-lbl">Compatibilité de ce poste<span id="set-ia-compat" role="status">Vérification…</span></div></div>
-    <div class="set-row"><div class="set-lbl"><label for="set-ia-local-model">Modèle</label><span id="set-ia-local-aide">${esc(m.note)}</span></div>
-      <select id="set-ia-local-model" class="input" aria-describedby="set-ia-local-aide">${Object.entries(LOCAL_MODELES).map(([id, x]) =>
-        `<option value="${esc(id)}" ${id === c.modele ? 'selected' : ''}>${esc(x.nom)} — ${esc(x.taille)}</option>`).join('')}</select></div>
-    <div class="set-row"><div class="set-lbl">Téléchargement du modèle<span id="set-ia-dl" role="status">Vérification…</span>
-        <div class="ai-prog" id="set-ia-prog" hidden><div class="wz-prog" aria-hidden="true"><i style="width:0"></i></div></div></div>
-      <div class="set-btns"><button type="button" class="btn" id="set-ia-prep" disabled>${icon('download')} Télécharger le modèle</button>
-        <button type="button" class="btn danger-quiet" id="set-ia-local-del" hidden>${icon('trash')} Supprimer le modèle</button></div></div>
-    <div class="set-row"><div class="set-lbl">Données<span>Tout se passe sur ce poste : ni vos clients ni vos montants ne sont envoyés. Seuls le moteur et le modèle sont téléchargés une fois depuis internet. Les textes sont plus simples qu'avec Claude ou GPT : relisez-les avant envoi.</span></div></div>`;
-  }
-  const k = AI.key(c.provider);
-  return four + `
-    <div class="set-row"><div class="set-lbl"><label for="set-ia-key">Clé d'accès ${esc(p.court)}</label><span id="set-ia-key-aide">${k ? 'Clé enregistrée sur ce poste : ' + esc(k.slice(0, 6)) + '…' + esc(k.slice(-4)) + '.' : 'À créer sur ' + esc(p.console) + '.'} Elle reste sur ce poste, hors des sauvegardes.</span></div>
-      <div class="set-btns ia-key"><input id="set-ia-key" class="input" type="password" autocomplete="off" spellcheck="false" placeholder="${k ? 'Coller une nouvelle clé' : esc(p.cle || 'Coller la clé')}" aria-describedby="set-ia-key-aide">
-        <button type="button" class="btn" id="set-ia-save">${icon('check')} Enregistrer la clé</button>
-        ${k ? `<button type="button" class="btn danger-quiet" id="set-ia-del">${icon('trash')} Effacer la clé</button>` : ''}</div></div>
-    <div class="set-row"><div class="set-lbl"><label for="set-ia-model">Modèle</label><span id="set-ia-model-aide">Proposé par défaut : ${esc(p.modele)}. Saisissez un autre nom si votre abonnement le permet.</span></div>
-      <div class="set-btns"><input id="set-ia-model" class="input" list="set-ia-models" value="${esc(c.modele)}" spellcheck="false" aria-describedby="set-ia-model-aide">
-        <datalist id="set-ia-models">${p.modeles.map(m => `<option value="${esc(m)}">`).join('')}</datalist></div></div>
-    <div class="set-row"><div class="set-lbl">Vérifier la connexion<span id="set-ia-test-res" role="status">${k ? 'Envoie une courte demande au fournisseur.' : 'Enregistrez d\'abord une clé.'}</span></div>
-      <button type="button" class="btn" id="set-ia-test" ${k ? '' : 'disabled'}>${icon('zap')} Tester la connexion</button></div>
-    <div class="set-row"><div class="set-lbl">Données envoyées<span>À chaque rédaction, ChargéPro envoie au fournisseur choisi les données de l'élément sélectionné (client, objet, montants, notes) et vos consignes. Rien n'est envoyé sans action de votre part.</span></div></div>`;
+  const e = IA.etat, k = IA.code();
+  const etatTxt = !e ? 'Vérification…' : e.injoignable || !e.fournisseurs.length ? IA.raison()
+    : 'Disponible : ' + e.fournisseurs.map((f, i) => (i ? 'puis ' : '') + f.nom + ' (' + f.modele + ')').join(', ') + '.'
+      + (e.fournisseurs.length > 1 ? ' Si une IA ne répond pas, la suivante prend le relais.' : '');
+  return `
+    <div class="set-row"><div class="set-lbl">État du service IA<span id="set-ia-etat" role="status">${esc(etatTxt)}</span></div>
+      <button type="button" class="btn" id="set-ia-test" ${aiConfigured() ? '' : 'disabled'}>${icon('zap')} Tester la connexion</button></div>
+    ${e && e.codeRequis ? `<div class="set-row"><div class="set-lbl"><label for="set-ia-code">Code d'accès IA</label><span id="set-ia-code-aide">${e.codeOk ? 'Code accepté sur ce poste.' : k ? 'Le code enregistré est refusé : saisissez le code actuel.' : 'Demandé par le serveur. Il reste sur ce poste, hors des sauvegardes.'}</span></div>
+      <div class="set-btns ia-key"><input id="set-ia-code" class="input" type="password" autocomplete="off" spellcheck="false" placeholder="${k ? 'Saisir un nouveau code' : 'Code d\'accès'}" aria-describedby="set-ia-code-aide">
+        <button type="button" class="btn" id="set-ia-save">${icon('check')} Enregistrer le code</button>
+        ${k ? `<button type="button" class="btn danger-quiet" id="set-ia-del">${icon('trash')} Effacer le code</button>` : ''}</div></div>` : ''}
+    <div class="set-row"><div class="set-lbl">Clés et modèles<span>Les clés API sont rangées sur le serveur, dans les variables d'environnement du projet Vercel : ANTHROPIC_API_KEY (Claude), OPENAI_API_KEY, MISTRAL_API_KEY, GEMINI_API_KEY. Ordre d'essai : IA_ORDRE. Modèles : IA_MODELE_CLAUDE, IA_MODELE_OPENAI… Protection : CHARGEPRO_CODE. Redéployez après chaque changement.</span></div></div>
+    <div class="set-row"><div class="set-lbl">Données envoyées<span>À chaque demande (rédaction, analyse, pré-chiffrage), ChargéPro envoie au serveur du site, qui les transmet à l'IA, les données de l'élément choisi et vos consignes. Rien n'est envoyé sans action de votre part.</span></div></div>`;
 }
 function bindIaReglages(v) {
   const sec = $('#set-ia-body', v); if (!sec) return;
-  const redraw = focusSel => { sec.innerHTML = iaReglagesHTML(); bindIaReglages(v); updateNavMeta(); if (focusSel) { const f = $(focusSel, sec); if (f) f.focus(); } };
-  $$('input[name="ia-four"]', sec).forEach(i => i.onchange = () => { const c = AI.cfg(); c.provider = i.value; AI.saveCfg(c); redraw(`input[name="ia-four"][value="${i.value}"]`); });
-  if (AI_PROVIDERS[AI.cfg().provider].local) return bindIaLocal(sec, redraw);
-  const keyIn = $('#set-ia-key', sec);
-  const save = () => { const k = keyIn.value.trim(); if (!k) { toast('Collez la clé dans le champ avant de l\'enregistrer', 'err'); keyIn.focus(); return; }
-    AI.setKey(AI.cfg().provider, k); toast('Clé enregistrée sur ce poste'); redraw('#set-ia-test'); };
-  $('#set-ia-save', sec).onclick = save;
-  keyIn.onkeydown = e => { if (e.key === 'Enter') { e.preventDefault(); save(); } };
-  const del = $('#set-ia-del', sec);
-  if (del) del.onclick = () => inlineConfirm({ title: `Effacer la clé ${AI_PROVIDERS[AI.cfg().provider].court} de ce poste ?`, detail: 'L\'Assistant IA ne pourra plus rédiger avec ce fournisseur tant qu\'une nouvelle clé n\'est pas enregistrée.',
-    verb: 'Effacer la clé', host: del.closest('.set-row'), trigger: del, onYes: () => { AI.setKey(AI.cfg().provider, ''); toast('Clé effacée'); redraw('#set-ia-key'); } });
-  const mod = $('#set-ia-model', sec);
-  mod.onchange = () => { const c = AI.cfg(), val = mod.value.trim(); if (val && val !== AI_PROVIDERS[c.provider].modele) c.modeles[c.provider] = val; else delete c.modeles[c.provider]; AI.saveCfg(c);
-    if (!val) mod.value = AI_PROVIDERS[c.provider].modele; toast('Modèle enregistré : ' + AI.cfg().modele); };
-  const test = $('#set-ia-test', sec), res = $('#set-ia-test-res', sec);
+  const redraw = focusSel => { if (!sec.isConnected) return; sec.innerHTML = iaReglagesHTML(); bindIaReglages(v); updateNavMeta(); if (focusSel) { const f = $(focusSel, sec); if (f) f.focus(); } };
+  if (!sec.dataset.lu) { sec.dataset.lu = '1'; IA.statut(true).then(() => redraw()); }
+  const code = $('#set-ia-code', sec);
+  if (code) {
+    const save = () => { const c = code.value.trim(); if (!c) { toast('Saisissez le code avant de l\'enregistrer', 'err'); code.focus(); return; }
+      IA.setCode(c); IA.statut(true).then(e => { toast(e.codeOk ? 'Code d\'accès accepté' : 'Code d\'accès refusé par le serveur', e.codeOk ? 'ok' : 'err'); redraw(e.codeOk ? '#set-ia-test' : '#set-ia-code'); }); };
+    $('#set-ia-save', sec).onclick = save;
+    code.onkeydown = e => { if (e.key === 'Enter') { e.preventDefault(); save(); } };
+    const del = $('#set-ia-del', sec);
+    if (del) del.onclick = () => inlineConfirm({ title: 'Effacer le code d\'accès IA de ce poste ?', detail: 'Les fonctions IA seront indisponibles sur ce poste tant que le code n\'est pas saisi à nouveau.',
+      verb: 'Effacer le code', host: del.closest('.set-row'), trigger: del, onYes: () => { IA.setCode(''); toast('Code effacé'); IA.statut(true).then(() => redraw('#set-ia-code')); } });
+  }
+  const test = $('#set-ia-test', sec), res = $('#set-ia-etat', sec);
   test.onclick = async () => {
     test.disabled = true; res.textContent = 'Test en cours…';
-    try { await aiComplete({ system: 'Réponds en un mot.', prompt: 'Réponds « OK ».' }); res.textContent = 'Connexion établie avec ' + AI_PROVIDERS[AI.cfg().provider].court + ' (' + AI.cfg().modele + ').'; }
+    try { await aiComplete({ system: 'Réponds en un mot.', prompt: 'Réponds « OK ».', effort: 'low', maxTokens: 512 }); res.textContent = 'Connexion établie : ' + IA.libelle() + ' a répondu.'; }
     catch (e) { res.textContent = e.message || 'Le test a échoué. Réessayez.'; }
     finally { if (test.isConnected) test.disabled = false; }
   };
-}
-/* IA locale : compatibilité, choix du modèle, téléchargement avec progression, suppression du cache */
-function bindIaLocal(sec, redraw) {
-  const compat = $('#set-ia-compat', sec), dl = $('#set-ia-dl', sec), prep = $('#set-ia-prep', sec), del = $('#set-ia-local-del', sec);
-  const prog = $('#set-ia-prog', sec), bar = $('#set-ia-prog i', sec), sel = $('#set-ia-local-model', sec);
-  const base = () => AI.cfg().modele, taille = () => (LOCAL_MODELES[base()] || {}).taille || '';
-  const etiquette = (enCache) => { prep.innerHTML = enCache ? `${icon('zap')} Tester le modèle` : `${icon('download')} Télécharger le modèle`; };
-  async function etat() {
-    const s = await localSupport(); if (!sec.isConnected) return;
-    compat.textContent = s.ok ? 'Compatible : l\'IA locale peut fonctionner dans ce navigateur.' : s.raison;
-    if (!s.ok) { dl.textContent = 'Indisponible sur ce poste.'; prep.disabled = true; del.hidden = true; return; }
-    const c = await localEnCache(base()); if (!sec.isConnected) return;
-    if (c === null) { dl.textContent = 'Impossible de vérifier le modèle pour l\'instant (moteur non téléchargé). Il se téléchargera au premier usage.'; etiquette(false); }
-    else if (c) { dl.textContent = 'Modèle téléchargé sur ce poste, prêt à l\'emploi.'; etiquette(true); }
-    else { dl.textContent = `Pas encore téléchargé (${taille()}). Il se télécharge aussi automatiquement au premier usage.`; etiquette(false); }
-    prep.disabled = false; del.hidden = !c;
-  }
-  sel.onchange = () => { const c = AI.cfg(); if (sel.value === AI_PROVIDERS.local.modele) delete c.modeles.local; else c.modeles.local = sel.value; AI.saveCfg(c);
-    toast('Modèle choisi : ' + LOCAL_MODELES[sel.value].nom); redraw('#set-ia-local-model'); };
-  prep.onclick = async () => {
-    prep.disabled = true; del.hidden = true; dl.textContent = 'Préparation du modèle…';
-    const onProgress = r => { if (!sec.isConnected) return; const pc = Math.round((r && r.progress || 0) * 100);
-      prog.hidden = pc >= 100; bar.style.width = pc + '%'; if (pc < 100) dl.textContent = `Téléchargement et chargement : ${pc} % (${taille()}, une seule fois).`; };
-    try {
-      await aiComplete({ system: 'Réponds en un mot.', prompt: 'Réponds « OK ».', onProgress });
-      if (!sec.isConnected) return; prog.hidden = true;
-      toast('IA locale prête'); await etat(); dl.textContent = 'Modèle téléchargé et testé : l\'IA locale est prête.';
-    } catch (e) { if (!sec.isConnected) return; prog.hidden = true; await etat(); dl.textContent = e.message || 'La préparation a échoué. Réessayez.'; }
-  };
-  del.onclick = () => inlineConfirm({ title: `Supprimer le modèle ${LOCAL_MODELES[base()].nom} de ce poste ?`, detail: `Libère ${taille()} dans le navigateur. Il faudra le télécharger à nouveau pour utiliser l'IA locale.`,
-    verb: 'Supprimer le modèle', host: del.closest('.set-row'), trigger: del,
-    onYes: async () => { try { await localSupprimer(base()); toast('Modèle supprimé de ce poste'); } catch { toast('Suppression impossible pour le moment. Réessayez après avoir rechargé la page.', 'err'); } if (sec.isConnected) redraw('#set-ia-prep'); } });
-  etat();
 }
 /* Actions irréversibles sur le profil : confirmation intégrée dans Paramètres › Profil */
 function demanderSuppressionProfil() {
