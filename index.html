@@ -1417,6 +1417,13 @@ html:not([data-density="compact"]) .pil-rec-item{padding:var(--sp-2) var(--sp-1)
 .ai-skel i:nth-child(3){width:86%}.ai-skel i:nth-child(4){width:58%}
 @keyframes ai-pulse{50%{opacity:.45}}
 @media (prefers-reduced-motion: reduce){.ai-skel i{animation:none}}
+.ai-prog{padding:var(--sp-2) 0}
+.ai-prog-t{display:flex;justify-content:space-between;gap:var(--sp-3);margin:0 0 var(--sp-2);font-size:var(--text-md);line-height:var(--lh-md)}
+.ai-prog-t span{color:var(--muted);font-variant-numeric:tabular-nums}
+.ai-prog-n{margin:var(--sp-2) 0 0;font-size:var(--text-xs);line-height:var(--lh-xs);color:var(--muted)}
+#set-ia-body .set-seg{flex-wrap:wrap}
+#set-ia-local-model{width:auto;min-width:0;flex:1 1 260px;max-width:360px}
+@media (max-width:640px){#set-ia-local-model{max-width:none;width:100%;flex-basis:100%}}
 .ai-err{display:flex;align-items:flex-start;gap:var(--sp-2);padding:var(--sp-3) var(--sp-4);margin-bottom:var(--sp-3);border:1px solid var(--red-line);border-radius:var(--r-8);background:var(--red-bg);color:var(--text);font-size:var(--text-md);line-height:var(--lh-md)}
 .ai-err .ic{flex:none;width:18px;height:18px;margin-top:1px;color:var(--red)}
 .ia-key .input,#set-ia-model{width:auto;min-width:0;flex:1 1 220px;max-width:320px}
@@ -2253,7 +2260,7 @@ function buildNav() {
    Devis en cours + relances en retard (rouge), Chantiers en cours, Prospection à traiter (ambre),
    point rouge sur « CA & marge » si la marge de l'année est sous la cible, Assistant IA à configurer. */
 const AI_KEY_STORAGE = 'chargepro.ai.key'; // clé IA (lot 6) : clé dédiée, hors export du profil
-const aiConfigured = () => !!AI.key(); // fournisseur courant muni d'une clé (voir « Assistant IA »)
+const aiConfigured = () => AI.pret(); // IA locale choisie, ou fournisseur courant muni d'une clé (voir « Assistant IA »)
 function navStats() {
   const t = todayISO(), d = DB.data || {}, o = d.objectifs || {}, yr = new Date().getFullYear();
   const devis = d.devis || [], ch = d.chantiers || [], pr = d.prospection || [];
@@ -7190,7 +7197,81 @@ const AI_PROVIDERS = {
   openai: { nom: 'OpenAI', court: 'OpenAI', modele: 'gpt-5', modeles: ['gpt-5', 'gpt-5-mini'], cle: 'sk-…', console: 'platform.openai.com' },
   mistral: { nom: 'Mistral AI', court: 'Mistral', modele: 'mistral-large-latest', modeles: ['mistral-large-latest', 'mistral-medium-latest', 'mistral-small-latest'], cle: '', console: 'console.mistral.ai' },
   gemini: { nom: 'Google Gemini', court: 'Gemini', modele: 'gemini-2.5-flash', modeles: ['gemini-2.5-pro', 'gemini-2.5-flash'], cle: 'AIza…', console: 'aistudio.google.com' },
+  local: { nom: 'IA locale (gratuite)', court: 'IA locale', local: true, modele: 'Qwen2.5-3B-Instruct', modeles: [] },
 };
+/* IA locale : WebLLM fait tourner un modèle ouvert dans le navigateur (WebGPU). Gratuit, sans clé,
+   rien ne quitte le poste. Le modèle se télécharge une fois puis reste en cache dans le navigateur. */
+const WEBLLM_URL = 'https://cdn.jsdelivr.net/npm/@mlc-ai/web-llm@0.2.86/+esm';
+const LOCAL_MODELES = {
+  'Qwen2.5-3B-Instruct': { nom: 'Qwen 2.5 — 3B', taille: '≈ 2,5 Go', note: 'Équilibré, bon français. Recommandé.' },
+  'Qwen2.5-1.5B-Instruct': { nom: 'Qwen 2.5 — 1,5B', taille: '≈ 1,6 Go', note: 'Léger et rapide, pour un PC modeste. Textes plus simples.' },
+  'Llama-3.2-3B-Instruct': { nom: 'Llama 3.2 — 3B', taille: '≈ 2,3 Go', note: 'Alternative de même taille.' },
+  'Mistral-7B-Instruct-v0.3': { nom: 'Mistral — 7B', taille: '≈ 4,6 Go', note: 'Meilleur français, demande une carte graphique récente.' },
+};
+const LOCAL = { lib: null, engine: null, modele: '', charge: null, chargeId: '', ecoute: new Set() };
+const localErr = msg => new AiError(msg, true);
+async function localSupport() {
+  if (!window.isSecureContext || !navigator.gpu) return { ok: false, raison: 'Ce navigateur ne permet pas l\'IA locale (WebGPU absent). Utilisez Chrome ou Edge à jour, sur ordinateur, ou choisissez un autre fournisseur.' };
+  let a = null; try { a = await navigator.gpu.requestAdapter(); } catch {}
+  if (!a) return { ok: false, raison: 'Aucune carte graphique compatible n\'est disponible pour l\'IA locale sur ce poste. Mettez à jour le navigateur ou choisissez un autre fournisseur.' };
+  return { ok: true, f16: a.features.has('shader-f16') };
+}
+const localId = (base, f16) => base + (f16 ? '-q4f16_1-MLC' : '-q4f32_1-MLC');
+function localLib() {
+  if (!LOCAL.lib) LOCAL.lib = import(WEBLLM_URL).catch(() => { LOCAL.lib = null; throw new AiError('Impossible de télécharger le moteur de l\'IA locale. Vérifiez la connexion internet, puis réessayez.'); });
+  return LOCAL.lib;
+}
+async function localEngine(base) {
+  const s = await localSupport(); if (!s.ok) throw localErr(s.raison);
+  const id = localId(LOCAL_MODELES[base] ? base : AI_PROVIDERS.local.modele, s.f16), lib = await localLib();
+  if (LOCAL.engine && LOCAL.modele === id) return LOCAL.engine;
+  if (LOCAL.charge && LOCAL.chargeId === id) return LOCAL.charge;
+  LOCAL.chargeId = id;
+  LOCAL.charge = (async () => {
+    try {
+      if (LOCAL.engine) await LOCAL.engine.reload(id);
+      else LOCAL.engine = await lib.CreateMLCEngine(id, { initProgressCallback: r => LOCAL.ecoute.forEach(f => { try { f(r); } catch {} }) });
+      LOCAL.modele = id; return LOCAL.engine;
+    } catch (e) {
+      LOCAL.modele = '';
+      const m = String(e && e.message || e);
+      if (/quota/i.test(m)) throw localErr('Le navigateur manque d\'espace disque pour enregistrer le modèle. Libérez de la place ou choisissez un modèle plus léger dans Paramètres.');
+      if (/memory|device (was )?lost|out of/i.test(m)) throw localErr('La carte graphique manque de mémoire pour ce modèle. Choisissez un modèle plus léger dans Paramètres › Intelligence artificielle.');
+      if (/fetch|network/i.test(m)) throw new AiError('Le téléchargement du modèle a été interrompu. Vérifiez la connexion internet, puis réessayez : la partie déjà téléchargée est conservée.');
+      throw localErr('Le modèle n\'a pas pu être chargé (' + m.slice(0, 120) + '). Réessayez, ou choisissez un modèle plus léger dans Paramètres.');
+    } finally { LOCAL.charge = null; }
+  })();
+  return LOCAL.charge;
+}
+async function localEnCache(base) {
+  const s = await localSupport(); if (!s.ok) return null;
+  try { const lib = await localLib(); return await lib.hasModelInCache(localId(base, s.f16)); } catch { return null; }
+}
+async function localSupprimer(base) {
+  const s = await localSupport(); if (!s.ok) return;
+  const id = localId(base, s.f16), lib = await localLib();
+  if (LOCAL.engine && LOCAL.modele === id) { try { await LOCAL.engine.unload(); } catch {} LOCAL.engine = null; LOCAL.modele = ''; }
+  await lib.deleteModelAllInfoInCache(id);
+}
+async function aiLocal({ system, prompt, signal, modele, onProgress }) {
+  const arret = () => new DOMException('Rédaction arrêtée', 'AbortError');
+  if (onProgress) LOCAL.ecoute.add(onProgress);
+  let eng;
+  try {
+    eng = await Promise.race([localEngine(modele), new Promise((_, rej) => { if (signal) signal.addEventListener('abort', () => rej(arret()), { once: true }); })]);
+  } finally { if (onProgress) LOCAL.ecoute.delete(onProgress); }
+  if (signal && signal.aborted) throw arret();
+  const stop = () => { try { eng.interruptGenerate(); } catch {} };
+  if (signal) signal.addEventListener('abort', stop, { once: true });
+  try {
+    // Consigne système fusionnée dans le message : tous les modèles locaux ne gèrent pas le rôle « system »
+    const r = await eng.chat.completions.create({ messages: [{ role: 'user', content: system + '\n\n---\n\n' + prompt }], max_tokens: 1200 });
+    if (signal && signal.aborted) throw arret();
+    const t = String(r && r.choices && r.choices[0] && r.choices[0].message ? r.choices[0].message.content || '' : '').trim();
+    if (!t) throw new AiError('L\'IA locale n\'a renvoyé aucun texte. Réessayez, ou ajoutez des consignes.');
+    return t;
+  } finally { if (signal) signal.removeEventListener('abort', stop); }
+}
 const AI = {
   keys() { try { const r = localStorage.getItem(AI_KEY_STORAGE); if (!r) return {}; const o = JSON.parse(r); return o && typeof o === 'object' ? o : {}; } catch { return {}; } },
   cfg() { let c = {}; try { c = JSON.parse(localStorage.getItem(AI_CFG_STORAGE)) || {}; } catch {}
@@ -7198,6 +7279,7 @@ const AI = {
     return { provider, modele: (c.modeles && c.modeles[provider]) || AI_PROVIDERS[provider].modele, modeles: c.modeles || {} }; },
   saveCfg(c) { try { localStorage.setItem(AI_CFG_STORAGE, JSON.stringify({ provider: c.provider, modeles: c.modeles })); } catch {} },
   key(p) { return this.keys()[p || this.cfg().provider] || ''; },
+  pret() { const p = this.cfg().provider; return !!AI_PROVIDERS[p].local || !!this.key(p); },
   setKey(p, k) { const ks = this.keys(); if (k) ks[p] = k; else delete ks[p];
     try { if (Object.keys(ks).length) localStorage.setItem(AI_KEY_STORAGE, JSON.stringify(ks)); else localStorage.removeItem(AI_KEY_STORAGE); } catch {} },
 };
@@ -7214,8 +7296,9 @@ function aiErreurHttp(status, detail, p, modele) {
 }
 
 /* Un appel = une consigne système + un message. Retourne le texte produit. */
-async function aiComplete({ system, prompt, signal, provider, modele, key }) {
+async function aiComplete({ system, prompt, signal, provider, modele, key, onProgress }) {
   const c = AI.cfg(); provider = provider || c.provider; modele = modele || c.modele; key = key || AI.key(provider);
+  if (AI_PROVIDERS[provider].local) return aiLocal({ system, prompt, signal, modele, onProgress });
   if (!key) throw new AiError('Aucune clé d\'accès enregistrée pour ' + AI_PROVIDERS[provider].court + '. Ajoutez-la dans Paramètres › Intelligence artificielle.', true);
   let url, headers = { 'content-type': 'application/json' }, body;
   if (provider === 'claude') {
@@ -7342,7 +7425,7 @@ function ouvrirAssistantIA(tache, id) { aiPreset = { tache, id }; go('assistant'
 function renderAssistantIA(v) {
   if (!aiConfigured()) {
     v.innerHTML = `<div class="form-page"><div class="fp-panel">${emptyState('sparkle', 'Assistant IA à configurer',
-      "Branchez votre propre clé (Claude, OpenAI, Mistral ou Gemini) dans les paramètres pour faire rédiger relances, objets de devis et synthèses de chantier.",
+      "Choisissez l'IA locale gratuite, ou branchez votre propre clé (Claude, OpenAI, Mistral ou Gemini), pour faire rédiger relances, objets de devis et synthèses de chantier.",
       { id: 'ai-config', label: "Configurer l'assistant", ico: 'settings' })}</div></div>`;
     $('#ai-config').onclick = allerReglagesIA;
     return;
@@ -7351,7 +7434,7 @@ function renderAssistantIA(v) {
   const pre = aiPreset; aiPreset = null;
   const tache0 = pre && AI_TACHES[pre.tache] ? pre.tache : 'relance-devis';
   v.innerHTML = `<form class="form-page ai-page" novalidate aria-labelledby="page-title">
-    <div class="fp-top"><p class="fp-req">Rédigé par ${esc(pv.court)} · ${esc(cfg.modele)}. Seules les données de l'élément choisi sont envoyées.</p>
+    <div class="fp-top"><p class="fp-req">${pv.local ? `Rédigé sur ce poste par l'IA locale · ${esc((LOCAL_MODELES[cfg.modele] || {}).nom || cfg.modele)}. Aucune donnée n'est envoyée.` : `Rédigé par ${esc(pv.court)} · ${esc(cfg.modele)}. Seules les données de l'élément choisi sont envoyées.`}</p>
       <button type="button" class="btn ghost small" id="ai-reglages">${icon('settings')} Changer de fournisseur</button></div>
     <div class="fp-panel">
       <div class="form-grid">
@@ -7438,8 +7521,24 @@ function renderAssistantIA(v) {
     if (c && !t.besoinConsignes) prompt += `\n\nConsignes complémentaires : ${c}`;
     if (autre && dernier) prompt += `\n\nVersion précédente, à ne pas reprendre telle quelle — propose une formulation différente :\n${dernier}`;
     ctrl = new AbortController(); chargement(true);
+    let prog = null, palier = -1;
+    const onProgress = r => {
+      if (!root.isConnected) return;
+      const pc = Math.max(0, Math.min(100, Math.round((r && r.progress || 0) * 100)));
+      if (pc >= 100) { if (prog) { prog = null; outBody.innerHTML = `<div class="ai-skel" role="status"><span class="sr-only">Rédaction en cours</span><i></i><i></i><i></i><i></i></div>`; } return; }
+      if (!prog) {
+        const m = LOCAL_MODELES[AI.cfg().modele] || {};
+        outBody.innerHTML = `<div class="ai-prog"><p class="ai-prog-t"><b>Préparation de l'IA locale</b> <span data-pc>0 %</span></p>
+          <div class="wz-prog" aria-hidden="true"><i data-bar style="width:0"></i></div>
+          <p class="ai-prog-n">Premier usage : le modèle (${esc(m.taille || '')}) se télécharge une seule fois, puis reste sur ce poste. Les fois suivantes, il se charge en quelques secondes.</p>
+          <span class="sr-only" role="status" data-sr></span></div>`;
+        prog = { pc: $('[data-pc]', outBody), bar: $('[data-bar]', outBody), sr: $('[data-sr]', outBody) };
+      }
+      prog.pc.textContent = pc + ' %'; prog.bar.style.width = pc + '%';
+      const p10 = Math.floor(pc / 10); if (p10 !== palier) { palier = p10; prog.sr.textContent = 'Préparation de l\'IA locale : ' + pc + ' %'; }
+    };
     try {
-      const txt = await aiComplete({ system: AI_SYSTEME, prompt, signal: ctrl.signal });
+      const txt = await aiComplete({ system: AI_SYSTEME, prompt, signal: ctrl.signal, onProgress });
       if (!root.isConnected) return;
       dernier = txt; afficher(txt, { tache: sel.value, id });
     } catch (e) {
@@ -7461,10 +7560,25 @@ function allerReglagesIA() { go('parametres'); setTimeout(() => { const h = $('#
 
 /* Paramètres › Intelligence artificielle */
 function iaReglagesHTML() {
-  const c = AI.cfg(), p = AI_PROVIDERS[c.provider], k = AI.key(c.provider);
-  return `<div class="set-row"><div class="set-lbl" id="lbl-ia-four">Fournisseur<span>Utilisé par l'Assistant IA. Chaque fournisseur garde sa propre clé.</span></div>
+  const c = AI.cfg(), p = AI_PROVIDERS[c.provider];
+  const four = `<div class="set-row"><div class="set-lbl" id="lbl-ia-four">Fournisseur<span>Utilisé par l'Assistant IA. L'IA locale est gratuite et fonctionne sans clé ; les autres demandent votre propre clé.</span></div>
       <fieldset class="set-seg"><legend class="sr-only">Fournisseur d'IA</legend>${Object.entries(AI_PROVIDERS).map(([id, x]) =>
-        `<label class="set-opt"><input type="radio" name="ia-four" value="${id}" ${c.provider === id ? 'checked' : ''}><span>${esc(x.court)}</span></label>`).join('')}</fieldset></div>
+        `<label class="set-opt"><input type="radio" name="ia-four" value="${id}" ${c.provider === id ? 'checked' : ''}><span>${esc(x.local ? 'IA locale (gratuite)' : x.court)}</span></label>`).join('')}</fieldset></div>`;
+  if (p.local) {
+    const m = LOCAL_MODELES[c.modele] || LOCAL_MODELES[p.modele];
+    return four + `
+    <div class="set-row"><div class="set-lbl">Compatibilité de ce poste<span id="set-ia-compat" role="status">Vérification…</span></div></div>
+    <div class="set-row"><div class="set-lbl"><label for="set-ia-local-model">Modèle</label><span id="set-ia-local-aide">${esc(m.note)}</span></div>
+      <select id="set-ia-local-model" class="input" aria-describedby="set-ia-local-aide">${Object.entries(LOCAL_MODELES).map(([id, x]) =>
+        `<option value="${esc(id)}" ${id === c.modele ? 'selected' : ''}>${esc(x.nom)} — ${esc(x.taille)}</option>`).join('')}</select></div>
+    <div class="set-row"><div class="set-lbl">Téléchargement du modèle<span id="set-ia-dl" role="status">Vérification…</span>
+        <div class="ai-prog" id="set-ia-prog" hidden><div class="wz-prog" aria-hidden="true"><i style="width:0"></i></div></div></div>
+      <div class="set-btns"><button type="button" class="btn" id="set-ia-prep" disabled>${icon('download')} Télécharger le modèle</button>
+        <button type="button" class="btn danger-quiet" id="set-ia-local-del" hidden>${icon('trash')} Supprimer le modèle</button></div></div>
+    <div class="set-row"><div class="set-lbl">Données<span>Tout se passe sur ce poste : ni vos clients ni vos montants ne sont envoyés. Seuls le moteur et le modèle sont téléchargés une fois depuis internet. Les textes sont plus simples qu'avec Claude ou GPT : relisez-les avant envoi.</span></div></div>`;
+  }
+  const k = AI.key(c.provider);
+  return four + `
     <div class="set-row"><div class="set-lbl"><label for="set-ia-key">Clé d'accès ${esc(p.court)}</label><span id="set-ia-key-aide">${k ? 'Clé enregistrée sur ce poste : ' + esc(k.slice(0, 6)) + '…' + esc(k.slice(-4)) + '.' : 'À créer sur ' + esc(p.console) + '.'} Elle reste sur ce poste, hors des sauvegardes.</span></div>
       <div class="set-btns ia-key"><input id="set-ia-key" class="input" type="password" autocomplete="off" spellcheck="false" placeholder="${k ? 'Coller une nouvelle clé' : esc(p.cle || 'Coller la clé')}" aria-describedby="set-ia-key-aide">
         <button type="button" class="btn" id="set-ia-save">${icon('check')} Enregistrer la clé</button>
@@ -7480,6 +7594,7 @@ function bindIaReglages(v) {
   const sec = $('#set-ia-body', v); if (!sec) return;
   const redraw = focusSel => { sec.innerHTML = iaReglagesHTML(); bindIaReglages(v); updateNavMeta(); if (focusSel) { const f = $(focusSel, sec); if (f) f.focus(); } };
   $$('input[name="ia-four"]', sec).forEach(i => i.onchange = () => { const c = AI.cfg(); c.provider = i.value; AI.saveCfg(c); redraw(`input[name="ia-four"][value="${i.value}"]`); });
+  if (AI_PROVIDERS[AI.cfg().provider].local) return bindIaLocal(sec, redraw);
   const keyIn = $('#set-ia-key', sec);
   const save = () => { const k = keyIn.value.trim(); if (!k) { toast('Collez la clé dans le champ avant de l\'enregistrer', 'err'); keyIn.focus(); return; }
     AI.setKey(AI.cfg().provider, k); toast('Clé enregistrée sur ce poste'); redraw('#set-ia-test'); };
@@ -7498,6 +7613,39 @@ function bindIaReglages(v) {
     catch (e) { res.textContent = e.message || 'Le test a échoué. Réessayez.'; }
     finally { if (test.isConnected) test.disabled = false; }
   };
+}
+/* IA locale : compatibilité, choix du modèle, téléchargement avec progression, suppression du cache */
+function bindIaLocal(sec, redraw) {
+  const compat = $('#set-ia-compat', sec), dl = $('#set-ia-dl', sec), prep = $('#set-ia-prep', sec), del = $('#set-ia-local-del', sec);
+  const prog = $('#set-ia-prog', sec), bar = $('#set-ia-prog i', sec), sel = $('#set-ia-local-model', sec);
+  const base = () => AI.cfg().modele, taille = () => (LOCAL_MODELES[base()] || {}).taille || '';
+  const etiquette = (enCache) => { prep.innerHTML = enCache ? `${icon('zap')} Tester le modèle` : `${icon('download')} Télécharger le modèle`; };
+  async function etat() {
+    const s = await localSupport(); if (!sec.isConnected) return;
+    compat.textContent = s.ok ? 'Compatible : l\'IA locale peut fonctionner dans ce navigateur.' : s.raison;
+    if (!s.ok) { dl.textContent = 'Indisponible sur ce poste.'; prep.disabled = true; del.hidden = true; return; }
+    const c = await localEnCache(base()); if (!sec.isConnected) return;
+    if (c === null) { dl.textContent = 'Impossible de vérifier le modèle pour l\'instant (moteur non téléchargé). Il se téléchargera au premier usage.'; etiquette(false); }
+    else if (c) { dl.textContent = 'Modèle téléchargé sur ce poste, prêt à l\'emploi.'; etiquette(true); }
+    else { dl.textContent = `Pas encore téléchargé (${taille()}). Il se télécharge aussi automatiquement au premier usage.`; etiquette(false); }
+    prep.disabled = false; del.hidden = !c;
+  }
+  sel.onchange = () => { const c = AI.cfg(); if (sel.value === AI_PROVIDERS.local.modele) delete c.modeles.local; else c.modeles.local = sel.value; AI.saveCfg(c);
+    toast('Modèle choisi : ' + LOCAL_MODELES[sel.value].nom); redraw('#set-ia-local-model'); };
+  prep.onclick = async () => {
+    prep.disabled = true; del.hidden = true; dl.textContent = 'Préparation du modèle…';
+    const onProgress = r => { if (!sec.isConnected) return; const pc = Math.round((r && r.progress || 0) * 100);
+      prog.hidden = pc >= 100; bar.style.width = pc + '%'; if (pc < 100) dl.textContent = `Téléchargement et chargement : ${pc} % (${taille()}, une seule fois).`; };
+    try {
+      await aiComplete({ system: 'Réponds en un mot.', prompt: 'Réponds « OK ».', onProgress });
+      if (!sec.isConnected) return; prog.hidden = true;
+      toast('IA locale prête'); await etat(); dl.textContent = 'Modèle téléchargé et testé : l\'IA locale est prête.';
+    } catch (e) { if (!sec.isConnected) return; prog.hidden = true; await etat(); dl.textContent = e.message || 'La préparation a échoué. Réessayez.'; }
+  };
+  del.onclick = () => inlineConfirm({ title: `Supprimer le modèle ${LOCAL_MODELES[base()].nom} de ce poste ?`, detail: `Libère ${taille()} dans le navigateur. Il faudra le télécharger à nouveau pour utiliser l'IA locale.`,
+    verb: 'Supprimer le modèle', host: del.closest('.set-row'), trigger: del,
+    onYes: async () => { try { await localSupprimer(base()); toast('Modèle supprimé de ce poste'); } catch { toast('Suppression impossible pour le moment. Réessayez après avoir rechargé la page.', 'err'); } if (sec.isConnected) redraw('#set-ia-prep'); } });
+  etat();
 }
 /* Actions irréversibles sur le profil : confirmation intégrée dans Paramètres › Profil */
 function demanderSuppressionProfil() {
