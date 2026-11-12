@@ -1240,11 +1240,9 @@ thead th{background:var(--surface);font-size:var(--text-xs);line-height:var(--lh
 }
 @media(max-width:720px){.todo-item>.todo-tools{margin-left:auto;align-self:center}}
 
-/* --- Commandes de fenêtre en surimpression dans l'en-tête de carte (n'occupent plus de place) --- */
-@media (hover:hover) and (pointer:fine){
-  .card-pad>.section-head.win-head:first-child{position:relative}
-  .card-pad>.section-head.win-head>.win-ctl{position:absolute;right:14px;top:50%;transform:translateY(-50%);background:var(--surface);padding-left:var(--sp-2)}
-}
+/* --- Commandes de fenêtre dans l'en-tête de carte : elles gardent leur place en bout de ligne (visibles au survol)
+   au lieu de flotter par-dessus les boutons et puces de l'en-tête --- */
+.section-head.win-head>.win-ctl{margin-left:var(--sp-1)}
 
 /* --- Pilotage stratégique (analyse annuelle) --- */
 .pil-bar{display:flex;align-items:center;gap:var(--sp-3);flex-wrap:wrap;margin-bottom:var(--gap)}
