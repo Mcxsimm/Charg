@@ -7361,6 +7361,7 @@ function renderAchats(v) {
     </div>
     <div class="page-actions"><button class="btn primary" id="add">${icon('plus')} Créer une commande</button>
       <button class="btn" id="recept">${icon('checkSquare')} Réception du mois${DB.data.commandes.filter(c => !c.dateReception).length ? ` &nbsp;<span class="badge b-relance">${DB.data.commandes.filter(c => !c.dateReception).length}</span>` : ''}</button>
+      <button class="btn" id="simu">${icon('calculator')} Simuler une réception</button>
       <span class="spacer"></span><button class="btn small" id="csv">${icon('download')} Exporter en Excel</button></div>
     <div class="filters"><span class="search-wrap">${icon('search')}<input id="q" placeholder="Fournisseur, objet, OTP…" value="${esc(achatFilter.q)}"></span>
       <select id="fotp"><option value="">Tous les OTP</option>${otpDistinct().map(o => `<option value="${esc(o)}" ${achatFilter.otp === o ? 'selected' : ''}>${esc(o)}</option>`).join('')}</select>
@@ -7373,6 +7374,7 @@ function renderAchats(v) {
       : emptyState('cart', 'Aucune commande fournisseur', 'Chaque commande est imputée sur un OTP ; réceptionnez-la au mois voulu pour l\'imputer au CA.')}`;
   $('#add').onclick = () => achatForm();
   $('#recept').onclick = () => receptionPicker();
+  $('#simu').onclick = () => receptionSimulation();
   $('#q').oninput = e => { achatFilter.q = e.target.value; renderAchats(v); const i = $('#q'); i.focus(); i.setSelectionRange(i.value.length, i.value.length); };
   $('#fotp').onchange = e => { achatFilter.otp = e.target.value; renderAchats(v); };
   $$('[data-fotp]', v).forEach(b => b.onclick = () => { achatFilter.otp = b.dataset.fotp; renderAchats(v); });
@@ -7380,6 +7382,79 @@ function renderAchats(v) {
   $$('[data-edit]', v).forEach(b => b.onclick = () => achatForm(b.dataset.edit));
   $$('[data-recv]', v).forEach(b => b.onclick = () => { const c = DB.data.commandes.find(x => x.id === b.dataset.recv); c.dateReception = todayISO(); if (c.statut === 'commande') c.statut = 'livree'; DB.save(); toast('Commande réceptionnée'); renderAchats(v); });
   $$('[data-del]', v).forEach(b => b.onclick = () => { const cm = DB.data.commandes.find(x => x.id === b.dataset.del) || {}; confirmDelete('la commande', [cm.num, cm.fournisseur].filter(Boolean).join(' — '), () => { DB.data.commandes = DB.data.commandes.filter(x => x.id !== b.dataset.del); DB.save(); toast('Commande supprimée'); renderAchats(v); }); });
+}
+/* Simulation de réception : pour le mois de la date choisie (et un OTP ou tous), part du CA mis en facturation
+   et des coûts déjà réceptionnés (achats reçus + pointage) pour donner le montant maximal encore réceptionnable
+   en tenant la marge visée, puis la marge obtenue si l'on réceptionne les commandes cochées. Rien n'est enregistré
+   tant que l'on ne clique pas sur « Réceptionner la sélection ». */
+function simuReceptionBase(iso, otp) {
+  const d = new Date(iso + 'T00:00:00'), annee = d.getFullYear(), mois = d.getMonth();
+  const dansMois = x => { if (!x) return false; const t = new Date(x + 'T00:00:00'); return !isNaN(t) && t.getFullYear() === annee && t.getMonth() === mois; };
+  const okOtp = code => otpCompte(code) && (!otp || code === otp);
+  const ca = DB.data.ca.reduce((s, r) => (r.annee === annee && (r.mois ?? 0) === mois && okOtp(r.otp)) ? s + (+r.prixVente || 0) : s, 0);
+  const achats = DB.data.commandes.reduce((s, c) => (okOtp(c.otp) && dansMois(c.dateReception)) ? s + (+c.montantHT || 0) : s, 0);
+  let mo = 0;
+  DB.data.pointages.forEach(r => { if (!r.h || !okOtp(r.otp)) return; const taux = tauxWorker(r.workerKey);
+    r.h.forEach((h, i) => { if (h && dansMois(addDays(r.semaine, i))) mo += (+h) * taux; }); });
+  const cand = DB.data.commandes.filter(c => !c.dateReception && okOtp(c.otp)).sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+  return { annee, mois, ca, achats, mo, cand };
+}
+function receptionSimulation() {
+  const otps = [...new Set(DB.data.commandes.filter(c => !c.dateReception && otpCompte(c.otp)).map(c => c.otp))].sort();
+  const cible0 = Math.round((DB.data.objectifs.margeCible || 0) * 1000) / 10;
+  const m = modal({ title: 'Simulation de réception — CA et marge du mois', wide: true,
+    body: `<p class="t-muted" style="margin-top:0">Estimez ce que vous pouvez encore <b>réceptionner</b> sur le mois sans descendre sous la marge visée. La simulation part du <b>CA mis en facturation</b> du mois et des coûts déjà <b>réceptionnés</b> (achats reçus et pointage). Rien n'est enregistré tant que vous ne réceptionnez pas.</p>
+    <div class="form-grid" style="max-width:860px;grid-template-columns:repeat(auto-fit,minmax(180px,1fr))">
+      <div class="field"><label for="s-date">Date de réception</label><input id="s-date" type="date" value="${todayISO()}"></div>
+      <div class="field"><label for="s-otp">OTP</label><select id="s-otp"><option value="">Tous les OTP</option>${otps.map(o => `<option value="${esc(o)}">${esc(o)}</option>`).join('')}</select></div>
+      <div class="field"><label for="s-cible">Marge visée (%)</label><input id="s-cible" type="number" step="0.1" min="0" max="99" inputmode="decimal" value="${cible0}"></div>
+    </div>
+    <div id="s-res" style="margin-top:var(--sp-4)"></div>`,
+    footer: `<button class="btn" data-c>Fermer</button><button class="btn" id="s-fill">Remplir jusqu'au maximum</button><button class="btn primary" id="s-go">Réceptionner la sélection</button>` });
+  m.root.querySelector('[data-c]').onclick = m.close;
+  let B, coches = new Set();
+  const cible = () => { const v = parseFloat(String($('#s-cible').value).replace(',', '.')); return isFinite(v) ? Math.min(Math.max(v, 0), 99) / 100 : 0; };
+  const maj = () => {   // recalcule les totaux sans reconstruire le tableau (les cases gardent le focus)
+    const sel = B.cand.filter(c => coches.has(c.id)), sim = sel.reduce((s, c) => s + (+c.montantHT || 0), 0);
+    const deja = B.achats + B.mo, max = B.ca * (1 - cible()) - deja, reste = max - sim;
+    const marge = B.ca - deja - sim, pctM = B.ca ? marge / B.ca : 0, ok = B.ca > 0 && reste >= -0.005;
+    const L = (lbl, val, cls = '', strong) => `<div class="stat-line"><span>${lbl}</span><b class="${cls}" style="font-variant-numeric:tabular-nums${strong ? '' : ';font-weight:var(--fw-medium)'}">${val}</b></div>`;
+    $('#s-tot').innerHTML = `<div class="grid-2">
+      <div>${L('CA mis en facturation — ' + MOIS[B.mois] + ' ' + B.annee, eur(B.ca))}
+        ${L('Déjà réceptionné (achats ' + eur(B.achats) + ' · pointage ' + eur(B.mo) + ')', eur(deja))}
+        ${L('Montant maximal réceptionnable à ' + pct(cible()) + ' de marge', B.ca ? eur(Math.max(0, max)) : '—', max > 0 ? 'pos' : 'neg', true)}</div>
+      <div>${L('Réception simulée (' + sel.length + ' commande' + (sel.length > 1 ? 's' : '') + ')', eur(sim))}
+        ${L('Marge du mois après réception', B.ca || deja || sim ? eur(marge) + (B.ca ? ' · ' + pct(pctM) : '') : '—', marge >= 0 ? 'pos' : 'neg', true)}
+        ${L(ok ? 'Reste réceptionnable' : 'Dépassement du maximum', B.ca ? eur(Math.abs(reste)) : '—', ok ? '' : 'neg')}</div></div>
+      ${B.ca ? '' : `<p class="t-muted" style="margin:var(--sp-2) 0 0">Aucun CA mis en facturation sur ${MOIS[B.mois].toLowerCase()} ${B.annee}${$('#s-otp').value ? ' pour cet OTP' : ''} : toute réception fera baisser la marge. Mettez d'abord le chantier en facturation (CA &amp; marge, clôture de fin de mois).</p>`}`;
+    const all = $('#s-all'); if (all) { all.checked = sel.length === B.cand.length; all.indeterminate = sel.length > 0 && sel.length < B.cand.length; }
+  };
+  const rendre = () => {
+    B = simuReceptionBase($('#s-date').value || todayISO(), $('#s-otp').value);
+    coches = new Set([...coches].filter(id => B.cand.some(c => c.id === id)));
+    $('#s-res').innerHTML = `<div id="s-tot"></div>
+      ${B.cand.length ? `<div class="table-wrap" style="margin-top:var(--sp-4)"><table><thead><tr><th><input type="checkbox" id="s-all" aria-label="Tout cocher"></th><th>Commandée le</th><th>OTP</th><th>Fournisseur</th><th class="wrap">Objet</th><th class="num">Montant HT</th></tr></thead>
+        <tbody>${B.cand.map(c => `<tr><td><input type="checkbox" class="s-chk" data-id="${c.id}" ${coches.has(c.id) ? 'checked' : ''} aria-label="Simuler la réception de ${esc([c.fournisseur, c.objet].filter(Boolean).join(' — ') || c.num || 'la commande')}"></td><td>${fmtDate(c.date)}</td><td class="t-strong">${esc(c.otp)}</td><td>${esc(c.fournisseur || '—')}</td><td class="wrap">${esc(c.objet || '—')}</td><td class="num">${eur(c.montantHT)}</td></tr>`).join('')}</tbody></table></div>`
+        : `<div class="empty" style="padding:var(--sp-6)"><div class="em-ico">${icon('checkSquare')}</div><h3>Aucune commande à réceptionner</h3><div>Toutes les commandes comptées${$('#s-otp').value ? ' sur cet OTP' : ''} sont déjà réceptionnées.</div></div>`}`;
+    $$('.s-chk', m.root).forEach(i => i.onchange = () => { i.checked ? coches.add(i.dataset.id) : coches.delete(i.dataset.id); maj(); });
+    const all = $('#s-all'); if (all) all.onchange = () => { coches = all.checked ? new Set(B.cand.map(c => c.id)) : new Set(); $$('.s-chk', m.root).forEach(i => i.checked = all.checked); maj(); };
+    maj();
+  };
+  $('#s-date').onchange = rendre; $('#s-otp').onchange = rendre; $('#s-cible').oninput = maj;
+  // Remplit au plus près du maximum : commandes les plus anciennes d'abord, sans dépasser
+  $('#s-fill').onclick = () => {
+    let reste = B.ca * (1 - cible()) - B.achats - B.mo; coches = new Set();
+    B.cand.forEach(c => { const v = +c.montantHT || 0; if (v <= reste + 0.005) { coches.add(c.id); reste -= v; } });
+    $$('.s-chk', m.root).forEach(i => i.checked = coches.has(i.dataset.id)); maj();
+    toast(coches.size ? coches.size + ' commande(s) cochée(s) dans la limite du maximum' : 'Aucune commande ne tient dans le maximum réceptionnable', coches.size ? undefined : 'err');
+  };
+  $('#s-go').onclick = () => {
+    const dr = $('#s-date').value || todayISO(), sel = B.cand.filter(c => coches.has(c.id));
+    if (!sel.length) { toast('Cochez au moins une commande à réceptionner', 'err'); return; }
+    sel.forEach(c => { c.dateReception = dr; if (c.statut === 'commande') c.statut = 'livree'; });
+    DB.save(); m.close(); toast(sel.length + ' commande(s) réceptionnée(s) le ' + fmtDate(dr)); go('achats');
+  };
+  rendre();
 }
 function receptionPicker() {
   const cand = DB.data.commandes.filter(c => !c.dateReception).sort((a, b) => (a.date || '').localeCompare(b.date || ''));
