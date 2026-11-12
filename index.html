@@ -1213,6 +1213,13 @@ thead th{background:var(--surface);font-size:var(--text-xs);line-height:var(--lh
 @media(max-width:1100px){.dash-cols{grid-template-columns:minmax(0,1fr)}}
 @media(max-width:720px){.kpi-grid.kpi-6{grid-template-columns:repeat(2,minmax(0,1fr))}}
 
+.todo-meta{display:flex;flex-wrap:wrap;align-items:center;gap:var(--sp-1)}
+.todo-meta>.todo-status{align-self:auto}
+.p-pct-wrap{display:inline-flex;align-items:center;gap:var(--sp-1);white-space:nowrap}
+.p-pct-wrap .p-pct[aria-invalid="true"]{border-color:var(--red)}
+.p-pct-wrap .p-pct{width:72px;height:32px;padding:0 var(--sp-2);text-align:right;font-variant-numeric:tabular-nums}
+@media(pointer:coarse){.p-pct-wrap .p-pct{height:44px}}
+
 /* --- To-do : commandes secondaires regroupées --- */
 .todo-item{position:relative}
 .todo-tools{display:flex;align-items:center;gap:var(--sp-half);flex:none}
@@ -1226,8 +1233,8 @@ thead th{background:var(--surface);font-size:var(--text-xs);line-height:var(--lh
 .todo-tools .todo-status-input{min-width:200px}
 .todo-item>.todo-flag.on{margin:0 calc(var(--sp-2) * -1) 0 calc(var(--sp-1) * -1)}
 @media (hover:hover) and (pointer:fine){
-  .todo-tools{position:absolute;right:0;top:50%;transform:translateY(-50%);padding:var(--sp-half) 0 var(--sp-half) var(--sp-2);opacity:0;pointer-events:none;
-    background:var(--surface);transition:opacity .1s}
+  /* Les outils gardent leur place dans la ligne (invisibles hors survol) : ils ne recouvrent plus les puces « En attente » / échéance */
+  .todo-tools{opacity:0;pointer-events:none;transition:opacity .1s}
   .todo-item:hover>.todo-tools,.todo-tools:focus-within{opacity:1;pointer-events:auto}
   .todo-item.dragging>.todo-tools{opacity:0}
 }
@@ -3777,10 +3784,8 @@ function renderTodos() {
         ${t.important ? flag : ''}
         <div class="todo-main">
           <span class="todo-text" title="Double-cliquez pour modifier">${esc(t.text)}</span>
-          ${t.status ? status : ''}
+          ${(t.status || waitOn || m) ? `<div class="todo-meta">${t.status ? status : ''}${waitOn ? wait : ''}${m ? due : ''}</div>` : ''}
         </div>
-        ${waitOn ? wait : ''}
-        ${m ? due : ''}
         <span class="todo-tools">${t.status ? '' : status}${t.important ? '' : flag}${waitOn ? '' : wait}${m ? '' : due}<button class="icon-btn todo-edit" title="Modifier" aria-label="Modifier la tâche">${icon('edit')}</button><button class="icon-btn danger todo-del" title="Supprimer" aria-label="Supprimer la tâche">${icon('trash')}</button></span>
       </div>`;
   };
@@ -4068,6 +4073,7 @@ function planningCell(c) {
 }
 // « Autoriser la mise en facturation » : seul un chantier coché est proposé à la clôture du CA
 const chantierEnCa = c => caIsConsumed('chantier', c.id);
+const chantierPctFact = c => caPctFait('chantier', c.id);
 const chantierFacturable = c => c.facturable ?? c.statut === 'facture'; // chantiers créés avant la case : comme avant
 function renderChantiers(v) {
   const list = DB.data.chantiers.filter(c => {
@@ -4093,7 +4099,7 @@ function renderChantiers(v) {
         <td data-c="statut">${statutBadge(c.statut)}</td>
         <td>${planningCell(c)}</td>
         <td>${prepaResume(c)}</td>
-        <td>${chantierEnCa(c) ? '<span class="badge b-facture" title="Déjà repris dans le CA">Mis en factu.</span>' : `<label class="switch-lbl"><input type="checkbox" role="switch" class="switch" data-factu="${c.id}" ${chantierFacturable(c) ? 'checked' : ''} aria-label="Autoriser la mise en facturation de ${esc(c.nom)}">${chantierFacturable(c) ? 'Autorisé' : '<span class="t-muted">Bloqué</span>'}</label>`}</td>
+        <td>${chantierEnCa(c) ? '<span class="badge b-facture" title="Déjà repris dans le CA">Mis en factu.</span>' : `<label class="switch-lbl"><input type="checkbox" role="switch" class="switch" data-factu="${c.id}" ${chantierFacturable(c) ? 'checked' : ''} aria-label="Autoriser la mise en facturation de ${esc(c.nom)}">${chantierFacturable(c) ? 'Autorisé' : '<span class="t-muted">Bloqué</span>'}</label>${chantierPctFact(c) > 0 ? `<div class="t-muted" style="font-size:var(--text-xs);line-height:var(--lh-xs);font-variant-numeric:tabular-nums">${fmtPct(chantierPctFact(c))} mis en factu.</div>` : ''}`}</td>
         <td class="num" data-c="montant">${eur(c.montantHT)}</td>
         <td class="actions-cell" data-c="act"><button class="icon-btn" data-plan="${c.id}" title="Planifier dans le planning">${icon('calendar')}</button><button class="icon-btn" data-edit="${c.id}" title="Modifier">${icon('edit')}</button><button class="icon-btn danger" data-del="${c.id}" title="Supprimer">${icon('trash')}</button></td></tr>`).join('')}</tbody>
       <tfoot><tr><td colspan="7" data-c="tot">Total</td><td class="num" data-c="montant">${eur(list.reduce((s, c) => s + (+c.montantHT || 0), 0))}</td><td></td></tr></tfoot></table></div>`
@@ -4104,7 +4110,7 @@ function renderChantiers(v) {
   $('#ff').onchange = e => { chantierFilter.factu = e.target.value; renderChantiers(v); };
   $('#fp').onchange = e => { chantierFilter.plan = e.target.value; renderChantiers(v); };
   $$('[data-factu]', v).forEach(i => i.onchange = () => { const c = chantierById(i.dataset.factu); if (!c) return; c.facturable = i.checked; DB.save(); toast(i.checked ? 'Mise en facturation autorisée' : 'Mise en facturation bloquée'); renderChantiers(v); });
-  $('#csv').onclick = () => exportXlsx('chantiers', ['otp', 'nom', 'client', 'adresse', 'statut', 'planning_debut', 'planning_fin', 'heures_imputees', 'notes_preparation', 'mise_en_facturation', 'montantHT'], list.map(c => [c.otp, c.nom, clientNom(c.clientId), c.adresse, STATUTS_CHANTIER[c.statut], ...(p => p ? [p.debut, p.fin, p.heures] : ['', '', 0])(chantierPlanning(c)), prepaNotes(c).length, chantierEnCa(c) ? 'Mis en facturation' : chantierFacturable(c) ? 'Autorisée' : 'Bloquée', c.montantHT]), { sheet: 'Chantiers' });
+  $('#csv').onclick = () => exportXlsx('chantiers', ['otp', 'nom', 'client', 'adresse', 'statut', 'planning_debut', 'planning_fin', 'heures_imputees', 'notes_preparation', 'mise_en_facturation', 'montantHT'], list.map(c => [c.otp, c.nom, clientNom(c.clientId), c.adresse, STATUTS_CHANTIER[c.statut], ...(p => p ? [p.debut, p.fin, p.heures] : ['', '', 0])(chantierPlanning(c)), prepaNotes(c).length, chantierEnCa(c) ? 'Mis en facturation' : (chantierPctFact(c) > 0 ? fmtPct(chantierPctFact(c)) + ' mis en facturation · ' : '') + (chantierFacturable(c) ? 'Autorisée' : 'Bloquée'), c.montantHT]), { sheet: 'Chantiers' });
   $$('[data-edit]', v).forEach(b => b.onclick = () => openForm('chantiers/' + b.dataset.edit, b));
   $$('[data-plan]', v).forEach(b => b.onclick = () => { planTab = 'mois'; go('planning'); agendaForm(null, null, { chantierId: b.dataset.plan }); });
   $$('[data-view]', v).forEach(b => b.onclick = () => chantierDetail(b.dataset.view));
@@ -4211,7 +4217,7 @@ function chantierDetail(id) {
       <div><div class="stat-line"><span>OTP</span><b>${esc(c.otp || '—')}</b></div><div class="stat-line"><span>Statut</span><b>${statutBadge(c.statut)}</b></div>
         <div class="stat-line"><span>Client</span><b>${esc(cl ? cl.nom : '—')}</b></div><div class="stat-line"><span>Adresse</span><b>${esc(c.adresse || '—')}</b></div>
         <div class="stat-line"><span>Date de la demande</span><b>${fmtDate(c.dateDemande)}</b></div><div class="stat-line"><span>Montant HT</span><b>${eur(c.montantHT)}</b></div>
-        <div class="stat-line"><span>Mise en facturation</span><b>${chantierEnCa(c) ? 'Déjà mis en facturation' : chantierFacturable(c) ? 'Autorisée' : 'Bloquée'}</b></div></div>
+        <div class="stat-line"><span>Mise en facturation</span><b>${chantierEnCa(c) ? 'Déjà mis en facturation' : (chantierPctFact(c) > 0 ? fmtPct(chantierPctFact(c)) + ' mis en facturation · ' : '') + (chantierFacturable(c) ? 'Autorisée' : 'Bloquée')}</b></div></div>
       <div><div class="card-title">Contact client</div>
         ${cl ? `<div class="stat-line"><span>Interlocuteur</span><b>${esc(cl.contact || '—')}</b></div><div class="stat-line"><span>Téléphone</span><b>${esc(cl.tel || '—')}</b></div><div class="stat-line"><span>Email</span><b>${esc(cl.email || '—')}</b></div>` : '<div class="t-muted">Aucun client associé.</div>'}
         ${c.notes ? `<div class="card-title" style="margin-top:var(--sp-4)">Notes</div><div class="t-muted">${esc(c.notes)}</div>` : ''}</div></div>
@@ -5190,16 +5196,19 @@ function caForm(id) {
   };
 }
 /* Affaires facturables (chantiers dont la mise en facturation est autorisée + devis acceptés) non encore reprises en CA */
-const caIsConsumed = (type, sid) => DB.data.ca.some(r => r.sourceType === type && r.sourceId === sid);
+// Une affaire peut être mise en facturation en plusieurs fois : chaque ligne CA porte le % du montant qu'elle reprend (100 % par défaut)
+const caPctFait = (type, sid) => DB.data.ca.filter(r => r.sourceType === type && r.sourceId === sid).reduce((s, r) => s + (r.pct ?? 100), 0);
+const caIsConsumed = (type, sid) => caPctFait(type, sid) >= 99.995;
+const fmtPct = n => (+n || 0).toLocaleString('fr-FR', { maximumFractionDigits: 2 }) + ' %';
 function caCandidates() {
   const out = [];
   // devis déjà transformés en chantier : ne pas les proposer en double
   const devisLies = new Set(DB.data.chantiers.map(c => c.sourceDevisId).filter(Boolean));
-  DB.data.chantiers.filter(c => chantierFacturable(c) && c.statut !== 'perdu' && otpCompte(c.otp) && !caIsConsumed('chantier', c.id)).forEach(c => out.push({ type: 'chantier', id: c.id, otp: c.otp, clientId: c.clientId, designation: c.nom, montant: +c.montantHT || 0 }));
-  DB.data.devis.filter(d => d.statut === 'accepte' && !d.horsComptes && otpCompte(d.otp) && !caIsConsumed('devis', d.id) && !devisLies.has(d.id)).forEach(d => out.push({ type: 'devis', id: d.id, otp: d.otp, clientId: d.clientId, designation: d.objet, montant: +d.montantHT || 0 }));
+  DB.data.chantiers.filter(c => chantierFacturable(c) && c.statut !== 'perdu' && otpCompte(c.otp) && !caIsConsumed('chantier', c.id)).forEach(c => out.push({ type: 'chantier', id: c.id, otp: c.otp, clientId: c.clientId, designation: c.nom, montant: +c.montantHT || 0, fait: caPctFait('chantier', c.id) }));
+  DB.data.devis.filter(d => d.statut === 'accepte' && !d.horsComptes && otpCompte(d.otp) && !caIsConsumed('devis', d.id) && !devisLies.has(d.id)).forEach(d => out.push({ type: 'devis', id: d.id, otp: d.otp, clientId: d.clientId, designation: d.objet, montant: +d.montantHT || 0, fait: caPctFait('devis', d.id) }));
   // BC réalisés des marchés à bons de commande : imputés à l'OTP du marché
   DB.data.bcs.filter(b => b.statut === 'realise' && !caIsConsumed('bc', b.id)).forEach(b => { const mc = marcheById(b.marcheId);
-    if (mc && otpCompte(mc.otp)) out.push({ type: 'bc', id: b.id, otp: mc.otp, clientId: mc.clientId, designation: bcLibelle(b), montant: +b.montantHT || 0 }); });
+    if (mc && otpCompte(mc.otp)) out.push({ type: 'bc', id: b.id, otp: mc.otp, clientId: mc.clientId, designation: bcLibelle(b), montant: +b.montantHT || 0, fait: 0 }); });
   return out;
 }
 function caPicker() {
@@ -5213,22 +5222,42 @@ function caPicker() {
       <div class="field"><label>Année</label><input id="p-annee" type="number" value="${caYear}"></div>
     </div>
     ${sansOtp ? `<p class="t-muted" style="margin:var(--sp-2) 0 0">${sansOtp} affaire(s) sans code OTP ignorée(s) : renseignez l'OTP (Chantiers / Devis) pour pouvoir la mettre en facturation.</p>` : ''}
-    ${cand.length ? `<div class="table-wrap" style="margin-top:var(--sp-4)"><table><thead><tr><th><input type="checkbox" id="p-all"></th><th>Type</th><th>OTP</th><th>Désignation</th><th class="num">Montant HT imputé</th></tr></thead>
-      <tbody>${cand.map((c, i) => `<tr><td><input type="checkbox" class="p-chk" data-i="${i}" checked></td><td><span class="badge ${c.type === 'chantier' ? 'b-receptionne' : c.type === 'bc' ? 'b-commande' : 'b-accepte'}">${c.type === 'chantier' ? 'Chantier' : c.type === 'bc' ? 'Bon de commande' : 'Devis accepté'}</span></td><td class="t-strong">${esc(c.otp || '—')}</td><td>${esc(c.designation)}</td><td class="num">${eur(c.montant)}</td></tr>`).join('')}</tbody></table></div>
+    ${cand.length ? `<div class="table-wrap" style="margin-top:var(--sp-4)"><table><thead><tr><th><input type="checkbox" id="p-all"></th><th>Type</th><th>OTP</th><th>Désignation</th><th class="num" title="Part du montant de l'affaire à mettre en facturation ce mois-ci">% à facturer</th><th class="num">Montant HT imputé</th></tr></thead>
+      <tbody>${cand.map((c, i) => { const reste = Math.round((100 - c.fait) * 100) / 100;
+        return `<tr><td><input type="checkbox" class="p-chk" data-i="${i}" checked aria-label="Mettre en facturation ${esc(c.designation)}"></td><td><span class="badge ${c.type === 'chantier' ? 'b-receptionne' : c.type === 'bc' ? 'b-commande' : 'b-accepte'}">${c.type === 'chantier' ? 'Chantier' : c.type === 'bc' ? 'Bon de commande' : 'Devis accepté'}</span></td><td class="t-strong">${esc(c.otp || '—')}</td><td class="wrap">${esc(c.designation)}<div class="t-muted" style="font-size:var(--text-xs);line-height:var(--lh-xs);font-variant-numeric:tabular-nums">Montant ${eur(c.montant)}${c.fait > 0 ? ` · déjà ${fmtPct(c.fait)} mis en factu.` : ''}</div></td>
+        <td class="num">${c.type === 'bc' ? fmtPct(100) : `<span class="p-pct-wrap"><input type="number" class="input p-pct" data-i="${i}" min="0.01" max="${reste}" step="any" value="${reste}" inputmode="decimal" aria-label="Pourcentage à mettre en facturation pour ${esc(c.designation)} (reste ${fmtPct(reste)})"> %</span>`}</td>
+        <td class="num" data-mt="${i}">${eur(c.montant * reste / 100)}</td></tr>`; }).join('')}</tbody></table></div>
       <div class="field inline" style="margin-top:var(--sp-3)"><input type="checkbox" id="p-fact"><label for="p-fact" style="cursor:pointer">Créer aussi les factures correspondantes (statut « à émettre »)</label></div>`
       : `<div class="empty" style="padding:var(--sp-8)"><div class="em-ico">${icon('checkSquare')}</div><h3>Aucune affaire disponible</h3><div>Cochez « Autoriser la mise en facturation » sur un chantier (section Chantiers) ou acceptez un devis pour le voir apparaître ici.</div></div>`}`,
     footer: cand.length ? `<button class="btn" data-c>Annuler</button><button class="btn primary" id="p-go">Ajouter au CA du mois</button>` : `<button class="btn" data-c>Fermer</button>` });
   m.root.querySelector('[data-c]').onclick = m.close;
   if (!cand.length) return;
   $('#p-all').onclick = e => $$('.p-chk', m.root).forEach(c => c.checked = e.target.checked);
+  const resteDe = c => Math.round((100 - c.fait) * 100) / 100;
+  const pctDe = i => { const inp = m.root.querySelector(`.p-pct[data-i="${i}"]`); return inp ? parseFloat(String(inp.value).replace(',', '.')) : 100; };
+  $$('.p-pct', m.root).forEach(inp => inp.oninput = () => {
+    const i = +inp.dataset.i, p = pctDe(i), c = cand[i];
+    m.root.querySelector(`[data-mt="${i}"]`).textContent = eur(isFinite(p) ? c.montant * Math.min(Math.max(p, 0), resteDe(c)) / 100 : 0);
+    if (isFinite(p) && p > 0) m.root.querySelector(`.p-chk[data-i="${i}"]`).checked = true;
+    inp.removeAttribute('aria-invalid'); inp.title = '';   // l'erreur s'efface dès la saisie
+  });
+  $$('.p-pct', m.root).forEach(inp => inp.onblur = () => {   // contrôle à la sortie du champ
+    const c = cand[+inp.dataset.i], p = pctDe(+inp.dataset.i), ok = isFinite(p) && p > 0 && p <= resteDe(c) + 1e-9;
+    if (ok) { inp.removeAttribute('aria-invalid'); inp.title = ''; }
+    else { inp.setAttribute('aria-invalid', 'true'); inp.title = `Saisissez une valeur entre 0 et ${fmtPct(resteDe(c))}`; }
+  });
   $('#p-go').onclick = () => {
     const mois = +$('#p-mois').value, annee = +$('#p-annee').value;
-    const chosen = $$('.p-chk', m.root).filter(c => c.checked).map(c => cand[+c.dataset.i]);
-    if (!chosen.length) { toast('Sélectionnez au moins une affaire', 'err'); return; }
+    const idx = $$('.p-chk', m.root).filter(c => c.checked).map(c => +c.dataset.i);
+    if (!idx.length) { toast('Sélectionnez au moins une affaire', 'err'); return; }
+    const horsBornes = idx.find(i => { const p = pctDe(i); return !isFinite(p) || p <= 0 || p > resteDe(cand[i]) + 1e-9; });
+    if (horsBornes !== undefined) { const c = cand[horsBornes]; toast(`Pourcentage invalide pour « ${c.designation} » : saisissez une valeur entre 0 et ${fmtPct(resteDe(c))}`, 'err'); m.root.querySelector(`.p-pct[data-i="${horsBornes}"]`)?.focus(); return; }
+    const chosen = idx.map(i => { const c = cand[i], p = c.type === 'bc' ? 100 : pctDe(i), partiel = p < 100;
+      return { ...c, pct: p, montant: Math.round(c.montant * p) / 100, designation: partiel ? `${c.designation} — ${fmtPct(p)}` : c.designation }; });
     const withFact = $('#p-fact').checked;
     chosen.forEach(c => {
       const caId = uid();
-      DB.data.ca.unshift({ id: caId, mois, annee, otp: c.otp || '', chantier: c.designation, prixVente: c.montant, fournitures: 0, engins: 0, moSmac: 0, sourceType: c.type, sourceId: c.id });
+      DB.data.ca.unshift({ id: caId, mois, annee, otp: c.otp || '', chantier: c.designation, prixVente: c.montant, pct: c.pct, fournitures: 0, engins: 0, moSmac: 0, sourceType: c.type, sourceId: c.id });
       if (withFact && c.type === 'bc') { const bc = DB.data.bcs.find(x => x.id === c.id), f = bc && facturerBc(bc); if (f) f.sourceCaId = caId; }   // 1 BC = 1 facture, jamais en double
       else if (withFact) DB.data.factures.unshift({ id: uid(), sourceCaId: caId, num: '', otp: c.otp || '', clientId: c.clientId || '', client: clientNom(c.clientId) === '—' ? '' : clientNom(c.clientId), chantierId: c.type === 'chantier' ? c.id : '', objet: c.designation, dateFG: todayISO(), dateEmission: '', montantHT: c.montant, echeanceJours: DB.data.objectifs.delaiPaiement, datePaiement: '', statut: 'a_emettre' });
     });
